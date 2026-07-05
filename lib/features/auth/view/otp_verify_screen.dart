@@ -158,7 +158,10 @@ class _OtpVerifyScreenState extends State<OtpVerifyScreen> {
           if (!isBlocked && _resendSeconds > 0)
             Row(
               children: [
-                Text('${AppStrings.resendCodeIn} ', style: AppTextStyles.bodySmall()),
+                Text(
+                  '${AppStrings.resendCodeIn} ',
+                  style: AppTextStyles.bodySmall(),
+                ),
                 Text(
                   _formatTime(_resendSeconds),
                   style: AppTextStyles.labelMedium(color: AppColors.primary),
@@ -172,9 +175,9 @@ class _OtpVerifyScreenState extends State<OtpVerifyScreen> {
                   onTap: _resendCode,
                   child: Text(
                     AppStrings.resendCode,
-                    style: AppTextStyles.labelMedium(color: AppColors.primary).copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
+                    style: AppTextStyles.labelMedium(
+                      color: AppColors.primary,
+                    ).copyWith(fontWeight: FontWeight.w700),
                   ),
                 ),
                 Text(' · ', style: AppTextStyles.labelMedium()),
@@ -182,9 +185,9 @@ class _OtpVerifyScreenState extends State<OtpVerifyScreen> {
                   onTap: () => Navigator.pop(context),
                   child: Text(
                     AppStrings.changeNumber,
-                    style: AppTextStyles.labelMedium(color: AppColors.primary).copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
+                    style: AppTextStyles.labelMedium(
+                      color: AppColors.primary,
+                    ).copyWith(fontWeight: FontWeight.w700),
                   ),
                 ),
               ],
@@ -194,9 +197,9 @@ class _OtpVerifyScreenState extends State<OtpVerifyScreen> {
               onTap: () => Navigator.pop(context),
               child: Text(
                 AppStrings.changeNumber,
-                style: AppTextStyles.labelMedium(color: AppColors.primary).copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
+                style: AppTextStyles.labelMedium(
+                  color: AppColors.primary,
+                ).copyWith(fontWeight: FontWeight.w700),
               ),
             ),
         ],
