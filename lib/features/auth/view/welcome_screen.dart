@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:yjeek_app/core/constants/app_strings.dart';
 import 'package:yjeek_app/core/constants/app_text_styles.dart';
 import 'package:yjeek_app/features/auth/view/widgets/auth_widgets.dart';
+import 'package:yjeek_app/routes/app_router.dart';
 import 'package:yjeek_app/routes/route_names.dart';
 
 class WelcomeScreen extends StatelessWidget {
@@ -21,14 +23,14 @@ class WelcomeScreen extends StatelessWidget {
           WelcomeActionCard(
             title: AppStrings.browseAsGuest,
             icon: const Icon(Icons.explore_outlined, color: Color(0xFF4CAF50), size: 28),
-            onTap: () => Navigator.pushReplacementNamed(context, RouteNames.home),
+            onTap: () => context.goHome(),
           ),
           const SizedBox(height: 12),
           WelcomeActionCard(
             title: AppStrings.loginOrSignUp,
             isPrimary: true,
             icon: const Icon(Icons.login_rounded, color: Color(0xFF4CAF50), size: 28),
-            onTap: () => Navigator.pushNamed(context, RouteNames.phoneLogin),
+            onTap: () => context.push(RouteNames.phoneLogin),
           ),
           // const SizedBox(height: 40),
           Spacer(),

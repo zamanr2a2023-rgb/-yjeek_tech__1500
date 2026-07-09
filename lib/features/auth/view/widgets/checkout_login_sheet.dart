@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:yjeek_app/core/constants/app_colors.dart';
 import 'package:yjeek_app/core/constants/app_strings.dart';
 import 'package:yjeek_app/core/constants/app_text_styles.dart';
@@ -24,7 +25,7 @@ class CheckoutLoginSheet extends StatelessWidget {
       children: [
         Positioned.fill(
           child: GestureDetector(
-            onTap: () => Navigator.pop(context),
+            onTap: () => context.pop(),
             child: Container(color: AppColors.overlay),
           ),
         ),
@@ -76,8 +77,8 @@ class CheckoutLoginSheet extends StatelessWidget {
                   CustomButton(
                     label: AppStrings.continueWithPhone,
                     onPressed: () {
-                      Navigator.pop(context);
-                      Navigator.pushNamed(context, RouteNames.phoneLogin);
+                      context.pop();
+                      context.push(RouteNames.phoneLogin);
                     },
                   ),
                   const SizedBox(height: 10),
@@ -98,7 +99,7 @@ class CheckoutLoginSheet extends StatelessWidget {
                   CustomButton(
                     label: AppStrings.keepBrowsing,
                     variant: AppButtonVariant.ghost,
-                    onPressed: () => Navigator.pop(context),
+                    onPressed: () => context.pop(),
                   ),
                 ],
               ),

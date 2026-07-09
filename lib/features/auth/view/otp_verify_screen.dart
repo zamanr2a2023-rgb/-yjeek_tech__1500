@@ -1,26 +1,29 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:yjeek_app/core/constants/app_colors.dart';
 import 'package:yjeek_app/core/constants/app_strings.dart';
 import 'package:yjeek_app/core/constants/app_text_styles.dart';
+import 'package:yjeek_app/core/providers/app_providers.dart';
 import 'package:yjeek_app/core/widgets/custom_button.dart';
 import 'package:yjeek_app/features/auth/view/widgets/auth_widgets.dart';
 import 'package:yjeek_app/features/auth/view/widgets/otp_input.dart';
-import 'package:yjeek_app/routes/route_names.dart';
+import 'package:yjeek_app/routes/app_router.dart';
 
 enum OtpScreenState { normal, wrongCode, resent, blocked }
 
-class OtpVerifyScreen extends StatefulWidget {
+class OtpVerifyScreen extends ConsumerStatefulWidget {
   const OtpVerifyScreen({super.key, required this.phoneNumber});
 
   final String phoneNumber;
 
   @override
-  State<OtpVerifyScreen> createState() => _OtpVerifyScreenState();
+  ConsumerState<OtpVerifyScreen> createState() => _OtpVerifyScreenState();
 }
 
-class _OtpVerifyScreenState extends State<OtpVerifyScreen> {
+class _OtpVerifyScreenState extends ConsumerState<OtpVerifyScreen> {
   final _otpController = TextEditingController();
   OtpScreenState _state = OtpScreenState.normal;
   int _attemptsLeft = 3;
@@ -98,7 +101,9 @@ class _OtpVerifyScreenState extends State<OtpVerifyScreen> {
     }
 
     if (code.length == 4) {
-      Navigator.pushReplacementNamed(context, RouteNames.home);
+      ref.read(storageServiceProvider).setLoggedIn(true);
+      ref.read(storageServiceProvider).savePhone(widget.phoneNumber);
+      context.goHome();
     }
   }
 
@@ -182,7 +187,7 @@ class _OtpVerifyScreenState extends State<OtpVerifyScreen> {
                 ),
                 Text(' · ', style: AppTextStyles.labelMedium()),
                 GestureDetector(
-                  onTap: () => Navigator.pop(context),
+                  onTap: () => context.pop(),
                   child: Text(
                     AppStrings.changeNumber,
                     style: AppTextStyles.labelMedium(
@@ -194,7 +199,7 @@ class _OtpVerifyScreenState extends State<OtpVerifyScreen> {
             )
           else
             GestureDetector(
-              onTap: () => Navigator.pop(context),
+              onTap: () => context.pop(),
               child: Text(
                 AppStrings.changeNumber,
                 style: AppTextStyles.labelMedium(

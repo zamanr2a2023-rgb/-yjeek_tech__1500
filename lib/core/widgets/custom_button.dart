@@ -14,6 +14,8 @@ class CustomButton extends StatelessWidget {
     this.trailing,
     this.enabled = true,
     this.expand = true,
+    this.height,
+    this.borderRadius,
   });
 
   final String label;
@@ -23,6 +25,8 @@ class CustomButton extends StatelessWidget {
   final Widget? trailing;
   final bool enabled;
   final bool expand;
+  final double? height;
+  final double? borderRadius;
 
   @override
   Widget build(BuildContext context) {
@@ -45,13 +49,14 @@ class CustomButton extends StatelessWidget {
       ],
     );
 
-    final borderRadius = BorderRadius.circular(28);
+    final radius = BorderRadius.circular(borderRadius ?? 28);
+    final buttonHeight = height ?? 55;
 
     switch (variant) {
       case AppButtonVariant.primary:
         return SizedBox(
           width: expand ? double.infinity : null,
-          height: 55,
+          height: buttonHeight,
           child: ElevatedButton(
             onPressed: enabled ? onPressed : null,
             style: ElevatedButton.styleFrom(
@@ -60,7 +65,7 @@ class CustomButton extends StatelessWidget {
               foregroundColor: AppColors.white,
               disabledForegroundColor: AppColors.white,
               elevation: 0,
-              shape: RoundedRectangleBorder(borderRadius: borderRadius),
+              shape: RoundedRectangleBorder(borderRadius: radius),
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 17),
             ),
             child: child,
@@ -69,15 +74,15 @@ class CustomButton extends StatelessWidget {
       case AppButtonVariant.outlined:
         return SizedBox(
           width: expand ? double.infinity : null,
-          height: 55,
+          height: buttonHeight,
           child: OutlinedButton(
             onPressed: enabled ? onPressed : null,
             style: OutlinedButton.styleFrom(
               backgroundColor: AppColors.white,
-              foregroundColor: AppColors.textPrimary,
+              foregroundColor: AppColors.textSecondary,
               side: const BorderSide(color: AppColors.border, width: 1.4),
-              shape: RoundedRectangleBorder(borderRadius: borderRadius),
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 17),
+              shape: RoundedRectangleBorder(borderRadius: radius),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
             ),
             child: child,
           ),
@@ -85,15 +90,15 @@ class CustomButton extends StatelessWidget {
       case AppButtonVariant.apple:
         return SizedBox(
           width: expand ? double.infinity : null,
-          height: 55,
+          height: buttonHeight,
           child: ElevatedButton(
             onPressed: enabled ? onPressed : null,
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.appleBlack,
               foregroundColor: AppColors.white,
               elevation: 0,
-              shape: RoundedRectangleBorder(borderRadius: borderRadius),
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 17),
+              shape: RoundedRectangleBorder(borderRadius: radius),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
             ),
             child: child,
           ),
@@ -101,13 +106,13 @@ class CustomButton extends StatelessWidget {
       case AppButtonVariant.ghost:
         return SizedBox(
           width: expand ? double.infinity : null,
-          height: 55,
+          height: buttonHeight,
           child: TextButton(
             onPressed: enabled ? onPressed : null,
             style: TextButton.styleFrom(
               foregroundColor: AppColors.textPrimary,
               shape: RoundedRectangleBorder(
-                borderRadius: borderRadius,
+                borderRadius: radius,
                 side: const BorderSide(color: AppColors.border, width: 1.5),
               ),
             ),
@@ -123,7 +128,7 @@ class CustomButton extends StatelessWidget {
       case AppButtonVariant.apple:
         return AppTextStyles.labelLarge();
       case AppButtonVariant.outlined:
-        return AppTextStyles.bodyLarge(color: AppColors.textPrimary).copyWith(
+        return AppTextStyles.bodyLarge(color: AppColors.textSecondary).copyWith(
           fontSize: 14.5,
           fontWeight: FontWeight.w600,
         );

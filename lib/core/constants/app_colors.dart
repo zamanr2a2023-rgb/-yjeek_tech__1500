@@ -17,10 +17,19 @@ abstract final class AppColors {
   static const Color successText = Color(0xFF0F4D27);
   static const Color lifestyle = Color(0xFFF6E7A8);
   static const Color dotGold = Color(0xFFF4C81E);
-  static const Color appleBlack = Color(0xFF1A1A1A);
+  static const Color appleBlack = Color(0xFF111111);
   static const Color overlay = Color(0x800F1A12);
   static const Color skeleton = Color(0xFFCFD8CF);
   static const Color skeletonLight = Color(0xFFDFE6DF);
   static const Color bodyText = Color(0xFF333836);
   static const Color disabledOtp = Color(0xFFDCE7D4);
+  static const Color cartTabActive = Color(0xFF2E9E4D);
+  static const Color cartTabBorder = Color(0xFFDBE3DB);
+  static const Color offerBadgeOrangeBg = Color(0xFFFFF2D9);
+  static const Color offerBadgeOrangeText = Color(0xFFD98C1A);
+  static const Color offerBadgeRedBg = Color(0xFFFFEBEB);
+  static const Color offerBadgeRedText = Color(0xFFDB2626);
+  static const Color accountIconBackground = Color(0xFFEAF3DE);
+  static const Color offerBadgeGreenBg = Color(0xFFE3F2EB);
+  static const Color offerBadgeGreenText = Color(0xFF127036);
 }

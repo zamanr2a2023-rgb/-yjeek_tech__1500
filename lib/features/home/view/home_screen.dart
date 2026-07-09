@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:yjeek_app/core/constants/app_colors.dart';
-import 'package:yjeek_app/core/constants/app_text_styles.dart';
-import 'package:yjeek_app/core/widgets/custom_button.dart';
-import 'package:yjeek_app/features/auth/view/widgets/checkout_login_sheet.dart';
+import 'package:yjeek_app/core/constants/home_strings.dart';
+import 'package:yjeek_app/features/home/model/home_data.dart';
+import 'package:yjeek_app/features/home/view/widgets/home_widgets.dart';
 import 'package:yjeek_app/routes/route_names.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -12,68 +13,74 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: Text('Yjeek', style: AppTextStyles.titleSmall(color: AppColors.primary)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pushReplacementNamed(context, RouteNames.welcome),
-            child: Text('Logout', style: AppTextStyles.labelMedium(color: AppColors.primary)),
+      body: CustomScrollView(
+        slivers: [
+          SliverToBoxAdapter(
+            child: HomeGreenHeader(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const HomeGreetingHeader(),
+                  const SizedBox(height: 14),
+                  const HomeSearchBar(hint: HomeStrings.searchHome),
+                ],
+              ),
+            ),
+          ),
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+            sliver: SliverList(
+              delegate: SliverChildListDelegate([
+                const OrderStatusCard(),
+                const SizedBox(height: 18),
+                SectionHeader(
+                  title: HomeStrings.categories,
+                  onSeeAll: () => context.push(RouteNames.categories),
+                ),
+                const SizedBox(height: 14),
+                HomeCategoriesGrid(categories: HomeData.homeCategories),
+                const SizedBox(height: 18),
+                const SectionHeader(title: HomeStrings.orderAgain),
+                const SizedBox(height: 14),
+                SizedBox(
+                  height: 104,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: HomeData.orderAgainBrands.length,
+                    separatorBuilder: (_, _) => const SizedBox(width: 16),
+                    itemBuilder: (context, index) {
+                      return BrandAvatar(
+                        brand: HomeData.orderAgainBrands[index],
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(height: 18),
+                SectionHeader(
+                  title: HomeStrings.exclusiveOffers,
+                  onSeeAll: () => context.push(RouteNames.exclusiveOffers),
+                ),
+                const SizedBox(height: 14),
+                SizedBox(
+                  height: 165,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: HomeData.exclusiveOffers.length,
+                    separatorBuilder: (_, _) => const SizedBox(width: 12),
+                    itemBuilder: (context, index) {
+                      return OfferProductCard(
+                        offer: HomeData.exclusiveOffers[index],
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(height: 18),
+                const WeeklySpotlightBanner(),
+              ]),
+            ),
           ),
         ],
       ),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text('You are in!', style: AppTextStyles.displayMedium()),
-              const SizedBox(height: 8),
-              Text(
-                'Browse the app or try the checkout login flow.',
-                textAlign: TextAlign.center,
-                style: AppTextStyles.bodyMedium(),
-              ),
-              const SizedBox(height: 24),
-              CustomButton(
-                label: 'Preview checkout login',
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute<void>(
-                      builder: (_) => const _CheckoutPreviewPage(),
-                    ),
-                  );
-                },
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _CheckoutPreviewPage extends StatefulWidget {
-  const _CheckoutPreviewPage();
-
-  @override
-  State<_CheckoutPreviewPage> createState() => _CheckoutPreviewPageState();
-}
-
-class _CheckoutPreviewPageState extends State<_CheckoutPreviewPage> {
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      CheckoutLoginSheet.show(context);
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return const Scaffold(
-      body: BasketPreviewBackground(child: SizedBox.expand()),
     );
   }
 }

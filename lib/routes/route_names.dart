@@ -4,5 +4,26 @@ abstract final class RouteNames {
   static const String phoneLogin = '/phone-login';
   static const String otpVerify = '/otp-verify';
   static const String home = '/home';
+  static const String categories = '/categories';
+  static const String exclusiveOffers = '/exclusive-offers';
+  static const String orderDetails = '/order-details';
+  static const String wallet = '/wallet';
+  static const String walletCashback = '/wallet/cashback';
+  static const String walletRefunds = '/wallet/refunds';
+  static const String withdrawBank = '/wallet/withdraw';
+  static const String editProfile = '/account/edit-profile';
+  static const String personalInfo = '/account/personal-info';
+  static const String editPersonalInfo = '/account/edit-personal-info';
+  static const String savedAddresses = '/account/addresses';
+  static const String addAddress = '/account/add-address';
+  static const String language = '/account/language';
+  static const String countryRegion = '/account/country';
+  static const String idVerification = '/account/id-verification';
+  static const String aboutPolicies = '/account/about-policies';
+  static const String aboutYjeek = '/account/about-yjeek';
+  static const String policyDocument = '/account/policy';
+  static const String helpSupport = '/account/help-support';
+  static const String orderHelp = '/account/order-help';
+  static const String helpIssue = '/account/help-issue';
   static const String checkoutLogin = '/checkout-login';
 }

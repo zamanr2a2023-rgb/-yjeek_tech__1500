@@ -1,4 +1,3 @@
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:yjeek_app/core/constants/app_colors.dart';
@@ -207,16 +206,23 @@ class PhoneNumberField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    const fieldBorder = OutlineInputBorder(
+      borderRadius: BorderRadius.all(Radius.circular(14)),
+      borderSide: BorderSide(color: AppColors.border, width: 1),
+    );
+
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 17),
+          height: 54,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
           decoration: BoxDecoration(
             color: AppColors.white,
             border: Border.all(color: AppColors.border),
             borderRadius: BorderRadius.circular(14),
           ),
+          alignment: Alignment.center,
           child: Row(
             children: [
               Text(
@@ -237,43 +243,36 @@ class PhoneNumberField extends StatelessWidget {
         ),
         const SizedBox(width: 10),
         Expanded(
-          child: TextField(
-            controller: controller,
-            enabled: enabled,
-            keyboardType: TextInputType.phone,
-            inputFormatters: [
-              FilteringTextInputFormatter.digitsOnly,
-              LengthLimitingTextInputFormatter(8),
-            ],
-            style: AppTextStyles.bodyMedium(
-              color: AppColors.textPrimary,
-            ).copyWith(fontWeight: FontWeight.w600),
-            decoration: InputDecoration(
-              hintText: '3300 0000',
-              hintStyle: AppTextStyles.bodyMedium(color: AppColors.dividerText),
-              filled: true,
-              fillColor: AppColors.white,
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 18,
-                vertical: 17,
-              ),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(14),
-                borderSide: const BorderSide(color: AppColors.border),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(14),
-                borderSide: const BorderSide(color: AppColors.border),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(14),
-                borderSide: const BorderSide(
-                  color: AppColors.primary,
-                  width: 1.5,
+          child: SizedBox(
+            height: 54,
+            child: TextField(
+              controller: controller,
+              enabled: enabled,
+              keyboardType: TextInputType.phone,
+              inputFormatters: [
+                FilteringTextInputFormatter.digitsOnly,
+                LengthLimitingTextInputFormatter(8),
+              ],
+              style: AppTextStyles.bodyMedium(
+                color: AppColors.textPrimary,
+              ).copyWith(fontWeight: FontWeight.w600),
+              decoration: InputDecoration(
+                hintText: '3300 0000',
+                hintStyle: AppTextStyles.bodyMedium(color: AppColors.dividerText)
+                    .copyWith(fontWeight: FontWeight.w600),
+                filled: true,
+                fillColor: AppColors.white,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 18,
+                  vertical: 0,
                 ),
+                border: fieldBorder,
+                enabledBorder: fieldBorder,
+                focusedBorder: fieldBorder,
+                disabledBorder: fieldBorder,
               ),
+              onChanged: onChanged,
             ),
-            onChanged: onChanged,
           ),
         ),
       ],
@@ -281,7 +280,7 @@ class PhoneNumberField extends StatelessWidget {
   }
 }
 
-class TermsCheckboxRow extends StatefulWidget {
+class TermsCheckboxRow extends StatelessWidget {
   const TermsCheckboxRow({
     super.key,
     required this.checked,
@@ -294,72 +293,61 @@ class TermsCheckboxRow extends StatefulWidget {
   final VoidCallback? onTermsTap;
 
   @override
-  State<TermsCheckboxRow> createState() => _TermsCheckboxRowState();
-}
-
-class _TermsCheckboxRowState extends State<TermsCheckboxRow> {
-  late final TapGestureRecognizer _termsRecognizer;
-
-  @override
-  void initState() {
-    super.initState();
-    _termsRecognizer = TapGestureRecognizer()..onTap = widget.onTermsTap;
-  }
-
-  @override
-  void didUpdateWidget(TermsCheckboxRow oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    _termsRecognizer.onTap = widget.onTermsTap;
-  }
-
-  @override
-  void dispose() {
-    _termsRecognizer.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         GestureDetector(
-          onTap: () => widget.onChanged(!widget.checked),
+          onTap: () => onChanged(!checked),
           child: Container(
             width: 20,
             height: 20,
             decoration: BoxDecoration(
-              color: widget.checked ? AppColors.primary : AppColors.white,
+              color: checked ? AppColors.primary : AppColors.white,
               border: Border.all(
-                color: widget.checked
-                    ? AppColors.primary
-                    : AppColors.checkboxBorder,
+                color: checked ? AppColors.primary : AppColors.checkboxBorder,
                 width: 1.5,
               ),
               borderRadius: BorderRadius.circular(5),
             ),
-            child: widget.checked
+            child: checked
                 ? const Icon(Icons.check, size: 14, color: AppColors.white)
                 : null,
           ),
         ),
         const SizedBox(width: 10),
         Expanded(
-          child: Text.rich(
-            TextSpan(
-              style: AppTextStyles.labelSmall(),
-              children: [
-                const TextSpan(text: 'I agree to the '),
-                TextSpan(
-                  text: 'Terms & Conditions & Privacy Policy',
-                  style: const TextStyle(
-                    color: AppColors.primary,
-                    fontWeight: FontWeight.w600,
-                    decoration: TextDecoration.underline,
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: onTermsTap,
+              borderRadius: BorderRadius.circular(8),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                child: Text.rich(
+                  TextSpan(
+                    style: AppTextStyles.labelSmall(
+                      color: AppColors.textMuted,
+                    ).copyWith(fontWeight: FontWeight.w500),
+                    children: [
+                      const TextSpan(text: 'I agree to the '),
+                      TextSpan(
+                        text: 'Terms & Conditions',
+                        style: AppTextStyles.labelSmall(
+                          color: AppColors.primary,
+                        ).copyWith(fontWeight: FontWeight.w600),
+                      ),
+                      const TextSpan(text: ' & '),
+                      TextSpan(
+                        text: 'Privacy Policy',
+                        style: AppTextStyles.labelSmall(
+                          color: AppColors.primary,
+                        ).copyWith(fontWeight: FontWeight.w600),
+                      ),
+                    ],
                   ),
-                  recognizer: _termsRecognizer,
                 ),
-              ],
+              ),
             ),
           ),
         ),

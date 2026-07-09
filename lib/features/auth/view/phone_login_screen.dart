@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:yjeek_app/core/constants/app_strings.dart';
 import 'package:yjeek_app/core/constants/app_text_styles.dart';
 import 'package:yjeek_app/core/widgets/custom_button.dart';
@@ -41,17 +42,25 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
 
   void _sendCode() {
     if (!_canSendCode) return;
-    Navigator.pushNamed(
+    final phone = '${AppStrings.countryCode} $_formattedPhone';
+    context.push(
+      '${RouteNames.otpVerify}?phone=${Uri.encodeComponent(phone)}',
+    );
+  }
+
+  void _openTermsSheet() {
+    TermsBottomSheet.show(
       context,
-      RouteNames.otpVerify,
-      arguments: '${AppStrings.countryCode} $_formattedPhone',
+      onAgree: () {
+        if (mounted) setState(() => _termsAccepted = true);
+      },
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return AuthScreenScaffold(
-      scrollable: true,
+      scrollable: false,
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -66,16 +75,11 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
           ),
           const SizedBox(height: 24),
           PhoneNumberField(controller: _phoneController, enabled: true),
-          const SizedBox(height: 48),
+          const Spacer(),
           TermsCheckboxRow(
             checked: _termsAccepted,
             onChanged: (value) => setState(() => _termsAccepted = value),
-            onTermsTap: () {
-              TermsBottomSheet.show(
-                context,
-                onAgree: () => setState(() => _termsAccepted = true),
-              );
-            },
+            onTermsTap: _openTermsSheet,
           ),
           const SizedBox(height: 12),
           CustomButton(
@@ -83,12 +87,14 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
             enabled: _canSendCode,
             onPressed: _sendCode,
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
           const OrDivider(),
           const SizedBox(height: 16),
           CustomButton(
             label: AppStrings.continueWithGoogle,
             variant: AppButtonVariant.outlined,
+            height: 48,
+            borderRadius: 13,
             leading: const GoogleLogo(),
             onPressed: () {},
           ),
@@ -96,10 +102,11 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
           CustomButton(
             label: AppStrings.continueWithApple,
             variant: AppButtonVariant.apple,
+            height: 48,
+            borderRadius: 13,
             leading: const Icon(Icons.apple, color: Colors.white, size: 22),
             onPressed: () {},
           ),
-          const SizedBox(height: 30),
         ],
       ),
     );
