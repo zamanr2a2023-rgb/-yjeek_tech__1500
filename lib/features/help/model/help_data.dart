@@ -57,6 +57,7 @@ enum HelpIssueType {
   pickUpNotReady,
   cashbackNotCredited,
   modifyRequest,
+  cashOut,
 }
 
 extension HelpIssueTypeX on HelpIssueType {
@@ -78,6 +79,7 @@ extension HelpIssueTypeX on HelpIssueType {
         'pickup_not_ready' => HelpIssueType.pickUpNotReady,
         'cashback_not_credited' => HelpIssueType.cashbackNotCredited,
         'modify_request' => HelpIssueType.modifyRequest,
+        'cash_out' => HelpIssueType.cashOut,
         'track_order' => HelpIssueType.trackOrder,
         _ => HelpIssueType.orderLate,
       };
@@ -100,19 +102,13 @@ extension HelpIssueTypeX on HelpIssueType {
         HelpIssueType.pickUpNotReady => 'pickup_not_ready',
         HelpIssueType.cashbackNotCredited => 'cashback_not_credited',
         HelpIssueType.modifyRequest => 'modify_request',
+        HelpIssueType.cashOut => 'cash_out',
         HelpIssueType.trackOrder => 'track_order',
       };
 
   bool get hasDedicatedForm => switch (this) {
-        HelpIssueType.orderLate ||
-        HelpIssueType.missingItems ||
-        HelpIssueType.damagedSpilled ||
-        HelpIssueType.wrongOrder ||
-        HelpIssueType.notReceived ||
-        HelpIssueType.foodQuality ||
-        HelpIssueType.cancelOrder =>
-          true,
-        _ => false,
+        HelpIssueType.trackOrder => false,
+        _ => true,
       };
 }
 
@@ -121,17 +117,20 @@ class HelpIssueOption {
     required this.type,
     required this.title,
     required this.icon,
+    required this.image,
     required this.iconBg,
     required this.iconColor,
     this.showForScheduled = false,
     this.showForServices = false,
     this.showForDineIn = false,
     this.showForPickUp = false,
+  
   });
 
   final HelpIssueType type;
   final String title;
   final IconData icon;
+  final String image;
   final Color iconBg;
   final Color iconColor;
   final bool showForScheduled;
@@ -139,6 +138,7 @@ class HelpIssueOption {
   final bool showForDineIn;
   final bool showForPickUp;
 }
+
 
 class HelpOrderContext {
   const HelpOrderContext({
@@ -240,6 +240,7 @@ abstract final class HelpData {
   static const orderItems = [
     HelpOrderItem(label: '1× Gourmet Mezze Platter', price: 'BHD 28.000'),
     HelpOrderItem(label: '1× Lamb Ouzi', price: 'BHD 5.000', selected: true),
+    HelpOrderItem(label: '1× Fresh Juice — Large', price: 'BHD 2.000'),
   ];
 
   static const foodQualityOptions = [
@@ -256,12 +257,14 @@ abstract final class HelpData {
     'Changed my mind',
     'Wrong address',
     'Taking too long',
+    'Other',
   ];
 
   static const orderHelpOptions = [
     HelpIssueOption(
       type: HelpIssueType.trackOrder,
       title: 'Track this order',
+      image: 'assets/Frame (12).png',
       icon: Icons.local_shipping_outlined,
       iconBg: Color(0xFFEAF3DE),
       iconColor: Color(0xFF2E7D32),
@@ -270,13 +273,15 @@ abstract final class HelpData {
       type: HelpIssueType.orderLate,
       title: 'Order is late',
       icon: Icons.schedule,
+          image: 'assets/watch.png',
       iconBg: Color(0xFFE8F5E9),
-      iconColor: Color(0xFF141A16),
+      iconColor: Color(0xFF2E7D32),
     ),
     HelpIssueOption(
       type: HelpIssueType.damagedSpilled,
       title: 'Damaged or spilled',
       icon: Icons.broken_image_outlined,
+          image: 'assets/Frame (60).png',
       iconBg: Color(0xFFFBEAEC),
       iconColor: Color(0xFFC0392B),
     ),
@@ -284,6 +289,7 @@ abstract final class HelpData {
       type: HelpIssueType.wrongOrder,
       title: 'Wrong order',
       icon: Icons.swap_horiz,
+          image: 'assets/Frame (41).png',
       iconBg: Color(0xFFFFF3E0),
       iconColor: Color(0xFFE65100),
     ),
@@ -291,6 +297,7 @@ abstract final class HelpData {
       type: HelpIssueType.missingItems,
       title: 'Missing items',
       icon: Icons.inventory_2_outlined,
+          image: 'assets/Frame (40).png',
       iconBg: Color(0xFFFFF3E0),
       iconColor: Color(0xFFE65100),
     ),
@@ -298,6 +305,7 @@ abstract final class HelpData {
       type: HelpIssueType.notReceived,
       title: 'Order not received',
       icon: Icons.location_on_outlined,
+          image: 'assets/Frame (57).png',
       iconBg: Color(0xFFEAF1F8),
       iconColor: Color(0xFF2A6FB0),
     ),
@@ -305,6 +313,7 @@ abstract final class HelpData {
       type: HelpIssueType.foodQuality,
       title: 'Food quality',
       icon: Icons.restaurant_outlined,
+          image: 'assets/Frame (56).png',
       iconBg: Color(0xFFEAF3DE),
       iconColor: Color(0xFF2E7D32),
     ),
@@ -312,6 +321,7 @@ abstract final class HelpData {
       type: HelpIssueType.cancelOrder,
       title: 'Cancel order',
       icon: Icons.cancel_outlined,
+          image: 'assets/Frame (37).png',
       iconBg: Color(0xFFFBEAEC),
       iconColor: Color(0xFFC0392B),
     ),
@@ -319,6 +329,7 @@ abstract final class HelpData {
       type: HelpIssueType.champComplaint,
       title: 'Champ Behavior Complaint',
       icon: Icons.person_outline,
+          image: 'assets/Frame (54).png',
       iconBg: Color(0xFFEDE7F6),
       iconColor: Color(0xFF6A3AA0),
     ),
@@ -326,6 +337,7 @@ abstract final class HelpData {
       type: HelpIssueType.paymentIssue,
       title: 'Payment Issue',
       icon: Icons.credit_card_outlined,
+          image: 'assets/Frame (53).png',
       iconBg: Color(0xFFE9F0FA),
       iconColor: Color(0xFF1565C0),
     ),
@@ -333,6 +345,7 @@ abstract final class HelpData {
       type: HelpIssueType.serviceNoShow,
       title: 'Service Provider No-Show',
       icon: Icons.event_busy_outlined,
+          image: 'assets/Frame (52).png',
       iconBg: Color(0xFFFFF3E0),
       iconColor: Color(0xFFE65100),
       showForServices: true,
@@ -341,6 +354,7 @@ abstract final class HelpData {
       type: HelpIssueType.serviceQualityDispute,
       title: 'Service Quality Dispute',
       icon: Icons.build_outlined,
+          image: 'assets/Frame (51).png',
       iconBg: Color(0xFFEAF1F8),
       iconColor: Color(0xFF2A6FB0),
       showForServices: true,
@@ -349,6 +363,7 @@ abstract final class HelpData {
       type: HelpIssueType.propertyDamage,
       title: 'Property Damage During Service',
       icon: Icons.home_outlined,
+          image: 'assets/Frame (32).png',
       iconBg: Color(0xFFFBEAEC),
       iconColor: Color(0xFFC62828),
       showForServices: true,
@@ -357,6 +372,7 @@ abstract final class HelpData {
       type: HelpIssueType.dineInReservation,
       title: 'Dine-In Reservation Not Honored',
       icon: Icons.table_restaurant_outlined,
+          image: 'assets/Frame (30).png',
       iconBg: Color(0xFFFBEAEC),
       iconColor: Color(0xFFC62828),
       showForDineIn: true,
@@ -365,6 +381,7 @@ abstract final class HelpData {
       type: HelpIssueType.dineInBillQuality,
       title: 'Dine-In Bill or Food Quality',
       icon: Icons.receipt_long_outlined,
+          image: 'assets/Frame (29).png',
       iconBg: Color(0xFFFFF3E0),
       iconColor: Color(0xFFE65100),
       showForDineIn: true,
@@ -373,6 +390,7 @@ abstract final class HelpData {
       type: HelpIssueType.pickUpNotReady,
       title: 'Pick-Up Order Not Ready',
       icon: Icons.shopping_bag_outlined,
+          image: 'assets/Frame (46).png',
       iconBg: Color(0xFFEAF3DE),
       iconColor: Color(0xFF2E7D32),
       showForPickUp: true,
@@ -381,6 +399,7 @@ abstract final class HelpData {
       type: HelpIssueType.cashbackNotCredited,
       title: 'Cashback Not Credited',
       icon: Icons.account_balance_wallet_outlined,
+          image: 'assets/Frame (45).png',
       iconBg: Color(0xFFEAF3DE),
       iconColor: Color(0xFF2E7D32),
     ),
@@ -388,9 +407,18 @@ abstract final class HelpData {
       type: HelpIssueType.modifyRequest,
       title: 'Modify Request',
       icon: Icons.edit_calendar_outlined,
+          image: 'assets/Frame (44).png',
       iconBg: Color(0xFFEAF1F8),
       iconColor: Color(0xFF2A6FB0),
       showForScheduled: true,
+    ),
+    HelpIssueOption(
+      type: HelpIssueType.cashOut,
+      title: 'Cash-out fee or delay',
+      icon: Icons.account_balance_outlined,
+      image: 'assets/Frame (22).png',
+      iconBg: Color(0xFFEAF1F8),
+      iconColor: Color(0xFF2A6FB0),
     ),
   ];
 

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:yjeek_app/core/constants/app_colors.dart';
-import 'package:yjeek_app/core/constants/app_text_styles.dart';
 import 'package:yjeek_app/core/constants/navigation_strings.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/features/help/help_routes.dart';
@@ -50,46 +49,18 @@ class HelpSupportScreen extends StatelessWidget {
                     ],
                   ),
                 ),
-                SizedBox(height: 16.h),
-                GestureDetector(
-                  onTap: () => context.push(RouteNames.aboutPolicies),
-                  child: Container(
-                    width: double.infinity,
-                    padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 13.h),
-                    decoration: BoxDecoration(
-                      color: AppColors.white,
-                      borderRadius: BorderRadius.circular(12.r),
-                      border: Border.all(color: const Color(0xFFE6EBE3)),
+                SizedBox(height: 12.h),
+                HelpCard(
+                  child: HelpChevronRow(
+                    title: 'Policies — Refund · Terms · Privacy',
+                    dense: true,
+                    showDivider: false,
+                    leading: Icon(
+                      Icons.description_outlined,
+                      size: 18.sp,
+                      color: const Color(0xFF6B7B6E),
                     ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.description_outlined,
-                          size: 18.sp,
-                          color: const Color(0xFF6B7B6E),
-                        ),
-                        SizedBox(width: 8.w),
-                        Expanded(
-                          child: Text(
-                            'Policies — Refund · Terms · Privacy',
-                            style: AppTextStyles.labelSmall(color: AppColors.textPrimary)
-                                .copyWith(
-                              fontWeight: FontWeight.w700,
-                              fontSize: 12.5.sp,
-                              height: 1.3,
-                            ),
-                          ),
-                        ),
-                        Text(
-                          '›',
-                          style: TextStyle(
-                            fontSize: 18.sp,
-                            fontWeight: FontWeight.w600,
-                            color: const Color(0xFF6B7B6E),
-                          ),
-                        ),
-                      ],
-                    ),
+                    onTap: () => context.push(HelpRoutes.helpPoliciesLegal()),
                   ),
                 ),
               ],
@@ -104,7 +75,7 @@ class HelpSupportScreen extends StatelessWidget {
   void _openPopularTopic(BuildContext context, int index) {
     switch (index) {
       case 0:
-        context.push('${RouteNames.policyDocument}?type=refund');
+        context.push(HelpRoutes.helpFaq());
       case 1:
         context.push(RouteNames.withdrawBank);
       case 2:
@@ -115,7 +86,7 @@ class HelpSupportScreen extends StatelessWidget {
           ),
         );
       case 3:
-        context.push('${RouteNames.policyDocument}?type=terms');
+        context.push(HelpRoutes.helpChat());
     }
   }
 }

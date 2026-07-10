@@ -3,7 +3,10 @@ import 'package:go_router/go_router.dart';
 import 'package:yjeek_app/core/constants/app_colors.dart';
 import 'package:yjeek_app/core/constants/app_text_styles.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
+import 'package:yjeek_app/features/help/help_routes.dart';
 import 'package:yjeek_app/features/help/model/help_data.dart';
+import 'package:yjeek_app/features/help/model/help_phase2_data.dart';
+import 'package:yjeek_app/features/help/view/help_phase2_issue_body.dart';
 import 'package:yjeek_app/features/help/view/widgets/help_widgets.dart';
 
 class HelpIssueScreen extends StatefulWidget {
@@ -52,18 +55,40 @@ class _HelpIssueScreenState extends State<HelpIssueScreen> {
         HelpIssueType.notReceived => 'Order not received',
         HelpIssueType.foodQuality => 'Food quality',
         HelpIssueType.cancelOrder => 'Cancel order',
-        HelpIssueType.champComplaint => 'Champ Behavior Complaint',
-        HelpIssueType.paymentIssue => 'Payment Issue',
-        HelpIssueType.serviceNoShow => 'Service Provider No-Show',
-        HelpIssueType.serviceQualityDispute => 'Service Quality Dispute',
-        HelpIssueType.propertyDamage => 'Property Damage During Service',
-        HelpIssueType.dineInReservation => 'Dine-In Reservation Not Honored',
-        HelpIssueType.dineInBillQuality => 'Dine-In Bill or Food Quality',
-        HelpIssueType.pickUpNotReady => 'Pick-Up Order Not Ready',
-        HelpIssueType.cashbackNotCredited => 'Cashback Not Credited',
-        HelpIssueType.modifyRequest => 'Modify Request',
+        HelpIssueType.champComplaint => 'Champ behavior',
+        HelpIssueType.paymentIssue => 'Payment issue',
+        HelpIssueType.serviceNoShow => 'Provider no-show',
+        HelpIssueType.serviceQualityDispute => 'Service quality',
+        HelpIssueType.propertyDamage => 'Property damage',
+        HelpIssueType.dineInReservation => 'Reservation issue',
+        HelpIssueType.dineInBillQuality => 'Bill or quality',
+        HelpIssueType.pickUpNotReady => 'Pick-up not ready',
+        HelpIssueType.cashbackNotCredited => 'Missing cashback',
+        HelpIssueType.cashOut => 'Cash-out issue',
+        HelpIssueType.modifyRequest => 'Modify request',
         _ => 'Help',
       };
+
+  bool get _isPhase2Issue => switch (widget.type) {
+        HelpIssueType.champComplaint ||
+        HelpIssueType.paymentIssue ||
+        HelpIssueType.serviceNoShow ||
+        HelpIssueType.serviceQualityDispute ||
+        HelpIssueType.propertyDamage ||
+        HelpIssueType.dineInReservation ||
+        HelpIssueType.dineInBillQuality ||
+        HelpIssueType.pickUpNotReady ||
+        HelpIssueType.cashbackNotCredited ||
+        HelpIssueType.cashOut ||
+        HelpIssueType.modifyRequest =>
+          true,
+        _ => false,
+      };
+
+  bool get _phase2HasExternalBottom =>
+      widget.type == HelpIssueType.propertyDamage ||
+      widget.type == HelpIssueType.modifyRequest ||
+      widget.type == HelpIssueType.paymentIssue;
 
   bool get _showReportBanner =>
       widget.type == HelpIssueType.missingItems ||
@@ -76,225 +101,79 @@ class _HelpIssueScreenState extends State<HelpIssueScreen> {
     return HelpScreenScaffold(
       title: _title,
       bottomNavIndex: widget.bottomNavIndex,
+      showBottomNav: false,
       banner: _showReportBanner
           ? const HelpInfoBanner(message: HelpData.reportWindowBanner)
           : null,
-      body: ListView(
-        padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 8.h),
-        children: [
-          if (widget.type.hasDedicatedForm)
-            ..._buildDedicatedForm(orderContext)
-          else
-            ..._buildGenericForm(),
-        ],
-      ),
-      bottom: widget.type.hasDedicatedForm ? _buildBottomAction() : null,
+      body: _buildIssueBody(orderContext),
+      bottom: _isPhase2Issue && _phase2HasExternalBottom
+          ? _buildPhase2Bottom()
+          : null,
     );
   }
 
-  List<Widget> _buildDedicatedForm(HelpOrderContext orderContext) {
+  Widget _buildScrollForm(List<Widget> children) {
+    return ListView(
+      padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 16.h),
+      children: children,
+    );
+  }
+
+  Widget _buildIssueBody(HelpOrderContext orderContext) {
     return switch (widget.type) {
-      HelpIssueType.orderLate => [
-          const HelpFormHeading(
-            title: 'Order late +15?',
-            subtitle:
-                'When your order is 15 minutes past ETA, an instant wallet credit is '
-                'applied and you’ll get a notification.',
+      HelpIssueType.missingItems => _buildScrollForm([
+          ..._buildMissingItemsFields(),
+          HelpPrimaryButton(
+            label: 'Submit',
+            showCheck: true,
+            inline: true,
+            onTap: () => _submit(context),
           ),
-        ],
-      HelpIssueType.missingItems => [
-          const HelpFormHeading(title: 'Which items are missing?'),
-          SizedBox(height: 12.h),
-          HelpCard(
-            child: Column(
-              children: [
-                for (var i = 0; i < HelpData.orderItems.length; i++)
-                  HelpItemCheckboxRow(
-                    label: HelpData.orderItems[i].label,
-                    price: HelpData.orderItems[i].price,
-                    checked: _itemChecks[i],
-                    showDivider: i < HelpData.orderItems.length - 1,
-                    onChanged: (value) => setState(() => _itemChecks[i] = value),
-                  ),
-              ],
-            ),
+        ]),
+      HelpIssueType.wrongOrder => _buildScrollForm([
+          ..._buildWrongOrderFields(),
+          HelpPrimaryButton(
+            label: 'Submit',
+            showCheck: true,
+            inline: true,
+            onTap: () => _submit(context),
           ),
-          SizedBox(height: 14.h),
-          const HelpPhotoUploadBox(),
-        ],
-      HelpIssueType.damagedSpilled => [
-          const HelpFormHeading(
-            title: 'Add a photo of the damage',
-            subtitle: 'A clear photo lets us refund you automatically.',
+        ]),
+      HelpIssueType.damagedSpilled => _buildScrollForm([
+          ..._buildDamagedSpilledFields(),
+          HelpPrimaryButton(
+            label: 'Submit & get refund',
+            inline: true,
+            onTap: () => _submit(context),
           ),
-          SizedBox(height: 14.h),
-          const HelpPhotoUploadBox(),
-          SizedBox(height: 14.h),
-          HelpNoteField(
-            label: 'Add a note (optional)',
-            hint: 'Tell us what happened…',
-            controller: _noteController,
-          ),
-        ],
-      HelpIssueType.wrongOrder => [
-          const HelpFormHeading(
-            title: 'This isn’t what you ordered?',
-            subtitle: 'Help us fix it fast',
-          ),
-          SizedBox(height: 12.h),
-          HelpCard(
-            child: Column(
-              children: [
-                for (var i = 0; i < HelpData.orderItems.length; i++)
-                  HelpItemCheckboxRow(
-                    label: HelpData.orderItems[i].label,
-                    price: HelpData.orderItems[i].price,
-                    checked: _itemChecks[i],
-                    showDivider: i < HelpData.orderItems.length - 1,
-                    onChanged: (value) => setState(() => _itemChecks[i] = value),
-                  ),
-              ],
-            ),
-          ),
-          SizedBox(height: 14.h),
-          const HelpPhotoUploadBox(),
-        ],
-      HelpIssueType.notReceived => [
+        ]),
+      HelpIssueType.notReceived => _buildScrollForm([
           HelpFormHeading(
             title: 'You didn’t get your order?',
             subtitle:
                 'We’ll check GPS and the handover record for ${orderContext.order.shortId}.',
           ),
           SizedBox(height: 14.h),
-          Container(
-            width: 100.w,
-            height: 150.h,
-            decoration: BoxDecoration(
-              color: const Color(0xFFE4EAE0),
-              borderRadius: BorderRadius.circular(14.r),
-              border: Border.all(color: const Color(0xFFE6EBE3)),
-            ),
-            alignment: Alignment.center,
-            child: Icon(Icons.map_outlined, size: 34.sp, color: AppColors.primary),
-          ),
+          _buildNotReceivedMapCard(),
           SizedBox(height: 14.h),
-          GestureDetector(
-            onTap: () => setState(() => _confirmNotReceived = !_confirmNotReceived),
-            child: Row(
-              children: [
-                Container(
-                  width: 24.w,
-                  height: 24.w,
-                  decoration: BoxDecoration(
-                    color: _confirmNotReceived ? AppColors.primary : AppColors.white,
-                    borderRadius: BorderRadius.circular(6.r),
-                    border: Border.all(
-                      color: _confirmNotReceived
-                          ? AppColors.primary
-                          : const Color(0xFFE6EBE3),
-                      width: 1.5,
-                    ),
-                  ),
-                  alignment: Alignment.center,
-                  child: _confirmNotReceived
-                      ? Icon(Icons.check, size: 15.sp, color: AppColors.white)
-                      : null,
-                ),
-                SizedBox(width: 10.w),
-                Expanded(
-                  child: Text(
-                    'I confirm I did not receive this order',
-                    style: AppTextStyles.labelMedium(color: AppColors.textPrimary).copyWith(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 13.sp,
-                    ),
-                  ),
-                ),
-              ],
-            ),
+          _buildNotReceivedConfirmCard(),
+          HelpPrimaryButton(
+            label: 'Report not received',
+            showCheck: true,
+            inline: true,
+            onTap: _confirmNotReceived ? () => _submit(context) : null,
           ),
-        ],
-      HelpIssueType.foodQuality => [
-          const HelpFormHeading(title: 'What was wrong with the food?'),
-          SizedBox(height: 12.h),
-          HelpChipSelector(
-            options: HelpData.foodQualityOptions,
-            selected: _selectedChip,
-            onSelected: (value) => setState(() => _selectedChip = value),
+        ]),
+      HelpIssueType.foodQuality => _buildScrollForm([
+          ..._buildFoodQualityFields(),
+          HelpPrimaryButton(
+            label: 'Submit complaint',
+            showCheck: true,
+            inline: true,
+            onTap: () => _submit(context),
           ),
-          SizedBox(height: 14.h),
-          HelpNoteField(
-            label: 'Describe it',
-            hint: 'Tell us more…',
-            controller: _noteController,
-          ),
-          SizedBox(height: 14.h),
-          Container(
-            width: double.infinity,
-            padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
-            decoration: BoxDecoration(
-              color: AppColors.white,
-              borderRadius: BorderRadius.circular(12.r),
-              border: Border.all(color: const Color(0xFFE6EBE3)),
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.photo_camera_outlined, size: 20.sp, color: const Color(0xFF6B7B6E)),
-                SizedBox(width: 10.w),
-                Text(
-                  'Add a photo (optional)',
-                  style: AppTextStyles.labelMedium(color: AppColors.textPrimary).copyWith(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 13.sp,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          SizedBox(height: 14.h),
-          Container(
-            width: double.infinity,
-            padding: EdgeInsets.all(14.w),
-            decoration: BoxDecoration(
-              color: const Color(0xFFFFEBEB),
-              borderRadius: BorderRadius.circular(12.r),
-              border: Border.all(color: const Color(0xFFF5C6C6)),
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                GestureDetector(
-                  onTap: () => setState(() => _feltUnwell = !_feltUnwell),
-                  child: Container(
-                    width: 22.w,
-                    height: 22.w,
-                    decoration: BoxDecoration(
-                      color: _feltUnwell ? const Color(0xFFC0392B) : AppColors.white,
-                      borderRadius: BorderRadius.circular(5.r),
-                      border: Border.all(color: const Color(0xFFC0392B)),
-                    ),
-                    alignment: Alignment.center,
-                    child: _feltUnwell
-                        ? Icon(Icons.check, size: 14.sp, color: AppColors.white)
-                        : null,
-                  ),
-                ),
-                SizedBox(width: 10.w),
-                Expanded(
-                  child: Text(
-                    'I or someone felt unwell after eating',
-                    style: AppTextStyles.labelSmall(color: const Color(0xFFC0392B)).copyWith(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 12.5.sp,
-                      height: 1.35,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      HelpIssueType.cancelOrder => [
+        ]),
+      HelpIssueType.cancelOrder => _buildScrollForm([
           const HelpWarningBanner(
             title: 'Vendor is preparing your order',
             subtitle: 'Cancelling now may incur a fee',
@@ -309,6 +188,259 @@ class _HelpIssueScreenState extends State<HelpIssueScreen> {
           ),
           SizedBox(height: 14.h),
           const HelpRefundSummaryCard(),
+          Padding(
+            padding: EdgeInsets.only(top: 16.h),
+            child: Column(
+              children: [
+                HelpDestructiveButton(
+                  label: 'Cancel order',
+                  onTap: () => _submit(context),
+                ),
+                SizedBox(height: 10.h),
+                HelpOutlineButton(
+                  label: 'Keep my order',
+                  onTap: () => context.pop(),
+                ),
+              ],
+            ),
+          ),
+        ]),
+      _ => ListView(
+          padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 18.h),
+          children: [
+            if (_isPhase2Issue)
+              HelpPhase2IssueBody(
+                type: widget.type,
+                orderContext: orderContext,
+                externalSubmit: _phase2HasExternalBottom,
+                onSubmit: () => _submit(context),
+              )
+            else if (widget.type.hasDedicatedForm)
+              ..._buildDedicatedForm(orderContext)
+            else
+              ..._buildGenericForm(),
+          ],
+        ),
+    };
+  }
+
+  List<Widget> _buildOrderItemCheckboxCard() {
+    return [
+      HelpCard(
+        child: Column(
+          children: [
+            for (var i = 0; i < HelpData.orderItems.length; i++) ...[
+              if (i > 0) SizedBox(height: 12.h),
+              HelpItemCheckboxRow(
+                label: HelpData.orderItems[i].label,
+                price: HelpData.orderItems[i].price,
+                checked: _itemChecks[i],
+                onChanged: (value) => setState(() => _itemChecks[i] = value),
+              ),
+            ],
+          ],
+        ),
+      ),
+    ];
+  }
+
+  List<Widget> _buildMissingItemsFields() {
+    return [
+      const HelpFormHeading(title: 'Which items are missing?'),
+      SizedBox(height: 12.h),
+      ..._buildOrderItemCheckboxCard(),
+      SizedBox(height: 14.h),
+      const HelpPhotoUploadBox(),
+    ];
+  }
+
+  List<Widget> _buildWrongOrderFields() {
+    return [
+      const HelpFormHeading(
+        title: 'This isn’t what you ordered?',
+        subtitle: 'Help us fix it fast',
+      ),
+      SizedBox(height: 12.h),
+      ..._buildOrderItemCheckboxCard(),
+      SizedBox(height: 14.h),
+      const HelpPhotoUploadBox(),
+    ];
+  }
+
+  List<Widget> _buildDamagedSpilledFields() {
+    return [
+      const HelpFormHeading(
+        title: 'Add a photo of the damage',
+        subtitle: 'A clear photo lets us refund you automatically.',
+      ),
+      SizedBox(height: 14.h),
+      const HelpPhotoUploadBox(),
+      SizedBox(height: 14.h),
+      HelpNoteField(
+        label: 'Add a note (optional)',
+        hint: 'Tell us what happened…',
+        controller: _noteController,
+      ),
+    ];
+  }
+
+  List<Widget> _buildFoodQualityFields() {
+    return [
+      const HelpFormHeading(title: 'What was wrong with the food?'),
+      SizedBox(height: 12.h),
+      HelpChipSelector(
+        options: HelpData.foodQualityOptions,
+        selected: _selectedChip,
+        onSelected: (value) => setState(() => _selectedChip = value),
+      ),
+      SizedBox(height: 14.h),
+      HelpNoteField(
+        label: 'Describe it',
+        hint: 'Tell us more…',
+        controller: _noteController,
+      ),
+      SizedBox(height: 14.h),
+      Container(
+        width: double.infinity,
+        padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          borderRadius: BorderRadius.circular(12.r),
+          border: Border.all(color: const Color(0xFFE6EBE3)),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.photo_camera_outlined, size: 20.sp, color: const Color(0xFF6B7B6E)),
+            SizedBox(width: 10.w),
+            Text(
+              'Add a photo (optional)',
+              style: AppTextStyles.labelMedium(color: AppColors.textPrimary).copyWith(
+                fontWeight: FontWeight.w600,
+                fontSize: 13.sp,
+              ),
+            ),
+          ],
+        ),
+      ),
+      SizedBox(height: 14.h),
+      _buildFeltUnwellCard(),
+    ];
+  }
+
+  Widget _buildFeltUnwellCard() {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(14.w),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFEBEB),
+        borderRadius: BorderRadius.circular(12.r),
+        border: Border.all(color: const Color(0xFFF5C6C6)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          GestureDetector(
+            onTap: () => setState(() => _feltUnwell = !_feltUnwell),
+            child: Container(
+              width: 22.w,
+              height: 22.w,
+              decoration: BoxDecoration(
+                color: _feltUnwell ? const Color(0xFFC0392B) : AppColors.white,
+                borderRadius: BorderRadius.circular(5.r),
+                border: Border.all(color: const Color(0xFFC0392B)),
+              ),
+              alignment: Alignment.center,
+              child: _feltUnwell
+                  ? Icon(Icons.check, size: 14.sp, color: AppColors.white)
+                  : null,
+            ),
+          ),
+          SizedBox(width: 10.w),
+          Expanded(
+            child: Text(
+              'I or someone felt unwell after eating',
+              style: AppTextStyles.labelSmall(color: const Color(0xFFC0392B)).copyWith(
+                fontWeight: FontWeight.w600,
+                fontSize: 12.5.sp,
+                height: 1.35,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNotReceivedMapCard() {
+    return Container(
+      width: double.infinity,
+      height: 180.h,
+      decoration: BoxDecoration(
+        color: const Color(0xFFE4EAE0),
+        borderRadius: BorderRadius.circular(14.r),
+        border: Border.all(color: const Color(0xFFE6EBE3)),
+      ),
+      alignment: Alignment.center,
+      child: Icon(Icons.map_outlined, size: 48.sp, color: AppColors.primary),
+    );
+  }
+
+  Widget _buildNotReceivedConfirmCard() {
+    return GestureDetector(
+      onTap: () => setState(() => _confirmNotReceived = !_confirmNotReceived),
+      child: Container(
+        width: double.infinity,
+        padding: EdgeInsets.all(14.w),
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          borderRadius: BorderRadius.circular(12.r),
+          border: Border.all(color: const Color(0xFFE6EBE3)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 24.w,
+              height: 24.w,
+              decoration: BoxDecoration(
+                color: _confirmNotReceived ? AppColors.primary : AppColors.white,
+                borderRadius: BorderRadius.circular(6.r),
+                border: Border.all(
+                  color: _confirmNotReceived
+                      ? AppColors.primary
+                      : const Color(0xFFE6EBE3),
+                  width: 1.5,
+                ),
+              ),
+              alignment: Alignment.center,
+              child: _confirmNotReceived
+                  ? Icon(Icons.check, size: 15.sp, color: AppColors.white)
+                  : null,
+            ),
+            SizedBox(width: 12.w),
+            Expanded(
+              child: Text(
+                'I confirm I did not receive this order',
+                style: AppTextStyles.labelMedium(color: AppColors.textPrimary).copyWith(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 13.sp,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  List<Widget> _buildDedicatedForm(HelpOrderContext orderContext) {
+    return switch (widget.type) {
+      HelpIssueType.orderLate => [
+          const HelpFormHeading(
+            title: 'Order late +15?',
+            subtitle:
+                'When your order is 15 minutes past ETA, an instant wallet credit is '
+                'applied and you’ll get a notification.',
+          ),
         ],
       _ => [],
     };
@@ -353,56 +485,36 @@ class _HelpIssueScreenState extends State<HelpIssueScreen> {
       HelpPrimaryButton(
         label: 'Submit',
         showCheck: true,
+        inline: true,
         onTap: () => _submit(context),
       ),
     ];
   }
 
-  Widget? _buildBottomAction() {
-    return switch (widget.type) {
-      HelpIssueType.orderLate => null,
-      HelpIssueType.missingItems => HelpPrimaryButton(
-          label: 'Submit',
+  Widget? _buildPhase2Bottom() {
+    if (widget.type == HelpIssueType.paymentIssue) {
+      return Padding(
+        padding: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 16.h),
+        child: HelpPrimaryButton(
+          label: 'Submit and continue to chat',
           showCheck: true,
-          onTap: () => _submit(context),
-        ),
-      HelpIssueType.damagedSpilled => HelpPrimaryButton(
-          label: 'Submit & get refund',
-          onTap: () => _submit(context),
-        ),
-      HelpIssueType.wrongOrder => HelpPrimaryButton(
-          label: 'Submit',
-          showCheck: true,
-          onTap: () => _submit(context),
-        ),
-      HelpIssueType.notReceived => HelpPrimaryButton(
-          label: 'Report not received',
-          showCheck: true,
-          onTap: () => _submit(context),
-        ),
-      HelpIssueType.foodQuality => HelpPrimaryButton(
-          label: 'Submit complaint',
-          showCheck: true,
-          onTap: () => _submit(context),
-        ),
-      HelpIssueType.cancelOrder => Padding(
-          padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 16.h),
-          child: Column(
-            children: [
-              HelpDestructiveButton(
-                label: 'Cancel order',
-                onTap: () => _submit(context),
-              ),
-              SizedBox(height: 10.h),
-              HelpOutlineButton(
-                label: 'Keep my order',
-                onTap: () => context.pop(),
-              ),
-            ],
+          inline: true,
+          onTap: () => context.push(
+            HelpRoutes.helpChat(variant: HelpChatVariant.payment),
           ),
         ),
-      _ => null,
-    };
+      );
+    }
+    if (widget.type == HelpIssueType.propertyDamage) {
+      return Padding(
+        padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 16.h),
+        child: HelpDestructiveButton(
+          label: 'Report property damage',
+          onTap: () => _submit(context),
+        ),
+      );
+    }
+    return null;
   }
 
   void _submit(BuildContext context) {

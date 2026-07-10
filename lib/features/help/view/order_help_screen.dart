@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/features/help/help_routes.dart';
 import 'package:yjeek_app/features/help/model/help_data.dart';
+import 'package:yjeek_app/features/help/model/help_phase2_data.dart';
 import 'package:yjeek_app/features/help/view/widgets/help_widgets.dart';
 import 'package:yjeek_app/routes/route_names.dart';
 
@@ -51,6 +52,16 @@ class OrderHelpScreen extends StatelessWidget {
   void _openIssue(BuildContext context, HelpIssueType type) {
     if (type == HelpIssueType.trackOrder) {
       context.push('${RouteNames.orderDetails}?id=$orderId');
+      return;
+    }
+    final contextData = HelpData.contextForOrderId(orderId);
+    if (type == HelpIssueType.cancelOrder && contextData.isScheduled) {
+      context.push(
+        HelpRoutes.helpFlow(
+          flow: HelpFlowType.scheduledCancelFree,
+          tab: bottomNavIndex,
+        ),
+      );
       return;
     }
     context.push(

@@ -3,6 +3,7 @@ import 'package:yjeek_app/core/constants/app_colors.dart';
 import 'package:yjeek_app/core/constants/app_text_styles.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/features/help/model/help_data.dart';
+import 'package:yjeek_app/features/help/model/help_phase2_data.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/account_widgets.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/navigation_widgets.dart';
 
@@ -11,18 +12,22 @@ class HelpScreenScaffold extends StatelessWidget {
     super.key,
     required this.title,
     required this.body,
+    this.subtitle,
     this.banner,
     this.bottomNavIndex = 4,
     this.bottom,
     this.onBack,
+    this.showBottomNav = true,
   });
 
   final String title;
+  final String? subtitle;
   final Widget body;
   final Widget? banner;
   final int bottomNavIndex;
   final Widget? bottom;
   final VoidCallback? onBack;
+  final bool showBottomNav;
 
   @override
   Widget build(BuildContext context) {
@@ -30,13 +35,14 @@ class HelpScreenScaffold extends StatelessWidget {
       backgroundColor: AppColors.background,
       body: Column(
         children: [
-          GreenScreenHeader(title: title, onBack: onBack),
+          GreenScreenHeader(title: title, subtitle: subtitle, onBack: onBack),
           if (banner != null) banner!,
           Expanded(child: body),
           if (bottom != null) bottom!,
         ],
       ),
-      bottomNavigationBar: ShellBottomNavBar(currentIndex: bottomNavIndex),
+      bottomNavigationBar:
+          showBottomNav ? ShellBottomNavBar(currentIndex: bottomNavIndex) : null,
     );
   }
 }
@@ -76,11 +82,15 @@ class HelpOrderCompactCard extends StatelessWidget {
   const HelpOrderCompactCard({
     super.key,
     required this.order,
+    this.subtitle,
+    this.iconAsset = 'assets/cup.png',
     this.actionLabel,
     this.onAction,
   });
 
   final HelpOrder order;
+  final String? subtitle;
+  final String iconAsset;
   final String? actionLabel;
   final VoidCallback? onAction;
 
@@ -99,17 +109,17 @@ class HelpOrderCompactCard extends StatelessWidget {
           Row(
             children: [
               Container(
-                width: 46.w,
-                height: 46.w,
+                width: 42.w,
+                height: 42.w,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFEAF3DE),
+                  color: const Color(0xFFE8F1E5),
                   borderRadius: BorderRadius.circular(11.r),
                 ),
                 alignment: Alignment.center,
-                child: Icon(
-                  Icons.inventory_2_outlined,
-                  size: 22.sp,
-                  color: const Color(0xFF2E7D32),
+                child: Image.asset(
+                  iconAsset,
+                  width: 18.sp,
+                  height: 18.sp,
                 ),
               ),
               SizedBox(width: 12.w),
@@ -128,7 +138,7 @@ class HelpOrderCompactCard extends StatelessWidget {
                     ),
                     SizedBox(height: 2.h),
                     Text(
-                      order.subtitle,
+                      subtitle ?? order.subtitle,
                       style: AppTextStyles.caption(color: const Color(0xFF6B7B6E))
                           .copyWith(
                         fontSize: 11.sp,
@@ -198,10 +208,10 @@ class HelpOrderDetailCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(11.r),
                 ),
                 alignment: Alignment.center,
-                child: Icon(
-                  Icons.inventory_2_outlined,
-                  size: 24.sp,
-                  color: const Color(0xFF2E7D32),
+                child: Image.asset(
+                  'assets/Frame (27).png',
+                  width: 24.sp,
+                  height: 24.sp,
                 ),
               ),
               SizedBox(width: 12.w),
@@ -264,6 +274,7 @@ class HelpChevronRow extends StatelessWidget {
     this.leading,
     this.dense = false,
     this.showDivider = true,
+    this.expanded = false,
   });
 
   final String title;
@@ -271,6 +282,7 @@ class HelpChevronRow extends StatelessWidget {
   final Widget? leading;
   final bool dense;
   final bool showDivider;
+  final bool expanded;
 
   @override
   Widget build(BuildContext context) {
@@ -294,20 +306,16 @@ class HelpChevronRow extends StatelessWidget {
               child: Text(
                 title,
                 style: AppTextStyles.labelMedium(color: AppColors.textPrimary).copyWith(
-                  fontWeight: dense ? FontWeight.w500 : FontWeight.w700,
+                  fontWeight: dense ? FontWeight.w700 : FontWeight.w700,
                   fontSize: dense ? 13.sp : 13.5.sp,
                   height: 1.3,
                 ),
               ),
             ),
-            Text(
-              '›',
-              style: TextStyle(
-                fontSize: 18.sp,
-                fontWeight: FontWeight.w600,
-                color: const Color(0xFF6B7B6E),
-                height: 1,
-              ),
+            Icon(
+              expanded ? Icons.keyboard_arrow_down : Icons.keyboard_arrow_right,
+              size: 18.sp,
+              color: const Color(0xFF6B7B6E),
             ),
           ],
         ),
@@ -350,7 +358,11 @@ class HelpIssueTile extends StatelessWidget {
                 borderRadius: BorderRadius.circular(11.r),
               ),
               alignment: Alignment.center,
-              child: Icon(option.icon, size: 21.sp, color: option.iconColor),
+              child: Image.asset(
+                option.image,
+                width: 21.sp,
+                height: 21.sp,
+              ),
             ),
             SizedBox(width: 12.w),
             Expanded(
@@ -379,20 +391,31 @@ class HelpIssueTile extends StatelessWidget {
 }
 
 class HelpInfoBanner extends StatelessWidget {
-  const HelpInfoBanner({super.key, required this.message});
+  const HelpInfoBanner({
+    super.key,
+    required this.message,
+    this.icon = '⏱',
+    this.borderRadius,
+  });
 
   final String message;
+  final String icon;
+  final double? borderRadius;
 
   @override
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
       padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
-      color: const Color(0xFFE8F5E9),
+      decoration: BoxDecoration(
+        color: const Color(0xFFE8F5E9),
+        borderRadius: BorderRadius.circular(borderRadius ?? 0),
+      ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('⏱', style: TextStyle(fontSize: 14.sp)),
-          SizedBox(width: 8.w),
+          Text(icon, style: TextStyle(fontSize: 14.sp)),
+          SizedBox(width: 10.w),
           Expanded(
             child: Text(
               message,
@@ -431,7 +454,7 @@ class HelpWarningBanner extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.warning_amber_rounded, size: 20.sp, color: const Color(0xFFE08A1E)),
+          Icon(Icons.schedule, size: 20.sp, color: const Color(0xFFE08A1E)),
           SizedBox(width: 10.w),
           Expanded(
             child: Column(
@@ -485,7 +508,7 @@ class HelpCard extends StatelessWidget {
 }
 
 class HelpPhotoUploadBox extends StatelessWidget {
-  const HelpPhotoUploadBox({super.key, this.hint = '+ Add photo'});
+  const HelpPhotoUploadBox({super.key, this.hint = 'Add photo'});
 
   final String hint;
 
@@ -493,29 +516,37 @@ class HelpPhotoUploadBox extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 22.h),
       decoration: BoxDecoration(
         color: const Color(0xFFFBFCFB),
         borderRadius: BorderRadius.circular(14.r),
-        border: Border.all(color: const Color(0xFFCFD4D0), width: 1.5),
       ),
-      child: Column(
-        children: [
-          Text(
-            '＋ $hint',
-            style: AppTextStyles.labelMedium(color: AppColors.textPrimary).copyWith(
-              fontWeight: FontWeight.w600,
-              fontSize: 13.sp,
-            ),
+      child: CustomPaint(
+        foregroundPainter: _HelpDashedBorderPainter(
+          color: const Color(0xFFCFD4D0),
+          radius: 14.r,
+        ),
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 22.h),
+          child: Column(
+            children: [
+              Text(
+                '＋ $hint',
+                style: AppTextStyles.labelMedium(color: const Color(0xFF1D6A33)).copyWith(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 14.sp,
+                ),
+              ),
+              SizedBox(height: 4.h),
+              Text(
+                'JPG/PNG · up to 5MB',
+                style: AppTextStyles.caption(color: const Color(0xFF6B7280)).copyWith(
+                  fontSize: 11.sp,
+                  fontWeight: FontWeight.w400,
+                ),
+              ),
+            ],
           ),
-          SizedBox(height: 4.h),
-          Text(
-            'JPG/PNG · up to 5MB',
-            style: AppTextStyles.caption(color: const Color(0xFF6B7B6E)).copyWith(
-              fontSize: 11.sp,
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -527,16 +558,20 @@ class HelpPrimaryButton extends StatelessWidget {
     required this.label,
     this.onTap,
     this.showCheck = false,
+    this.inline = false,
   });
 
   final String label;
   final VoidCallback? onTap;
   final bool showCheck;
+  final bool inline;
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 16.h),
+      padding: inline
+          ? EdgeInsets.only(top: 16.h)
+          : EdgeInsets.fromLTRB(16.w, 0, 16.w, 16.h),
       child: GestureDetector(
         onTap: onTap,
         child: Container(
@@ -584,14 +619,14 @@ class HelpDestructiveButton extends StatelessWidget {
         padding: EdgeInsets.symmetric(vertical: 14.h),
         decoration: BoxDecoration(
           color: const Color(0xFFC0392B),
-          borderRadius: BorderRadius.circular(12.r),
+          borderRadius: BorderRadius.circular(13.r),
         ),
         alignment: Alignment.center,
         child: Text(
           label,
           style: AppTextStyles.labelMedium(color: AppColors.white).copyWith(
             fontWeight: FontWeight.w700,
-            fontSize: 14.sp,
+            fontSize: 15.sp,
           ),
         ),
       ),
@@ -614,18 +649,74 @@ class HelpOutlineButton extends StatelessWidget {
         padding: EdgeInsets.symmetric(vertical: 14.h),
         decoration: BoxDecoration(
           color: AppColors.white,
-          borderRadius: BorderRadius.circular(12.r),
-          border: Border.all(color: AppColors.primary),
+          borderRadius: BorderRadius.circular(13.r),
+          border: Border.all(color: const Color(0xFF2E7D32), width: 1.5),
         ),
         alignment: Alignment.center,
         child: Text(
           label,
-          style: AppTextStyles.labelMedium(color: AppColors.primary).copyWith(
+          style: AppTextStyles.labelMedium(color: const Color(0xFF2E7D32)).copyWith(
             fontWeight: FontWeight.w700,
-            fontSize: 14.sp,
+            fontSize: 14.5.sp,
           ),
         ),
       ),
+    );
+  }
+}
+
+class HelpMultiChipSelector extends StatelessWidget {
+  const HelpMultiChipSelector({
+    super.key,
+    required this.options,
+    required this.selected,
+    required this.onChanged,
+  });
+
+  final List<String> options;
+  final Set<String> selected;
+  final ValueChanged<Set<String>> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      spacing: 8.w,
+      runSpacing: 8.h,
+      children: options.map((option) {
+        final active = selected.contains(option);
+        return GestureDetector(
+          onTap: () {
+            final next = Set<String>.from(selected);
+            if (active) {
+              next.remove(option);
+            } else {
+              next.add(option);
+            }
+            onChanged(next);
+          },
+          child: Container(
+            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
+            decoration: BoxDecoration(
+              color: active ? AppColors.primary : AppColors.white,
+              borderRadius: BorderRadius.circular(22.r),
+              border: Border.all(
+                color: active ? AppColors.primary : const Color(0xFFD7DDD6),
+                width: 1.2,
+              ),
+            ),
+            child: Text(
+              option,
+              style: AppTextStyles.labelSmall(
+                color: active ? AppColors.white : const Color(0xFF404842),
+              ).copyWith(
+                fontWeight: FontWeight.w600,
+                fontSize: 13.5.sp,
+                height: 1.2,
+              ),
+            ),
+          ),
+        );
+      }).toList(),
     );
   }
 }
@@ -684,14 +775,12 @@ class HelpItemCheckboxRow extends StatelessWidget {
     required this.price,
     required this.checked,
     required this.onChanged,
-    this.showDivider = true,
   });
 
   final String label;
   final String price;
   final bool checked;
   final ValueChanged<bool> onChanged;
-  final bool showDivider;
 
   @override
   Widget build(BuildContext context) {
@@ -701,9 +790,7 @@ class HelpItemCheckboxRow extends StatelessWidget {
       child: Container(
         padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 13.h),
         decoration: BoxDecoration(
-          border: showDivider
-              ? const Border(bottom: BorderSide(color: Color(0xFFE6EBE3)))
-              : null,
+          border: Border.all(color: const Color(0xFFE6EBE3)),
         ),
         child: Row(
           children: [
@@ -793,28 +880,33 @@ class HelpNoteField extends StatelessWidget {
     required this.label,
     required this.hint,
     this.controller,
+    this.maxLines = 3,
   });
 
   final String label;
   final String hint;
   final TextEditingController? controller;
+  final int maxLines;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: AppTextStyles.labelSmall(color: AppColors.textPrimary).copyWith(
-            fontWeight: FontWeight.w600,
-            fontSize: 13.sp,
+        if (label.isNotEmpty) ...[
+          Text(
+            label,
+            style: AppTextStyles.labelSmall(color: AppColors.textPrimary).copyWith(
+              fontWeight: FontWeight.w600,
+              fontSize: 13.sp,
+            ),
           ),
-        ),
-        SizedBox(height: 8.h),
+          SizedBox(height: 8.h),
+        ],
         TextField(
           controller: controller,
-          maxLines: 3,
+          maxLines: maxLines,
+          minLines: maxLines == 1 ? 1 : null,
           style: AppTextStyles.bodyMedium(color: AppColors.textPrimary).copyWith(
             fontSize: 13.sp,
             fontWeight: FontWeight.w400,
@@ -860,14 +952,32 @@ class HelpRefundSummaryCard extends StatelessWidget {
         border: Border.all(color: const Color(0xFFE6EBE3)),
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _row('Order total', 'BHD 33.000'),
+          Text(
+            'Refund summary',
+            style: AppTextStyles.labelMedium(color: AppColors.textPrimary).copyWith(
+              fontWeight: FontWeight.w700,
+              fontSize: 13.5.sp,
+            ),
+          ),
+          SizedBox(height: 12.h),
+          _row('Order total', 'BHD 35.800'),
           SizedBox(height: 10.h),
-          _row('Cancellation fee', '-BHD 17.000', valueColor: const Color(0xFFC0392B)),
+          _row(
+            'Cancellation fee (up to 50%)',
+            '− BHD 17.900',
+            valueColor: const Color(0xFFC0392B),
+          ),
           SizedBox(height: 10.h),
           const Divider(height: 1, color: Color(0xFFE6EBE3)),
           SizedBox(height: 10.h),
-          _row('Refund to you', 'BHD 17.000', bold: true),
+          _row(
+            'Refund to you',
+            'BHD 17.900',
+            valueColor: AppColors.successText,
+            bold: true,
+          ),
         ],
       ),
     );
@@ -880,7 +990,7 @@ class HelpRefundSummaryCard extends StatelessWidget {
         Text(
           label,
           style: AppTextStyles.labelSmall(color: const Color(0xFF6B7B6E)).copyWith(
-            fontSize: 13.sp,
+            fontSize: 12.5.sp,
             fontWeight: FontWeight.w500,
           ),
         ),
@@ -888,11 +998,646 @@ class HelpRefundSummaryCard extends StatelessWidget {
           value,
           style: AppTextStyles.labelMedium(color: valueColor ?? AppColors.textPrimary)
               .copyWith(
-            fontSize: 13.sp,
+            fontSize: 12.5.sp,
             fontWeight: bold ? FontWeight.w700 : FontWeight.w600,
           ),
         ),
       ],
     );
   }
+}
+
+class HelpOrangeButton extends StatelessWidget {
+  const HelpOrangeButton({super.key, required this.label, this.onTap});
+
+  final String label;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: double.infinity,
+        padding: EdgeInsets.symmetric(vertical: 14.h),
+        decoration: BoxDecoration(
+          color: const Color(0xFFE08A1E),
+          borderRadius: BorderRadius.circular(13.r),
+        ),
+        alignment: Alignment.center,
+        child: Text(
+          label,
+          style: AppTextStyles.labelMedium(color: AppColors.white).copyWith(
+            fontWeight: FontWeight.w700,
+            fontSize: 15.sp,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class HelpAlertCard extends StatelessWidget {
+  const HelpAlertCard({
+    super.key,
+    required this.title,
+    required this.subtitle,
+    this.icon = Icons.schedule,
+    this.backgroundColor = const Color(0xFFFBEFE0),
+    this.foregroundColor = const Color(0xFFE08A1E),
+    this.subtitleColor = const Color(0xFF9A6A1E),
+  });
+
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final Color backgroundColor;
+  final Color foregroundColor;
+  final Color subtitleColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 13.h),
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(12.r),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 20.sp, color: foregroundColor),
+          SizedBox(width: 10.w),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: AppTextStyles.labelSmall(color: foregroundColor).copyWith(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 12.5.sp,
+                  ),
+                ),
+                SizedBox(height: 2.h),
+                Text(
+                  subtitle,
+                  style: AppTextStyles.caption(color: subtitleColor).copyWith(
+                    fontSize: 10.5.sp,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class HelpStarRating extends StatelessWidget {
+  const HelpStarRating({
+    super.key,
+    required this.rating,
+    required this.onChanged,
+    this.label,
+    this.labelColor,
+  });
+
+  final int rating;
+  final ValueChanged<int> onChanged;
+  final String? label;
+  final Color? labelColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: List.generate(5, (index) {
+            final filled = index < rating;
+            return GestureDetector(
+              onTap: () => onChanged(index + 1),
+              child: Padding(
+                padding: EdgeInsets.only(right: 8.w),
+                child: Icon(
+                  filled ? Icons.star_rounded : Icons.star_outline_rounded,
+                  size: 30.sp,
+                  color: filled ? const Color(0xFFF5A623) : const Color(0xFFC9CFC9),
+                ),
+              ),
+            );
+          }),
+        ),
+        if (label != null) ...[
+          SizedBox(height: 10.h),
+          Text(
+            label!,
+            style: AppTextStyles.caption(
+              color: labelColor ?? const Color(0xFF6B7B6E),
+            ).copyWith(
+              fontWeight: FontWeight.w700,
+              fontSize: 12.5.sp,
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class HelpRadioOptionRow extends StatelessWidget {
+  const HelpRadioOptionRow({
+    super.key,
+    required this.label,
+    required this.selected,
+    required this.onTap,
+    this.highlightBorder = false,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+  final bool highlightBorder;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: double.infinity,
+        padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 13.h),
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          borderRadius: BorderRadius.circular(12.r),
+          border: Border.all(
+            color: highlightBorder && selected
+                ? AppColors.primary
+                : const Color(0xFFE6EBE3),
+            width: highlightBorder && selected ? 1.5 : 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 20.w,
+              height: 20.w,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: selected ? AppColors.primary : const Color(0xFFC7CCC7),
+                  width: 1.5,
+                ),
+              ),
+              alignment: Alignment.center,
+              child: selected
+                  ? Container(
+                      width: 10.w,
+                      height: 10.w,
+                      decoration: const BoxDecoration(
+                        color: AppColors.primary,
+                        shape: BoxShape.circle,
+                      ),
+                    )
+                  : null,
+            ),
+            SizedBox(width: 12.w),
+            Expanded(
+              child: Text(
+                label,
+                style: AppTextStyles.labelMedium(color: AppColors.textPrimary).copyWith(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13.sp,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class HelpDetailRowsCard extends StatelessWidget {
+  const HelpDetailRowsCard({
+    super.key,
+    this.title,
+    required this.lines,
+    this.trailing,
+    this.showDividers = false,
+    this.footer,
+    this.dividerColor = const Color(0xFFF0F0F0),
+  });
+
+  final String? title;
+  final List<HelpDetailLine> lines;
+  final Widget? trailing;
+  final bool showDividers;
+  final String? footer;
+  final Color dividerColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(14.w),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(16.r),
+        border: Border.all(color: const Color(0xFFE6EBE3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (title != null) ...[
+            Text(
+              title!,
+              style: AppTextStyles.labelMedium(color: AppColors.textPrimary).copyWith(
+                fontWeight: FontWeight.w700,
+                fontSize: 13.5.sp,
+              ),
+            ),
+            SizedBox(height: 12.h),
+          ],
+          if (trailing != null) ...[trailing!, SizedBox(height: 12.h)],
+          for (var i = 0; i < lines.length; i++) ...[
+            if (showDividers && i > 0)
+              Divider(
+                height: 10.h,
+                thickness: 1,
+                color: dividerColor,
+              )
+            else if (!showDividers && i > 0)
+              SizedBox(height: 10.h),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    lines[i].label,
+                    style: AppTextStyles.labelSmall(color: const Color(0xFF6B7B6E)).copyWith(
+                      fontSize: 12.5.sp,
+                    ),
+                  ),
+                ),
+                Text(
+                  lines[i].value,
+                  style: AppTextStyles.labelMedium(
+                    color: lines[i].valueColor ?? AppColors.textPrimary,
+                  ).copyWith(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 12.5.sp,
+                  ),
+                ),
+              ],
+            ),
+          ],
+          if (footer != null) ...[
+            SizedBox(height: 10.h),
+            Text(
+              footer!,
+              style: AppTextStyles.caption(color: const Color(0xFF6B7280)).copyWith(
+                fontSize: 11.5.sp,
+                fontWeight: FontWeight.w400,
+                height: 1.2,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class HelpAutomaticCheckCard extends StatelessWidget {
+  const HelpAutomaticCheckCard({super.key, required this.items});
+
+  final List<({String label, bool passed})> items;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(14.w),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(16.r),
+        border: Border.all(color: const Color(0xFFE6EBE3)),
+      ),
+      child: Column(
+        children: [
+          for (var i = 0; i < items.length; i++) ...[
+            if (i > 0) SizedBox(height: 12.h),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 22.w,
+                  height: 22.w,
+                  decoration: BoxDecoration(
+                    color: items[i].passed
+                        ? const Color(0xFFE8F5E9)
+                        : const Color(0xFFFDECEC),
+                    shape: BoxShape.circle,
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
+                    items[i].passed ? '✓' : '✕',
+                    style: AppTextStyles.labelSmall(
+                      color: items[i].passed
+                          ? const Color(0xFF1D8A3E)
+                          : const Color(0xFFC62828),
+                    ).copyWith(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 12.sp,
+                      height: 1,
+                    ),
+                  ),
+                ),
+                SizedBox(width: 10.w),
+                Expanded(
+                  child: Text(
+                    items[i].label,
+                    style: AppTextStyles.caption(color: const Color(0xFF3D4842)).copyWith(
+                      fontSize: 12.sp,
+                      fontWeight: FontWeight.w500,
+                      height: 1.25,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class HelpSearchField extends StatelessWidget {
+  const HelpSearchField({super.key, this.hint = 'Search help topics…'});
+
+  final String hint;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(12.r),
+        border: Border.all(color: const Color(0xFFE6EBE3)),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.search, size: 18.sp, color: const Color(0xFF6B7B6E)),
+          SizedBox(width: 10.w),
+          Text(
+            hint,
+            style: AppTextStyles.bodyMedium(color: const Color(0xFF9AA89C)).copyWith(
+              fontSize: 13.sp,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class HelpChatBubble extends StatelessWidget {
+  const HelpChatBubble({super.key, required this.message});
+
+  final HelpChatMessage message;
+
+  @override
+  Widget build(BuildContext context) {
+    if (message.isSystem) {
+      return Container(
+        width: double.infinity,
+        margin: EdgeInsets.symmetric(vertical: 8.h),
+        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+        decoration: BoxDecoration(
+          color: const Color(0xFFEDE7F6),
+          borderRadius: BorderRadius.circular(10.r),
+        ),
+        child: Text(
+          message.text,
+          textAlign: TextAlign.center,
+          style: AppTextStyles.caption(color: const Color(0xFF6A3AA0)).copyWith(
+            fontWeight: FontWeight.w600,
+            fontSize: 11.5.sp,
+          ),
+        ),
+      );
+    }
+
+    final isUser = message.isUser;
+    return Align(
+      alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
+      child: Container(
+        constraints: BoxConstraints(maxWidth: 280.w),
+        margin: EdgeInsets.only(bottom: 10.h),
+        padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 10.h),
+        decoration: BoxDecoration(
+          color: isUser ? AppColors.primary : AppColors.white,
+          borderRadius: BorderRadius.circular(14.r),
+          border: isUser ? null : Border.all(color: const Color(0xFFE6EBE3)),
+        ),
+        child: Text(
+          message.text,
+          style: AppTextStyles.labelSmall(
+            color: isUser ? AppColors.white : AppColors.textPrimary,
+          ).copyWith(
+            fontSize: 13.sp,
+            fontWeight: FontWeight.w500,
+            height: 1.35,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class HelpChatInputBar extends StatelessWidget {
+  const HelpChatInputBar({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.fromLTRB(16.w, 10.h, 16.w, 16.h),
+      decoration: const BoxDecoration(
+        color: AppColors.white,
+        border: Border(top: BorderSide(color: Color(0xFFE6EBE3))),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Container(
+              padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF2F7F2),
+                borderRadius: BorderRadius.circular(24.r),
+              ),
+              child: Text(
+                'Message…',
+                style: AppTextStyles.bodyMedium(color: const Color(0xFF9AA89C)).copyWith(
+                  fontSize: 13.sp,
+                ),
+              ),
+            ),
+          ),
+          SizedBox(width: 10.w),
+          Container(
+            width: 42.w,
+            height: 42.w,
+            decoration: const BoxDecoration(
+              color: AppColors.primary,
+              shape: BoxShape.circle,
+            ),
+            alignment: Alignment.center,
+            child: Icon(Icons.send_rounded, size: 18.sp, color: AppColors.white),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class HelpNumberedStep extends StatelessWidget {
+  const HelpNumberedStep({
+    super.key,
+    required this.number,
+    required this.text,
+  });
+
+  final int number;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 24.w,
+          height: 24.w,
+          decoration: const BoxDecoration(
+            color: AppColors.primary,
+            shape: BoxShape.circle,
+          ),
+          alignment: Alignment.center,
+          child: Text(
+            '$number',
+            style: AppTextStyles.labelSmall(color: AppColors.white).copyWith(
+              fontWeight: FontWeight.w700,
+              fontSize: 12.sp,
+            ),
+          ),
+        ),
+        SizedBox(width: 10.w),
+        Expanded(
+          child: Text(
+            text,
+            style: AppTextStyles.labelSmall(color: AppColors.textPrimary).copyWith(
+              fontSize: 12.5.sp,
+              height: 1.35,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class HelpSuccessCircle extends StatelessWidget {
+  const HelpSuccessCircle({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 88.w,
+      height: 88.w,
+      decoration: const BoxDecoration(
+        color: AppColors.primary,
+        shape: BoxShape.circle,
+      ),
+      alignment: Alignment.center,
+      child: Icon(Icons.check_rounded, size: 44.sp, color: AppColors.white),
+    );
+  }
+}
+
+class HelpPhotoUploadBoxRed extends StatelessWidget {
+  const HelpPhotoUploadBoxRed({super.key, this.hint = 'Add photos or video'});
+
+  final String hint;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFFBFB),
+        borderRadius: BorderRadius.circular(14.r),
+      ),
+      child: CustomPaint(
+        foregroundPainter: _HelpDashedBorderPainter(
+          color: const Color(0xFFC0392B),
+          radius: 14.r,
+        ),
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 22.h),
+          child: Column(
+            children: [
+              Text(
+                '＋ $hint',
+                style: AppTextStyles.labelMedium(color: const Color(0xFFC0392B)).copyWith(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 14.sp,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _HelpDashedBorderPainter extends CustomPainter {
+  _HelpDashedBorderPainter({required this.color, required this.radius});
+
+  final Color color;
+  final double radius;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = 1.5
+      ..style = PaintingStyle.stroke;
+    const dashWidth = 5.0;
+    const dashSpace = 4.0;
+    final inset = paint.strokeWidth / 2;
+    final path = Path()
+      ..addRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(inset, inset, size.width - inset * 2, size.height - inset * 2),
+          Radius.circular(radius),
+        ),
+      );
+    for (final metric in path.computeMetrics()) {
+      var distance = 0.0;
+      while (distance < metric.length) {
+        final next = distance + dashWidth;
+        canvas.drawPath(metric.extractPath(distance, next.clamp(0, metric.length)), paint);
+        distance = next + dashSpace;
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

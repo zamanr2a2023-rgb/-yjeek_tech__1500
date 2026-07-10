@@ -36,7 +36,7 @@ abstract final class NavigationStrings {
   static const String freeDelivery = 'Free delivery';
   static const String serviceFee = 'Service fee';
   static const String orderTotal = 'Order total';
-  static const String cashbackBanner = 'Earn 3% cashback to your Wallet';
+  static const String cashbackBanner = '2% cashback to your Yjeek Wallet';
   static const String addMore = 'Add more';
   static const String checkout = 'Checkout';
   static const String edit = 'Edit';

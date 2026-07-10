@@ -7,6 +7,7 @@ import 'package:yjeek_app/core/constants/navigation_strings.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/features/navigation/model/wallet_data.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/navigation_widgets.dart';
+import 'package:yjeek_app/routes/route_names.dart';
 
 class GreenScreenHeader extends StatelessWidget {
   const GreenScreenHeader({
@@ -721,6 +722,67 @@ class PolicySectionCard extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class AboutPoliciesList extends StatelessWidget {
+  const AboutPoliciesList({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        AboutPolicyMenuItem(
+          iconAsset: AppAssets.policyAbout,
+          title: NavigationStrings.aboutYjeek,
+          subtitle: NavigationStrings.aboutYjeekSubtitle,
+          onTap: () => context.push(RouteNames.aboutYjeek),
+        ),
+        SizedBox(height: 14.h),
+        AboutPolicyMenuItem(
+          iconAsset: AppAssets.policyTerms,
+          title: NavigationStrings.termsConditions,
+          subtitle: 'YTW-TC-2026',
+          onTap: () => context.push('${RouteNames.policyDocument}?type=terms'),
+        ),
+        SizedBox(height: 14.h),
+        AboutPolicyMenuItem(
+          iconAsset: AppAssets.policyPrivacy,
+          title: NavigationStrings.privacyPolicy,
+          subtitle: 'PDPL Decree 30 of 2018',
+          onTap: () => context.push('${RouteNames.policyDocument}?type=privacy'),
+        ),
+        SizedBox(height: 14.h),
+        AboutPolicyMenuItem(
+          iconAsset: AppAssets.policyRefund,
+          title: NavigationStrings.refundReturnPolicy,
+          subtitle: 'Consumer Protection Law 35/2012',
+          onTap: () => context.push('${RouteNames.policyDocument}?type=refund'),
+        ),
+        SizedBox(height: 14.h),
+        AboutPolicyMenuItem(
+          iconAsset: AppAssets.policyFaq,
+          title: NavigationStrings.faq,
+          subtitle: NavigationStrings.faqSubtitle,
+          onTap: () => context.push(RouteNames.helpFaq),
+        ),
+        SizedBox(height: 14.h),
+        AboutPolicyMenuItem(
+          iconAsset: AppAssets.policyEmail,
+          title: NavigationStrings.contactUs,
+          subtitle: 'contact@yjeektech.com',
+          onTap: () => context.push(RouteNames.helpChat),
+        ),
+        SizedBox(height: 20.h),
+        Text(
+          NavigationStrings.aboutFooter,
+          textAlign: TextAlign.center,
+          style: AppTextStyles.caption(
+            color: const Color(0xFF6B756E),
+          ).copyWith(fontSize: 10.5.sp, fontWeight: FontWeight.w400),
+        ),
+      ],
     );
   }
 }

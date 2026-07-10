@@ -145,80 +145,85 @@ class HomeSearchBar extends StatelessWidget {
 }
 
 class OrderStatusCard extends StatelessWidget {
-  const OrderStatusCard({super.key});
+  const OrderStatusCard({super.key, this.onTrack});
+
+  final VoidCallback? onTrack;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFF2E9E4D), width: 1.5),
-      ),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFE3F2EB),
-                  borderRadius: BorderRadius.circular(12),
+    return GestureDetector(
+      onTap: onTrack,
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFF2E9E4D), width: 1.5),
+        ),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE3F2EB),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(
+                    Icons.restaurant_outlined,
+                    color: AppColors.primary,
+                    size: 22,
+                  ),
                 ),
-                child: const Icon(
-                  Icons.restaurant_outlined,
-                  color: AppColors.primary,
-                  size: 22,
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        HomeStrings.preparingOrder,
+                        style: AppTextStyles.labelMedium(
+                          color: AppColors.textPrimary,
+                        ).copyWith(fontWeight: FontWeight.w600, fontSize: 14),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        HomeStrings.orderSubtitle,
+                        style: AppTextStyles.labelSmall(
+                          color: const Color(0xFF6B756E),
+                        ).copyWith(fontSize: 12),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      HomeStrings.preparingOrder,
-                      style: AppTextStyles.labelMedium(
-                        color: AppColors.textPrimary,
-                      ).copyWith(fontWeight: FontWeight.w600, fontSize: 14),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      HomeStrings.orderSubtitle,
-                      style: AppTextStyles.labelSmall(
-                        color: const Color(0xFF6B756E),
-                      ).copyWith(fontSize: 12),
-                    ),
-                  ],
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF2E9E4D),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    HomeStrings.track,
+                    style: AppTextStyles.labelSmall(color: AppColors.white)
+                        .copyWith(fontWeight: FontWeight.w700, fontSize: 12),
+                  ),
                 ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF2E9E4D),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  HomeStrings.track,
-                  style: AppTextStyles.labelSmall(color: AppColors.white)
-                      .copyWith(fontWeight: FontWeight.w700, fontSize: 12),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: const LinearProgressIndicator(
-              value: 0.45,
-              minHeight: 4,
-              backgroundColor: Color(0xFFE3F2EB),
-              color: Color(0xFF2E9E4D),
+              ],
             ),
-          ),
-        ],
+            const SizedBox(height: 10),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: const LinearProgressIndicator(
+                value: 0.45,
+                minHeight: 4,
+                backgroundColor: Color(0xFFE3F2EB),
+                color: Color(0xFF2E9E4D),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -258,9 +263,14 @@ class SectionHeader extends StatelessWidget {
 }
 
 class HomeCategoriesGrid extends StatelessWidget {
-  const HomeCategoriesGrid({super.key, required this.categories});
+  const HomeCategoriesGrid({
+    super.key,
+    required this.categories,
+    this.onCategoryTap,
+  });
 
   final List<CategoryItem> categories;
+  final ValueChanged<CategoryItem>? onCategoryTap;
 
   @override
   Widget build(BuildContext context) {
@@ -269,10 +279,10 @@ class HomeCategoriesGrid extends StatelessWidget {
 
     return Column(
       children: [
-        _CategoryRow(items: firstRow),
+        _CategoryRow(items: firstRow, onCategoryTap: onCategoryTap),
         if (secondRow.isNotEmpty) ...[
           const SizedBox(height: 12),
-          _CategoryRow(items: secondRow),
+          _CategoryRow(items: secondRow, onCategoryTap: onCategoryTap),
         ],
       ],
     );
@@ -280,9 +290,10 @@ class HomeCategoriesGrid extends StatelessWidget {
 }
 
 class _CategoryRow extends StatelessWidget {
-  const _CategoryRow({required this.items});
+  const _CategoryRow({required this.items, this.onCategoryTap});
 
   final List<CategoryItem> items;
+  final ValueChanged<CategoryItem>? onCategoryTap;
 
   @override
   Widget build(BuildContext context) {
@@ -292,7 +303,10 @@ class _CategoryRow extends StatelessWidget {
           .map(
             (category) => SizedBox(
               width: 60,
-              child: CategoryIconTile(category: category),
+              child: GestureDetector(
+                onTap: onCategoryTap != null ? () => onCategoryTap!(category) : null,
+                child: CategoryIconTile(category: category),
+              ),
             ),
           )
           .toList(),

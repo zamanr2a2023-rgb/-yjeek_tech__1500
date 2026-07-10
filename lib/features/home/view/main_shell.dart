@@ -14,10 +14,18 @@ class MainShell extends ConsumerStatefulWidget {
     super.key,
     this.initialIndex = 0,
     this.cartHasItems = false,
+    this.dineInHasItems = false,
+    this.scheduledHasItems = false,
+    this.pickupHasItems = false,
+    this.vapeHasItems = false,
   });
 
   final int initialIndex;
   final bool cartHasItems;
+  final bool dineInHasItems;
+  final bool scheduledHasItems;
+  final bool pickupHasItems;
+  final bool vapeHasItems;
 
   @override
   ConsumerState<MainShell> createState() => _MainShellState();
@@ -29,7 +37,15 @@ class _MainShellState extends ConsumerState<MainShell> {
     super.initState();
     Future.microtask(() {
       final notifier = ref.read(shellProvider.notifier);
-      if (widget.cartHasItems) {
+      if (widget.dineInHasItems) {
+        notifier.openDineInCartWithItems();
+      } else if (widget.vapeHasItems) {
+        notifier.openVapeCartWithItems();
+      } else if (widget.pickupHasItems) {
+        notifier.openPickupCartWithItems();
+      } else if (widget.scheduledHasItems) {
+        notifier.openScheduledCartWithItems();
+      } else if (widget.cartHasItems) {
         notifier.openCartWithItems();
       } else {
         notifier.setTab(widget.initialIndex);
@@ -47,8 +63,14 @@ class _MainShellState extends ConsumerState<MainShell> {
       OrdersScreen(onReorder: notifier.openCartWithItems),
       CartScreen(
         hasItems: shell.cartHasItems,
+        hasDineInItems: shell.dineInHasItems,
+        hasScheduledItems: shell.scheduledHasItems,
+        hasPickupItems: shell.pickupHasItems,
+        hasVapeItems: shell.vapeHasItems,
+        initialTab: shell.cartTab,
         onBrowseVendors: notifier.browseVendors,
         onBack: notifier.clearCart,
+        onCartTabChanged: notifier.setCartTab,
       ),
       const WalletScreen(showBottomNav: true),
       const AccountScreen(),

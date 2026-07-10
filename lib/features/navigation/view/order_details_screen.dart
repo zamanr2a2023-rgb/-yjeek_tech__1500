@@ -8,6 +8,7 @@ import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/features/home/view/widgets/home_widgets.dart';
 import 'package:yjeek_app/features/navigation/model/navigation_data.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/navigation_widgets.dart';
+import 'package:yjeek_app/features/order_flow/order_flow_routes.dart';
 import 'package:yjeek_app/routes/app_router.dart';
 import 'package:yjeek_app/features/help/help_routes.dart';
 import 'package:yjeek_app/features/help/model/help_data.dart';
@@ -170,11 +171,17 @@ class OrderDetailsScreen extends ConsumerWidget {
           Row(
             children: [
               Expanded(
-                child: _OutlineActionButton(label: NavigationStrings.receipt),
+                child: _OutlineActionButton(
+                  label: NavigationStrings.receipt,
+                  onTap: () => context.push(OrderFlowRoutes.receiptFor(orderId)),
+                ),
               ),
               SizedBox(width: 10.w),
               Expanded(
-                child: _OutlineActionButton(label: NavigationStrings.rate),
+                child: _OutlineActionButton(
+                  label: NavigationStrings.rate,
+                  onTap: () => context.push(OrderFlowRoutes.delivered),
+                ),
               ),
               SizedBox(width: 10.w),
               Expanded(

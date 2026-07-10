@@ -1,0 +1,124 @@
+import 'package:yjeek_app/features/navigation/model/navigation_data.dart';
+
+class DineInOrderTimelineStep {
+  const DineInOrderTimelineStep({
+    required this.label,
+    this.subtitle,
+    this.time,
+    this.completed = false,
+    this.active = false,
+  });
+
+  final String label;
+  final String? subtitle;
+  final String? time;
+  final bool completed;
+  final bool active;
+}
+
+class DineInReceiptItem {
+  const DineInReceiptItem({required this.name, required this.price});
+
+  final String name;
+  final String price;
+}
+
+abstract final class DineInOrderFlowStrings {
+  static const String sentToVendor = 'Sent to VEERA';
+  static const String waitingSubtitle =
+      'Waiting for the vendor to accept your dine-in order.';
+  static const String notChargedYet =
+      "You won't be charged until the vendor accepts your order.";
+  static const String cancelOrder = 'Cancel order';
+  static const String freeCancelHint = 'Free cancellation before the vendor accepts';
+  static const String vendorAccepted = 'VEERA accepted!✨';
+  static const String payWithinHint =
+      'Complete payment within 5 minutes. If payment is not completed in time, your order will be cancelled automatically.';
+  static const String payWith = 'Pay with';
+  static const String change = 'Change';
+  static const String subtotal = 'Subtotal';
+  static const String serviceFee = 'Service fee';
+  static const String totalToPay = 'Total to pay';
+  static const String pay = 'Pay';
+  static const String payIn = 'PAY IN';
+  static const String youreAllSet = "You're all set";
+  static const String showCodeHint = 'Show this number to the vendor when you arrive.';
+  static const String showAtCounter = 'SHOW THIS AT THE COUNTER';
+  static const String viewOrderStatus = 'View order status';
+  static const String dineInOrder = 'Dine-in order';
+  static const String venue = 'Venue';
+  static const String table = 'Table';
+  static const String time = 'Time';
+  static const String track = 'Track';
+  static const String status = 'Status';
+  static const String viewReceipt = 'View receipt';
+  static const String getDirections = 'Get directions';
+  static const String contactVenue = 'Contact venue';
+  static const String visitComplete = 'Visit complete!';
+  static const String thankYouVisit = 'Thanks for dining with VEERA. We hope you enjoyed it.';
+  static const String rateExperience = 'Rate your experience';
+  static const String rateFood = 'Rate the food';
+  static const String tipStaff = 'Tip the staff';
+  static const String customTip = 'Custom';
+  static const String reviewHint = 'Write a review… (optional)';
+  static const String submit = 'Submit';
+  static const String bookAgain = 'Book again';
+  static const String receipt = 'Receipt';
+  static const String shareReceipt = 'Share receipt';
+  static const String dineInPaid = 'DINE-IN • PAID';
+  static const String typeDineIn = 'Dine-in';
+  static const String paid = 'Paid';
+  static const String vat = 'VAT (10%)';
+  static const String total = 'Total';
+  static const String discount = 'Discount';
+}
+
+abstract final class DineInOrderFlowData {
+  static const String orderId = 'YJK-2026-00042';
+  static const String orderIdShort = 'YJK-…00042';
+  static const String arrivalCode = 'YJK-2026-00042';
+  static const String vendor = 'VEERA';
+  static const String venue = 'VEERA - Adliya';
+  static const String venueReceipt = 'VEERA - Adliya';
+  static const String venueAddress = 'Block 318, Road 1705, Adliya';
+  static const String crNumber = 'CR 112233-1';
+  static const String dineInTime = 'Today · 19:30';
+  static const String tableLabel = 'Table for 2';
+  static const String itemSummary = '3 items · Order $orderIdShort';
+  static const String orderTotal = 'BHD 20.500';
+  static const String subtotalAmount = 'BHD 20.000';
+  static const String serviceFeeAmount = 'BHD 0.500';
+  static const String walletBalance = 'BHD 12.450';
+  static const String prepTrack = 'Start preparing now';
+  static const String statusPreparing = 'Preparing · Paid $orderTotal';
+
+  static const List<DineInOrderTimelineStep> statusTimeline = [
+    DineInOrderTimelineStep(label: 'Placed & paid', time: '19:05', completed: true),
+    DineInOrderTimelineStep(label: 'Vendor confirmed', time: '19:08', completed: true),
+    DineInOrderTimelineStep(
+      label: 'Preparing',
+      subtitle: "The kitchen's on it! 🔥",
+      time: '19:09',
+      completed: true,
+      active: true,
+    ),
+    DineInOrderTimelineStep(label: 'Ready for you'),
+    DineInOrderTimelineStep(label: 'You arrived'),
+    DineInOrderTimelineStep(label: 'Completed'),
+  ];
+
+  static const List<DineInReceiptItem> receiptItems = [
+    DineInReceiptItem(name: '1× Gourmet Mezze Platter', price: 'BHD 12.000'),
+    DineInReceiptItem(name: '1× Lamb Ouzi', price: 'BHD 6.000'),
+    DineInReceiptItem(name: '2× Fresh Juice', price: 'BHD 4.000'),
+  ];
+
+  static const List<BillLine> receiptBillLines = [
+    BillLine(label: 'Subtotal', value: 'BHD 20.000'),
+    BillLine(label: 'Discount', value: '- BHD 0.000', isDiscount: true),
+    BillLine(label: 'VAT (10%)', value: 'BHD 0.500'),
+    BillLine(label: 'Total', value: 'BHD 20.500', isBold: true),
+  ];
+
+  static const List<String> tipOptions = ['BHD 0.500', 'BHD 1', 'BHD 2', DineInOrderFlowStrings.customTip];
+}

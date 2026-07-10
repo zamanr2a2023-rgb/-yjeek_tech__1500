@@ -186,25 +186,20 @@ abstract final class NavigationData {
       imageColor: Color(0xFFF5E6D3),
     ),
     ComboItem(
-      name: 'Garlic Bread',
+      name: 'Choc Croissant',
       price: 'BHD 0.600',
       imageColor: Color(0xFFFFF0D9),
     ),
     ComboItem(
-      name: 'Iced Tea',
+      name: 'Iced Latte',
       price: 'BHD 0.800',
       imageColor: Color(0xFFE8F4FC),
-    ),
-    ComboItem(
-      name: 'Side Salad',
-      price: 'BHD 0.700',
-      imageColor: Color(0xFFE3F5E8),
     ),
   ];
 
   static const List<BillLine> cartBillLines = [
     BillLine(label: 'Subtotal', value: 'BHD 3.700'),
-    BillLine(label: 'Discount', value: '- BHD 0.450', isDiscount: true),
+    BillLine(label: 'Discount', value: '- BHD 1.700', isDiscount: true),
     BillLine(label: 'Free delivery', value: 'BHD 0.000'),
     BillLine(label: 'Service fee', value: 'BHD 0.110'),
     BillLine(label: 'Order total', value: 'BHD 2.110', isBold: true),
@@ -269,6 +264,21 @@ abstract final class NavigationData {
         NavigationStrings.getHelp,
       ],
       badge: 'Upcoming',
+    ),
+    OrderHistoryItem(
+      id: 'YJK-2026-00061',
+      vendor: 'Vapeology',
+      subtitle: 'Vape delivery · Today · Mango Ice Disposable',
+      price: 'BHD 6.610',
+      status: OrderStatus.active,
+      category: OrderCategoryFilter.services,
+      isActive: true,
+      actions: [
+        NavigationStrings.trackOrder,
+        NavigationStrings.getHelp,
+      ],
+      badge: 'DELIVERY',
+      arrivalText: 'Arriving in 30–45 min',
     ),
     OrderHistoryItem(
       id: 'YJK-2026-00028',

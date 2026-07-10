@@ -5,6 +5,11 @@ import 'package:yjeek_app/features/help/help_routes.dart';
 import 'package:yjeek_app/core/constants/navigation_strings.dart';
 import 'package:yjeek_app/features/navigation/model/navigation_data.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/navigation_widgets.dart';
+import 'package:yjeek_app/features/services_order_flow/services_order_flow_routes.dart';
+import 'package:yjeek_app/features/dine_in_order_flow/dine_in_order_flow_routes.dart';
+import 'package:yjeek_app/features/pickup_order_flow/pickup_order_flow_routes.dart';
+import 'package:yjeek_app/features/vape_order_flow/vape_order_flow_routes.dart';
+import 'package:yjeek_app/features/order_flow/order_flow_routes.dart';
 import 'package:yjeek_app/routes/route_names.dart';
 
 class OrdersScreen extends StatefulWidget {
@@ -96,9 +101,50 @@ class _OrdersScreenState extends State<OrdersScreen> {
                       '${RouteNames.orderDetails}?id=${order.id}',
                     ),
                     onAction: (action) {
-                      if (action == NavigationStrings.reorder ||
-                          action == NavigationStrings.trackOrder) {
+                      if (action == NavigationStrings.reorder) {
                         widget.onReorder?.call();
+                        return;
+                      }
+                      if (action == NavigationStrings.trackOrder) {
+                        if (order.category == OrderCategoryFilter.dineIn) {
+                          context.push(DineInOrderFlowRoutes.status);
+                        } else if (order.category == OrderCategoryFilter.services) {
+                          if (order.vendor == 'Vapeology') {
+                            context.push(VapeOrderFlowRoutes.status);
+                          } else {
+                            context.push(ServicesOrderFlowRoutes.status);
+                          }
+                        } else if (order.category == OrderCategoryFilter.pickup) {
+                          context.push(PickupOrderFlowRoutes.status);
+                        } else {
+                          context.push(OrderFlowRoutes.statusFor(order.id));
+                        }
+                        return;
+                      }
+                      if (action == NavigationStrings.receipt) {
+                        if (order.category == OrderCategoryFilter.dineIn) {
+                          context.push(DineInOrderFlowRoutes.receipt);
+                        } else if (order.category == OrderCategoryFilter.services) {
+                          if (order.vendor == 'Vapeology') {
+                            context.push(VapeOrderFlowRoutes.receipt);
+                          } else {
+                            context.push(ServicesOrderFlowRoutes.receipt);
+                          }
+                        } else if (order.category == OrderCategoryFilter.pickup) {
+                          context.push(PickupOrderFlowRoutes.receipt);
+                        } else {
+                          context.push(OrderFlowRoutes.receiptFor(order.id));
+                        }
+                        return;
+                      }
+                      if (action == NavigationStrings.rate) {
+                        if (order.category == OrderCategoryFilter.dineIn) {
+                          context.push(DineInOrderFlowRoutes.complete);
+                        } else if (order.category == OrderCategoryFilter.services) {
+                          context.push(ServicesOrderFlowRoutes.complete);
+                        } else {
+                          context.push(OrderFlowRoutes.delivered);
+                        }
                         return;
                       }
                       if (action == NavigationStrings.getHelp) {

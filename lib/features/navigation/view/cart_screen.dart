@@ -1,8 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:yjeek_app/core/constants/app_colors.dart';
 import 'package:yjeek_app/core/constants/app_text_styles.dart';
 import 'package:yjeek_app/core/constants/navigation_strings.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
+import 'package:yjeek_app/features/cart/cart_routes.dart';
+import 'package:yjeek_app/features/dine_in_cart/dine_in_cart_routes.dart';
+import 'package:yjeek_app/features/dine_in_cart/model/dine_in_cart_data.dart';
+import 'package:yjeek_app/features/dine_in_cart/view/widgets/dine_in_cart_widgets.dart';
+import 'package:yjeek_app/features/scheduled_cart/model/scheduled_cart_data.dart';
+import 'package:yjeek_app/features/scheduled_cart/scheduled_cart_routes.dart';
+import 'package:yjeek_app/features/scheduled_cart/view/widgets/scheduled_cart_widgets.dart';
+import 'package:yjeek_app/features/pickup_cart/model/pickup_cart_data.dart';
+import 'package:yjeek_app/features/pickup_cart/pickup_cart_routes.dart';
+import 'package:yjeek_app/features/pickup_cart/view/widgets/pickup_cart_widgets.dart';
+import 'package:yjeek_app/features/vape_cart/model/vape_cart_data.dart';
+import 'package:yjeek_app/features/vape_cart/vape_cart_routes.dart';
+import 'package:yjeek_app/features/vape_cart/view/widgets/vape_cart_widgets.dart';
 import 'package:yjeek_app/features/navigation/model/navigation_data.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/navigation_widgets.dart';
 
@@ -11,12 +25,24 @@ class CartScreen extends StatefulWidget {
     super.key,
     required this.hasItems,
     required this.onBrowseVendors,
+    this.hasDineInItems = false,
+    this.hasScheduledItems = false,
+    this.hasPickupItems = false,
+    this.hasVapeItems = false,
+    this.initialTab = CartTab.orders,
     this.onBack,
+    this.onCartTabChanged,
   });
 
   final bool hasItems;
+  final bool hasDineInItems;
+  final bool hasScheduledItems;
+  final bool hasPickupItems;
+  final bool hasVapeItems;
+  final CartTab initialTab;
   final VoidCallback onBrowseVendors;
   final VoidCallback? onBack;
+  final ValueChanged<CartTab>? onCartTabChanged;
 
   @override
   State<CartScreen> createState() => _CartScreenState();
@@ -31,7 +57,17 @@ class _CartScreenState extends State<CartScreen> {
   @override
   void initState() {
     super.initState();
+    _tabIndex = widget.initialTab.index;
     _pageController = PageController(initialPage: _tabIndex);
+  }
+
+  @override
+  void didUpdateWidget(CartScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.initialTab != widget.initialTab && _tabIndex != widget.initialTab.index) {
+      _tabIndex = widget.initialTab.index;
+      _pageController.jumpToPage(_tabIndex);
+    }
   }
 
   @override
@@ -43,6 +79,7 @@ class _CartScreenState extends State<CartScreen> {
   void _onTabChanged(int index) {
     if (index == _tabIndex) return;
     setState(() => _tabIndex = index);
+    widget.onCartTabChanged?.call(CartTab.values[index]);
     _pageController.animateToPage(
       index,
       duration: const Duration(milliseconds: 250),
@@ -53,8 +90,16 @@ class _CartScreenState extends State<CartScreen> {
   void _onPageChanged(int index) {
     if (index != _tabIndex) {
       setState(() => _tabIndex = index);
+      widget.onCartTabChanged?.call(CartTab.values[index]);
     }
   }
+
+  bool get _showPopulatedHeader =>
+      (widget.hasItems && _tabIndex == CartTab.orders.index) ||
+      (widget.hasDineInItems && _tabIndex == CartTab.dineIn.index) ||
+      ((widget.hasPickupItems || widget.hasScheduledItems) &&
+          _tabIndex == CartTab.pickup.index) ||
+      (widget.hasVapeItems && _tabIndex == CartTab.services.index);
 
   Widget _buildTabBody(CartTab tab) {
     if (widget.hasItems && tab == CartTab.orders) {
@@ -63,6 +108,33 @@ class _CartScreenState extends State<CartScreen> {
         includeCutlery: _includeCutlery,
         onQuantityChanged: (value) => setState(() => _quantity = value),
         onCutleryChanged: (value) => setState(() => _includeCutlery = value),
+        onCheckout: () => context.push(CartRoutes.checkout),
+      );
+    }
+    if (widget.hasDineInItems && tab == CartTab.dineIn) {
+      return DineInBasketBody(
+        onCheckout: () => context.push(DineInCartRoutes.checkout),
+      );
+    }
+    if (widget.hasPickupItems && tab == CartTab.pickup) {
+      return PickupCartBody(
+        onCheckout: () => context.push(PickupCartRoutes.checkout),
+      );
+    }
+    if (widget.hasScheduledItems && tab == CartTab.pickup) {
+      return ScheduledCartBody(
+        onCheckout: () => context.push(ScheduledCartRoutes.checkout),
+      );
+    }
+    if (widget.hasVapeItems && tab == CartTab.services) {
+      return VapeCartBody(
+        onCheckout: () {
+          if (VapeCartData.isAgeVerified) {
+            context.push(VapeCartRoutes.checkout);
+          } else {
+            context.push(VapeCartRoutes.ageVerify);
+          }
+        },
       );
     }
     return EmptyCartBody(onBrowse: widget.onBrowseVendors, tab: tab);
@@ -79,7 +151,7 @@ class _CartScreenState extends State<CartScreen> {
             padding: EdgeInsets.fromLTRB(20.w, 6.h, 20.w, 8.h),
             child: SafeArea(
               bottom: false,
-              child: widget.hasItems
+              child: _showPopulatedHeader
                   ? Row(
                       children: [
                         NavCircleBackButton(onTap: widget.onBack),
@@ -88,13 +160,29 @@ class _CartScreenState extends State<CartScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              NavigationStrings.cart,
+                              _tabIndex == CartTab.dineIn.index
+                                  ? DineInCartStrings.basket
+                                  : _tabIndex == CartTab.pickup.index
+                                      ? (widget.hasPickupItems
+                                          ? PickupCartStrings.cart
+                                          : ScheduledCartStrings.cart)
+                                      : _tabIndex == CartTab.services.index
+                                          ? VapeCartStrings.cart
+                                          : NavigationStrings.cart,
                               style: AppTextStyles.titleSmall(
                                 color: AppColors.textPrimary,
                               ).copyWith(fontSize: 18.sp),
                             ),
                             Text(
-                              NavigationData.cartVendor,
+                              _tabIndex == CartTab.dineIn.index
+                                  ? DineInCartData.vendorSubtitle
+                                  : _tabIndex == CartTab.pickup.index
+                                      ? (widget.hasPickupItems
+                                          ? PickupCartData.vendor
+                                          : ScheduledCartData.vendor)
+                                      : _tabIndex == CartTab.services.index
+                                          ? VapeCartData.vendor
+                                          : NavigationData.cartVendor,
                               style: AppTextStyles.labelSmall(
                                 color: AppColors.textSecondary,
                               ).copyWith(fontSize: 12.sp),
@@ -140,12 +228,14 @@ class _PopulatedCartBody extends StatelessWidget {
     required this.includeCutlery,
     required this.onQuantityChanged,
     required this.onCutleryChanged,
+    required this.onCheckout,
   });
 
   final int quantity;
   final bool includeCutlery;
   final ValueChanged<int> onQuantityChanged;
   final ValueChanged<bool> onCutleryChanged;
+  final VoidCallback onCheckout;
 
   @override
   Widget build(BuildContext context) {
@@ -383,7 +473,7 @@ class _PopulatedCartBody extends StatelessWidget {
                 const SizedBox(width: 12),
                 Expanded(
                   child: ElevatedButton(
-                    onPressed: () {},
+                    onPressed: onCheckout,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primary,
                       foregroundColor: AppColors.white,

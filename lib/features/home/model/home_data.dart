@@ -56,6 +56,11 @@ abstract final class HomeData {
       backgroundColor: Color(0xFFE3F2EB),
     ),
     CategoryItem(
+      name: 'Services',
+      icon: Icons.spa_outlined,
+      backgroundColor: Color(0xFFEDE3FA),
+    ),
+    CategoryItem(
       name: 'Groceries',
       icon: Icons.shopping_basket_outlined,
       backgroundColor: Color(0xFFE3F5E8),
@@ -97,6 +102,11 @@ abstract final class HomeData {
       name: 'Dine In',
       icon: Icons.local_dining_outlined,
       backgroundColor: Color(0xFFE3F2EB),
+    ),
+    CategoryItem(
+      name: 'Services',
+      icon: Icons.spa_outlined,
+      backgroundColor: Color(0xFFEDE3FA),
     ),
     CategoryItem(
       name: 'Pickup',

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:yjeek_app/core/constants/app_colors.dart';import 'package:yjeek_app/core/constants/app_text_styles.dart';
 import 'package:yjeek_app/core/constants/home_strings.dart';
+import 'package:yjeek_app/features/browse/browse_routes.dart';
 import 'package:yjeek_app/features/home/model/home_data.dart';
 import 'package:yjeek_app/features/home/view/widgets/home_widgets.dart';
 import 'package:yjeek_app/routes/app_router.dart';class CategoriesScreen extends StatefulWidget {
@@ -126,9 +127,27 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                       childAspectRatio: 87.5 / 83,
                     ),
                     delegate: SliverChildBuilderDelegate(
-                      (context, index) => CategoryIconTile(
-                        category: HomeData.allCategories[index],
-                        compact: true,
+                      (context, index) => GestureDetector(
+                        onTap: () {
+                          final category = HomeData.allCategories[index];
+                          if (category.name == 'Food') {
+                            context.push(BrowseRoutes.foodBrowse());
+                          } else if (category.name == 'Dine In') {
+                            context.push(BrowseRoutes.dineInBrowse());
+                          } else if (category.name == 'Services') {
+                            context.push(BrowseRoutes.servicesBrowse());
+                          } else if (category.name == 'Electronics') {
+                            context.push(BrowseRoutes.electronicsBrowse());
+                          } else if (category.name == 'Vape') {
+                            context.push(BrowseRoutes.vapeBrowse());
+                          } else if (category.name == 'Pickup') {
+                            context.push(BrowseRoutes.pickupBrowse());
+                          }
+                        },
+                        child: CategoryIconTile(
+                          category: HomeData.allCategories[index],
+                          compact: true,
+                        ),
                       ),
                       childCount: HomeData.allCategories.length,
                     ),
@@ -137,7 +156,23 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                     delegate: SliverChildBuilderDelegate(
                       (context, index) {
                         final category = HomeData.allCategories[index];
-                        return Padding(
+                        return GestureDetector(
+                          onTap: () {
+                            if (category.name == 'Food') {
+                              context.push(BrowseRoutes.foodBrowse());
+                            } else if (category.name == 'Dine In') {
+                              context.push(BrowseRoutes.dineInBrowse());
+                            } else if (category.name == 'Services') {
+                              context.push(BrowseRoutes.servicesBrowse());
+                            } else if (category.name == 'Electronics') {
+                              context.push(BrowseRoutes.electronicsBrowse());
+                            } else if (category.name == 'Vape') {
+                              context.push(BrowseRoutes.vapeBrowse());
+                            } else if (category.name == 'Pickup') {
+                              context.push(BrowseRoutes.pickupBrowse());
+                            }
+                          },
+                          child: Padding(
                           padding: const EdgeInsets.only(bottom: 12),
                           child: Container(
                             padding: const EdgeInsets.all(12),
@@ -175,6 +210,7 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                               ],
                             ),
                           ),
+                        ),
                         );
                       },
                       childCount: HomeData.allCategories.length,
