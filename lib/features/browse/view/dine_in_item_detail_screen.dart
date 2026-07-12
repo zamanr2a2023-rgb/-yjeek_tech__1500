@@ -30,7 +30,9 @@ class _DineInItemDetailScreenState extends State<DineInItemDetailScreen> {
   int _selectedSize = 0;
   final Set<int> _selectedAddons = {};
 
-  DineInRestaurant get _restaurant => DineInData.restaurantById(widget.restaurantId);
+  /// Design: `rgba(44, 107, 71, 0.55)` over white → sage green.
+  static const Color _screenBg = Color(0xFF8BAE9A);
+
   BrowseMenuItem get _item => DineInData.menuItemById(widget.itemId);
 
   String get _displayPrice {
@@ -47,7 +49,7 @@ class _DineInItemDetailScreenState extends State<DineInItemDetailScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: _screenBg,
       body: Column(
         children: [
           SizedBox(
@@ -55,32 +57,38 @@ class _DineInItemDetailScreenState extends State<DineInItemDetailScreen> {
             child: Stack(
               fit: StackFit.expand,
               children: [
-                DecoratedBox(
+                const DecoratedBox(
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors: [_restaurant.gradientStart, _restaurant.gradientEnd],
+                      begin: Alignment(-0.6, -1),
+                      end: Alignment(0.6, 1),
+                      colors: [Color(0xFF6B8A3A), Color(0xFF15302B)],
                     ),
                   ),
                 ),
                 Positioned(
                   top: 18.h,
                   left: 18.w,
-                  child: GestureDetector(
-                    onTap: () => context.pop(),
-                    child: Container(
-                      width: 38.w,
-                      height: 38.w,
-                      decoration: const BoxDecoration(
-                        color: AppColors.white,
-                        shape: BoxShape.circle,
-                      ),
-                      alignment: Alignment.center,
-                      child: Text(
-                        '‹',
-                        style: TextStyle(
-                          fontSize: 20.sp,
-                          fontWeight: FontWeight.w700,
-                          height: 1,
+                  child: SafeArea(
+                    bottom: false,
+                    child: GestureDetector(
+                      onTap: () => context.pop(),
+                      child: Container(
+                        width: 38.w,
+                        height: 38.w,
+                        decoration: const BoxDecoration(
+                          color: AppColors.white,
+                          shape: BoxShape.circle,
+                        ),
+                        alignment: Alignment.center,
+                        child: Text(
+                          '‹',
+                          style: TextStyle(
+                            fontSize: 17.sp,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.textPrimary,
+                            height: 1.3,
+                          ),
                         ),
                       ),
                     ),
@@ -94,7 +102,7 @@ class _DineInItemDetailScreenState extends State<DineInItemDetailScreen> {
               padding: EdgeInsets.fromLTRB(20.w, 18.h, 20.w, 8.h),
               children: [
                 Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     Expanded(
                       child: Text(
@@ -102,57 +110,61 @@ class _DineInItemDetailScreenState extends State<DineInItemDetailScreen> {
                         style: AppTextStyles.titleMedium(color: AppColors.textPrimary).copyWith(
                           fontWeight: FontWeight.w700,
                           fontSize: 22.sp,
+                          height: 1.3,
                         ),
                       ),
                     ),
                     Text(
                       'BHD ${_item.price.replaceAll('.000', '.0')}',
-                      style: AppTextStyles.titleSmall(color: AppColors.primary).copyWith(
+                      style: AppTextStyles.titleSmall(color: AppColors.textPrimary).copyWith(
                         fontWeight: FontWeight.w700,
                         fontSize: 18.sp,
+                        height: 1.3,
                       ),
                     ),
                   ],
                 ),
-                SizedBox(height: 8.h),
+                SizedBox(height: 16.h),
                 Text(
                   DineInData.mezzeLongDescription,
-                  style: AppTextStyles.bodyMedium(color: AppColors.textSecondary).copyWith(
+                  style: AppTextStyles.bodyMedium(color: AppColors.textPrimary).copyWith(
+                    fontWeight: FontWeight.w500,
                     fontSize: 14.sp,
-                    height: 1.35,
+                    height: 1.3,
                   ),
                 ),
-                SizedBox(height: 18.h),
+                SizedBox(height: 16.h),
                 Text(
                   'CHOOSE SIZE',
-                  style: AppTextStyles.labelSmall(color: AppColors.textSecondary).copyWith(
+                  style: AppTextStyles.labelSmall(color: AppColors.textPrimary).copyWith(
                     fontWeight: FontWeight.w600,
                     fontSize: 12.sp,
-                    letterSpacing: 0.3,
+                    height: 1.3,
                   ),
                 ),
                 SizedBox(height: 10.h),
                 for (var i = 0; i < DineInData.mezzeSizes.length; i++) ...[
-                  if (i > 0) SizedBox(height: 8.h),
+                  if (i > 0) SizedBox(height: 10.h),
                   BrowseSizeOptionCard(
                     option: DineInData.mezzeSizes[i],
                     selected: _selectedSize == i,
                     onTap: () => setState(() => _selectedSize = i),
                   ),
                 ],
-                SizedBox(height: 18.h),
+                SizedBox(height: 16.h),
                 Text(
                   'ADD-ONS',
-                  style: AppTextStyles.labelSmall(color: AppColors.textSecondary).copyWith(
+                  style: AppTextStyles.labelSmall(color: AppColors.textPrimary).copyWith(
                     fontWeight: FontWeight.w600,
                     fontSize: 12.sp,
-                    letterSpacing: 0.3,
+                    height: 1.3,
                   ),
                 ),
                 for (var i = 0; i < DineInData.mezzeAddons.length; i++)
                   BrowseAddonRow(
                     addon: DineInData.mezzeAddons[i],
                     checked: _selectedAddons.contains(i),
+                    splitPrice: true,
                     onChanged: (v) => setState(() {
                       if (v) {
                         _selectedAddons.add(i);
@@ -164,52 +176,55 @@ class _DineInItemDetailScreenState extends State<DineInItemDetailScreen> {
               ],
             ),
           ),
-          Container(
-            padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 16.h),
-            decoration: const BoxDecoration(
-              color: AppColors.white,
-              border: Border(top: BorderSide(color: AppColors.border)),
-            ),
+          Padding(
+            padding: EdgeInsets.fromLTRB(20.w, 0, 20.w, 30.h),
             child: Row(
               children: [
                 Container(
+                  height: 46.h,
+                  padding: EdgeInsets.symmetric(horizontal: 12.w),
                   decoration: BoxDecoration(
-                    border: Border.all(color: AppColors.border),
-                    borderRadius: BorderRadius.circular(12.r),
+                    color: AppColors.white,
+                    borderRadius: BorderRadius.circular(24.r),
+                    border: Border.all(color: const Color(0xFFE2E8DD)),
                   ),
                   child: Row(
                     children: [
-                      _qtyButton(Icons.remove, () {
+                      _qtyButton('−', () {
                         if (_quantity > 1) setState(() => _quantity--);
                       }),
                       Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 14.w),
+                        padding: EdgeInsets.symmetric(horizontal: 16.w),
                         child: Text(
                           '$_quantity',
-                          style: AppTextStyles.labelMedium(color: AppColors.textPrimary)
-                              .copyWith(fontWeight: FontWeight.w700, fontSize: 15.sp),
+                          style: AppTextStyles.labelMedium(color: AppColors.textPrimary).copyWith(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 16.sp,
+                            height: 1.3,
+                          ),
                         ),
                       ),
-                      _qtyButton(Icons.add, () => setState(() => _quantity++)),
+                      _qtyButton('+', () => setState(() => _quantity++)),
                     ],
                   ),
                 ),
-                SizedBox(width: 12.w),
+                SizedBox(width: 14.w),
                 Expanded(
                   child: GestureDetector(
                     onTap: () => context.goHome(tab: 2, dineInCart: true),
                     child: Container(
-                      padding: EdgeInsets.symmetric(vertical: 14.h),
+                      height: 55.h,
                       decoration: BoxDecoration(
                         color: AppColors.primary,
-                        borderRadius: BorderRadius.circular(12.r),
+                        borderRadius: BorderRadius.circular(28.r),
                       ),
                       alignment: Alignment.center,
                       child: Text(
                         'Add to order · BHD $_displayPrice',
                         style: AppTextStyles.labelMedium(color: AppColors.white).copyWith(
                           fontWeight: FontWeight.w700,
-                          fontSize: 14.sp,
+                          fontSize: 16.sp,
+                          height: 1.3,
                         ),
                       ),
                     ),
@@ -224,12 +239,18 @@ class _DineInItemDetailScreenState extends State<DineInItemDetailScreen> {
     );
   }
 
-  Widget _qtyButton(IconData icon, VoidCallback onTap) {
+  Widget _qtyButton(String label, VoidCallback onTap) {
     return GestureDetector(
       onTap: onTap,
-      child: Padding(
-        padding: EdgeInsets.all(10.w),
-        child: Icon(icon, size: 18.sp, color: AppColors.textPrimary),
+      behavior: HitTestBehavior.opaque,
+      child: Text(
+        label,
+        style: TextStyle(
+          color: AppColors.primary,
+          fontSize: 20.sp,
+          fontWeight: FontWeight.w700,
+          height: 1.3,
+        ),
       ),
     );
   }

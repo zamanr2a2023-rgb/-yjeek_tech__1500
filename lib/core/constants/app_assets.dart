@@ -34,6 +34,29 @@ abstract final class AppAssets {
   static const String accountDocument = 'assets/Frame (13).png';
   static const String addressWork = 'assets/Frame (21).png';
 
+  static const String dropOffCall = 'assets/Frame (62).png';
+  static const String dropOffDontCall = 'assets/Frame (63).png';
+  static const String dropOffDontRing = 'assets/Frame (64).png';
+  static const String dropOffMessage = 'assets/Frame (65).png';
+  static const String dropOffLeaveAtDoor = 'assets/Frame (66).png';
+  static const String dropOffReception = 'assets/Frame (67).png';
+  static const String dropOffRingBell = 'assets/Frame (31).png';
+
+  static const String payPciShield = 'assets/Frame (68).png';
+  static const String payCash = 'assets/Frame (69).png';
+  static const String payCashStack = 'assets/cush.png';
+  static const String payWallet = 'assets/Frame (70).png';
+  static const String payAddCard = 'assets/Frame (71).png';
+  static const String payBenefit = 'assets/Frame (72).png';
+  static const String payApple = 'assets/Frame (73).png';
+  static const String payBenefitPay = 'assets/Frame (74).png';
+  static const String payGoogle = 'assets/ggggg.png';
+  static const String payPinkPurse = 'assets/pink.png';
+
+  static const String addressBuildingPhoto = 'assets/binding.png';
+  static const String addressDoorPhoto = 'assets/door.png';
+  static const String addressDeleteTrash = 'assets/rount.png';
+
   static const String policyAbout = 'assets/icon.png';
   static const String policyTerms = 'assets/pepar.png';
   static const String policyPrivacy = 'assets/lock.png';

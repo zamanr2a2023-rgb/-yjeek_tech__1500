@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:yjeek_app/core/providers/shell_provider.dart';
 import 'package:yjeek_app/features/auth/view/otp_verify_screen.dart';
 import 'package:yjeek_app/features/auth/view/phone_login_screen.dart';
 import 'package:yjeek_app/features/auth/view/splash_screen.dart';
@@ -139,6 +141,7 @@ class AppRouter {
           builder: (_, state) {
             final tab = int.tryParse(state.uri.queryParameters['tab'] ?? '') ?? 0;
             final cart = state.uri.queryParameters['cart'] == '1';
+            final emptyCart = state.uri.queryParameters['empty'] == '1';
             final dineIn = state.uri.queryParameters['dinein'] == '1';
             final scheduled = state.uri.queryParameters['scheduled'] == '1';
             final pickup = state.uri.queryParameters['pickup'] == '1';
@@ -146,6 +149,7 @@ class AppRouter {
             return MainShell(
               initialIndex: tab,
               cartHasItems: cart,
+              emptyCart: emptyCart,
               dineInHasItems: dineIn,
               scheduledHasItems: scheduled,
               pickupHasItems: pickup,
@@ -751,13 +755,25 @@ extension AppNavigation on BuildContext {
   void goHome({
     int tab = 0,
     bool cartHasItems = false,
+    bool emptyCart = false,
     bool dineInCart = false,
     bool scheduledCart = false,
     bool pickupCart = false,
     bool vapeCart = false,
   }) {
+    // Remember where we came from so Cart back can restore that screen.
+    if (tab == 2) {
+      final current = GoRouterState.of(this).uri.toString();
+      if (!current.startsWith(RouteNames.home)) {
+        ProviderScope.containerOf(this)
+            .read(shellProvider.notifier)
+            .setCartReturnPath(current);
+      }
+    }
+
     final params = <String>['tab=$tab'];
     if (cartHasItems) params.add('cart=1');
+    if (emptyCart) params.add('empty=1');
     if (dineInCart) params.add('dinein=1');
     if (scheduledCart) params.add('scheduled=1');
     if (pickupCart) params.add('pickup=1');

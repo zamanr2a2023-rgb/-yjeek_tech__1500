@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:yjeek_app/core/constants/app_colors.dart';
 import 'package:yjeek_app/core/constants/app_text_styles.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/account_widgets.dart';
@@ -14,38 +15,45 @@ class OrderConfirmedScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return OrderFlowScaffold(
       showHeader: false,
-      bottomNavIndex: 2,
+      bottomNavIndex: 0,
       body: ListView(
-        padding: EdgeInsets.fromLTRB(20.w, 24.h, 20.w, 16.h),
+        padding: EdgeInsets.fromLTRB(20.w, 20.h, 20.w, 24.h),
         children: [
-          SizedBox(height: MediaQuery.paddingOf(context).top + 8.h),
-          const Center(child: OrderSuccessIcon()),
-          SizedBox(height: 20.h),
+          SizedBox(height: MediaQuery.paddingOf(context).top),
+          const Align(
+            alignment: Alignment.centerLeft,
+            child: OrderSuccessIcon(),
+          ),
+          SizedBox(height: 14.h),
           Text(
             OrderFlowStrings.orderConfirmed,
-            textAlign: TextAlign.center,
-            style: AppTextStyles.titleMedium().copyWith(
-              fontWeight: FontWeight.w800,
+            textAlign: TextAlign.left,
+            style: AppTextStyles.titleMedium(color: AppColors.textPrimary).copyWith(
+              fontWeight: FontWeight.w700,
               fontSize: 24.sp,
+              height: 29 / 24,
             ),
           ),
-          SizedBox(height: 8.h),
+          SizedBox(height: 14.h),
           Text(
             OrderFlowData.confirmedSubtitle(),
-            textAlign: TextAlign.center,
-            style: AppTextStyles.bodySmall().copyWith(
+            textAlign: TextAlign.left,
+            style: AppTextStyles.bodySmall(color: AppColors.textSecondary).copyWith(
+              fontWeight: FontWeight.w400,
               fontSize: 13.sp,
-              height: 1.4,
+              height: 16 / 13,
             ),
           ),
-          SizedBox(height: 24.h),
+          SizedBox(height: 14.h),
           const OrderSummaryCard(),
-          SizedBox(height: 24.h),
+          SizedBox(height: 14.h),
           PrimaryGreenButton(
             label: OrderFlowStrings.trackOrder,
+            backgroundColor: AppColors.cartTabActive,
+            height: 52,
             onPressed: () => context.push(OrderFlowRoutes.status),
           ),
-          SizedBox(height: 12.h),
+          SizedBox(height: 14.h),
           OrderOutlineButton(
             label: OrderFlowStrings.viewReceipt,
             onPressed: () => context.push(OrderFlowRoutes.receipt),

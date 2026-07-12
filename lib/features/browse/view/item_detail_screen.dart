@@ -6,7 +6,6 @@ import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/features/browse/model/browse_data.dart';
 import 'package:yjeek_app/features/browse/view/widgets/browse_widgets.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/navigation_widgets.dart';
-import 'package:yjeek_app/routes/app_router.dart';
 
 class ItemDetailScreen extends StatefulWidget {
   const ItemDetailScreen({
@@ -35,7 +34,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
   String get _displayPrice {
     final base = double.tryParse(_item.price) ?? 20;
     final extra = _selectedSize == 1 ? 8.0 : 0.0;
-  var addonTotal = 0.0;
+    var addonTotal = 0.0;
     for (final index in _selectedAddons) {
       addonTotal += double.tryParse(BrowseData.mezzeAddons[index].price) ?? 0;
     }
@@ -51,35 +50,43 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
         children: [
           SizedBox(
             height: 260.h,
+            width: double.infinity,
             child: Stack(
               fit: StackFit.expand,
               children: [
                 DecoratedBox(
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
+                      begin: const Alignment(-0.8, -0.6),
+                      end: const Alignment(0.8, 0.8),
                       colors: [_restaurant.gradientStart, _restaurant.gradientEnd],
                     ),
                   ),
                 ),
                 Positioned(
-                  top: 18.h,
+                  top: 0,
                   left: 18.w,
-                  child: GestureDetector(
-                    onTap: () => context.pop(),
-                    child: Container(
-                      width: 38.w,
-                      height: 38.w,
-                      decoration: const BoxDecoration(
-                        color: AppColors.white,
-                        shape: BoxShape.circle,
-                      ),
-                      alignment: Alignment.center,
-                      child: Text(
-                        '‹',
-                        style: TextStyle(
-                          fontSize: 20.sp,
-                          fontWeight: FontWeight.w700,
-                          height: 1,
+                  child: SafeArea(
+                    bottom: false,
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () => context.pop(),
+                      child: Container(
+                        width: 38.w,
+                        height: 38.w,
+                        decoration: const BoxDecoration(
+                          color: AppColors.white,
+                          shape: BoxShape.circle,
+                        ),
+                        alignment: Alignment.center,
+                        child: Text(
+                          '‹',
+                          style: TextStyle(
+                            fontSize: 17.sp,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.textPrimary,
+                            height: 1.3,
+                          ),
                         ),
                       ),
                     ),
@@ -89,131 +96,145 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
             ),
           ),
           Expanded(
-            child: ListView(
-              padding: EdgeInsets.fromLTRB(20.w, 18.h, 20.w, 8.h),
-              children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        _item.name,
-                        style: AppTextStyles.titleMedium(color: AppColors.textPrimary).copyWith(
-                          fontWeight: FontWeight.w700,
-                          fontSize: 22.sp,
+            child: ColoredBox(
+              color: AppColors.background,
+              child: ListView(
+                padding: EdgeInsets.fromLTRB(20.w, 18.h, 20.w, 8.h),
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          _item.name,
+                          style: AppTextStyles.titleMedium(color: AppColors.textPrimary)
+                              .copyWith(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 22.sp,
+                            height: 1.3,
+                          ),
                         ),
                       ),
-                    ),
-                    Text(
-                      'BHD ${_item.price.replaceAll('.000', '.0')}',
-                      style: AppTextStyles.titleSmall(color: AppColors.primary).copyWith(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 18.sp,
+                      SizedBox(width: 8.w),
+                      Text(
+                        'BHD ${_item.price.replaceAll('.000', '.0')}',
+                        style: AppTextStyles.titleSmall(color: AppColors.primary).copyWith(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 18.sp,
+                          height: 1.3,
+                        ),
                       ),
+                    ],
+                  ),
+                  SizedBox(height: 8.h),
+                  Text(
+                    BrowseData.mezzeLongDescription,
+                    style: AppTextStyles.bodyMedium(color: const Color(0xFF6B7B6E)).copyWith(
+                      fontWeight: FontWeight.w500,
+                      fontSize: 14.sp,
+                      height: 1.3,
+                    ),
+                  ),
+                  SizedBox(height: 16.h),
+                  Text(
+                    'CHOOSE SIZE',
+                    style: AppTextStyles.labelSmall(color: const Color(0xFF6B7B6E)).copyWith(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 12.sp,
+                      height: 1.3,
+                    ),
+                  ),
+                  SizedBox(height: 10.h),
+                  for (var i = 0; i < BrowseData.mezzeSizes.length; i++) ...[
+                    if (i > 0) SizedBox(height: 8.h),
+                    BrowseSizeOptionCard(
+                      option: BrowseData.mezzeSizes[i],
+                      selected: _selectedSize == i,
+                      onTap: () => setState(() => _selectedSize = i),
                     ),
                   ],
-                ),
-                SizedBox(height: 8.h),
-                Text(
-                  BrowseData.mezzeLongDescription,
-                  style: AppTextStyles.bodyMedium(color: AppColors.textSecondary).copyWith(
-                    fontSize: 14.sp,
-                    height: 1.35,
+                  SizedBox(height: 16.h),
+                  Text(
+                    'Add-ons',
+                    style: AppTextStyles.labelSmall(color: const Color(0xFF6B7B6E)).copyWith(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 12.sp,
+                    ),
                   ),
-                ),
-                SizedBox(height: 18.h),
-                Text(
-                  'CHOOSE SIZE',
-                  style: AppTextStyles.labelSmall(color: AppColors.textSecondary).copyWith(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 12.sp,
-                    letterSpacing: 0.3,
-                  ),
-                ),
-                SizedBox(height: 10.h),
-                for (var i = 0; i < BrowseData.mezzeSizes.length; i++) ...[
-                  if (i > 0) SizedBox(height: 8.h),
-                  BrowseSizeOptionCard(
-                    option: BrowseData.mezzeSizes[i],
-                    selected: _selectedSize == i,
-                    onTap: () => setState(() => _selectedSize = i),
-                  ),
+                  SizedBox(height: 4.h),
+                  for (var i = 0; i < BrowseData.mezzeAddons.length; i++)
+                    BrowseAddonRow(
+                      addon: BrowseData.mezzeAddons[i],
+                      checked: _selectedAddons.contains(i),
+                      onChanged: (v) => setState(() {
+                        if (v) {
+                          _selectedAddons.add(i);
+                        } else {
+                          _selectedAddons.remove(i);
+                        }
+                      }),
+                    ),
                 ],
-                SizedBox(height: 18.h),
-                Text(
-                  'Add-ons',
-                  style: AppTextStyles.labelSmall(color: AppColors.textSecondary).copyWith(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 12.sp,
-                  ),
-                ),
-                for (var i = 0; i < BrowseData.mezzeAddons.length; i++)
-                  BrowseAddonRow(
-                    addon: BrowseData.mezzeAddons[i],
-                    checked: _selectedAddons.contains(i),
-                    onChanged: (v) => setState(() {
-                      if (v) {
-                        _selectedAddons.add(i);
-                      } else {
-                        _selectedAddons.remove(i);
-                      }
-                    }),
-                  ),
-              ],
+              ),
             ),
           ),
           Container(
             padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 16.h),
             decoration: const BoxDecoration(
               color: AppColors.white,
-              border: Border(top: BorderSide(color: AppColors.border)),
+              border: Border(top: BorderSide(color: Color(0xFFE2E8DD))),
             ),
-            child: Row(
-              children: [
-                Container(
-                  decoration: BoxDecoration(
-                    border: Border.all(color: AppColors.border),
-                    borderRadius: BorderRadius.circular(12.r),
-                  ),
-                  child: Row(
-                    children: [
-                      _qtyButton(Icons.remove, () {
-                        if (_quantity > 1) setState(() => _quantity--);
-                      }),
-                      Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 14.w),
-                        child: Text(
-                          '$_quantity',
-                          style: AppTextStyles.labelMedium(color: AppColors.textPrimary)
-                              .copyWith(fontWeight: FontWeight.w700, fontSize: 15.sp),
+            child: SafeArea(
+              top: false,
+              child: Row(
+                children: [
+                  Container(
+                    decoration: BoxDecoration(
+                      color: AppColors.white,
+                      border: Border.all(color: const Color(0xFFE2E8DD)),
+                      borderRadius: BorderRadius.circular(12.r),
+                    ),
+                    child: Row(
+                      children: [
+                        _qtyButton(Icons.remove, () {
+                          if (_quantity > 1) setState(() => _quantity--);
+                        }),
+                        Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 14.w),
+                          child: Text(
+                            '$_quantity',
+                            style: AppTextStyles.labelMedium(color: AppColors.textPrimary)
+                                .copyWith(fontWeight: FontWeight.w700, fontSize: 15.sp),
+                          ),
                         ),
-                      ),
-                      _qtyButton(Icons.add, () => setState(() => _quantity++)),
-                    ],
+                        _qtyButton(Icons.add, () => setState(() => _quantity++)),
+                      ],
+                    ),
                   ),
-                ),
-                SizedBox(width: 12.w),
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () => context.goHome(tab: 2, cartHasItems: true),
-                    child: Container(
-                      padding: EdgeInsets.symmetric(vertical: 14.h),
-                      decoration: BoxDecoration(
-                        color: AppColors.primary,
-                        borderRadius: BorderRadius.circular(12.r),
-                      ),
-                      alignment: Alignment.center,
-                      child: Text(
-                        'Add to cart · BHD $_displayPrice',
-                        style: AppTextStyles.labelMedium(color: AppColors.white).copyWith(
-                          fontWeight: FontWeight.w700,
-                          fontSize: 14.sp,
+                  SizedBox(width: 12.w),
+                  Expanded(
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () => context.pop(),
+                      child: Container(
+                        padding: EdgeInsets.symmetric(vertical: 14.h),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary,
+                          borderRadius: BorderRadius.circular(14.r),
+                        ),
+                        alignment: Alignment.center,
+                        child: Text(
+                          'Add to cart · BHD $_displayPrice',
+                          style: AppTextStyles.labelMedium(color: AppColors.white).copyWith(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 14.sp,
+                          ),
                         ),
                       ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ],

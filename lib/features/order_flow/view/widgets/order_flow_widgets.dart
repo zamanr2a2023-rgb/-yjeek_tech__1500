@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:yjeek_app/core/constants/app_assets.dart';
 import 'package:yjeek_app/core/constants/app_colors.dart';
 import 'package:yjeek_app/core/constants/app_text_styles.dart';
 import 'package:yjeek_app/core/constants/navigation_strings.dart';
@@ -19,6 +20,8 @@ class OrderFlowScaffold extends StatelessWidget {
     this.bottom,
     this.bottomNavIndex = 1,
     this.showHeader = true,
+    this.lightHeader = false,
+    this.backgroundColor,
   });
 
   final Widget body;
@@ -29,27 +32,100 @@ class OrderFlowScaffold extends StatelessWidget {
   final Widget? bottom;
   final int bottomNavIndex;
   final bool showHeader;
+  final bool lightHeader;
+  final Color? backgroundColor;
 
   @override
   Widget build(BuildContext context) {
+    final bg = backgroundColor ?? AppColors.background;
     return Scaffold(
-      backgroundColor: AppColors.background,
-      body: Column(
-        children: [
-          if (showHeader && title != null)
-            GreenScreenHeader(
-              title: title!,
-              subtitle: subtitle,
-              onBack: onBack,
-              trailing: trailing,
-            )
-          else if (showHeader)
-            SizedBox(height: MediaQuery.paddingOf(context).top),
-          Expanded(child: body),
-          if (bottom != null) bottom!,
-        ],
+      backgroundColor: bg,
+      body: ColoredBox(
+        color: bg,
+        child: Column(
+          children: [
+            if (showHeader && title != null)
+              lightHeader
+                  ? _OrderLightHeader(
+                      title: title!,
+                      subtitle: subtitle,
+                      onBack: onBack,
+                      trailing: trailing,
+                    )
+                  : GreenScreenHeader(
+                      title: title!,
+                      subtitle: subtitle,
+                      onBack: onBack,
+                      trailing: trailing,
+                    )
+            else if (showHeader)
+              SizedBox(height: MediaQuery.paddingOf(context).top),
+            Expanded(child: body),
+            if (bottom != null) bottom!,
+          ],
+        ),
       ),
       bottomNavigationBar: ShellBottomNavBar(currentIndex: bottomNavIndex),
+    );
+  }
+}
+
+class _OrderLightHeader extends StatelessWidget {
+  const _OrderLightHeader({
+    required this.title,
+    this.subtitle,
+    this.onBack,
+    this.trailing,
+  });
+
+  final String title;
+  final String? subtitle;
+  final VoidCallback? onBack;
+  final Widget? trailing;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.fromLTRB(20.w, 6.h, 20.w, 8.h),
+      child: SafeArea(
+        bottom: false,
+        child: Row(
+          children: [
+            NavCircleBackButton(
+              onTap: onBack ?? () => Navigator.of(context).maybePop(),
+              iconColor: AppColors.textPrimary,
+            ),
+            SizedBox(width: 12.w),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: AppTextStyles.titleSmall().copyWith(
+                      fontSize: 19.sp,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  if (subtitle != null) ...[
+                    SizedBox(height: 2.h),
+                    Text(
+                      subtitle!,
+                      style: AppTextStyles.labelSmall(
+                        color: AppColors.textSecondary,
+                      ).copyWith(
+                        fontWeight: FontWeight.w400,
+                        fontSize: 12.sp,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            if (trailing != null) trailing!,
+          ],
+        ),
+      ),
     );
   }
 }
@@ -57,19 +133,26 @@ class OrderFlowScaffold extends StatelessWidget {
 class OrderSuccessIcon extends StatelessWidget {
   const OrderSuccessIcon({super.key, this.size});
 
+  /// Optional width; height scales to the design pill ratio (72×41).
   final double? size;
 
   @override
   Widget build(BuildContext context) {
-    final iconSize = size ?? 72.w;
+    final width = size ?? 72.w;
+    final height = size != null ? size! * (41 / 72) : 41.h;
     return Container(
-      width: iconSize,
-      height: iconSize,
-      decoration: const BoxDecoration(
-        color: AppColors.primary,
-        shape: BoxShape.circle,
+      width: width,
+      height: height,
+      decoration: BoxDecoration(
+        color: const Color(0xFFE3F2EB),
+        borderRadius: BorderRadius.circular(36.r),
       ),
-      child: Icon(Icons.check, color: AppColors.white, size: iconSize * 0.45),
+      alignment: Alignment.center,
+      child: Icon(
+        Icons.check,
+        color: const Color(0xFF127036),
+        size: (size != null ? size! * 0.38 : 28.sp),
+      ),
     );
   }
 }
@@ -80,6 +163,7 @@ class OrderSummaryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return OrderFlowCard(
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
       child: Column(
         children: [
           _row(OrderFlowStrings.items, OrderFlowData.itemCount),
@@ -88,28 +172,37 @@ class OrderSummaryCard extends StatelessWidget {
           SizedBox(height: 10.h),
           _row(OrderFlowStrings.arrivesIn, OrderFlowData.arrivalWindow),
           SizedBox(height: 10.h),
-          _row(OrderFlowStrings.orderTotal, OrderFlowData.orderTotal, bold: true),
+          const Divider(height: 1, thickness: 1, color: Color(0xFFE0E6E0)),
+          SizedBox(height: 10.h),
+          _row(
+            OrderFlowStrings.orderTotal,
+            OrderFlowData.orderTotal,
+            isTotal: true,
+          ),
         ],
       ),
     );
   }
 
-  Widget _row(String label, String value, {bool bold = false}) {
+  Widget _row(String label, String value, {bool isTotal = false}) {
     return Row(
       children: [
         Expanded(
           child: Text(
             label,
-            style: AppTextStyles.labelSmall(color: AppColors.textSecondary).copyWith(
-              fontSize: 13.sp,
+            style: AppTextStyles.labelSmall(
+              color: isTotal ? AppColors.textPrimary : AppColors.textSecondary,
+            ).copyWith(
+              fontWeight: isTotal ? FontWeight.w700 : FontWeight.w400,
+              fontSize: isTotal ? 15.sp : 13.sp,
             ),
           ),
         ),
         Text(
           value,
-          style: AppTextStyles.labelMedium().copyWith(
-            fontWeight: bold ? FontWeight.w800 : FontWeight.w600,
-            fontSize: bold ? 15.sp : 13.sp,
+          style: AppTextStyles.labelMedium(color: AppColors.textPrimary).copyWith(
+            fontWeight: isTotal ? FontWeight.w700 : FontWeight.w500,
+            fontSize: isTotal ? 16.sp : 13.sp,
           ),
         ),
       ],
@@ -131,7 +224,7 @@ class OrderFlowCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(16.r),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: const Color(0xFFE0E6E0)),
       ),
       child: child,
     );
@@ -146,10 +239,10 @@ class OrderMapPlaceholder extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: height ?? 180.h,
+      height: height ?? 196.h,
       width: double.infinity,
       decoration: BoxDecoration(
-        color: const Color(0xFFE8ECE8),
+        color: const Color(0xFFD1E0D4),
         borderRadius: BorderRadius.circular(16.r),
       ),
     );
@@ -163,17 +256,20 @@ class OrderStatusBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 6.h),
-      decoration: BoxDecoration(
-        color: AppColors.accountIconBackground,
-        borderRadius: BorderRadius.circular(20.r),
-      ),
-      child: Text(
-        label,
-        style: AppTextStyles.labelSmall(color: AppColors.primary).copyWith(
-          fontWeight: FontWeight.w700,
-          fontSize: 12.sp,
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 6.h),
+        decoration: BoxDecoration(
+          color: const Color(0xFFE3F2EB),
+          borderRadius: BorderRadius.circular(20.r),
+        ),
+        child: Text(
+          label,
+          style: AppTextStyles.labelSmall(color: const Color(0xFF127036)).copyWith(
+            fontWeight: FontWeight.w600,
+            fontSize: 13.sp,
+          ),
         ),
       ),
     );
@@ -186,21 +282,22 @@ class OrderArrivalCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return OrderFlowCard(
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
       child: Row(
         children: [
           Expanded(
             child: Text(
               OrderFlowStrings.estimatedArrival,
-              style: AppTextStyles.labelMedium().copyWith(
-                fontWeight: FontWeight.w600,
-                fontSize: 14.sp,
+              style: AppTextStyles.labelMedium(color: AppColors.textPrimary).copyWith(
+                fontWeight: FontWeight.w700,
+                fontSize: 15.sp,
               ),
             ),
           ),
           Text(
             OrderFlowData.arrivalWindow,
-            style: AppTextStyles.titleSmall().copyWith(
-              fontWeight: FontWeight.w800,
+            style: AppTextStyles.titleSmall(color: AppColors.textPrimary).copyWith(
+              fontWeight: FontWeight.w700,
               fontSize: 16.sp,
             ),
           ),
@@ -218,69 +315,75 @@ class OrderTimeline extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return OrderFlowCard(
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
       child: Column(
-        children: List.generate(steps.length, (index) {
-          final step = steps[index];
-          final isLast = index == steps.length - 1;
-          final done = step.completed;
-          return Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Column(
-                children: [
-                  Container(
-                    width: 22.w,
-                    height: 22.w,
-                    decoration: BoxDecoration(
-                      color: done ? AppColors.primary : AppColors.white,
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: done ? AppColors.primary : AppColors.border,
-                        width: done ? 0 : 1.5,
-                      ),
-                    ),
-                    child: done
-                        ? Icon(Icons.check, color: AppColors.white, size: 14.sp)
-                        : null,
-                  ),
-                  if (!isLast)
-                    Container(
-                      width: 2,
-                      height: 28.h,
-                      color: done ? AppColors.primary.withValues(alpha: 0.35) : AppColors.border,
-                    ),
-                ],
-              ),
-              SizedBox(width: 12.w),
-              Expanded(
-                child: Padding(
-                  padding: EdgeInsets.only(bottom: isLast ? 0 : 18.h),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          step.label,
-                          style: AppTextStyles.labelMedium().copyWith(
-                            fontWeight: step.active ? FontWeight.w700 : FontWeight.w600,
-                            fontSize: 14.sp,
-                            color: done ? AppColors.textPrimary : AppColors.textSecondary,
-                          ),
-                        ),
-                      ),
-                      Text(
-                        step.time ?? '--',
-                        style: AppTextStyles.labelSmall(color: AppColors.textSecondary).copyWith(
-                          fontSize: 12.sp,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          );
-        }),
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            OrderFlowStrings.statusLabel,
+            style: AppTextStyles.labelSmall(color: const Color(0xFF8C948C)).copyWith(
+              fontWeight: FontWeight.w600,
+              fontSize: 11.sp,
+            ),
+          ),
+          SizedBox(height: 10.h),
+          for (var i = 0; i < steps.length; i++) ...[
+            if (i > 0) SizedBox(height: 10.h),
+            _TimelineRow(step: steps[i]),
+          ],
+        ],
       ),
+    );
+  }
+}
+
+class _TimelineRow extends StatelessWidget {
+  const _TimelineRow({required this.step});
+
+  final OrderTimelineStep step;
+
+  @override
+  Widget build(BuildContext context) {
+    final done = step.completed;
+    return Row(
+      children: [
+        Container(
+          width: 20.w,
+          height: 20.w,
+          decoration: BoxDecoration(
+            color: done ? AppColors.cartTabActive : AppColors.white,
+            shape: BoxShape.circle,
+            border: done
+                ? null
+                : Border.all(color: const Color(0xFFD9DED9), width: 1.5),
+          ),
+          alignment: Alignment.center,
+          child: done
+              ? Icon(Icons.check, color: AppColors.white, size: 12.sp)
+              : null,
+        ),
+        SizedBox(width: 10.w),
+        Expanded(
+          child: Text(
+            step.label,
+            style: AppTextStyles.labelMedium(
+              color: done || step.active
+                  ? AppColors.textPrimary
+                  : AppColors.textSecondary,
+            ).copyWith(
+              fontWeight: FontWeight.w600,
+              fontSize: 13.sp,
+            ),
+          ),
+        ),
+        Text(
+          step.time ?? '--',
+          style: AppTextStyles.labelSmall(color: AppColors.textSecondary).copyWith(
+            fontWeight: FontWeight.w400,
+            fontSize: 12.sp,
+          ),
+        ),
+      ],
     );
   }
 }
@@ -291,16 +394,17 @@ class OrderVendorSummaryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return OrderFlowCard(
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
       child: Row(
         children: [
           Container(
-            width: 44.w,
-            height: 44.w,
+            width: 40.w,
+            height: 40.w,
             decoration: BoxDecoration(
-              color: AppColors.accountIconBackground,
+              color: const Color(0xFFE3F2EB),
               borderRadius: BorderRadius.circular(12.r),
             ),
-            child: Icon(Icons.restaurant_outlined, color: AppColors.primary, size: 22.sp),
+            child: Icon(Icons.restaurant, color: AppColors.cartTabActive, size: 20.sp),
           ),
           SizedBox(width: 12.w),
           Expanded(
@@ -309,7 +413,7 @@ class OrderVendorSummaryCard extends StatelessWidget {
               children: [
                 Text(
                   OrderFlowData.vendor,
-                  style: AppTextStyles.labelMedium().copyWith(
+                  style: AppTextStyles.labelMedium(color: AppColors.textPrimary).copyWith(
                     fontWeight: FontWeight.w700,
                     fontSize: 14.sp,
                   ),
@@ -326,7 +430,7 @@ class OrderVendorSummaryCard extends StatelessWidget {
           ),
           Text(
             OrderFlowData.orderTotal,
-            style: AppTextStyles.labelMedium().copyWith(
+            style: AppTextStyles.labelMedium(color: AppColors.textPrimary).copyWith(
               fontWeight: FontWeight.w700,
               fontSize: 14.sp,
             ),
@@ -420,12 +524,17 @@ class OrderPaymentRow extends StatelessWidget {
     return OrderFlowCard(
       child: Row(
         children: [
-          Icon(Icons.payments_outlined, size: 22.sp, color: AppColors.textPrimary),
+          Image.asset(
+            AppAssets.payCashStack,
+            width: 28.w,
+            height: 28.w,
+            fit: BoxFit.contain,
+          ),
           SizedBox(width: 12.w),
           Expanded(
             child: Text(
               OrderFlowData.paymentMethod,
-              style: AppTextStyles.labelMedium().copyWith(
+              style: AppTextStyles.labelMedium(color: AppColors.textPrimary).copyWith(
                 fontWeight: FontWeight.w600,
                 fontSize: 14.sp,
               ),
@@ -438,12 +547,12 @@ class OrderPaymentRow extends StatelessWidget {
               children: [
                 Text(
                   OrderFlowStrings.change,
-                  style: AppTextStyles.labelSmall(color: AppColors.primary).copyWith(
+                  style: AppTextStyles.labelSmall(color: AppColors.cartTabActive).copyWith(
                     fontWeight: FontWeight.w700,
                     fontSize: 13.sp,
                   ),
                 ),
-                Icon(Icons.chevron_right, color: AppColors.primary, size: 18.sp),
+                Icon(Icons.chevron_right, color: AppColors.cartTabActive, size: 18.sp),
               ],
             ),
           ),
@@ -467,26 +576,34 @@ class OrderOutlineButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return OutlinedButton(
-      onPressed: onPressed,
-      style: OutlinedButton.styleFrom(
-        foregroundColor: AppColors.textPrimary,
-        side: const BorderSide(color: AppColors.border),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28.r)),
-        padding: EdgeInsets.symmetric(vertical: 16.h),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          if (icon != null) ...[
-            Icon(icon, size: 18.sp),
-            SizedBox(width: 8.w),
+    return SizedBox(
+      width: double.infinity,
+      height: 52.h,
+      child: OutlinedButton(
+        onPressed: onPressed,
+        style: OutlinedButton.styleFrom(
+          foregroundColor: AppColors.textPrimary,
+          backgroundColor: AppColors.white,
+          side: const BorderSide(color: Color(0xFFE0E6E0), width: 1.5),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28.r)),
+          padding: EdgeInsets.zero,
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            if (icon != null) ...[
+              Icon(icon, size: 18.sp),
+              SizedBox(width: 8.w),
+            ],
+            Text(
+              label,
+              style: AppTextStyles.labelMedium(color: AppColors.textPrimary).copyWith(
+                fontWeight: FontWeight.w600,
+                fontSize: 15.sp,
+              ),
+            ),
           ],
-          Text(
-            label,
-            style: AppTextStyles.labelMedium().copyWith(fontWeight: FontWeight.w700),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -509,16 +626,20 @@ class OrderStarRatingCard extends StatefulWidget {
 class _OrderStarRatingCardState extends State<OrderStarRatingCard> {
   late int _rating = widget.initialRating;
 
+  static const Color _starFilled = Color(0xFFD98C1A);
+  static const Color _starEmpty = Color(0xFFE0E6E0);
+
   @override
   Widget build(BuildContext context) {
     return OrderFlowCard(
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             widget.title,
-            style: AppTextStyles.labelMedium().copyWith(
-              fontWeight: FontWeight.w700,
+            style: AppTextStyles.labelMedium(color: AppColors.textPrimary).copyWith(
+              fontWeight: FontWeight.w600,
               fontSize: 14.sp,
             ),
           ),
@@ -529,10 +650,10 @@ class _OrderStarRatingCardState extends State<OrderStarRatingCard> {
               return GestureDetector(
                 onTap: () => setState(() => _rating = index + 1),
                 child: Padding(
-                  padding: EdgeInsets.only(right: 6.w),
+                  padding: EdgeInsets.only(right: index < 4 ? 6.w : 0),
                   child: Icon(
-                    filled ? Icons.star : Icons.star_border,
-                    color: filled ? const Color(0xFFE6B800) : AppColors.border,
+                    Icons.star,
+                    color: filled ? _starFilled : _starEmpty,
                     size: 28.sp,
                   ),
                 ),
@@ -548,56 +669,83 @@ class _OrderStarRatingCardState extends State<OrderStarRatingCard> {
 class OrderReceiptPaper extends StatelessWidget {
   const OrderReceiptPaper({super.key});
 
+  static const Color _labelGrey = Color(0xFF6B756E);
+  static const Color _dashColor = Color(0xFFC7CCC7);
+
   @override
   Widget build(BuildContext context) {
     return OrderFlowCard(
+      padding: EdgeInsets.all(18.w),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Container(
-            padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
-            decoration: BoxDecoration(
-              color: AppColors.accountIconBackground,
-              borderRadius: BorderRadius.circular(8.r),
-            ),
-            child: Text(
-              OrderFlowStrings.orderConfirmedBadge,
-              style: AppTextStyles.caption(color: AppColors.primary).copyWith(
-                fontWeight: FontWeight.w800,
-                fontSize: 10.sp,
-                letterSpacing: 0.5,
+          Column(
+            children: [
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 5.h),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE3F2EB),
+                  borderRadius: BorderRadius.circular(20.r),
+                ),
+                child: Text(
+                  OrderFlowStrings.orderConfirmedBadge,
+                  style: AppTextStyles.caption(color: const Color(0xFF127036)).copyWith(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 11.sp,
+                    height: 13 / 11,
+                  ),
+                ),
               ),
-            ),
+              SizedBox(height: 4.h),
+              Text(
+                OrderFlowData.vendorLocation,
+                textAlign: TextAlign.center,
+                style: AppTextStyles.titleSmall(color: AppColors.textPrimary).copyWith(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 16.sp,
+                  height: 19 / 16,
+                ),
+              ),
+              SizedBox(height: 4.h),
+              Text(
+                OrderFlowData.vendorAddress,
+                textAlign: TextAlign.center,
+                style: AppTextStyles.labelSmall(color: _labelGrey).copyWith(
+                  fontWeight: FontWeight.w400,
+                  fontSize: 12.sp,
+                  height: 15 / 12,
+                ),
+              ),
+            ],
           ),
           SizedBox(height: 12.h),
-          Text(
-            OrderFlowData.vendorLocation,
-            style: AppTextStyles.titleSmall().copyWith(
-              fontWeight: FontWeight.w800,
-              fontSize: 16.sp,
-            ),
-          ),
-          SizedBox(height: 4.h),
-          Text(
-            OrderFlowData.vendorAddress,
-            style: AppTextStyles.labelSmall(color: AppColors.textSecondary).copyWith(
-              fontSize: 12.sp,
-            ),
-          ),
-          SizedBox(height: 14.h),
-          _metaRow('Order #', OrderFlowData.orderIdDisplay),
+          const _ReceiptDashedDivider(color: _dashColor),
+          SizedBox(height: 12.h),
+          _metaRow('Order #', OrderFlowData.orderId),
+          SizedBox(height: 8.h),
           _metaRow('Date', OrderFlowData.orderDate),
+          SizedBox(height: 8.h),
           _metaRow('Type', OrderFlowStrings.typeDelivery),
+          SizedBox(height: 8.h),
           _metaRow('Deliver to', OrderFlowData.deliveryAddress),
-          Divider(height: 24.h, color: AppColors.border),
-          for (final item in OrderFlowData.receiptItems) ...[
-            _itemRow(item.name, item.price),
-            SizedBox(height: 8.h),
+          SizedBox(height: 12.h),
+          const _ReceiptDashedDivider(color: _dashColor),
+          SizedBox(height: 12.h),
+          _columnHeader(OrderFlowStrings.itemColumn, OrderFlowStrings.priceColumn),
+          SizedBox(height: 8.h),
+          for (var i = 0; i < OrderFlowData.receiptItems.length; i++) ...[
+            if (i > 0) SizedBox(height: 8.h),
+            _itemRow(
+              OrderFlowData.receiptItems[i].name,
+              OrderFlowData.receiptItems[i].price,
+            ),
           ],
-          Divider(height: 24.h, color: AppColors.border),
-          for (final line in OrderFlowData.receiptBillLines) ...[
-            _billRow(line),
-            if (!line.isBold) SizedBox(height: 8.h),
+          SizedBox(height: 12.h),
+          const _ReceiptDashedDivider(color: _dashColor),
+          SizedBox(height: 12.h),
+          for (var i = 0; i < OrderFlowData.receiptBillLines.length; i++) ...[
+            if (i > 0) SizedBox(height: 8.h),
+            _billRow(OrderFlowData.receiptBillLines[i]),
           ],
           SizedBox(height: 8.h),
           _metaRow(OrderFlowStrings.paid, OrderFlowData.paymentMethod),
@@ -606,49 +754,77 @@ class OrderReceiptPaper extends StatelessWidget {
     );
   }
 
+  Widget _columnHeader(String left, String right) {
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            left,
+            style: AppTextStyles.labelSmall(color: _labelGrey).copyWith(
+              fontWeight: FontWeight.w400,
+              fontSize: 13.sp,
+              height: 16 / 13,
+            ),
+          ),
+        ),
+        Text(
+          right,
+          style: AppTextStyles.labelSmall(color: AppColors.textPrimary).copyWith(
+            fontWeight: FontWeight.w500,
+            fontSize: 13.sp,
+            height: 16 / 13,
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _metaRow(String label, String value) {
-    return Padding(
-      padding: EdgeInsets.only(bottom: 8.h),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 80.w,
-            child: Text(
-              label,
-              style: AppTextStyles.labelSmall(color: AppColors.textSecondary).copyWith(
-                fontSize: 12.sp,
-              ),
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Expanded(
+          child: Text(
+            label,
+            style: AppTextStyles.labelSmall(color: _labelGrey).copyWith(
+              fontWeight: FontWeight.w400,
+              fontSize: 13.sp,
+              height: 16 / 13,
             ),
           ),
-          Expanded(
-            child: Text(
-              value,
-              style: AppTextStyles.labelMedium().copyWith(
-                fontWeight: FontWeight.w600,
-                fontSize: 13.sp,
-              ),
-            ),
+        ),
+        Text(
+          value,
+          style: AppTextStyles.labelMedium(color: AppColors.textPrimary).copyWith(
+            fontWeight: FontWeight.w500,
+            fontSize: 13.sp,
+            height: 16 / 13,
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
   Widget _itemRow(String name, String price) {
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Expanded(
           child: Text(
             name,
-            style: AppTextStyles.labelMedium().copyWith(fontSize: 13.sp),
+            style: AppTextStyles.labelMedium(color: AppColors.textPrimary).copyWith(
+              fontWeight: FontWeight.w400,
+              fontSize: 13.sp,
+              height: 16 / 13,
+            ),
           ),
         ),
         Text(
           price,
-          style: AppTextStyles.labelMedium().copyWith(
-            fontWeight: FontWeight.w600,
+          style: AppTextStyles.labelMedium(color: AppColors.textPrimary).copyWith(
+            fontWeight: FontWeight.w500,
             fontSize: 13.sp,
+            height: 16 / 13,
           ),
         ),
       ],
@@ -656,31 +832,75 @@ class OrderReceiptPaper extends StatelessWidget {
   }
 
   Widget _billRow(BillLine line) {
+    final isBold = line.isBold;
     return Row(
       children: [
         Expanded(
           child: Text(
             line.label,
             style: AppTextStyles.labelSmall(
-              color: line.isBold ? AppColors.textPrimary : AppColors.textSecondary,
+              color: isBold ? AppColors.textPrimary : _labelGrey,
             ).copyWith(
-              fontWeight: line.isBold ? FontWeight.w800 : FontWeight.w500,
-              fontSize: line.isBold ? 16.sp : 13.sp,
+              fontWeight: isBold ? FontWeight.w700 : FontWeight.w400,
+              fontSize: isBold ? 15.sp : 13.sp,
+              height: isBold ? 18 / 15 : 16 / 13,
             ),
           ),
         ),
         Text(
           line.value,
-          style: AppTextStyles.labelMedium(
-            color: line.isDiscount ? AppColors.error : AppColors.textPrimary,
-          ).copyWith(
-            fontWeight: line.isBold ? FontWeight.w800 : FontWeight.w600,
-            fontSize: line.isBold ? 18.sp : 13.sp,
+          style: AppTextStyles.labelMedium(color: AppColors.textPrimary).copyWith(
+            fontWeight: isBold ? FontWeight.w700 : FontWeight.w500,
+            fontSize: isBold ? 16.sp : 13.sp,
+            height: isBold ? 19 / 16 : 16 / 13,
           ),
         ),
       ],
     );
   }
+}
+
+class _ReceiptDashedDivider extends StatelessWidget {
+  const _ReceiptDashedDivider({required this.color});
+
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      height: 1,
+      child: CustomPaint(
+        painter: _DashedLinePainter(color: color),
+      ),
+    );
+  }
+}
+
+class _DashedLinePainter extends CustomPainter {
+  _DashedLinePainter({required this.color});
+
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = 1
+      ..style = PaintingStyle.stroke;
+
+    const dashWidth = 4.0;
+    const dashSpace = 3.0;
+    var x = 0.0;
+    final y = size.height / 2;
+    while (x < size.width) {
+      canvas.drawLine(Offset(x, y), Offset((x + dashWidth).clamp(0, size.width), y), paint);
+      x += dashWidth + dashSpace;
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _DashedLinePainter oldDelegate) => oldDelegate.color != color;
 }
 
 class DriverChatBubble extends StatelessWidget {
@@ -698,14 +918,14 @@ class DriverChatBubble extends StatelessWidget {
         margin: EdgeInsets.only(bottom: 10.h),
         padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 10.h),
         decoration: BoxDecoration(
-          color: isUser ? AppColors.primary : AppColors.white,
+          color: isUser ? AppColors.cartTabActive : AppColors.white,
           borderRadius: BorderRadius.only(
             topLeft: Radius.circular(16.r),
             topRight: Radius.circular(16.r),
             bottomLeft: Radius.circular(isUser ? 16.r : 4.r),
             bottomRight: Radius.circular(isUser ? 4.r : 16.r),
           ),
-          border: isUser ? null : Border.all(color: AppColors.border),
+          border: isUser ? null : Border.all(color: const Color(0xFFE0E6E0)),
         ),
         child: Text(
           message.text,
@@ -731,17 +951,17 @@ class DriverChatQuickReplies extends StatelessWidget {
       children: replies
           .map(
             (reply) => Container(
-              padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+              padding: EdgeInsets.symmetric(horizontal: 13.w, vertical: 8.h),
               decoration: BoxDecoration(
                 color: AppColors.white,
-                borderRadius: BorderRadius.circular(16.r),
-                border: Border.all(color: AppColors.border),
+                borderRadius: BorderRadius.circular(18.r),
+                border: Border.all(color: const Color(0xFFE0E6E0), width: 1.2),
               ),
               child: Text(
                 reply,
-                style: AppTextStyles.labelSmall(color: AppColors.textSecondary).copyWith(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 12.sp,
+                style: AppTextStyles.labelSmall(color: const Color(0xFF127036)).copyWith(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 12.5.sp,
                 ),
               ),
             ),
@@ -795,7 +1015,7 @@ class DriverChatInputBar extends StatelessWidget {
               width: 44.w,
               height: 44.w,
               decoration: const BoxDecoration(
-                color: AppColors.primary,
+                color: AppColors.cartTabActive,
                 shape: BoxShape.circle,
               ),
               child: Icon(Icons.send_rounded, color: AppColors.white, size: 20.sp),
@@ -827,9 +1047,11 @@ class _ActionButton extends StatelessWidget {
       child: Container(
         height: 52.h,
         decoration: BoxDecoration(
-          color: outlined ? AppColors.white : AppColors.primary,
+          color: outlined ? AppColors.white : AppColors.cartTabActive,
           borderRadius: BorderRadius.circular(28.r),
-          border: outlined ? Border.all(color: AppColors.border, width: 1.5) : null,
+          border: outlined
+              ? Border.all(color: const Color(0xFFE0E6E0), width: 1.5)
+              : null,
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -868,14 +1090,14 @@ class OrderContactSupportButton extends StatelessWidget {
         decoration: BoxDecoration(
           color: AppColors.white,
           borderRadius: BorderRadius.circular(28.r),
-          border: Border.all(color: AppColors.border),
+          border: Border.all(color: const Color(0xFFE0E6E0), width: 1.5),
         ),
         alignment: Alignment.center,
         child: Text(
           OrderFlowStrings.contactSupport,
-          style: AppTextStyles.labelMedium().copyWith(
+          style: AppTextStyles.labelMedium(color: AppColors.textPrimary).copyWith(
             fontWeight: FontWeight.w700,
-            fontSize: 14.sp,
+            fontSize: 15.sp,
           ),
         ),
       ),
@@ -890,21 +1112,32 @@ class OrderReorderButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onPressed,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.refresh, color: AppColors.primary, size: 18.sp),
-          SizedBox(width: 8.w),
-          Text(
-            NavigationStrings.reorder,
-            style: AppTextStyles.labelMedium(color: AppColors.primary).copyWith(
-              fontWeight: FontWeight.w700,
-              fontSize: 14.sp,
+    return SizedBox(
+      width: double.infinity,
+      height: 52.h,
+      child: OutlinedButton(
+        onPressed: onPressed,
+        style: OutlinedButton.styleFrom(
+          foregroundColor: AppColors.textPrimary,
+          backgroundColor: AppColors.white,
+          side: const BorderSide(color: Color(0xFFE0E6E0), width: 1.5),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28.r)),
+          padding: EdgeInsets.zero,
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.refresh, color: AppColors.textPrimary, size: 18.sp),
+            SizedBox(width: 8.w),
+            Text(
+              NavigationStrings.reorder,
+              style: AppTextStyles.labelMedium(color: AppColors.textPrimary).copyWith(
+                fontWeight: FontWeight.w600,
+                fontSize: 15.sp,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

@@ -1,40 +1,46 @@
 import 'package:flutter/material.dart';
+import 'package:yjeek_app/core/constants/app_assets.dart';
 import 'package:yjeek_app/core/constants/app_colors.dart';
 import 'package:yjeek_app/core/constants/app_text_styles.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/features/dine_in_order_flow/model/dine_in_order_flow_data.dart';
 import 'package:yjeek_app/features/navigation/model/navigation_data.dart';
-import 'package:yjeek_app/features/navigation/view/widgets/account_widgets.dart';
 import 'package:yjeek_app/features/order_flow/view/widgets/order_flow_widgets.dart';
 
 class DineInCountdownCircle extends StatelessWidget {
   const DineInCountdownCircle({
     super.key,
     required this.label,
-    this.color = AppColors.primary,
+    this.color = const Color(0xFF4DB04F),
     this.size,
+    this.filled = true,
   });
 
   final String label;
   final Color color;
   final double? size;
+  final bool filled;
 
   @override
   Widget build(BuildContext context) {
-    final circleSize = size ?? 120.w;
+    final circleSize = size ?? 116.w;
     return Container(
       width: circleSize,
       height: circleSize,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        border: Border.all(color: color, width: 4),
+        color: filled ? color : null,
+        border: filled ? null : Border.all(color: color, width: 4),
       ),
       alignment: Alignment.center,
       child: Text(
         label,
-        style: AppTextStyles.titleMedium(color: color).copyWith(
-          fontWeight: FontWeight.w800,
-          fontSize: (circleSize * 0.22).sp,
+        style: AppTextStyles.titleMedium(
+          color: filled ? AppColors.white : color,
+        ).copyWith(
+          fontWeight: FontWeight.w700,
+          fontSize: 30.sp,
+          height: 1.2,
         ),
       ),
     );
@@ -50,21 +56,22 @@ class DineInSecureBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.all(14.w),
+      padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
       decoration: BoxDecoration(
-        color: const Color(0xFF1A2B4A),
-        borderRadius: BorderRadius.circular(14.r),
+        color: const Color(0xFF1F4D66),
+        borderRadius: BorderRadius.circular(12.r),
       ),
       child: Row(
         children: [
-          Icon(Icons.lock_outline, color: AppColors.white, size: 18.sp),
+          Icon(Icons.lock, color: const Color(0xFFC9A84C), size: 16.sp),
           SizedBox(width: 10.w),
           Expanded(
             child: Text(
               message,
-              style: AppTextStyles.labelSmall(color: AppColors.white).copyWith(
-                fontSize: 12.sp,
-                height: 1.35,
+              style: AppTextStyles.labelSmall(color: const Color(0xFFD1E8F7)).copyWith(
+                fontWeight: FontWeight.w500,
+                fontSize: 13.sp,
+                height: 1.23,
               ),
             ),
           ),
@@ -81,18 +88,88 @@ class DineInAcceptedBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
-      color: const Color(0xFF1B4332),
+      padding: EdgeInsets.fromLTRB(14.w, 12.h, 16.w, 12.h),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1A572E),
+        borderRadius: BorderRadius.circular(12.r),
+      ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.check_circle, color: AppColors.white, size: 18.sp),
-          SizedBox(width: 8.w),
+          Container(
+            width: 26.w,
+            height: 26.w,
+            decoration: const BoxDecoration(
+              color: Color(0xFF4DB04F),
+              shape: BoxShape.circle,
+            ),
+            alignment: Alignment.center,
+            child: Text(
+              '✓',
+              style: TextStyle(
+                color: AppColors.white,
+                fontSize: 13.sp,
+                fontWeight: FontWeight.w700,
+                height: 1,
+              ),
+            ),
+          ),
+          SizedBox(width: 10.w),
+          Expanded(
+            child: Text(
+              DineInOrderFlowStrings.vendorAccepted,
+              style: AppTextStyles.labelMedium(color: const Color(0xFFCCF2D9)).copyWith(
+                fontWeight: FontWeight.w600,
+                fontSize: 14.sp,
+                height: 1.2,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class DineInPayTimerCard extends StatelessWidget {
+  const DineInPayTimerCard({super.key, required this.timerLabel});
+
+  final String timerLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 18.h),
+      decoration: BoxDecoration(
+        color: const Color(0xFF4DB04F),
+        borderRadius: BorderRadius.circular(16.r),
+      ),
+      child: Column(
+        children: [
+          DineInCountdownCircle(
+            label: timerLabel,
+            color: const Color(0xFFE8A33D),
+            filled: true,
+            size: 116.w,
+          ),
+          SizedBox(height: 10.h),
           Text(
-            DineInOrderFlowStrings.vendorAccepted,
+            DineInOrderFlowStrings.payWithinTitle,
+            textAlign: TextAlign.center,
             style: AppTextStyles.labelMedium(color: AppColors.white).copyWith(
-              fontWeight: FontWeight.w700,
-              fontSize: 14.sp,
+              fontWeight: FontWeight.w600,
+              fontSize: 16.sp,
+              height: 1.2,
+            ),
+          ),
+          SizedBox(height: 6.h),
+          Text(
+            DineInOrderFlowStrings.payWithinSubtitle,
+            textAlign: TextAlign.center,
+            style: AppTextStyles.caption(color: const Color(0xFFD9F0E0)).copyWith(
+              fontWeight: FontWeight.w400,
+              fontSize: 12.5.sp,
+              height: 1.2,
             ),
           ),
         ],
@@ -106,23 +183,57 @@ class DineInOrderSummaryRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return OrderFlowCard(
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(12.r),
+      ),
       child: Row(
         children: [
           Expanded(
             child: Text(
               DineInOrderFlowData.itemSummary,
-              style: AppTextStyles.labelMedium().copyWith(fontSize: 14.sp),
+              style: AppTextStyles.labelMedium(color: const Color(0xFF6B7A6E)).copyWith(
+                fontWeight: FontWeight.w400,
+                fontSize: 13.sp,
+                height: 1.23,
+              ),
             ),
           ),
           Text(
             DineInOrderFlowData.orderTotal,
-            style: AppTextStyles.labelMedium().copyWith(
-              fontWeight: FontWeight.w800,
-              fontSize: 15.sp,
+            style: AppTextStyles.labelMedium(color: AppColors.textPrimary).copyWith(
+              fontWeight: FontWeight.w700,
+              fontSize: 16.sp,
+              height: 1.2,
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class DineInSuccessIcon extends StatelessWidget {
+  const DineInSuccessIcon({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 72.w,
+      height: 72.w,
+      decoration: const BoxDecoration(
+        color: Color(0xFF4CAF50),
+        shape: BoxShape.circle,
+      ),
+      alignment: Alignment.center,
+      child: Icon(
+        Icons.check,
+        color: AppColors.white,
+        size: 34.sp,
+        weight: 700,
       ),
     );
   }
@@ -137,39 +248,53 @@ class DineInArrivalCodeCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.all(compact ? 14.w : 20.w),
+      padding: EdgeInsets.symmetric(
+        horizontal: 20.w,
+        vertical: compact ? 16.h : 18.h,
+      ),
       decoration: BoxDecoration(
-        color: AppColors.primary,
-        borderRadius: BorderRadius.circular(compact ? 14.r : 18.r),
+        color: const Color(0xFF4CAF50),
+        borderRadius: BorderRadius.circular(compact ? 18.r : 18.r),
       ),
       child: Column(
         children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                '#',
+                style: TextStyle(
+                  color: const Color(0xFFEBC34A),
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.w700,
+                  height: 1,
+                ),
+              ),
+              SizedBox(width: 8.w),
+              Text(
+                compact
+                    ? DineInOrderFlowStrings.showAtCounter
+                    : DineInOrderFlowStrings.arrivalCodeLabel,
+                style: AppTextStyles.caption(color: const Color(0xFF9FD8B8)).copyWith(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 10.sp,
+                  height: 1.28,
+                  letterSpacing: 0.4,
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 6.h),
           Text(
             DineInOrderFlowData.arrivalCode,
             style: AppTextStyles.titleMedium(color: AppColors.white).copyWith(
-              fontWeight: FontWeight.w800,
-              fontSize: compact ? 20.sp : 26.sp,
-              letterSpacing: 1.2,
+              fontWeight: FontWeight.w700,
+              fontSize: 26.sp,
+              height: 1.28,
+              letterSpacing: 0.5,
             ),
           ),
-          if (compact) ...[
-            SizedBox(height: 6.h),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.notifications_active_outlined, color: AppColors.white, size: 14.sp),
-                SizedBox(width: 6.w),
-                Text(
-                  DineInOrderFlowStrings.showAtCounter,
-                  style: AppTextStyles.caption(color: AppColors.white).copyWith(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 10.sp,
-                    letterSpacing: 0.5,
-                  ),
-                ),
-              ],
-            ),
-          ],
         ],
       ),
     );
@@ -181,12 +306,22 @@ class DineInDetailsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return OrderFlowCard(
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(horizontal: 18.w, vertical: 16.h),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(18.r),
+        border: Border.all(color: const Color(0xFFE2E8DD)),
+      ),
       child: Column(
         children: [
           _row('Venue', DineInOrderFlowData.venue),
+          SizedBox(height: 10.h),
           _row('Dine-in time', DineInOrderFlowData.dineInTime),
+          SizedBox(height: 10.h),
           _row('Track', DineInOrderFlowData.prepTrack),
+          SizedBox(height: 10.h),
           _row('Status', DineInOrderFlowData.statusPreparing),
         ],
       ),
@@ -194,31 +329,29 @@ class DineInDetailsCard extends StatelessWidget {
   }
 
   Widget _row(String label, String value) {
-    return Padding(
-      padding: EdgeInsets.only(bottom: 10.h),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 90.w,
-            child: Text(
-              label,
-              style: AppTextStyles.labelSmall(color: AppColors.textSecondary).copyWith(
-                fontSize: 12.sp,
-              ),
+    return Row(
+      children: [
+        Text(
+          label,
+          style: AppTextStyles.labelSmall(color: const Color(0xFF6B7B6E)).copyWith(
+            fontWeight: FontWeight.w500,
+            fontSize: 13.sp,
+            height: 1.3,
+          ),
+        ),
+        SizedBox(width: 12.w),
+        Expanded(
+          child: Text(
+            value,
+            textAlign: TextAlign.right,
+            style: AppTextStyles.labelMedium(color: AppColors.textPrimary).copyWith(
+              fontWeight: FontWeight.w700,
+              fontSize: 13.sp,
+              height: 1.3,
             ),
           ),
-          Expanded(
-            child: Text(
-              value,
-              style: AppTextStyles.labelMedium().copyWith(
-                fontWeight: FontWeight.w600,
-                fontSize: 13.sp,
-              ),
-            ),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
@@ -230,77 +363,102 @@ class DineInStatusTimeline extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return OrderFlowCard(
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(16.w),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(18.r),
+        border: Border.all(color: const Color(0xFFE2E8DD)),
+      ),
       child: Column(
         children: List.generate(steps.length, (index) {
           final step = steps[index];
           final isLast = index == steps.length - 1;
-          final done = step.completed;
+          final done = step.completed && !step.active;
+          final active = step.active;
+          final pending = !step.completed && !step.active;
+
           return Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Column(
                 children: [
                   Container(
-                    width: step.active ? 24.w : 20.w,
-                    height: step.active ? 24.w : 20.w,
+                    width: 28.w,
+                    height: 28.w,
                     decoration: BoxDecoration(
-                      color: done ? AppColors.primary : AppColors.white,
+                      color: pending
+                          ? const Color(0xFFDCE7D4)
+                          : const Color(0xFF4CAF50),
                       shape: BoxShape.circle,
-                      border: Border.all(
-                        color: done ? AppColors.primary : AppColors.border,
-                        width: done && !step.active ? 0 : 1.5,
-                      ),
                     ),
-                    child: done && !step.active
-                        ? Icon(Icons.check, color: AppColors.white, size: 12.sp)
-                        : step.active
-                            ? null
+                    alignment: Alignment.center,
+                    child: done
+                        ? Icon(Icons.check, color: AppColors.white, size: 14.sp)
+                        : active
+                            ? Container(
+                                width: 10.w,
+                                height: 10.w,
+                                decoration: const BoxDecoration(
+                                  color: AppColors.white,
+                                  shape: BoxShape.circle,
+                                ),
+                              )
                             : null,
                   ),
                   if (!isLast)
                     Container(
                       width: 2,
-                      height: step.active ? 36.h : 28.h,
-                      color: done ? AppColors.primary.withValues(alpha: 0.35) : AppColors.border,
+                      height: 34.h,
+                      color: done || active
+                          ? (active ? const Color(0xFFE2E8DD) : const Color(0xFF4CAF50))
+                          : const Color(0xFFE2E8DD),
                     ),
                 ],
               ),
-              SizedBox(width: 12.w),
+              SizedBox(width: 14.w),
               Expanded(
                 child: Padding(
-                  padding: EdgeInsets.only(bottom: isLast ? 0 : 16.h),
+                  padding: EdgeInsets.only(bottom: isLast ? 0 : 20.h),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              step.label,
-                              style: AppTextStyles.labelMedium().copyWith(
-                                fontWeight: step.active ? FontWeight.w800 : FontWeight.w600,
-                                fontSize: step.active ? 15.sp : 14.sp,
-                                color: done ? AppColors.textPrimary : AppColors.textSecondary,
-                              ),
-                            ),
-                          ),
-                          if (step.time != null)
-                            Text(
-                              step.time!,
-                              style: AppTextStyles.labelSmall(color: AppColors.textSecondary).copyWith(
-                                fontSize: 12.sp,
-                              ),
-                            ),
-                        ],
+                      Text(
+                        step.label,
+                        style: AppTextStyles.labelMedium(
+                          color: pending
+                              ? const Color(0xFF6B7B6E)
+                              : AppColors.textPrimary,
+                        ).copyWith(
+                          fontWeight: active ? FontWeight.w700 : FontWeight.w600,
+                          fontSize: 14.5.sp,
+                          height: 1.28,
+                        ),
                       ),
+                      if (step.time != null) ...[
+                        SizedBox(height: 2.h),
+                        Text(
+                          step.time!,
+                          style: AppTextStyles.caption(color: const Color(0xFF6B7B6E)).copyWith(
+                            fontWeight: FontWeight.w500,
+                            fontSize: 12.sp,
+                            height: 1.28,
+                          ),
+                        ),
+                      ],
                       if (step.subtitle != null) ...[
-                        SizedBox(height: 4.h),
+                        SizedBox(height: 2.h),
                         Text(
                           step.subtitle!,
-                          style: AppTextStyles.labelSmall(color: AppColors.primary).copyWith(
-                            fontWeight: FontWeight.w600,
+                          style: AppTextStyles.caption(
+                            color: active
+                                ? const Color(0xFF4CAF50)
+                                : const Color(0xFF6B7B6E),
+                          ).copyWith(
+                            fontWeight: FontWeight.w500,
                             fontSize: 12.sp,
+                            height: 1.28,
                           ),
                         ),
                       ],
@@ -316,6 +474,83 @@ class DineInStatusTimeline extends StatelessWidget {
   }
 }
 
+class DineInStatusInfoCard extends StatelessWidget {
+  const DineInStatusInfoCard({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(16.r),
+        border: Border.all(color: const Color(0xFFE0E6E0)),
+      ),
+      child: Column(
+        children: [
+          _row(DineInOrderFlowStrings.venue, DineInOrderFlowData.venue),
+          SizedBox(height: 10.h),
+          _row(DineInOrderFlowStrings.table, DineInOrderFlowData.tableLabel),
+          SizedBox(height: 10.h),
+          _row(DineInOrderFlowStrings.time, DineInOrderFlowData.dineInTime),
+        ],
+      ),
+    );
+  }
+
+  Widget _row(String label, String value) {
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            label,
+            style: AppTextStyles.labelSmall(color: const Color(0xFF6B756E)).copyWith(
+              fontWeight: FontWeight.w400,
+              fontSize: 13.sp,
+              height: 1.23,
+            ),
+          ),
+        ),
+        Text(
+          value,
+          style: AppTextStyles.labelMedium(color: AppColors.textPrimary).copyWith(
+            fontWeight: FontWeight.w500,
+            fontSize: 13.sp,
+            height: 1.23,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class DineInPreparingPill extends StatelessWidget {
+  const DineInPreparingPill({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 6.h),
+        decoration: BoxDecoration(
+          color: const Color(0xFFE3F2EB),
+          borderRadius: BorderRadius.circular(20.r),
+        ),
+        child: Text(
+          DineInOrderFlowStrings.preparingPill,
+          style: AppTextStyles.labelSmall(color: const Color(0xFF127036)).copyWith(
+            fontWeight: FontWeight.w600,
+            fontSize: 13.sp,
+            height: 1.23,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class DineInPayMethodCard extends StatelessWidget {
   const DineInPayMethodCard({super.key, this.onChange});
 
@@ -323,52 +558,66 @@ class DineInPayMethodCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return OrderFlowCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.fromLTRB(12.w, 12.h, 14.w, 12.h),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(12.r),
+        border: Border.all(color: const Color(0xFFE3E8DE)),
+      ),
+      child: Row(
         children: [
-          Text(
-            DineInOrderFlowStrings.payWith,
-            style: AppTextStyles.labelSmall(color: AppColors.textSecondary).copyWith(
-              fontSize: 12.sp,
+          Container(
+            width: 38.w,
+            height: 38.w,
+            decoration: BoxDecoration(
+              color: const Color(0xFFEBF2E6),
+              borderRadius: BorderRadius.circular(10.r),
+            ),
+            alignment: Alignment.center,
+            child: Image.asset(
+              AppAssets.payPinkPurse,
+              width: 17.w,
+              height: 17.w,
+              fit: BoxFit.contain,
             ),
           ),
-          SizedBox(height: 8.h),
-          Row(
-            children: [
-              Icon(Icons.account_balance_wallet, color: AppColors.primary, size: 22.sp),
-              SizedBox(width: 10.w),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Yjeek Wallet',
-                      style: AppTextStyles.labelMedium().copyWith(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 14.sp,
-                      ),
-                    ),
-                    Text(
-                      'Balance ${DineInOrderFlowData.walletBalance}',
-                      style: AppTextStyles.caption(color: AppColors.textSecondary).copyWith(
-                        fontSize: 11.sp,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              GestureDetector(
-                onTap: onChange,
-                child: Text(
-                  DineInOrderFlowStrings.change,
-                  style: AppTextStyles.labelSmall(color: AppColors.primary).copyWith(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 13.sp,
+          SizedBox(width: 12.w),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Yjeek Wallet',
+                  style: AppTextStyles.labelMedium(color: AppColors.textPrimary).copyWith(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14.sp,
+                    height: 1.2,
                   ),
                 ),
+                SizedBox(height: 2.h),
+                Text(
+                  'Balance ${DineInOrderFlowData.walletBalance}',
+                  style: AppTextStyles.caption(color: const Color(0xFF6B7A6E)).copyWith(
+                    fontWeight: FontWeight.w400,
+                    fontSize: 12.sp,
+                    height: 1.25,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          GestureDetector(
+            onTap: onChange,
+            child: Text(
+              DineInOrderFlowStrings.change,
+              style: AppTextStyles.labelSmall(color: const Color(0xFF4DB04F)).copyWith(
+                fontWeight: FontWeight.w600,
+                fontSize: 13.sp,
+                height: 1.23,
               ),
-            ],
+            ),
           ),
         ],
       ),
@@ -381,13 +630,19 @@ class DineInPayBreakdownCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return OrderFlowCard(
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(12.r),
+      ),
       child: Column(
         children: [
           _line(DineInOrderFlowStrings.subtotal, DineInOrderFlowData.subtotalAmount),
           SizedBox(height: 8.h),
           _line(DineInOrderFlowStrings.serviceFee, DineInOrderFlowData.serviceFeeAmount),
-          Divider(height: 20.h, color: AppColors.border),
+          SizedBox(height: 8.h),
           _line(DineInOrderFlowStrings.totalToPay, DineInOrderFlowData.orderTotal, bold: true),
         ],
       ),
@@ -400,17 +655,21 @@ class DineInPayBreakdownCard extends StatelessWidget {
         Expanded(
           child: Text(
             label,
-            style: AppTextStyles.labelMedium().copyWith(
-              fontWeight: bold ? FontWeight.w800 : FontWeight.w500,
-              fontSize: bold ? 16.sp : 14.sp,
+            style: AppTextStyles.labelMedium(
+              color: bold ? AppColors.textPrimary : const Color(0xFF6B7A6E),
+            ).copyWith(
+              fontWeight: bold ? FontWeight.w700 : FontWeight.w400,
+              fontSize: bold ? 15.sp : 13.sp,
+              height: 1.23,
             ),
           ),
         ),
         Text(
           value,
-          style: AppTextStyles.labelMedium().copyWith(
-            fontWeight: bold ? FontWeight.w800 : FontWeight.w600,
-            fontSize: bold ? 16.sp : 14.sp,
+          style: AppTextStyles.labelMedium(color: AppColors.textPrimary).copyWith(
+            fontWeight: bold ? FontWeight.w700 : FontWeight.w600,
+            fontSize: bold ? 15.sp : 13.sp,
+            height: 1.23,
           ),
         ),
       ],
@@ -431,45 +690,61 @@ class DineInPayStickyFooter extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 12.h),
-      decoration: BoxDecoration(
+      padding: EdgeInsets.fromLTRB(20.w, 14.h, 20.w, 20.h),
+      decoration: const BoxDecoration(
         color: AppColors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.06),
-            blurRadius: 12,
-            offset: const Offset(0, -2),
-          ),
-        ],
+        border: Border(top: BorderSide(color: Color(0xFFE3E8DE))),
       ),
       child: SafeArea(
         top: false,
         child: Row(
           children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  DineInOrderFlowStrings.payIn,
-                  style: AppTextStyles.caption(color: AppColors.textSecondary).copyWith(
-                    fontSize: 10.sp,
-                  ),
-                ),
-                Text(
-                  timerLabel,
-                  style: AppTextStyles.labelMedium(color: const Color(0xFFE6A700)).copyWith(
-                    fontWeight: FontWeight.w800,
-                    fontSize: 14.sp,
-                  ),
-                ),
-              ],
-            ),
-            SizedBox(width: 16.w),
             Expanded(
-              child: PrimaryGreenButton(
-                label: '${DineInOrderFlowStrings.pay} ${DineInOrderFlowData.orderTotal}',
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    DineInOrderFlowStrings.payIn,
+                    style: AppTextStyles.caption(color: const Color(0xFFE8A33D)).copyWith(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 11.sp,
+                      height: 1.2,
+                    ),
+                  ),
+                  SizedBox(height: 1.h),
+                  Text(
+                    timerLabel,
+                    style: AppTextStyles.labelMedium(color: AppColors.textPrimary).copyWith(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 22.sp,
+                      height: 1.23,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(
+              width: 190.w,
+              height: 52.h,
+              child: ElevatedButton(
                 onPressed: onPay,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF4DB04F),
+                  foregroundColor: AppColors.white,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(26.r),
+                  ),
+                  padding: EdgeInsets.zero,
+                ),
+                child: Text(
+                  '${DineInOrderFlowStrings.pay} ${DineInOrderFlowData.orderTotal}',
+                  style: AppTextStyles.labelMedium(color: AppColors.white).copyWith(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 16.sp,
+                  ),
+                ),
               ),
             ),
           ],
@@ -482,98 +757,170 @@ class DineInPayStickyFooter extends StatelessWidget {
 class DineInReceiptPaper extends StatelessWidget {
   const DineInReceiptPaper({super.key});
 
+  static const Color _labelGrey = Color(0xFF6B756E);
+  static const Color _dashColor = Color(0xFFC7CCC7);
+
   @override
   Widget build(BuildContext context) {
-    return OrderFlowCard(
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(18.w),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(16.r),
+        border: Border.all(color: const Color(0xFFE0E6E0)),
+      ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Container(
-            padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
-            decoration: BoxDecoration(
-              color: AppColors.accountIconBackground,
-              borderRadius: BorderRadius.circular(8.r),
-            ),
-            child: Text(
-              DineInOrderFlowStrings.dineInPaid,
-              style: AppTextStyles.caption(color: AppColors.primary).copyWith(
-                fontWeight: FontWeight.w800,
-                fontSize: 10.sp,
-                letterSpacing: 0.5,
+          Column(
+            children: [
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 5.h),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE3F2EB),
+                  borderRadius: BorderRadius.circular(20.r),
+                ),
+                child: Text(
+                  DineInOrderFlowStrings.dineInPaid,
+                  style: AppTextStyles.caption(color: const Color(0xFF127036)).copyWith(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 11.sp,
+                    height: 13 / 11,
+                  ),
+                ),
               ),
-            ),
+              SizedBox(height: 4.h),
+              Text(
+                DineInOrderFlowData.venueReceipt,
+                textAlign: TextAlign.center,
+                style: AppTextStyles.titleSmall(color: AppColors.textPrimary).copyWith(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 16.sp,
+                  height: 19 / 16,
+                ),
+              ),
+              SizedBox(height: 4.h),
+              Text(
+                '${DineInOrderFlowData.venueAddress} · ${DineInOrderFlowData.crNumber}',
+                textAlign: TextAlign.center,
+                style: AppTextStyles.labelSmall(color: _labelGrey).copyWith(
+                  fontWeight: FontWeight.w400,
+                  fontSize: 12.sp,
+                  height: 15 / 12,
+                ),
+              ),
+            ],
           ),
           SizedBox(height: 12.h),
-          Text(
-            DineInOrderFlowData.venueReceipt,
-            style: AppTextStyles.titleSmall().copyWith(
-              fontWeight: FontWeight.w800,
-              fontSize: 16.sp,
-            ),
+          const _DineInReceiptDashedDivider(color: _dashColor),
+          SizedBox(height: 12.h),
+          _metaRow('Order #', DineInOrderFlowData.receiptOrderId),
+          SizedBox(height: 8.h),
+          _metaRow('Type', DineInOrderFlowStrings.typeDineIn),
+          SizedBox(height: 8.h),
+          _metaRow('Table', DineInOrderFlowData.tableLabel),
+          SizedBox(height: 8.h),
+          _metaRow('Time', DineInOrderFlowData.dineInTime),
+          SizedBox(height: 12.h),
+          const _DineInReceiptDashedDivider(color: _dashColor),
+          SizedBox(height: 12.h),
+          _columnHeader(
+            DineInOrderFlowStrings.itemColumn,
+            DineInOrderFlowStrings.priceColumn,
           ),
-          SizedBox(height: 4.h),
-          Text(
-            '${DineInOrderFlowData.venueAddress} · ${DineInOrderFlowData.crNumber}',
-            style: AppTextStyles.labelSmall(color: AppColors.textSecondary).copyWith(
-              fontSize: 11.sp,
-              height: 1.35,
+          SizedBox(height: 8.h),
+          for (var i = 0; i < DineInOrderFlowData.receiptItems.length; i++) ...[
+            if (i > 0) SizedBox(height: 8.h),
+            _itemRow(
+              DineInOrderFlowData.receiptItems[i].name,
+              DineInOrderFlowData.receiptItems[i].price,
             ),
-          ),
-          SizedBox(height: 14.h),
-          _meta('Order #', DineInOrderFlowData.orderId),
-          _meta('Type', DineInOrderFlowStrings.typeDineIn),
-          _meta('Table', DineInOrderFlowData.tableLabel),
-          _meta('Time', DineInOrderFlowData.dineInTime),
-          Divider(height: 24.h, color: AppColors.border),
-          for (final item in DineInOrderFlowData.receiptItems) ...[
-            _itemRow(item.name, item.price),
-            SizedBox(height: 8.h),
           ],
-          Divider(height: 24.h, color: AppColors.border),
-          for (final line in DineInOrderFlowData.receiptBillLines) ...[
-            _billRow(line),
-            if (!line.isBold) SizedBox(height: 8.h),
+          SizedBox(height: 12.h),
+          const _DineInReceiptDashedDivider(color: _dashColor),
+          SizedBox(height: 12.h),
+          for (var i = 0; i < DineInOrderFlowData.receiptBillLines.length; i++) ...[
+            if (i > 0) SizedBox(height: 8.h),
+            _billRow(DineInOrderFlowData.receiptBillLines[i]),
           ],
           SizedBox(height: 8.h),
-          _meta('${DineInOrderFlowStrings.paid}:', 'Yjeek Wallet'),
+          _metaRow(DineInOrderFlowStrings.paid, 'Yjeek Wallet'),
         ],
       ),
     );
   }
 
-  Widget _meta(String label, String value) {
-    return Padding(
-      padding: EdgeInsets.only(bottom: 8.h),
-      child: Row(
-        children: [
-          SizedBox(
-            width: 72.w,
-            child: Text(
-              label,
-              style: AppTextStyles.labelSmall(color: AppColors.textSecondary).copyWith(fontSize: 12.sp),
+  Widget _columnHeader(String left, String right) {
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            left,
+            style: AppTextStyles.labelSmall(color: _labelGrey).copyWith(
+              fontWeight: FontWeight.w400,
+              fontSize: 13.sp,
+              height: 16 / 13,
             ),
           ),
-          Expanded(
-            child: Text(
-              value,
-              style: AppTextStyles.labelMedium().copyWith(
-                fontWeight: FontWeight.w600,
-                fontSize: 13.sp,
-              ),
+        ),
+        Text(
+          right,
+          style: AppTextStyles.labelSmall(color: AppColors.textPrimary).copyWith(
+            fontWeight: FontWeight.w500,
+            fontSize: 13.sp,
+            height: 16 / 13,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _metaRow(String label, String value) {
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            label,
+            style: AppTextStyles.labelSmall(color: _labelGrey).copyWith(
+              fontWeight: FontWeight.w400,
+              fontSize: 13.sp,
+              height: 16 / 13,
             ),
           ),
-        ],
-      ),
+        ),
+        Text(
+          value,
+          style: AppTextStyles.labelMedium(color: AppColors.textPrimary).copyWith(
+            fontWeight: FontWeight.w500,
+            fontSize: 13.sp,
+            height: 16 / 13,
+          ),
+        ),
+      ],
     );
   }
 
   Widget _itemRow(String name, String price) {
     return Row(
       children: [
-        Expanded(child: Text(name, style: AppTextStyles.labelMedium().copyWith(fontSize: 13.sp))),
+        Expanded(
+          child: Text(
+            name,
+            style: AppTextStyles.labelMedium(color: _labelGrey).copyWith(
+              fontWeight: FontWeight.w400,
+              fontSize: 13.sp,
+              height: 16 / 13,
+            ),
+          ),
+        ),
         Text(
           price,
-          style: AppTextStyles.labelMedium().copyWith(fontWeight: FontWeight.w600, fontSize: 13.sp),
+          style: AppTextStyles.labelMedium(color: AppColors.textPrimary).copyWith(
+            fontWeight: FontWeight.w500,
+            fontSize: 13.sp,
+            height: 16 / 13,
+          ),
         ),
       ],
     );
@@ -586,25 +933,73 @@ class DineInReceiptPaper extends StatelessWidget {
           child: Text(
             line.label,
             style: AppTextStyles.labelSmall(
-              color: line.isBold ? AppColors.textPrimary : AppColors.textSecondary,
+              color: line.isBold ? AppColors.textPrimary : _labelGrey,
             ).copyWith(
-              fontWeight: line.isBold ? FontWeight.w800 : FontWeight.w500,
-              fontSize: line.isBold ? 16.sp : 13.sp,
+              fontWeight: line.isBold ? FontWeight.w700 : FontWeight.w400,
+              fontSize: line.isBold ? 15.sp : 13.sp,
+              height: line.isBold ? 18 / 15 : 16 / 13,
             ),
           ),
         ),
         Text(
           line.value,
-          style: AppTextStyles.labelMedium(
-            color: line.isDiscount ? AppColors.error : AppColors.textPrimary,
-          ).copyWith(
-            fontWeight: line.isBold ? FontWeight.w800 : FontWeight.w600,
-            fontSize: line.isBold ? 18.sp : 13.sp,
+          style: AppTextStyles.labelMedium(color: AppColors.textPrimary).copyWith(
+            fontWeight: line.isBold ? FontWeight.w700 : FontWeight.w500,
+            fontSize: line.isBold ? 16.sp : 13.sp,
+            height: line.isBold ? 19 / 16 : 16 / 13,
           ),
         ),
       ],
     );
   }
+}
+
+class _DineInReceiptDashedDivider extends StatelessWidget {
+  const _DineInReceiptDashedDivider({required this.color});
+
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      height: 1,
+      child: CustomPaint(
+        painter: _DineInDashedLinePainter(color: color),
+      ),
+    );
+  }
+}
+
+class _DineInDashedLinePainter extends CustomPainter {
+  _DineInDashedLinePainter({required this.color});
+
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = 1
+      ..style = PaintingStyle.stroke;
+
+    const dashWidth = 4.0;
+    const dashSpace = 3.0;
+    var x = 0.0;
+    final y = size.height / 2;
+    while (x < size.width) {
+      canvas.drawLine(
+        Offset(x, y),
+        Offset((x + dashWidth).clamp(0, size.width), y),
+        paint,
+      );
+      x += dashWidth + dashSpace;
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _DineInDashedLinePainter oldDelegate) =>
+      oldDelegate.color != color;
 }
 
 class DineInTipChips extends StatefulWidget {
@@ -615,7 +1010,7 @@ class DineInTipChips extends StatefulWidget {
 }
 
 class _DineInTipChipsState extends State<DineInTipChips> {
-  int _selected = 0;
+  int? _selected;
 
   @override
   Widget build(BuildContext context) {
@@ -625,19 +1020,26 @@ class _DineInTipChipsState extends State<DineInTipChips> {
       children: List.generate(DineInOrderFlowData.tipOptions.length, (index) {
         final selected = index == _selected;
         return GestureDetector(
-          onTap: () => setState(() => _selected = index),
+          onTap: () => setState(() => _selected = selected ? null : index),
           child: Container(
-            padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 10.h),
+            padding: EdgeInsets.symmetric(horizontal: 13.w, vertical: 7.h),
             decoration: BoxDecoration(
-              color: selected ? AppColors.primary : AppColors.white,
-              borderRadius: BorderRadius.circular(24.r),
-              border: Border.all(color: selected ? AppColors.primary : AppColors.border),
+              color: selected ? AppColors.cartTabActive : AppColors.white,
+              borderRadius: BorderRadius.circular(20.r),
+              border: Border.all(
+                color: selected ? AppColors.cartTabActive : const Color(0xFFE0E6E0),
+                width: 1.2,
+              ),
             ),
             child: Text(
               DineInOrderFlowData.tipOptions[index],
               style: AppTextStyles.labelSmall(
-                color: selected ? AppColors.white : AppColors.textPrimary,
-              ).copyWith(fontWeight: FontWeight.w700, fontSize: 12.sp),
+                color: selected ? AppColors.white : const Color(0xFF6B756E),
+              ).copyWith(
+                fontWeight: FontWeight.w600,
+                fontSize: 12.5.sp,
+                height: 1.2,
+              ),
             ),
           ),
         );
@@ -653,17 +1055,21 @@ class DineInReviewField extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      height: 88.h,
-      padding: EdgeInsets.all(14.w),
+      height: 46.h,
+      padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
       decoration: BoxDecoration(
         color: AppColors.white,
-        borderRadius: BorderRadius.circular(14.r),
-        border: Border.all(color: AppColors.border),
+        borderRadius: BorderRadius.circular(12.r),
+        border: Border.all(color: const Color(0xFFE0E6E0)),
       ),
-      alignment: Alignment.topLeft,
+      alignment: Alignment.centerLeft,
       child: Text(
         DineInOrderFlowStrings.reviewHint,
-        style: AppTextStyles.bodySmall(color: AppColors.textSecondary).copyWith(fontSize: 14.sp),
+        style: AppTextStyles.bodySmall(color: const Color(0xFF6B756E)).copyWith(
+          fontWeight: FontWeight.w400,
+          fontSize: 13.sp,
+          height: 1.23,
+        ),
       ),
     );
   }

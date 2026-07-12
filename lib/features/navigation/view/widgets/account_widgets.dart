@@ -17,6 +17,7 @@ class GreenScreenHeader extends StatelessWidget {
     this.trailing,
     this.onBack,
     this.flat = false,
+    this.darkTitle = false,
   });
 
   final String title;
@@ -24,9 +25,15 @@ class GreenScreenHeader extends StatelessWidget {
   final Widget? trailing;
   final VoidCallback? onBack;
   final bool flat;
+  final bool darkTitle;
 
   @override
   Widget build(BuildContext context) {
+    final titleColor = darkTitle ? AppColors.textPrimary : AppColors.white;
+    final backColor = darkTitle ? AppColors.textPrimary : AppColors.white;
+    final subtitleColor =
+        darkTitle ? const Color(0xFF6B756E) : const Color(0xFFEBF5EB);
+
     return Container(
       width: double.infinity,
       padding: EdgeInsets.fromLTRB(
@@ -71,7 +78,7 @@ class GreenScreenHeader extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 24.sp,
                         fontWeight: FontWeight.w700,
-                        color: AppColors.white,
+                        color: backColor,
                         height: 1,
                       ),
                     ),
@@ -83,7 +90,7 @@ class GreenScreenHeader extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: AppTextStyles.titleSmall(color: AppColors.white).copyWith(
+                    style: AppTextStyles.titleSmall(color: titleColor).copyWith(
                       fontSize: flat ? 20.sp : 18.sp,
                       fontWeight: FontWeight.w700,
                     ),
@@ -92,9 +99,8 @@ class GreenScreenHeader extends StatelessWidget {
                     SizedBox(height: 2.h),
                     Text(
                       subtitle!,
-                      style: AppTextStyles.caption(
-                        color: const Color(0xFFEBF5EB),
-                      ).copyWith(fontSize: 12.sp),
+                      style: AppTextStyles.caption(color: subtitleColor)
+                          .copyWith(fontSize: 12.sp),
                     ),
                   ],
                 ],

@@ -14,117 +14,137 @@ class ZoodWaitingListScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: Column(
-        children: [
-          GreenScreenHeader(
-            title: 'Zood',
-            onBack: () => context.pop(),
-          ),
-          Expanded(
-            child: ListView(
-              padding: EdgeInsets.fromLTRB(24.w, 24.h, 24.w, 16.h),
-              children: [
-                Center(
-                  child: Container(
-                    width: 72.w,
-                    height: 72.w,
-                    decoration: BoxDecoration(
-                      color: CartFlowData.zoodRed,
-                      borderRadius: BorderRadius.circular(18.r),
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          children: [
+            Padding(
+              padding: EdgeInsets.fromLTRB(20.w, 4.h, 20.w, 0),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: NavCircleBackButton(
+                  onTap: () => context.pop(),
+                  iconColor: AppColors.textPrimary,
+                ),
+              ),
+            ),
+            Expanded(
+              child: ListView(
+                padding: EdgeInsets.fromLTRB(24.w, 16.h, 24.w, 28.h),
+                children: [
+                  Center(
+                    child: Container(
+                      width: 84.w,
+                      height: 84.w,
+                      decoration: BoxDecoration(
+                        color: CartFlowData.zoodRed,
+                        borderRadius: BorderRadius.circular(20.r),
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        '✦',
+                        style: TextStyle(
+                          color: AppColors.white,
+                          fontSize: 38.sp,
+                          fontWeight: FontWeight.w700,
+                          height: 1,
+                        ),
+                      ),
                     ),
-                    child: Icon(Icons.auto_awesome, color: AppColors.white, size: 36.sp),
                   ),
-                ),
-                SizedBox(height: 20.h),
-                Text(
-                  CartFlowStrings.zoodTitle,
-                  textAlign: TextAlign.center,
-                  style: AppTextStyles.titleMedium().copyWith(
-                    fontWeight: FontWeight.w800,
-                    fontSize: 22.sp,
+                  SizedBox(height: 16.h),
+                  Text(
+                    CartFlowStrings.zoodTitle,
+                    textAlign: TextAlign.center,
+                    style: AppTextStyles.titleMedium(color: AppColors.textPrimary).copyWith(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 22.sp,
+                      height: 27 / 22,
+                    ),
                   ),
-                ),
-                SizedBox(height: 10.h),
-                Text(
-                  CartFlowStrings.zoodSubtitle,
-                  textAlign: TextAlign.center,
-                  style: AppTextStyles.bodySmall(color: AppColors.textSecondary).copyWith(
-                    fontSize: 14.sp,
-                    height: 1.45,
+                  SizedBox(height: 16.h),
+                  Text(
+                    CartFlowStrings.zoodSubtitle,
+                    textAlign: TextAlign.center,
+                    style: AppTextStyles.bodySmall(color: AppColors.textSecondary).copyWith(
+                      fontWeight: FontWeight.w400,
+                      fontSize: 13.5.sp,
+                      height: 16 / 13.5,
+                    ),
                   ),
-                ),
-                SizedBox(height: 24.h),
-                for (final benefit in CartFlowData.zoodBenefits) ...[
+                  SizedBox(height: 16.h),
                   Container(
-                    margin: EdgeInsets.only(bottom: 10.h),
-                    padding: EdgeInsets.all(14.w),
+                    width: double.infinity,
+                    padding: EdgeInsets.all(16.w),
                     decoration: BoxDecoration(
                       color: AppColors.white,
-                      borderRadius: BorderRadius.circular(14.r),
-                      border: Border.all(color: AppColors.border),
+                      borderRadius: BorderRadius.circular(16.r),
+                      border: Border.all(color: const Color(0xFFE0E6E0)),
                     ),
-                    child: Row(
+                    child: Column(
                       children: [
-                        Container(
-                          width: 36.w,
-                          height: 36.w,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFFCE8E9),
-                            borderRadius: BorderRadius.circular(10.r),
+                        for (var i = 0; i < CartFlowData.zoodBenefits.length; i++) ...[
+                          if (i > 0) SizedBox(height: 10.h),
+                          Row(
+                            children: [
+                              Text(
+                                CartFlowData.zoodBenefits[i].emoji,
+                                style: TextStyle(fontSize: 15.sp, height: 1.2),
+                              ),
+                              SizedBox(width: 10.w),
+                              Expanded(
+                                child: Text(
+                                  CartFlowData.zoodBenefits[i].text,
+                                  style: AppTextStyles.labelMedium(
+                                    color: AppColors.textPrimary,
+                                  ).copyWith(
+                                    fontWeight: FontWeight.w500,
+                                    fontSize: 13.5.sp,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
-                          child: Icon(benefit.icon, color: CartFlowData.zoodRed, size: 20.sp),
-                        ),
-                        SizedBox(width: 12.w),
-                        Expanded(
-                          child: Text(
-                            benefit.text,
-                            style: AppTextStyles.labelMedium().copyWith(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 14.sp,
-                            ),
-                          ),
-                        ),
+                        ],
                       ],
                     ),
                   ),
-                ],
-              ],
-            ),
-          ),
-          SafeArea(
-            top: false,
-            child: Padding(
-              padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 16.h),
-              child: Column(
-                children: [
+                  SizedBox(height: 16.h),
                   PrimaryGreenButton(
                     label: CartFlowStrings.zoodJoin,
                     backgroundColor: CartFlowData.zoodRed,
+                    height: 52,
                     onPressed: () => context.pop(),
                   ),
                   SizedBox(height: 10.h),
-                  OutlinedButton(
-                    onPressed: () => context.pop(),
-                    style: OutlinedButton.styleFrom(
-                      minimumSize: Size(double.infinity, 49.h),
-                      foregroundColor: AppColors.textPrimary,
-                      side: const BorderSide(color: AppColors.border),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(28.r),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 52.h,
+                    child: OutlinedButton(
+                      onPressed: () => context.pop(),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.textPrimary,
+                        backgroundColor: AppColors.white,
+                        side: const BorderSide(color: Color(0xFFE0E6E0), width: 1.5),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(28.r),
+                        ),
+                        padding: EdgeInsets.zero,
                       ),
-                    ),
-                    child: Text(
-                      CartFlowStrings.zoodNotNow,
-                      style: AppTextStyles.labelMedium().copyWith(
-                        fontWeight: FontWeight.w700,
+                      child: Text(
+                        CartFlowStrings.zoodNotNow,
+                        style: AppTextStyles.labelMedium(color: AppColors.textPrimary).copyWith(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 16.sp,
+                        ),
                       ),
                     ),
                   ),
                 ],
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
       bottomNavigationBar: const ShellBottomNavBar(currentIndex: 2),
     );

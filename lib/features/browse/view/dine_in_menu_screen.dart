@@ -28,6 +28,9 @@ class DineInMenuScreen extends StatefulWidget {
 class _DineInMenuScreenState extends State<DineInMenuScreen> {
   String _selectedSection = DineInData.menuSections.first;
 
+  /// Design: `rgba(44, 107, 71, 0.55)` over white → sage green.
+  static const Color _screenBg = Color(0xFF8BAE9A);
+
   DineInRestaurant get _restaurant => DineInData.restaurantById(widget.restaurantId);
 
   List<BrowseMenuItem> get _items => DineInData.veeraMenu
@@ -37,25 +40,24 @@ class _DineInMenuScreenState extends State<DineInMenuScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: _screenBg,
       body: Column(
         children: [
           DineInVendorHero(restaurant: _restaurant),
           Expanded(
             child: ListView(
-              padding: EdgeInsets.fromLTRB(16.w, 14.h, 16.w, 8.h),
+              padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 8.h),
               children: [
                 BrowseSearchBar(
                   hint: 'Search this menu…',
                   onTap: () {},
                 ),
-                SizedBox(height: 12.h),
-                Row(
-                  children: [
-                    _infoChip(Icons.schedule, 'Open now'),
-                    SizedBox(width: 8.w),
-                    _infoChip(Icons.table_restaurant_outlined, 'Table ${_restaurant.tableMin}+'),
-                  ],
+                SizedBox(height: 14.h),
+                DineInStatusCard(
+                  leftTitle: 'Open now',
+                  leftSubtitle: 'Dine-in',
+                  rightTitle: 'Table ${_restaurant.tableMin}+',
+                  rightSubtitle: 'Walk-in',
                 ),
                 SizedBox(height: 14.h),
                 BrowseFilterChips(
@@ -63,28 +65,31 @@ class _DineInMenuScreenState extends State<DineInMenuScreen> {
                   selected: _selectedSection,
                   onSelected: (v) => setState(() => _selectedSection = v),
                 ),
-                SizedBox(height: 8.h),
+                SizedBox(height: 14.h),
                 Text(
                   _selectedSection.toUpperCase(),
-                  style: AppTextStyles.labelSmall(color: AppColors.textSecondary).copyWith(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 11.sp,
-                    letterSpacing: 0.5,
+                  style: AppTextStyles.labelSmall(color: AppColors.white).copyWith(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 12.sp,
+                    height: 1.3,
                   ),
                 ),
-                ..._items.map(
-                  (item) => BrowseMenuItemRow(
-                    item: item,
+                SizedBox(height: 4.h),
+                for (var i = 0; i < _items.length; i++) ...[
+                  DineInMenuItemRow(
+                    item: _items[i],
                     gradientStart: _restaurant.gradientStart,
                     gradientEnd: _restaurant.gradientEnd,
                     onTap: () => context.push(
                       BrowseRoutes.dineInItemDetail(
                         restaurantId: widget.restaurantId,
-                        itemId: item.id,
+                        itemId: _items[i].id,
                       ),
                     ),
                   ),
-                ),
+                  if (i < _items.length - 1)
+                    Divider(height: 1, thickness: 1, color: const Color(0xFFE2E8DD).withValues(alpha: 0.55)),
+                ],
               ],
             ),
           ),
@@ -92,33 +97,6 @@ class _DineInMenuScreenState extends State<DineInMenuScreen> {
         ],
       ),
       bottomNavigationBar: ShellBottomNavBar(currentIndex: widget.bottomNavIndex),
-    );
-  }
-
-  Widget _infoChip(IconData icon, String label) {
-    return Expanded(
-      child: Container(
-        padding: EdgeInsets.symmetric(vertical: 8.h),
-        decoration: BoxDecoration(
-          color: AppColors.white,
-          borderRadius: BorderRadius.circular(10.r),
-          border: Border.all(color: AppColors.border),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 14.sp, color: AppColors.primary),
-            SizedBox(width: 6.w),
-            Text(
-              label,
-              style: AppTextStyles.caption(color: AppColors.textPrimary).copyWith(
-                fontSize: 11.sp,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

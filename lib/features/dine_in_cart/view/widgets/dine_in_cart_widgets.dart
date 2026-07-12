@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:yjeek_app/core/constants/app_assets.dart';
 import 'package:yjeek_app/core/constants/app_colors.dart';
 import 'package:yjeek_app/core/constants/app_text_styles.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
@@ -26,53 +27,54 @@ class _DineInBasketBodyState extends State<DineInBasketBody> {
 
   @override
   Widget build(BuildContext context) {
+    final mainItem = DineInCartData.cartItems.firstWhere((i) => i.isMain);
+    final sideItems = DineInCartData.cartItems.where((i) => !i.isMain).toList();
+
     return Column(
       children: [
         Expanded(
           child: ListView(
-            padding: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 16.h),
+            padding: EdgeInsets.fromLTRB(20.w, 8.h, 20.w, 16.h),
             children: [
               Text(
                 DineInCartStrings.yourItems,
-                style: AppTextStyles.titleSmall().copyWith(fontSize: 16.sp),
+                style: AppTextStyles.titleSmall(color: AppColors.textPrimary).copyWith(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 16.sp,
+                  height: 1.28,
+                ),
               ),
-              SizedBox(height: 10.h),
-              ...DineInCartData.cartItems.map((item) {
-                if (item.isMain) {
-                  return _MainItemCard(
-                    item: item,
-                    quantity: _mainQty,
-                    onQuantityChanged: (v) => setState(() => _mainQty = v),
-                  );
-                }
-                return _SecondaryItemRow(item: item);
-              }),
-              SizedBox(height: 16.h),
+              SizedBox(height: 14.h),
+              _YourItemsCard(
+                mainItem: mainItem,
+                sideItems: sideItems,
+                quantity: _mainQty,
+                onQuantityChanged: (v) => setState(() => _mainQty = v),
+              ),
+              SizedBox(height: 14.h),
               Text(
                 DineInCartStrings.makeItCombo,
-                style: AppTextStyles.titleSmall().copyWith(fontSize: 16.sp),
+                style: AppTextStyles.titleSmall(color: AppColors.textPrimary).copyWith(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 16.sp,
+                  height: 1.28,
+                ),
               ),
-              SizedBox(height: 10.h),
+              SizedBox(height: 14.h),
               SizedBox(
-                height: 120.h,
+                height: 133.h,
                 child: ListView.separated(
                   scrollDirection: Axis.horizontal,
                   itemCount: DineInCartData.comboItems.length,
-                  separatorBuilder: (_, _) => SizedBox(width: 10.w),
+                  separatorBuilder: (_, _) => SizedBox(width: 12.w),
                   itemBuilder: (context, index) {
-                    final combo = DineInCartData.comboItems[index];
-                    return _ComboCard(combo: combo);
+                    return _ComboCard(combo: DineInCartData.comboItems[index]);
                   },
                 ),
               ),
-              SizedBox(height: 16.h),
-              _PromoRow(),
-              SizedBox(height: 16.h),
-              Text(
-                DineInCartStrings.dineInPreferences,
-                style: AppTextStyles.titleSmall().copyWith(fontSize: 16.sp),
-              ),
-              SizedBox(height: 10.h),
+              SizedBox(height: 14.h),
+              const _PromoRow(),
+              SizedBox(height: 14.h),
               DineInPreferencesCard(
                 partySize: _partySize,
                 seating: _seating,
@@ -81,10 +83,20 @@ class _DineInBasketBodyState extends State<DineInBasketBody> {
                 onSeatingChanged: (v) => setState(() => _seating = v),
                 onSpecialOccasionChanged: (v) => setState(() => _specialOccasion = v),
               ),
-              SizedBox(height: 16.h),
+              SizedBox(height: 14.h),
+              Text(
+                DineInCartStrings.billSummary,
+                style: AppTextStyles.titleSmall(color: AppColors.textPrimary).copyWith(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 16.sp,
+                  height: 1.28,
+                ),
+              ),
+              SizedBox(height: 10.h),
               BillSummaryCard(
                 lines: DineInCartData.billLines,
                 showCashback: true,
+                cashbackAmount: DineInCartData.cashbackAmount,
               ),
             ],
           ),
@@ -116,30 +128,48 @@ class DineInPreferencesCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: EdgeInsets.all(14.w),
+      padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
         color: AppColors.white,
-        borderRadius: BorderRadius.circular(16.r),
-        border: Border.all(color: AppColors.border),
+        borderRadius: BorderRadius.circular(18.r),
+        border: Border.all(color: const Color(0xFFE2E8DD)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          Text(
+            DineInCartStrings.dineInPreferences,
+            style: AppTextStyles.titleSmall(color: AppColors.textPrimary).copyWith(
+              fontWeight: FontWeight.w700,
+              fontSize: 16.sp,
+              height: 1.28,
+            ),
+          ),
+          SizedBox(height: 14.h),
           Row(
             children: [
               Expanded(
-                child: Text(
-                  DineInCartStrings.partySize,
-                  style: AppTextStyles.labelMedium().copyWith(fontSize: 14.sp),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      DineInCartStrings.partySize,
+                      style: AppTextStyles.labelMedium(color: AppColors.textPrimary).copyWith(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14.sp,
+                      ),
+                    ),
+                    SizedBox(height: 1.h),
+                    Text(
+                      'Table for $partySize',
+                      style: AppTextStyles.caption(color: const Color(0xFF69706E)).copyWith(
+                        fontWeight: FontWeight.w400,
+                        fontSize: 12.sp,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              Text(
-                'Table for $partySize',
-                style: AppTextStyles.labelSmall(color: AppColors.textSecondary).copyWith(
-                  fontSize: 13.sp,
-                ),
-              ),
-              SizedBox(width: 10.w),
               _RoundBtn(
                 icon: Icons.remove,
                 onTap: partySize > DineInCartData.minPartySize
@@ -150,11 +180,15 @@ class DineInPreferencesCard extends StatelessWidget {
                 padding: EdgeInsets.symmetric(horizontal: 10.w),
                 child: Text(
                   '$partySize',
-                  style: AppTextStyles.labelMedium().copyWith(fontWeight: FontWeight.w700),
+                  style: AppTextStyles.labelMedium(color: AppColors.textPrimary).copyWith(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 15.sp,
+                  ),
                 ),
               ),
               _RoundBtn(
                 icon: Icons.add,
+                filled: true,
                 onTap: partySize < DineInCartData.maxPartySize
                     ? () => onPartySizeChanged(partySize + 1)
                     : null,
@@ -164,8 +198,9 @@ class DineInPreferencesCard extends StatelessWidget {
           SizedBox(height: 14.h),
           Text(
             DineInCartStrings.seating,
-            style: AppTextStyles.labelSmall(color: AppColors.textSecondary).copyWith(
-              fontSize: 12.sp,
+            style: AppTextStyles.labelSmall(color: const Color(0xFF69706E)).copyWith(
+              fontWeight: FontWeight.w600,
+              fontSize: 13.sp,
             ),
           ),
           SizedBox(height: 8.h),
@@ -193,18 +228,27 @@ class DineInPreferencesCard extends StatelessWidget {
           SizedBox(height: 14.h),
           Row(
             children: [
+              Icon(Icons.card_giftcard_outlined, size: 22.sp, color: const Color(0xFF0F4D27)),
+              SizedBox(width: 12.w),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       DineInCartStrings.specialOccasion,
-                      style: AppTextStyles.labelMedium().copyWith(fontSize: 14.sp),
+                      style: AppTextStyles.labelMedium(color: AppColors.textPrimary).copyWith(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14.sp,
+                        height: 1.28,
+                      ),
                     ),
+                    SizedBox(height: 2.h),
                     Text(
                       DineInCartStrings.specialOccasionHint,
-                      style: AppTextStyles.caption(color: AppColors.textSecondary).copyWith(
-                        fontSize: 11.sp,
+                      style: AppTextStyles.caption(color: const Color(0xFF6B7B6E)).copyWith(
+                        fontWeight: FontWeight.w500,
+                        fontSize: 12.sp,
+                        height: 1.28,
                       ),
                     ),
                   ],
@@ -213,21 +257,51 @@ class DineInPreferencesCard extends StatelessWidget {
               Switch.adaptive(
                 value: specialOccasion,
                 onChanged: onSpecialOccasionChanged,
-                activeTrackColor: AppColors.primary.withValues(alpha: 0.35),
-                activeThumbColor: AppColors.primary,
+                activeTrackColor: AppColors.cartTabActive,
+                activeThumbColor: AppColors.white,
+                inactiveTrackColor: const Color(0xFFC5CCBE),
+                inactiveThumbColor: AppColors.white,
               ),
             ],
           ),
-          Divider(height: 20.h, color: AppColors.border),
+          Divider(height: 20.h, color: const Color(0xFFE2E8DD)),
           Row(
             children: [
+              Icon(Icons.chat_bubble_outline, size: 22.sp, color: const Color(0xFF0F4D27)),
+              SizedBox(width: 12.w),
               Expanded(
-                child: Text(
-                  DineInCartStrings.noteForKitchen,
-                  style: AppTextStyles.labelMedium().copyWith(fontSize: 14.sp),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      DineInCartStrings.noteForKitchen,
+                      style: AppTextStyles.labelMedium(color: AppColors.textPrimary).copyWith(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14.sp,
+                        height: 1.28,
+                      ),
+                    ),
+                    SizedBox(height: 2.h),
+                    Text(
+                      DineInCartStrings.noteForKitchenHint,
+                      style: AppTextStyles.caption(color: const Color(0xFF6B7B6E)).copyWith(
+                        fontWeight: FontWeight.w500,
+                        fontSize: 12.sp,
+                        height: 1.28,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              Icon(Icons.chevron_right, color: AppColors.textSecondary, size: 20.sp),
+              Text(
+                '›',
+                style: TextStyle(
+                  color: const Color(0xFF6B7B6E),
+                  fontSize: 18.sp,
+                  fontWeight: FontWeight.w700,
+                  height: 1.28,
+                ),
+              ),
             ],
           ),
         ],
@@ -245,77 +319,133 @@ class DineInPrepOptionCard extends StatelessWidget {
     required this.selected,
     required this.onTap,
     this.iconColor,
+    this.iconBackground,
   });
 
   final String title;
   final String subtitle;
   final IconData icon;
   final Color? iconColor;
+  final Color? iconBackground;
   final bool selected;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
+    final bg = iconBackground ??
+        (selected ? AppColors.primary : AppColors.accountIconBackground);
+    final fg = iconColor ?? (selected ? AppColors.white : AppColors.primary);
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
         width: double.infinity,
-        padding: EdgeInsets.all(14.w),
+        padding: EdgeInsets.all(16.w),
         decoration: BoxDecoration(
           color: AppColors.white,
-          borderRadius: BorderRadius.circular(16.r),
+          borderRadius: BorderRadius.circular(18.r),
           border: Border.all(
-            color: selected ? AppColors.primary : AppColors.border,
-            width: selected ? 1.5 : 1,
+            color: selected ? AppColors.cartTabActive : const Color(0xFFD9DED9),
+            width: selected ? 2 : 1,
           ),
         ),
         child: Row(
           children: [
             Container(
-              width: 44.w,
-              height: 44.w,
+              width: 48.w,
+              height: 48.w,
               decoration: BoxDecoration(
-                color: selected ? AppColors.accountIconBackground : AppColors.background,
-                borderRadius: BorderRadius.circular(12.r),
+                color: bg,
+                borderRadius: BorderRadius.circular(14.r),
               ),
-              child: Icon(icon, color: iconColor ?? AppColors.primary, size: 22.sp),
+              child: Icon(icon, color: fg, size: 22.sp),
             ),
-            SizedBox(width: 12.w),
+            SizedBox(width: 14.w),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     title,
-                    style: AppTextStyles.labelMedium().copyWith(
+                    style: AppTextStyles.labelMedium(color: AppColors.textPrimary).copyWith(
                       fontWeight: FontWeight.w700,
-                      fontSize: 14.sp,
+                      fontSize: 16.sp,
+                      height: 1.28,
                     ),
                   ),
-                  SizedBox(height: 4.h),
+                  SizedBox(height: 6.h),
                   Text(
                     subtitle,
-                    style: AppTextStyles.caption(color: AppColors.textSecondary).copyWith(
-                      fontSize: 12.sp,
-                      height: 1.3,
+                    style: AppTextStyles.caption(color: const Color(0xFF6B7B6E)).copyWith(
+                      fontWeight: FontWeight.w500,
+                      fontSize: 12.5.sp,
+                      height: 1.28,
                     ),
                   ),
                 ],
               ),
             ),
             Container(
-              width: 20.w,
-              height: 20.w,
+              width: 22.w,
+              height: 22.w,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
+                color: selected ? AppColors.cartTabActive : AppColors.white,
                 border: Border.all(
-                  color: selected ? AppColors.primary : AppColors.border,
-                  width: selected ? 6 : 1.5,
+                  color: selected ? AppColors.cartTabActive : const Color(0xFFD9DED9),
+                  width: selected ? 6.5 : 1.5,
                 ),
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class DineInTableReadyCard extends StatelessWidget {
+  const DineInTableReadyCard({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(18.r),
+        border: Border.all(color: const Color(0xFFE2E8DD)),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.schedule, size: 22.sp, color: const Color(0xFF0F4D27)),
+          SizedBox(width: 12.w),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  DineInCartStrings.tableReadyLabel,
+                  style: AppTextStyles.caption(color: const Color(0xFF6B7B6E)).copyWith(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 11.sp,
+                    height: 1.28,
+                  ),
+                ),
+                SizedBox(height: 2.h),
+                Text(
+                  DineInCartStrings.tableReadyValue,
+                  style: AppTextStyles.labelMedium(color: AppColors.textPrimary).copyWith(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 16.sp,
+                    height: 1.28,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -330,27 +460,18 @@ class DineInInfoBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.all(12.w),
+      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFF8E1),
+        color: const Color(0xFFF6E9C2),
         borderRadius: BorderRadius.circular(12.r),
-        border: Border.all(color: const Color(0xFFE6D9A8)),
       ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(Icons.info_outline, color: const Color(0xFFC9A84C), size: 18.sp),
-          SizedBox(width: 10.w),
-          Expanded(
-            child: Text(
-              message,
-              style: AppTextStyles.labelSmall(color: const Color(0xFF8A6D1A)).copyWith(
-                fontSize: 12.sp,
-                height: 1.35,
-              ),
-            ),
-          ),
-        ],
+      child: Text(
+        message,
+        style: AppTextStyles.labelSmall(color: const Color(0xFF8A6D1E)).copyWith(
+          fontWeight: FontWeight.w500,
+          fontSize: 12.sp,
+          height: 1.28,
+        ),
       ),
     );
   }
@@ -363,18 +484,32 @@ class DineInWalletNoteBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.all(12.w),
+      padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
       decoration: BoxDecoration(
-        color: const Color(0xFFE8F4FC),
+        color: const Color(0xFFE3F2EB),
         borderRadius: BorderRadius.circular(12.r),
-        border: Border.all(color: const Color(0xFFB8D4E8)),
       ),
-      child: Text(
-        DineInCartStrings.walletComboNote,
-        style: AppTextStyles.labelSmall(color: const Color(0xFF2A5F7A)).copyWith(
-          fontSize: 12.sp,
-          height: 1.35,
-        ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Image.asset(
+            AppAssets.payPinkPurse,
+            width: 16.w,
+            height: 16.w,
+            fit: BoxFit.contain,
+          ),
+          SizedBox(width: 8.w),
+          Expanded(
+            child: Text(
+              DineInCartStrings.walletComboNote,
+              style: AppTextStyles.labelSmall(color: const Color(0xFF127036)).copyWith(
+                fontWeight: FontWeight.w500,
+                fontSize: 12.5.sp,
+                height: 1.2,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -406,26 +541,70 @@ class DineInPaymentList extends StatelessWidget {
               InkWell(
                 onTap: () => onSelected(option.id),
                 child: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 12.h),
+                  padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
                   child: Row(
                     children: [
-                      if (option.icon != null)
-                        Icon(option.icon, size: 22.sp, color: AppColors.textPrimary),
+                      Container(
+                        width: 38.w,
+                        height: 38.w,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFEAF1E6),
+                          borderRadius: BorderRadius.circular(9.r),
+                        ),
+                        alignment: Alignment.center,
+                        child: option.iconAsset != null
+                            ? Image.asset(
+                                option.iconAsset!,
+                                width: 18.w,
+                                height: 18.w,
+                                fit: BoxFit.contain,
+                              )
+                            : Icon(
+                                option.icon ?? Icons.payment_outlined,
+                                size: 18.sp,
+                                color: const Color(0xFF0F4D27),
+                              ),
+                      ),
                       SizedBox(width: 12.w),
                       Expanded(
-                        child: Text(
-                          option.label,
-                          style: AppTextStyles.labelMedium().copyWith(fontSize: 14.sp),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              option.label,
+                              style: AppTextStyles.labelMedium(color: AppColors.textPrimary)
+                                  .copyWith(
+                                fontWeight: option.subtitle != null
+                                    ? FontWeight.w700
+                                    : FontWeight.w500,
+                                fontSize: 14.sp,
+                                height: 1.28,
+                              ),
+                            ),
+                            if (option.subtitle != null) ...[
+                              SizedBox(height: 2.h),
+                              Text(
+                                option.subtitle!,
+                                style: AppTextStyles.caption(
+                                  color: const Color(0xFF6B7B6E),
+                                ).copyWith(
+                                  fontWeight: FontWeight.w500,
+                                  fontSize: 11.5.sp,
+                                  height: 1.28,
+                                ),
+                              ),
+                            ],
+                          ],
                         ),
                       ),
                       Container(
-                        width: 20.w,
-                        height: 20.w,
+                        width: 22.w,
+                        height: 22.w,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           border: Border.all(
-                            color: selected ? AppColors.primary : AppColors.border,
-                            width: selected ? 6 : 1.5,
+                            color: selected ? AppColors.primary : const Color(0xFFE2E8DD),
+                            width: selected ? 6.5 : 1.5,
                           ),
                         ),
                       ),
@@ -442,72 +621,89 @@ class DineInPaymentList extends StatelessWidget {
 }
 
 class DineInReviewStatusCard extends StatelessWidget {
-  const DineInReviewStatusCard({super.key, required this.secondsLeft});
+  const DineInReviewStatusCard({
+    super.key,
+    required this.secondsLeft,
+    this.totalSeconds = 10,
+  });
 
   final int secondsLeft;
+  final int totalSeconds;
+
+  static const Color _ringTrack = Color(0xFF2C6B47);
+  static const Color _ringProgress = Color(0xFFC9A84C);
+  static const Color _hint = Color(0xFFCFE8D8);
 
   @override
   Widget build(BuildContext context) {
+    final progress = totalSeconds <= 0
+        ? 0.0
+        : (secondsLeft / totalSeconds).clamp(0.0, 1.0);
+
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.all(18.w),
+      padding: EdgeInsets.all(20.w),
       decoration: BoxDecoration(
         color: AppColors.primary,
-        borderRadius: BorderRadius.circular(18.r),
+        borderRadius: BorderRadius.circular(20.r),
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Container(
-                width: 52.w,
-                height: 52.w,
-                decoration: const BoxDecoration(
-                  color: AppColors.white,
-                  shape: BoxShape.circle,
-                ),
-                alignment: Alignment.center,
-                child: Text(
-                  '$secondsLeft',
-                  style: AppTextStyles.titleMedium(color: AppColors.primary).copyWith(
-                    fontWeight: FontWeight.w800,
-                    fontSize: 20.sp,
+          SizedBox(
+            width: 92.w,
+            height: 92.w,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                SizedBox(
+                  width: 92.w,
+                  height: 92.w,
+                  child: CircularProgressIndicator(
+                    value: progress,
+                    strokeWidth: 7,
+                    backgroundColor: _ringTrack,
+                    color: _ringProgress,
+                    strokeCap: StrokeCap.round,
                   ),
                 ),
-              ),
-              SizedBox(width: 14.w),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      DineInCartStrings.sendingOrder,
-                      style: AppTextStyles.labelMedium(color: AppColors.white).copyWith(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 14.sp,
-                      ),
-                    ),
-                    SizedBox(height: 4.h),
-                    Text(
-                      DineInCartStrings.autoConfirmHint,
-                      style: AppTextStyles.caption(
-                        color: AppColors.white.withValues(alpha: 0.9),
-                      ).copyWith(fontSize: 11.sp, height: 1.35),
-                    ),
-                  ],
+                Text(
+                  '$secondsLeft',
+                  style: AppTextStyles.titleMedium(color: AppColors.white).copyWith(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 38.sp,
+                    height: 1.1,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
+          ),
+          SizedBox(height: 12.h),
+          Text(
+            DineInCartStrings.sendingOrder,
+            textAlign: TextAlign.center,
+            style: AppTextStyles.labelMedium(color: AppColors.white).copyWith(
+              fontWeight: FontWeight.w700,
+              fontSize: 16.sp,
+            ),
+          ),
+          SizedBox(height: 6.h),
+          Text(
+            DineInCartStrings.autoConfirmHint,
+            textAlign: TextAlign.center,
+            style: AppTextStyles.caption(color: _hint).copyWith(
+              fontWeight: FontWeight.w500,
+              fontSize: 12.5.sp,
+              height: 1.3,
+            ),
           ),
           SizedBox(height: 12.h),
           ClipRRect(
-            borderRadius: BorderRadius.circular(4.r),
+            borderRadius: BorderRadius.circular(3.r),
             child: LinearProgressIndicator(
-              value: secondsLeft / 10,
-              minHeight: 4.h,
-              backgroundColor: Colors.white.withValues(alpha: 0.25),
-              color: AppColors.white,
+              value: progress,
+              minHeight: 6,
+              backgroundColor: _ringTrack,
+              color: _ringProgress,
             ),
           ),
         ],
@@ -529,28 +725,27 @@ class DineInReviewSummaryCard extends StatelessWidget {
     final diningOption = prepMode == DineInPrepMode.prepareNow
         ? DineInCartStrings.payPrepNow
         : 'Prepare on arrival';
-    final time = prepMode == DineInPrepMode.prepareOnArrival
-        ? DineInCartData.dineInTime
-        : DineInCartStrings.tableReadyIn;
 
     return CartFlowCard(
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             DineInCartStrings.orderSummary,
-            style: AppTextStyles.labelMedium().copyWith(
+            style: AppTextStyles.labelMedium(color: AppColors.textPrimary).copyWith(
               fontWeight: FontWeight.w700,
-              fontSize: 14.sp,
+              fontSize: 16.sp,
+              height: 1.3,
             ),
           ),
           SizedBox(height: 12.h),
           _row(DineInCartStrings.restaurant, DineInCartData.vendorFull),
           _row(DineInCartStrings.items, 'Mixed Grill Platter + 2 more'),
           _row(DineInCartStrings.diningOptionLabel, diningOption),
-          _row(DineInCartStrings.time, time),
+          _row(DineInCartStrings.time, DineInCartData.dineInTime),
           _row(DineInCartStrings.payment, DineInCartStrings.yjeekWallet),
-          Divider(height: 20.h, color: AppColors.border),
+          Divider(height: 20.h, color: const Color(0xFFE2E8DD)),
           _row(DineInCartStrings.orderTotal, DineInCartData.orderTotal, bold: true),
         ],
       ),
@@ -559,25 +754,27 @@ class DineInReviewSummaryCard extends StatelessWidget {
 
   Widget _row(String label, String value, {bool bold = false}) {
     return Padding(
-      padding: EdgeInsets.only(bottom: 8.h),
+      padding: EdgeInsets.symmetric(vertical: 3.h),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(
-            width: 100.w,
-            child: Text(
-              label,
-              style: AppTextStyles.labelSmall(color: AppColors.textSecondary).copyWith(
-                fontSize: 12.sp,
-              ),
+          Text(
+            label,
+            style: AppTextStyles.labelSmall(color: const Color(0xFF6B7B6E)).copyWith(
+              fontWeight: FontWeight.w500,
+              fontSize: 13.sp,
+              height: 1.3,
             ),
           ),
+          SizedBox(width: 12.w),
           Expanded(
             child: Text(
               value,
-              style: AppTextStyles.labelMedium().copyWith(
-                fontWeight: bold ? FontWeight.w800 : FontWeight.w600,
+              textAlign: TextAlign.right,
+              style: AppTextStyles.labelMedium(color: AppColors.textPrimary).copyWith(
+                fontWeight: bold ? FontWeight.w800 : FontWeight.w700,
                 fontSize: bold ? 15.sp : 13.sp,
+                height: 1.3,
               ),
             ),
           ),
@@ -587,100 +784,162 @@ class DineInReviewSummaryCard extends StatelessWidget {
   }
 }
 
-class _MainItemCard extends StatelessWidget {
-  const _MainItemCard({
-    required this.item,
+class _YourItemsCard extends StatelessWidget {
+  const _YourItemsCard({
+    required this.mainItem,
+    required this.sideItems,
     required this.quantity,
     required this.onQuantityChanged,
   });
 
-  final DineInCartItem item;
+  final DineInCartItem mainItem;
+  final List<DineInCartItem> sideItems;
   final int quantity;
   final ValueChanged<int> onQuantityChanged;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: EdgeInsets.only(bottom: 10.h),
       padding: EdgeInsets.all(14.w),
       decoration: BoxDecoration(
         color: AppColors.white,
-        borderRadius: BorderRadius.circular(16.r),
-        border: Border.all(color: AppColors.border),
+        borderRadius: BorderRadius.circular(18.r),
+        border: Border.all(color: const Color(0xFFE2E8DD)),
       ),
-      child: Row(
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  item.name,
-                  style: AppTextStyles.titleSmall().copyWith(fontSize: 15.sp),
-                ),
-                SizedBox(height: 4.h),
-                Text(
-                  item.subtitle,
-                  style: AppTextStyles.labelSmall(color: AppColors.textSecondary).copyWith(
-                    fontSize: 12.sp,
-                  ),
-                ),
-                SizedBox(height: 8.h),
-                Row(
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    if (item.originalPrice != null) ...[
-                      Text(
-                        item.originalPrice!,
-                        style: AppTextStyles.caption(color: AppColors.textSecondary).copyWith(
-                          decoration: TextDecoration.lineThrough,
-                          fontSize: 12.sp,
-                        ),
-                      ),
-                      SizedBox(width: 6.w),
-                    ],
                     Text(
-                      item.price,
-                      style: AppTextStyles.labelMedium(color: AppColors.primary).copyWith(
+                      mainItem.name,
+                      style: AppTextStyles.labelMedium(color: AppColors.textPrimary).copyWith(
                         fontWeight: FontWeight.w700,
-                        fontSize: 14.sp,
+                        fontSize: 15.sp,
+                        height: 1.28,
                       ),
+                    ),
+                    SizedBox(height: 5.h),
+                    Text(
+                      mainItem.subtitle,
+                      style: AppTextStyles.caption(color: const Color(0xFF6B7B6E)).copyWith(
+                        fontWeight: FontWeight.w500,
+                        fontSize: 12.sp,
+                        height: 1.28,
+                      ),
+                    ),
+                    SizedBox(height: 5.h),
+                    Row(
+                      children: [
+                        Icon(Icons.edit_outlined, size: 14.sp, color: AppColors.primary),
+                        SizedBox(width: 5.w),
+                        Text(
+                          'Edit',
+                          style: AppTextStyles.labelSmall(color: AppColors.primary).copyWith(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 13.sp,
+                            height: 1.28,
+                          ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 8.h),
+                    Row(
+                      children: [
+                        Text(
+                          mainItem.price,
+                          style: AppTextStyles.labelMedium(color: AppColors.primary).copyWith(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 16.sp,
+                            height: 1.28,
+                          ),
+                        ),
+                        if (mainItem.originalPrice != null) ...[
+                          SizedBox(width: 8.w),
+                          Text(
+                            mainItem.originalPrice!,
+                            style: AppTextStyles.caption(color: const Color(0xFF6B7B6E)).copyWith(
+                              fontWeight: FontWeight.w500,
+                              fontSize: 13.sp,
+                              height: 1.28,
+                              decoration: TextDecoration.lineThrough,
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                   ],
                 ),
-              ],
-            ),
-          ),
-          Column(
-            children: [
-              Container(
-                width: 72.w,
-                height: 72.w,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFE3F2EB),
-                  borderRadius: BorderRadius.circular(14.r),
-                ),
-                child: Icon(Icons.restaurant, color: AppColors.primary, size: 28.sp),
               ),
-              SizedBox(height: 8.h),
-              Row(
+              SizedBox(width: 12.w),
+              Column(
                 children: [
-                  _RoundBtn(
-                    icon: Icons.remove,
-                    onTap: quantity > 1 ? () => onQuantityChanged(quantity - 1) : null,
+                  Container(
+                    width: 82.w,
+                    height: 82.w,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(14.r),
+                      gradient: const LinearGradient(
+                        begin: Alignment(-0.6, -1),
+                        end: Alignment(0.6, 1),
+                        colors: [Color(0xFF8A3B2A), Color(0xFF15302B)],
+                      ),
+                    ),
                   ),
-                  Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 8.w),
-                    child: Text('$quantity', style: AppTextStyles.labelMedium()),
-                  ),
-                  _RoundBtn(
-                    icon: Icons.add,
-                    onTap: () => onQuantityChanged(quantity + 1),
+                  SizedBox(height: 8.h),
+                  Container(
+                    height: 31.h,
+                    padding: EdgeInsets.symmetric(horizontal: 10.w),
+                    decoration: BoxDecoration(
+                      color: AppColors.white,
+                      borderRadius: BorderRadius.circular(16.r),
+                      border: Border.all(color: const Color(0xFFE2E8DD)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        GestureDetector(
+                          onTap: quantity > 1
+                              ? () => onQuantityChanged(quantity - 1)
+                              : null,
+                          child: Icon(
+                            Icons.delete_outline,
+                            size: 15.sp,
+                            color: const Color(0xFFC0392B),
+                          ),
+                        ),
+                        Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 11.w),
+                          child: Text(
+                            '$quantity',
+                            style: AppTextStyles.labelMedium(color: AppColors.textPrimary)
+                                .copyWith(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 13.sp,
+                              height: 1.28,
+                            ),
+                          ),
+                        ),
+                        GestureDetector(
+                          onTap: () => onQuantityChanged(quantity + 1),
+                          child: Icon(Icons.add, size: 15.sp, color: AppColors.primary),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
             ],
           ),
+          SizedBox(height: 10.h),
+          const Divider(height: 1, thickness: 1, color: Color(0xFFE2E8DD)),
+          SizedBox(height: 6.h),
+          for (final item in sideItems) _SecondaryItemRow(item: item),
         ],
       ),
     );
@@ -695,20 +954,41 @@ class _SecondaryItemRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.only(bottom: 8.h),
+      padding: EdgeInsets.symmetric(vertical: 3.h),
       child: Row(
         children: [
+          Container(
+            padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
+            decoration: BoxDecoration(
+              color: const Color(0xFFDCE7D4),
+              borderRadius: BorderRadius.circular(6.r),
+            ),
+            child: Text(
+              '${item.quantity}×',
+              style: AppTextStyles.caption(color: const Color(0xFF0F4D27)).copyWith(
+                fontWeight: FontWeight.w700,
+                fontSize: 11.sp,
+                height: 1.28,
+              ),
+            ),
+          ),
+          SizedBox(width: 8.w),
           Expanded(
             child: Text(
-              item.quantity > 1 ? '${item.name}  ×${item.quantity}' : item.name,
-              style: AppTextStyles.labelMedium().copyWith(fontSize: 14.sp),
+              item.name,
+              style: AppTextStyles.labelMedium(color: AppColors.textPrimary).copyWith(
+                fontWeight: FontWeight.w600,
+                fontSize: 13.5.sp,
+                height: 1.28,
+              ),
             ),
           ),
           Text(
             item.price,
-            style: AppTextStyles.labelMedium().copyWith(
-              fontWeight: FontWeight.w600,
-              fontSize: 13.sp,
+            style: AppTextStyles.labelMedium(color: AppColors.textPrimary).copyWith(
+              fontWeight: FontWeight.w700,
+              fontSize: 13.5.sp,
+              height: 1.28,
             ),
           ),
         ],
@@ -724,53 +1004,60 @@ class _ComboCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 96.w,
-      padding: EdgeInsets.all(10.w),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(14.r),
-        border: Border.all(color: AppColors.border),
-      ),
+    return SizedBox(
+      width: 120.w,
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 48.w,
-            height: 48.w,
-            decoration: BoxDecoration(
-              color: combo.color,
-              borderRadius: BorderRadius.circular(12.r),
-            ),
-            child: Icon(Icons.fastfood_outlined, size: 22.sp, color: AppColors.primary),
+          Stack(
+            children: [
+              Container(
+                width: 120.w,
+                height: 90.h,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(14.r),
+                  gradient: LinearGradient(
+                    begin: const Alignment(-0.6, -1),
+                    end: const Alignment(0.6, 1),
+                    colors: [combo.gradientStart, combo.gradientEnd],
+                  ),
+                ),
+              ),
+              Positioned(
+                right: 6.w,
+                bottom: 6.h,
+                child: Container(
+                  width: 28.w,
+                  height: 28.w,
+                  decoration: BoxDecoration(
+                    color: AppColors.white,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: const Color(0xFFE2E8DD)),
+                  ),
+                  child: Icon(Icons.add, size: 16.sp, color: AppColors.primary),
+                ),
+              ),
+            ],
           ),
           SizedBox(height: 6.h),
           Text(
             combo.name,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: AppTextStyles.caption().copyWith(fontWeight: FontWeight.w600, fontSize: 10.sp),
+            style: AppTextStyles.caption(color: AppColors.textPrimary).copyWith(
+              fontWeight: FontWeight.w600,
+              fontSize: 12.5.sp,
+              height: 1.28,
+            ),
           ),
-          const Spacer(),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                combo.price,
-                style: AppTextStyles.caption(color: AppColors.primary).copyWith(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 9.sp,
-                ),
-              ),
-              Container(
-                width: 20.w,
-                height: 20.w,
-                decoration: const BoxDecoration(
-                  color: AppColors.primary,
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(Icons.add, color: AppColors.white, size: 14.sp),
-              ),
-            ],
+          SizedBox(height: 2.h),
+          Text(
+            combo.price,
+            style: AppTextStyles.caption(color: AppColors.textPrimary).copyWith(
+              fontWeight: FontWeight.w700,
+              fontSize: 12.sp,
+              height: 1.28,
+            ),
           ),
         ],
       ),
@@ -779,43 +1066,42 @@ class _ComboCard extends StatelessWidget {
 }
 
 class _PromoRow extends StatelessWidget {
+  const _PromoRow();
+
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: Container(
-            height: 44.h,
-            padding: EdgeInsets.symmetric(horizontal: 12.w),
-            decoration: BoxDecoration(
-              color: AppColors.white,
-              border: Border.all(color: AppColors.border),
-              borderRadius: BorderRadius.circular(12.r),
-            ),
-            alignment: Alignment.centerLeft,
+    return Container(
+      height: 46.h,
+      padding: EdgeInsets.symmetric(horizontal: 14.w),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(14.r),
+        border: Border.all(color: const Color(0xFFE2E8DD)),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.local_offer_outlined, size: 18.sp, color: AppColors.primary),
+          SizedBox(width: 10.w),
+          Expanded(
             child: Text(
               DineInCartStrings.promoCode,
-              style: AppTextStyles.bodySmall(color: AppColors.textSecondary).copyWith(
-                fontSize: 13.sp,
+              style: AppTextStyles.bodySmall(color: const Color(0xFF6B7B6E)).copyWith(
+                fontWeight: FontWeight.w500,
+                fontSize: 14.sp,
+                height: 1.28,
               ),
             ),
           ),
-        ),
-        SizedBox(width: 8.w),
-        Container(
-          padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
-          decoration: BoxDecoration(
-            color: AppColors.iconBackground,
-            borderRadius: BorderRadius.circular(12.r),
-          ),
-          child: Text(
+          Text(
             DineInCartStrings.submit,
-            style: AppTextStyles.labelSmall(color: AppColors.successText).copyWith(
+            style: AppTextStyles.labelMedium(color: AppColors.primary).copyWith(
               fontWeight: FontWeight.w700,
+              fontSize: 14.sp,
+              height: 1.28,
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
@@ -837,18 +1123,21 @@ class _SeatingChip extends StatelessWidget {
       child: GestureDetector(
         onTap: onTap,
         child: Container(
-          padding: EdgeInsets.symmetric(vertical: 10.h),
+          padding: EdgeInsets.symmetric(vertical: 7.h, horizontal: 14.w),
           decoration: BoxDecoration(
-            color: selected ? AppColors.primary : AppColors.white,
-            borderRadius: BorderRadius.circular(24.r),
-            border: Border.all(color: selected ? AppColors.primary : AppColors.border),
+            color: selected ? const Color(0xFFE3F2EB) : AppColors.white,
+            borderRadius: BorderRadius.circular(20.r),
+            border: Border.all(
+              color: selected ? AppColors.cartTabActive : const Color(0xFFD9DED9),
+              width: 1.5,
+            ),
           ),
           alignment: Alignment.center,
           child: Text(
             label,
             style: AppTextStyles.labelSmall(
-              color: selected ? AppColors.white : AppColors.textPrimary,
-            ).copyWith(fontWeight: FontWeight.w600, fontSize: 12.sp),
+              color: selected ? const Color(0xFF127036) : AppColors.textPrimary,
+            ).copyWith(fontWeight: FontWeight.w600, fontSize: 13.sp),
           ),
         ),
       ),
@@ -857,24 +1146,35 @@ class _SeatingChip extends StatelessWidget {
 }
 
 class _RoundBtn extends StatelessWidget {
-  const _RoundBtn({required this.icon, this.onTap});
+  const _RoundBtn({
+    required this.icon,
+    this.onTap,
+    this.filled = false,
+  });
 
   final IconData icon;
   final VoidCallback? onTap;
+  final bool filled;
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 28.w,
-        height: 28.w,
+        width: 30.w,
+        height: 30.w,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          border: Border.all(color: AppColors.border),
-          color: AppColors.white,
+          color: filled ? AppColors.cartTabActive : AppColors.white,
+          border: filled
+              ? null
+              : Border.all(color: const Color(0xFFD9DED9), width: 1.5),
         ),
-        child: Icon(icon, size: 16.sp, color: AppColors.textPrimary),
+        child: Icon(
+          icon,
+          size: 16.sp,
+          color: filled ? AppColors.white : const Color(0xFF69706E),
+        ),
       ),
     );
   }

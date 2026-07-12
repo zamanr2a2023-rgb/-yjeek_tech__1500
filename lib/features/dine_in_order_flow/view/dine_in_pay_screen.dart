@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:yjeek_app/core/constants/app_colors.dart';
 import 'package:yjeek_app/core/constants/app_text_styles.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/features/dine_in_order_flow/dine_in_order_flow_routes.dart';
@@ -18,6 +19,8 @@ class DineInPayScreen extends StatefulWidget {
 
 class _DineInPayScreenState extends State<DineInPayScreen> {
   static const _totalSeconds = 299;
+  static const Color _screenBg = Color(0xFF8BAE9A);
+
   late int _secondsLeft;
   Timer? _timer;
 
@@ -48,41 +51,36 @@ class _DineInPayScreenState extends State<DineInPayScreen> {
   Widget build(BuildContext context) {
     return OrderFlowScaffold(
       showHeader: false,
+      backgroundColor: _screenBg,
       bottomNavIndex: 1,
-      body: Column(
+      body: ListView(
+        padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 16.h),
         children: [
+          SizedBox(height: MediaQuery.paddingOf(context).top),
           const DineInAcceptedBanner(),
-          Expanded(
-            child: ListView(
-              padding: EdgeInsets.fromLTRB(16.w, 20.h, 16.w, 16.h),
-              children: [
-                Center(
-                  child: DineInCountdownCircle(
-                    label: _timerLabel,
-                    color: const Color(0xFFE6A700),
-                  ),
-                ),
-                SizedBox(height: 16.h),
-                Text(
-                  DineInOrderFlowStrings.payWithinHint,
-                  textAlign: TextAlign.center,
-                  style: AppTextStyles.bodySmall().copyWith(
-                    fontSize: 13.sp,
-                    height: 1.4,
-                  ),
-                ),
-                SizedBox(height: 20.h),
-                const DineInPayMethodCard(),
-                SizedBox(height: 14.h),
-                const DineInPayBreakdownCard(),
-              ],
+          SizedBox(height: 14.h),
+          DineInPayTimerCard(timerLabel: _timerLabel),
+          SizedBox(height: 14.h),
+          Text(
+            DineInOrderFlowStrings.payWith,
+            style: AppTextStyles.labelMedium(color: AppColors.white).copyWith(
+              fontWeight: FontWeight.w700,
+              fontSize: 15.sp,
+              height: 1.2,
             ),
           ),
+          SizedBox(height: 10.h),
+          const DineInPayMethodCard(),
+          SizedBox(height: 14.h),
+          const DineInPayBreakdownCard(),
         ],
       ),
       bottom: DineInPayStickyFooter(
         timerLabel: _timerLabel,
-        onPay: () => context.pushReplacement(DineInOrderFlowRoutes.confirmed),
+        onPay: () {
+          _timer?.cancel();
+          context.pushReplacement(DineInOrderFlowRoutes.confirmed);
+        },
       ),
     );
   }

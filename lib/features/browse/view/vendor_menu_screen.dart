@@ -42,32 +42,25 @@ class _VendorMenuScreenState extends State<VendorMenuScreen> {
           BrowseVendorHero(restaurant: _restaurant),
           Expanded(
             child: ListView(
-              padding: EdgeInsets.fromLTRB(16.w, 14.h, 16.w, 8.h),
+              padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 8.h),
               children: [
                 BrowseSearchBar(
                   hint: 'Search this menu…',
                   onTap: () {},
                 ),
-                SizedBox(height: 12.h),
-                Row(
-                  children: [
-                    _statChip('${_restaurant.deliveryMin} min Delivery'),
-                    SizedBox(width: 8.w),
-                    _statChip('BHD ${_restaurant.deliveryFee} Fee'),
-                    SizedBox(width: 8.w),
-                    _statChip('BHD ${_restaurant.minOrder} Min order'),
-                  ],
-                ),
+                SizedBox(height: 14.h),
+                _VendorStatsCard(restaurant: _restaurant),
                 SizedBox(height: 14.h),
                 BrowseFilterChips(
                   options: BrowseData.menuSections,
                   selected: _selectedSection,
                   onSelected: (v) => setState(() => _selectedSection = v),
                 ),
-                SizedBox(height: 8.h),
+                SizedBox(height: 14.h),
                 Text(
                   _selectedSection.toUpperCase(),
-                  style: AppTextStyles.labelSmall(color: AppColors.textSecondary).copyWith(
+                  style: AppTextStyles.labelSmall(color: const Color(0xFF6B7B6E))
+                      .copyWith(
                     fontWeight: FontWeight.w700,
                     fontSize: 11.sp,
                     letterSpacing: 0.5,
@@ -109,25 +102,58 @@ class _VendorMenuScreenState extends State<VendorMenuScreen> {
       bottomNavigationBar: ShellBottomNavBar(currentIndex: widget.bottomNavIndex),
     );
   }
+}
 
-  Widget _statChip(String label) {
-    return Expanded(
-      child: Container(
-        padding: EdgeInsets.symmetric(vertical: 8.h),
-        decoration: BoxDecoration(
-          color: AppColors.white,
-          borderRadius: BorderRadius.circular(10.r),
-          border: Border.all(color: AppColors.border),
-        ),
-        alignment: Alignment.center,
-        child: Text(
-          label,
-          textAlign: TextAlign.center,
-          style: AppTextStyles.caption(color: AppColors.textSecondary).copyWith(
-            fontSize: 10.sp,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
+class _VendorStatsCard extends StatelessWidget {
+  const _VendorStatsCard({required this.restaurant});
+
+  final BrowseRestaurant restaurant;
+
+  @override
+  Widget build(BuildContext context) {
+    final stats = [
+      ('${restaurant.deliveryMin} min', 'Delivery'),
+      ('BHD ${restaurant.deliveryFee}', 'Fee'),
+      ('BHD ${restaurant.minOrder}', 'Min order'),
+    ];
+
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(vertical: 14.h),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(14.r),
+        border: Border.all(color: const Color(0xFFE2E8DD)),
+      ),
+      child: Row(
+        children: [
+          for (final (value, label) in stats)
+            Expanded(
+              child: Column(
+                children: [
+                  Text(
+                    value,
+                    style: AppTextStyles.labelMedium(color: AppColors.textPrimary)
+                        .copyWith(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14.sp,
+                      height: 1.3,
+                    ),
+                  ),
+                  SizedBox(height: 3.h),
+                  Text(
+                    label,
+                    style: AppTextStyles.caption(color: const Color(0xFF6B7B6E))
+                        .copyWith(
+                      fontWeight: FontWeight.w500,
+                      fontSize: 11.sp,
+                      height: 1.3,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+        ],
       ),
     );
   }

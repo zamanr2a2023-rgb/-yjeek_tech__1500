@@ -60,52 +60,62 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
   @override
   Widget build(BuildContext context) {
     return AuthScreenScaffold(
-      scrollable: false,
+      scrollable: true,
       body: Column(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            AppStrings.enterPhoneTitle,
-            style: AppTextStyles.displayMedium(),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                AppStrings.enterPhoneTitle,
+                style: AppTextStyles.displayMedium(),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                AppStrings.enterPhoneSubtitle,
+                style: AppTextStyles.bodyMedium(),
+              ),
+              const SizedBox(height: 24),
+              PhoneNumberField(controller: _phoneController, enabled: true),
+            ],
           ),
-          const SizedBox(height: 10),
-          Text(
-            AppStrings.enterPhoneSubtitle,
-            style: AppTextStyles.bodyMedium(),
-          ),
-          const SizedBox(height: 24),
-          PhoneNumberField(controller: _phoneController, enabled: true),
-          const Spacer(),
-          TermsCheckboxRow(
-            checked: _termsAccepted,
-            onChanged: (value) => setState(() => _termsAccepted = value),
-            onTermsTap: _openTermsSheet,
-          ),
-          const SizedBox(height: 12),
-          CustomButton(
-            label: AppStrings.sendCode,
-            enabled: _canSendCode,
-            onPressed: _sendCode,
-          ),
-          const SizedBox(height: 12),
-          const OrDivider(),
-          const SizedBox(height: 16),
-          CustomButton(
-            label: AppStrings.continueWithGoogle,
-            variant: AppButtonVariant.outlined,
-            height: 48,
-            borderRadius: 13,
-            leading: const GoogleLogo(),
-            onPressed: () {},
-          ),
-          const SizedBox(height: 10),
-          CustomButton(
-            label: AppStrings.continueWithApple,
-            variant: AppButtonVariant.apple,
-            height: 48,
-            borderRadius: 13,
-            leading: const Icon(Icons.apple, color: Colors.white, size: 22),
-            onPressed: () {},
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              TermsCheckboxRow(
+                checked: _termsAccepted,
+                onChanged: (value) => setState(() => _termsAccepted = value),
+                onTermsTap: _openTermsSheet,
+              ),
+              const SizedBox(height: 12),
+              CustomButton(
+                label: AppStrings.sendCode,
+                enabled: _canSendCode,
+                onPressed: _sendCode,
+              ),
+              const SizedBox(height: 12),
+              const OrDivider(),
+              const SizedBox(height: 16),
+              CustomButton(
+                label: AppStrings.continueWithGoogle,
+                variant: AppButtonVariant.outlined,
+                height: 48,
+                borderRadius: 13,
+                leading: const GoogleLogo(),
+                onPressed: () {},
+              ),
+              const SizedBox(height: 10),
+              CustomButton(
+                label: AppStrings.continueWithApple,
+                variant: AppButtonVariant.apple,
+                height: 48,
+                borderRadius: 13,
+                leading: const Icon(Icons.apple, color: Colors.white, size: 22),
+                onPressed: () {},
+              ),
+            ],
           ),
         ],
       ),

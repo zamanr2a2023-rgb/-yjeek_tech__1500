@@ -414,9 +414,9 @@ abstract final class HelpData {
     ),
     HelpIssueOption(
       type: HelpIssueType.cashOut,
-      title: 'Cash-out fee or delay',
+      title: 'Wallet Cash-Out Issue',
       icon: Icons.account_balance_outlined,
-      image: 'assets/Frame (22).png',
+      image: 'assets/Frame (26).png',
       iconBg: Color(0xFFEAF1F8),
       iconColor: Color(0xFF2A6FB0),
     ),

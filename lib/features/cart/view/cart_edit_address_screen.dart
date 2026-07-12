@@ -6,7 +6,6 @@ import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/features/cart/model/cart_flow_data.dart';
 import 'package:yjeek_app/features/cart/view/widgets/cart_flow_widgets.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/account_widgets.dart';
-import 'package:yjeek_app/features/navigation/view/widgets/navigation_widgets.dart';
 
 class CartEditAddressScreen extends StatefulWidget {
   const CartEditAddressScreen({super.key, this.addressId});
@@ -22,82 +21,70 @@ class _CartEditAddressScreenState extends State<CartEditAddressScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: Column(
+    return CartFlowScaffold(
+      title: CartFlowStrings.editAddress,
+      subtitle: CartFlowStrings.updatePlaceSubtitle,
+      lightHeader: true,
+      body: ListView(
+        padding: EdgeInsets.fromLTRB(20.w, 8.h, 20.w, 24.h),
         children: [
-          GreenScreenHeader(
-            title: CartFlowStrings.editAddress,
-            subtitle: CartFlowStrings.updatePlaceSubtitle,
+          const CartMapPlaceholder(height: 130),
+          SizedBox(height: 14.h),
+          const CartFormLabel(CartFlowStrings.addressLabel),
+          CartAddressLabelChips(
+            labels: CartFlowData.addressLabels,
+            selected: _selectedLabel,
+            onSelected: (label) => setState(() => _selectedLabel = label),
           ),
-          Expanded(
-            child: ListView(
-              padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 16.h),
-              children: [
-                const CartMapPlaceholder(),
-                SizedBox(height: 16.h),
-                const CartFormLabel(CartFlowStrings.addressLabel),
-                CartAddressLabelChips(
-                  labels: CartFlowData.addressLabels,
-                  selected: _selectedLabel,
-                  onSelected: (label) => setState(() => _selectedLabel = label),
-                ),
-                const CartFormLabel(CartFlowStrings.areaBlock),
-                const CartFormField(value: 'Adliya - Block 318'),
-                const CartFormLabel(CartFlowStrings.road),
-                const CartFormField(value: 'Road 1705'),
-                const CartFormLabel(CartFlowStrings.building),
-                const CartFormField(value: 'Building 12'),
-                const CartFormLabel(CartFlowStrings.flatFloor),
-                const CartFormField(value: 'Flat 4'),
-                const CartFormLabel(CartFlowStrings.additionalDirections),
-                const CartFormField(value: 'Near Adliya Post Office'),
-                const CartFormLabel(CartFlowStrings.locationPhotos),
-                const CartPhotoUploadRow(),
-                const CartFormLabel(CartFlowStrings.phoneNumber),
-                const CartFormField(value: CartFlowData.userPhone),
-              ],
+          SizedBox(height: 14.h),
+          const CartFormFieldPair(
+            leftLabel: CartFlowStrings.areaBlock,
+            leftValue: 'Adliya · Block 338',
+            rightLabel: CartFlowStrings.road,
+            rightValue: 'Road 1705',
+          ),
+          SizedBox(height: 12.h),
+          const CartFormFieldPair(
+            leftLabel: CartFlowStrings.building,
+            leftValue: 'Building 12',
+            rightLabel: CartFlowStrings.flatFloor,
+            rightValue: 'Flat 4',
+          ),
+          SizedBox(height: 12.h),
+          const CartFormLabel(CartFlowStrings.additionalDirections),
+          const CartFormField(value: 'Near Adliya Post Office'),
+          SizedBox(height: 12.h),
+          const CartFormLabel(CartFlowStrings.locationPhotos),
+          SizedBox(height: 4.h),
+          Text(
+            CartFlowStrings.locationPhotosHint,
+            style: AppTextStyles.labelSmall(color: AppColors.textSecondary).copyWith(
+              fontWeight: FontWeight.w400,
+              fontSize: 12.sp,
+              height: 1.3,
             ),
           ),
-          SafeArea(
-            top: false,
-            child: Padding(
-              padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 8.h),
-              child: PrimaryGreenButton(
-                label: CartFlowStrings.saveChanges,
-                onPressed: () => context.pop(),
-              ),
-            ),
+          SizedBox(height: 10.h),
+          const CartPhotoUploadRow(),
+          SizedBox(height: 12.h),
+          const CartFormLabel(CartFlowStrings.phoneNumber),
+          const CartFormField(value: CartFlowData.userPhone),
+          SizedBox(height: 14.h),
+          PrimaryGreenButton(
+            label: CartFlowStrings.saveChanges,
+            backgroundColor: AppColors.cartTabActive,
+            height: 54,
+            onPressed: () => context.pop(),
           ),
-          SafeArea(
-            top: false,
-            child: Padding(
-              padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 16.h),
-              child: GestureDetector(
-                onTap: () => showCartDeleteAddressDialog(
-                  context,
-                  onDelete: () => context.pop(),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.delete_outline, color: AppColors.error, size: 18.sp),
-                    SizedBox(width: 6.w),
-                    Text(
-                      CartFlowStrings.deleteAddress,
-                      style: AppTextStyles.labelMedium(color: AppColors.error).copyWith(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 14.sp,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+          SizedBox(height: 12.h),
+          CartDeleteAddressButton(
+            onPressed: () => showCartDeleteAddressDialog(
+              context,
+              onDelete: () => context.pop(),
             ),
           ),
         ],
       ),
-      bottomNavigationBar: const ShellBottomNavBar(currentIndex: 2),
     );
   }
 }

@@ -96,12 +96,14 @@ class BillLine {
     required this.value,
     this.isDiscount = false,
     this.isBold = false,
+    this.isStrikethrough = false,
   });
 
   final String label;
   final String value;
   final bool isDiscount;
   final bool isBold;
+  final bool isStrikethrough;
 }
 
 class OrderItemLine {
@@ -120,7 +122,8 @@ abstract final class NavigationData {
   static const String cartVendor = 'The Green Kitchen';
   static const String cartItemName = 'Iced Americano + Choc Muffin';
   static const String cartItemSubtitle = 'Americano · Chocolate muffin';
-  static const String cartItemPrice = 'BHD 3.700';
+  static const String cartItemPrice = 'BHD 2.000';
+  static const String cartItemOriginalPrice = 'BHD 3.700';
 
   static const List<BrowseOffer> browseOffers = [
     BrowseOffer(
@@ -183,24 +186,28 @@ abstract final class NavigationData {
     ComboItem(
       name: 'Brownie Bite',
       price: 'BHD 0.500',
-      imageColor: Color(0xFFF5E6D3),
+      imageColor: Color(0xFF6B4A2A),
     ),
     ComboItem(
       name: 'Choc Croissant',
       price: 'BHD 0.600',
-      imageColor: Color(0xFFFFF0D9),
+      imageColor: Color(0xFF8A5B2A),
     ),
     ComboItem(
       name: 'Iced Latte',
       price: 'BHD 0.800',
-      imageColor: Color(0xFFE8F4FC),
+      imageColor: Color(0xFF9A6B3A),
     ),
   ];
 
   static const List<BillLine> cartBillLines = [
     BillLine(label: 'Subtotal', value: 'BHD 3.700'),
     BillLine(label: 'Discount', value: '- BHD 1.700', isDiscount: true),
-    BillLine(label: 'Free delivery', value: 'BHD 0.000'),
+    BillLine(
+      label: 'Free delivery',
+      value: 'BHD 0.450',
+      isStrikethrough: true,
+    ),
     BillLine(label: 'Service fee', value: 'BHD 0.110'),
     BillLine(label: 'Order total', value: 'BHD 2.110', isBold: true),
   ];
@@ -314,6 +321,21 @@ abstract final class NavigationData {
       vendor: 'VEERA',
       subtitle: 'Dine-in · Mon 12 · 19:30 · table for 2',
       price: 'BHD 20.500',
+      status: OrderStatus.delivered,
+      category: OrderCategoryFilter.dineIn,
+      isActive: false,
+      actions: [
+        NavigationStrings.receipt,
+        NavigationStrings.rate,
+        NavigationStrings.getHelp,
+      ],
+      badge: 'Completed',
+    ),
+    OrderHistoryItem(
+      id: 'YJK-2026-00024',
+      vendor: 'Olea Terrace',
+      subtitle: 'Dine-in · Fri 16 · 20:00',
+      price: 'BHD 18.750',
       status: OrderStatus.upcoming,
       category: OrderCategoryFilter.dineIn,
       isActive: true,

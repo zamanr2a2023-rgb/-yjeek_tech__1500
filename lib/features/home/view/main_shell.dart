@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:yjeek_app/core/constants/app_colors.dart';
 import 'package:yjeek_app/core/providers/shell_provider.dart';
 import 'package:yjeek_app/features/home/view/home_screen.dart';
@@ -14,6 +15,7 @@ class MainShell extends ConsumerStatefulWidget {
     super.key,
     this.initialIndex = 0,
     this.cartHasItems = false,
+    this.emptyCart = false,
     this.dineInHasItems = false,
     this.scheduledHasItems = false,
     this.pickupHasItems = false,
@@ -22,6 +24,7 @@ class MainShell extends ConsumerStatefulWidget {
 
   final int initialIndex;
   final bool cartHasItems;
+  final bool emptyCart;
   final bool dineInHasItems;
   final bool scheduledHasItems;
   final bool pickupHasItems;
@@ -35,22 +38,41 @@ class _MainShellState extends ConsumerState<MainShell> {
   @override
   void initState() {
     super.initState();
-    Future.microtask(() {
-      final notifier = ref.read(shellProvider.notifier);
-      if (widget.dineInHasItems) {
-        notifier.openDineInCartWithItems();
-      } else if (widget.vapeHasItems) {
-        notifier.openVapeCartWithItems();
-      } else if (widget.pickupHasItems) {
-        notifier.openPickupCartWithItems();
-      } else if (widget.scheduledHasItems) {
-        notifier.openScheduledCartWithItems();
-      } else if (widget.cartHasItems) {
-        notifier.openCartWithItems();
-      } else {
-        notifier.setTab(widget.initialIndex);
-      }
-    });
+    Future.microtask(_applyInitialTab);
+  }
+
+  @override
+  void didUpdateWidget(MainShell oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.initialIndex != widget.initialIndex ||
+        oldWidget.cartHasItems != widget.cartHasItems ||
+        oldWidget.emptyCart != widget.emptyCart ||
+        oldWidget.dineInHasItems != widget.dineInHasItems ||
+        oldWidget.scheduledHasItems != widget.scheduledHasItems ||
+        oldWidget.pickupHasItems != widget.pickupHasItems ||
+        oldWidget.vapeHasItems != widget.vapeHasItems) {
+      Future.microtask(_applyInitialTab);
+    }
+  }
+
+  void _applyInitialTab() {
+    if (!mounted) return;
+    final notifier = ref.read(shellProvider.notifier);
+    if (widget.dineInHasItems) {
+      notifier.openDineInCartWithItems();
+    } else if (widget.vapeHasItems) {
+      notifier.openVapeCartWithItems();
+    } else if (widget.pickupHasItems) {
+      notifier.openPickupCartWithItems();
+    } else if (widget.scheduledHasItems) {
+      notifier.openScheduledCartWithItems();
+    } else if (widget.cartHasItems) {
+      notifier.openCartWithItems();
+    } else if (widget.emptyCart) {
+      notifier.openEmptyCart();
+    } else {
+      notifier.setTab(widget.initialIndex);
+    }
   }
 
   @override
@@ -69,7 +91,19 @@ class _MainShellState extends ConsumerState<MainShell> {
         hasVapeItems: shell.vapeHasItems,
         initialTab: shell.cartTab,
         onBrowseVendors: notifier.browseVendors,
-        onBack: notifier.clearCart,
+        onBack: () {
+          final returnPath = shell.cartReturnPath;
+          if (returnPath != null && returnPath.isNotEmpty) {
+            notifier.setCartReturnPath(null);
+            context.go(returnPath);
+            return;
+          }
+          if (context.canPop()) {
+            context.pop();
+            return;
+          }
+          notifier.leaveCart();
+        },
         onCartTabChanged: notifier.setCartTab,
       ),
       const WalletScreen(showBottomNav: true),

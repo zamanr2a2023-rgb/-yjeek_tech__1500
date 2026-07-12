@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:yjeek_app/core/constants/app_colors.dart';
+import 'package:yjeek_app/core/constants/app_text_styles.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/features/cart/view/widgets/cart_flow_widgets.dart';
 import 'package:yjeek_app/features/dine_in_cart/model/dine_in_cart_data.dart';
@@ -53,33 +55,59 @@ class _DineInReviewScreenState extends State<DineInReviewScreen> {
   Widget build(BuildContext context) {
     return CartFlowScaffold(
       title: DineInCartStrings.reviewConfirm,
+      lightHeader: true,
       body: ListView(
-        padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 16.h),
+        padding: EdgeInsets.fromLTRB(20.w, 8.h, 20.w, 16.h),
         children: [
-          DineInReviewStatusCard(secondsLeft: _secondsLeft),
-          SizedBox(height: 16.h),
+          DineInReviewStatusCard(
+            secondsLeft: _secondsLeft,
+            totalSeconds: _initialSeconds,
+          ),
+          SizedBox(height: 14.h),
           DineInReviewSummaryCard(prepMode: widget.prepMode),
           SizedBox(height: 14.h),
-          BillSummaryCard(lines: DineInCartData.billLines),
+          Text(
+            DineInCartStrings.billSummary,
+            style: AppTextStyles.labelMedium(color: AppColors.textPrimary).copyWith(
+              fontWeight: FontWeight.w700,
+              fontSize: 15.sp,
+              height: 1.2,
+            ),
+          ),
+          SizedBox(height: 8.h),
+          BillSummaryCard(
+            lines: DineInCartData.billLines,
+            cashbackAmount: DineInCartData.cashbackAmount,
+          ),
         ],
       ),
       bottom: SafeArea(
         top: false,
-        child: Padding(
-          padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 12.h),
+        child: Container(
+          padding: EdgeInsets.fromLTRB(20.w, 12.h, 20.w, 12.h),
+          decoration: const BoxDecoration(
+            color: AppColors.white,
+            border: Border(top: BorderSide(color: AppColors.border)),
+          ),
           child: Row(
             children: [
               Expanded(
                 child: CartOutlineButton(
                   label: DineInCartStrings.editOrder,
-                  onPressed: () => context.pop(),
+                  onPressed: () {
+                    _timer?.cancel();
+                    context.pop();
+                  },
                 ),
               ),
               SizedBox(width: 12.w),
               Expanded(
                 child: PrimaryGreenButton(
                   label: DineInCartStrings.confirmNow,
-                  onPressed: () => context.pushReplacement(DineInOrderFlowRoutes.waiting),
+                  onPressed: () {
+                    _timer?.cancel();
+                    context.pushReplacement(DineInOrderFlowRoutes.waiting);
+                  },
                 ),
               ),
             ],

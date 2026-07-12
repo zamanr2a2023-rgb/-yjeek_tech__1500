@@ -6,6 +6,7 @@ abstract final class OrderFlowStrings {
   static const String viewReceipt = 'View receipt';
   static const String estimatedArrival = 'Estimated arrival';
   static const String preparingOrder = 'Preparing your order';
+  static const String statusLabel = 'STATUS';
   static const String orderTotal = 'Order total';
   static const String items = 'Items';
   static const String deliverTo = 'Deliver to';
@@ -21,10 +22,13 @@ abstract final class OrderFlowStrings {
   static const String rateYourChamp = 'Rate your champ';
   static const String submitAndDone = 'Submit & done';
   static const String receipt = 'Receipt';
+  static const String receiptSubtitle = 'Order #YJK-3920';
   static const String shareReceipt = 'Share receipt';
-  static const String orderConfirmedBadge = 'ORDER CONFIRMED';
+  static const String orderConfirmedBadge = '✓ ORDER CONFIRMED';
   static const String typeDelivery = 'Delivery';
   static const String paid = 'Paid';
+  static const String itemColumn = 'ITEM';
+  static const String priceColumn = 'PRICE';
   static const String messageAhmed = 'Message Ahmed…';
   static const String onlineChamp = '● Online · your champ';
   static const String yourChamp = 'your champ';
@@ -68,8 +72,8 @@ abstract final class OrderFlowData {
   static const String orderIdDisplay = '#YJK-3920';
   static const String vendor = 'The Green Kitchen';
   static const String vendorLocation = 'The Green Kitchen — Seef';
-  static const String vendorAddress = 'Block 428, Road 6000, Seef';
-  static const String deliveryAddress = 'Apartment - Seef';
+  static const String vendorAddress = 'Block 338, Road 3801, Seef · CR 12345';
+  static const String deliveryAddress = 'Apartment · Seef';
   static const String arrivalWindow = '15–25 min';
   static const String orderTotal = 'BHD 2.110';
   static const String itemCount = '2 items';
@@ -96,7 +100,7 @@ abstract final class OrderFlowData {
 
   static const List<BillLine> receiptBillLines = [
     BillLine(label: 'Subtotal', value: 'BHD 2.500'),
-    BillLine(label: 'Discount', value: '- BHD 0.500', isDiscount: true),
+    BillLine(label: 'Discount', value: '− BHD 0.500', isDiscount: true),
     BillLine(label: 'Delivery', value: 'Free'),
     BillLine(label: 'Service fee', value: 'BHD 0.110'),
     BillLine(label: 'Total', value: 'BHD 2.110', isBold: true),

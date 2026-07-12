@@ -112,13 +112,14 @@ class AuthScreenScaffold extends StatelessWidget {
               child: scrollable
                   ? LayoutBuilder(
                       builder: (context, constraints) {
+                        const padding = EdgeInsets.fromLTRB(24, 20, 24, 30);
                         return SingleChildScrollView(
-                          padding: const EdgeInsets.fromLTRB(24, 20, 24, 30),
+                          padding: padding,
                           keyboardDismissBehavior:
                               ScrollViewKeyboardDismissBehavior.onDrag,
                           child: ConstrainedBox(
                             constraints: BoxConstraints(
-                              minHeight: constraints.maxHeight,
+                              minHeight: constraints.maxHeight - padding.vertical,
                             ),
                             child: body,
                           ),

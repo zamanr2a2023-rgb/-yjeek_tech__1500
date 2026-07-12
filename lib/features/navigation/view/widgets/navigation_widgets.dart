@@ -797,11 +797,13 @@ class BillSummaryCard extends StatelessWidget {
     required this.lines,
     this.showPromo = false,
     this.showCashback = false,
+    this.cashbackAmount,
   });
 
   final List<BillLine> lines;
   final bool showPromo;
   final bool showCashback;
+  final String? cashbackAmount;
 
   @override
   Widget build(BuildContext context) {
@@ -816,45 +818,23 @@ class BillSummaryCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (showPromo) ...[
-            Row(
-              children: [
-                Expanded(
-                  child: Container(
-                    height: 44,
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    decoration: BoxDecoration(
-                      border: Border.all(color: AppColors.border),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      NavigationStrings.promoCode,
-                      style: AppTextStyles.bodySmall(),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.iconBackground,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    NavigationStrings.submit,
-                    style: AppTextStyles.labelSmall(
-                      color: AppColors.successText,
-                    ).copyWith(fontWeight: FontWeight.w700),
-                  ),
-                ),
-              ],
-            ),
+            const PromoCodeField(),
             const SizedBox(height: 14),
           ],
           ...lines.map((line) {
+            final bool mutedValue = line.value.startsWith('—');
+            final Color labelColor = line.isDiscount
+                ? AppColors.primary
+                : line.isBold
+                    ? AppColors.textPrimary
+                    : AppColors.textSecondary;
+            final Color valueColor = line.isDiscount
+                ? AppColors.primary
+                : line.isBold
+                    ? AppColors.textPrimary
+                    : mutedValue
+                        ? AppColors.textSecondary
+                        : AppColors.textPrimary;
             return Padding(
               padding: const EdgeInsets.only(bottom: 8),
               child: Row(
@@ -862,29 +842,24 @@ class BillSummaryCard extends StatelessWidget {
                   Expanded(
                     child: Text(
                       line.label,
-                      style: AppTextStyles.labelSmall(
-                        color: line.isBold
-                            ? AppColors.textPrimary
-                            : AppColors.textSecondary,
-                      ).copyWith(
+                      style: AppTextStyles.labelSmall(color: labelColor)
+                          .copyWith(
                         fontWeight:
                             line.isBold ? FontWeight.w700 : FontWeight.w500,
-                        fontSize: line.isBold ? 16 : 13,
+                        fontSize: line.isBold ? 16 : 14,
                       ),
                     ),
                   ),
                   Text(
                     line.value,
-                    style: AppTextStyles.labelSmall(
-                      color: line.isDiscount
-                          ? AppColors.error
-                          : line.isBold
-                              ? AppColors.textPrimary
-                              : AppColors.textPrimary,
-                    ).copyWith(
+                    style: AppTextStyles.labelSmall(color: valueColor).copyWith(
                       fontWeight:
                           line.isBold ? FontWeight.w700 : FontWeight.w600,
-                      fontSize: line.isBold ? 16 : 13,
+                      fontSize: line.isBold ? 18 : 14,
+                      decoration: line.isStrikethrough
+                          ? TextDecoration.lineThrough
+                          : TextDecoration.none,
+                      decorationColor: valueColor,
                     ),
                   ),
                 ],
@@ -892,34 +867,84 @@ class BillSummaryCard extends StatelessWidget {
             );
           }),
           if (showCashback) ...[
-            const SizedBox(height: 8),
+            const SizedBox(height: 4),
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              height: 34,
+              padding: const EdgeInsets.symmetric(horizontal: 11),
               decoration: BoxDecoration(
-                color: const Color(0xFFFFF8E1),
-                borderRadius: BorderRadius.circular(12),
+                color: const Color(0xFFF7F0DC),
+                borderRadius: BorderRadius.circular(10),
               ),
               child: Row(
                 children: [
                   const Icon(
-                    Icons.monetization_on_outlined,
+                    Icons.star_border,
                     color: Color(0xFFC9A84C),
-                    size: 18,
+                    size: 15,
                   ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       NavigationStrings.cashbackBanner,
                       style: AppTextStyles.labelSmall(
-                        color: const Color(0xFF8A6D1A),
+                        color: const Color(0xFF7A5E12),
                       ).copyWith(fontWeight: FontWeight.w600, fontSize: 12),
                     ),
+                  ),
+                  Text(
+                    cashbackAmount ?? NavigationStrings.cashbackBannerAmount,
+                    style: AppTextStyles.labelSmall(
+                      color: const Color(0xFF7A5E12),
+                    ).copyWith(fontWeight: FontWeight.w700, fontSize: 12.5),
                   ),
                 ],
               ),
             ),
           ],
+        ],
+      ),
+    );
+  }
+}
+
+class PromoCodeField extends StatelessWidget {
+  const PromoCodeField({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFE2E8DD)),
+      ),
+      child: Row(
+        children: [
+          const Icon(
+            Icons.local_activity_outlined,
+            size: 18,
+            color: AppColors.primary,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              NavigationStrings.enterPromoCode,
+              style: AppTextStyles.bodyMedium().copyWith(
+                color: AppColors.textSecondary,
+                fontWeight: FontWeight.w500,
+                fontSize: 14,
+              ),
+            ),
+          ),
+          Text(
+            NavigationStrings.submit,
+            style: AppTextStyles.labelMedium(color: AppColors.primary).copyWith(
+              fontWeight: FontWeight.w700,
+              fontSize: 14,
+            ),
+          ),
         ],
       ),
     );

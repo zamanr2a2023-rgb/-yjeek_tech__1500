@@ -20,6 +20,8 @@ class DineInWaitingScreen extends StatefulWidget {
 
 class _DineInWaitingScreenState extends State<DineInWaitingScreen> {
   static const _totalSeconds = 300;
+  static const Color _screenBg = Color(0xFF8BAE9A);
+
   late int _secondsLeft;
   Timer? _timer;
   Timer? _acceptTimer;
@@ -55,28 +57,55 @@ class _DineInWaitingScreenState extends State<DineInWaitingScreen> {
   @override
   Widget build(BuildContext context) {
     return OrderFlowScaffold(
-      title: DineInOrderFlowStrings.sentToVendor,
-      subtitle: DineInOrderFlowStrings.waitingSubtitle,
+      showHeader: false,
+      backgroundColor: _screenBg,
       bottomNavIndex: 1,
       body: ListView(
-        padding: EdgeInsets.fromLTRB(16.w, 20.h, 16.w, 16.h),
+        padding: EdgeInsets.fromLTRB(24.w, 20.h, 24.w, 28.h),
         children: [
+          SizedBox(height: MediaQuery.paddingOf(context).top + 12.h),
           Center(child: DineInCountdownCircle(label: _timerLabel)),
-          SizedBox(height: 24.h),
+          SizedBox(height: 16.h),
+          Text(
+            DineInOrderFlowStrings.sentToVendor,
+            textAlign: TextAlign.center,
+            style: AppTextStyles.titleMedium(color: AppColors.white).copyWith(
+              fontWeight: FontWeight.w700,
+              fontSize: 22.sp,
+              height: 1.23,
+            ),
+          ),
+          SizedBox(height: 8.h),
+          Text(
+            DineInOrderFlowStrings.waitingSubtitle,
+            textAlign: TextAlign.center,
+            style: AppTextStyles.bodySmall(color: const Color(0xFFCFE8D9)).copyWith(
+              fontWeight: FontWeight.w400,
+              fontSize: 14.sp,
+              height: 1.25,
+            ),
+          ),
+          SizedBox(height: 16.h),
           const DineInSecureBanner(message: DineInOrderFlowStrings.notChargedYet),
           SizedBox(height: 16.h),
           const DineInOrderSummaryRow(),
           SizedBox(height: 24.h),
           OrderOutlineButton(
             label: DineInOrderFlowStrings.cancelOrder,
-            onPressed: () => context.go('${RouteNames.home}?tab=1'),
+            onPressed: () {
+              _timer?.cancel();
+              _acceptTimer?.cancel();
+              context.go('${RouteNames.home}?tab=1');
+            },
           ),
-          SizedBox(height: 10.h),
+          SizedBox(height: 6.h),
           Text(
             DineInOrderFlowStrings.freeCancelHint,
             textAlign: TextAlign.center,
-            style: AppTextStyles.caption(color: AppColors.textSecondary).copyWith(
-              fontSize: 11.sp,
+            style: AppTextStyles.caption(color: const Color(0xFFCFE8D9)).copyWith(
+              fontWeight: FontWeight.w400,
+              fontSize: 12.sp,
+              height: 1.3,
             ),
           ),
         ],

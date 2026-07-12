@@ -42,7 +42,7 @@ class _FoodBrowseScreenState extends State<FoodBrowseScreen> {
               children: [
                 BrowseTopBar(
                   title: BrowseData.category,
-                  onCart: () => context.goHome(tab: 2, cartHasItems: true),
+                  onCart: () => context.goHome(tab: 2, emptyCart: true),
                 ),
                 Padding(
                   padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 0),
@@ -61,7 +61,9 @@ class _FoodBrowseScreenState extends State<FoodBrowseScreen> {
                 ),
                 Padding(
                   padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 0),
-                  child: BrowseOrderAgainRow(),
+                  child: BrowseOrderAgainRow(
+                    onSeeAll: () => context.goHome(tab: 1),
+                  ),
                 ),
                 Padding(
                   padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 0),
@@ -80,10 +82,10 @@ class _FoodBrowseScreenState extends State<FoodBrowseScreen> {
               padding: EdgeInsets.fromLTRB(16.w, 14.h, 16.w, 24.h),
               sliver: SliverGrid(
                 gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  mainAxisSpacing: 10.h,
-                  crossAxisSpacing: 10.w,
-                  childAspectRatio: 0.72,
+                  crossAxisCount: 4,
+                  mainAxisSpacing: 9.h,
+                  crossAxisSpacing: 9.w,
+                  childAspectRatio: 80.75 / 130,
                 ),
                 delegate: SliverChildBuilderDelegate(
                   (context, index) => BrowseRestaurantGridCard(

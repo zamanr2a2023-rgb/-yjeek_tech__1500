@@ -38,15 +38,19 @@ class _DineInCheckoutScreenState extends State<DineInCheckoutScreen> {
 
     return CartFlowScaffold(
       title: DineInCartStrings.checkout,
-      subtitle: '${DineInCartData.vendorSubtitle} · ${DineInCartData.dineInTime}',
+      subtitle: DineInCartData.checkoutSubtitle,
+      lightHeader: true,
+      backgroundColor: AppColors.background,
       body: ListView(
-        padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 16.h),
+        padding: EdgeInsets.fromLTRB(20.w, 8.h, 20.w, 28.h),
         children: [
           const CartSectionTitle(DineInCartStrings.diningOption),
           DineInPrepOptionCard(
             title: DineInCartStrings.prepareNow,
             subtitle: DineInCartStrings.prepareNowHint,
-            icon: Icons.local_fire_department_outlined,
+            icon: Icons.local_fire_department,
+            iconBackground: AppColors.primary,
+            iconColor: AppColors.white,
             selected: isPrepareNow,
             onTap: () => setState(() => _prepMode = DineInPrepMode.prepareNow),
           ),
@@ -54,20 +58,15 @@ class _DineInCheckoutScreenState extends State<DineInCheckoutScreen> {
           DineInPrepOptionCard(
             title: DineInCartStrings.prepareOnArrival,
             subtitle: DineInCartStrings.prepareOnArrivalHint,
-            icon: Icons.location_on_outlined,
-            iconColor: const Color(0xFFE6A700),
+            icon: Icons.location_on,
+            iconBackground: const Color(0xFFEBC34A),
+            iconColor: AppColors.white,
             selected: !isPrepareNow,
             onTap: () => setState(() => _prepMode = DineInPrepMode.prepareOnArrival),
           ),
           SizedBox(height: 14.h),
           if (isPrepareNow) ...[
-            Text(
-              DineInCartStrings.tableReadyIn,
-              style: AppTextStyles.labelMedium().copyWith(
-                fontWeight: FontWeight.w600,
-                fontSize: 14.sp,
-              ),
-            ),
+            const DineInTableReadyCard(),
             SizedBox(height: 10.h),
             const DineInInfoBanner(message: DineInCartStrings.prepareNowBanner),
           ] else ...[
@@ -110,18 +109,30 @@ class _DineInCheckoutScreenState extends State<DineInCheckoutScreen> {
           ],
           SizedBox(height: 18.h),
           const CartSectionTitle(DineInCartStrings.paymentMethod),
-          const DineInWalletNoteBanner(),
-          SizedBox(height: 12.h),
           DineInPaymentList(
             options: DineInCartData.paymentOptions,
             selectedId: _paymentId,
             onSelected: (id) => setState(() => _paymentId = id),
           ),
+          SizedBox(height: 10.h),
+          const DineInWalletNoteBanner(),
           SizedBox(height: 18.h),
-          const CartSectionTitle(DineInCartStrings.billSummary),
-          CartZoodBanner(onTap: () => context.push(CartRoutes.zoodWaitingList)),
+          Text(
+            DineInCartStrings.billSummary,
+            style: AppTextStyles.titleSmall(color: AppColors.textPrimary).copyWith(
+              fontWeight: FontWeight.w700,
+              fontSize: 16.sp,
+              height: 1.28,
+            ),
+          ),
+          SizedBox(height: 10.h),
+          CartZoodPromoBanner(onTap: () => context.push(CartRoutes.zoodWaitingList)),
           SizedBox(height: 12.h),
-          BillSummaryCard(lines: DineInCartData.billLines, showCashback: true),
+          BillSummaryCard(
+            lines: DineInCartData.billLines,
+            showCashback: true,
+            cashbackAmount: DineInCartData.cashbackAmount,
+          ),
         ],
       ),
       bottom: CartStickyFooter(

@@ -54,7 +54,7 @@ class DineInVisit {
 }
 
 abstract final class DineInData {
-  static const category = 'Dine In';
+  static const category = 'Dine-in';
 
   static const cuisineFilters = ['All', 'Lebanese', 'Grills', 'Seafood', 'Italian'];
 
@@ -74,20 +74,54 @@ abstract final class DineInData {
       gradientEnd: Color(0xFF15302B),
       badge: '15% off',
       distance: '1.2 km',
-      subtitle: 'Lebanese • Fine dining',
+      subtitle: 'Lebanese · Mediterranean',
       reviewCount: '2.5k',
+    ),
+    DineInRestaurant(
+      id: 'olea-terrace',
+      name: 'Olea Terrace',
+      cuisine: 'Lebanese',
+      rating: 4.6,
+      gradientStart: Color(0xFF3A5A2C),
+      gradientEnd: Color(0xFF15302B),
+      badge: 'Bookable',
+      distance: '1.5 km',
+      status: DineInVenueStatus.bookable,
+      subtitle: 'Lebanese · Terrace',
+    ),
+    DineInRestaurant(
+      id: 'sakura-house',
+      name: 'Sakura House',
+      cuisine: 'Japanese',
+      rating: 4.8,
+      gradientStart: Color(0xFF5A2A3A),
+      gradientEnd: Color(0xFF15302B),
+      badge: '20% off',
+      distance: '2.4 km',
+      subtitle: 'Japanese · Sushi',
+    ),
+    DineInRestaurant(
+      id: 'cedar-lounge',
+      name: 'Cedar Lounge',
+      cuisine: 'Lebanese',
+      rating: 4.7,
+      gradientStart: Color(0xFF2C5A3A),
+      gradientEnd: Color(0xFF15302B),
+      badge: 'Happy hour',
+      distance: '1.8 km',
+      subtitle: 'Lebanese · Lounge',
     ),
     DineInRestaurant(
       id: 'marine-co',
       name: 'Marine & Co',
       cuisine: 'Seafood',
       rating: 4.8,
-      gradientStart: Color(0xFF1A4A6E),
-      gradientEnd: Color(0xFF0D2840),
-      badge: '20% off',
+      gradientStart: Color(0xFF7A4A22),
+      gradientEnd: Color(0xFF15302B),
+      badge: '15% off',
       distance: '2.1 km',
       status: DineInVenueStatus.bookable,
-      subtitle: 'Seafood • Grill',
+      subtitle: 'Seafood · Grill',
     ),
     DineInRestaurant(
       id: 'sushi-yama',
@@ -98,7 +132,7 @@ abstract final class DineInData {
       gradientEnd: Color(0xFF1A0A18),
       badge: 'Free dessert',
       distance: '3.4 km',
-      subtitle: 'Japanese • Sushi',
+      subtitle: 'Japanese · Sushi',
     ),
     DineInRestaurant(
       id: 'roma-trattoria',
@@ -109,7 +143,7 @@ abstract final class DineInData {
       gradientEnd: Color(0xFF3A1010),
       badge: '15% off',
       distance: '1.8 km',
-      subtitle: 'Italian • Casual',
+      subtitle: 'Italian · Casual',
     ),
     DineInRestaurant(
       id: 'grill-house',
@@ -120,39 +154,7 @@ abstract final class DineInData {
       gradientEnd: Color(0xFF2A1810),
       distance: '4.0 km',
       status: DineInVenueStatus.closed,
-      subtitle: 'Grills • BBQ',
-    ),
-    DineInRestaurant(
-      id: 'brew-bean',
-      name: 'Brew & Bean',
-      cuisine: 'Cafes',
-      rating: 4.4,
-      gradientStart: Color(0xFF6B4423),
-      gradientEnd: Color(0xFF2E1A0E),
-      distance: '0.8 km',
-      subtitle: 'Cafes • Coffee',
-    ),
-    DineInRestaurant(
-      id: 'green-kitchen',
-      name: 'The Green Kitchen',
-      cuisine: 'Lebanese',
-      rating: 4.8,
-      gradientStart: Color(0xFF3D6B4F),
-      gradientEnd: Color(0xFF1A3028),
-      badge: 'Bookable',
-      distance: '1.5 km',
-      status: DineInVenueStatus.bookable,
-      subtitle: 'Lebanese • Mediterranean',
-    ),
-    DineInRestaurant(
-      id: 'coastal-fish',
-      name: 'Coastal Fish',
-      cuisine: 'Seafood',
-      rating: 4.3,
-      gradientStart: Color(0xFF2A5F7A),
-      gradientEnd: Color(0xFF123040),
-      distance: '2.6 km',
-      subtitle: 'Seafood • Casual',
+      subtitle: 'Grills · BBQ',
     ),
   ];
 
@@ -199,10 +201,10 @@ abstract final class DineInData {
 
   static const mezzeLongDescription =
       'A generous sharing platter of hummus, mutabal, stuffed vine leaves, '
-      'falafel and warm pita — perfect for the table.';
+      'falafel and warm pita.';
 
   static const cartItemCount = 3;
-  static const cartTotal = '39.000';
+  static const cartTotal = '35.000';
 
   static const recentVisits = [
     DineInVisit(

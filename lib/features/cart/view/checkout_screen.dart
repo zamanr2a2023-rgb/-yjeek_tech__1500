@@ -17,53 +17,65 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   int _dropOffIndex = 0;
   int _tipIndex = 0;
   String _paymentId = 'cod';
+  bool _saveDropOff = false;
 
   @override
   Widget build(BuildContext context) {
     return CartFlowScaffold(
       title: CartFlowStrings.checkout,
       subtitle: CartFlowData.vendor,
+      lightHeader: true,
+      onBack: () {
+        if (context.canPop()) {
+          context.pop();
+        }
+      },
       body: ListView(
-          padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 16.h),
-          children: [
-            const CartSectionTitle(CartFlowStrings.deliveryDetails),
-            CartDeliveryDetailsCard(
-              address: CartFlowData.selectedAddress,
-              onChange: () => context.push(CartRoutes.changeAddress),
-            ),
-            SizedBox(height: 18.h),
-            const CartSectionTitle(CartFlowStrings.dropOffPreferences),
-            CartDropOffGrid(
-              options: CartFlowData.dropOffOptions,
-              selectedIndex: _dropOffIndex,
-              onSelected: (index) => setState(() => _dropOffIndex = index),
-            ),
-            SizedBox(height: 18.h),
-            const CartSectionTitle(CartFlowStrings.tipYourChamp),
-            CartTipSelector(
-              options: CartFlowData.tipOptions,
-              selectedIndex: _tipIndex,
-              onSelected: (index) => setState(() => _tipIndex = index),
-            ),
-            SizedBox(height: 18.h),
-            const CartSectionTitle(CartFlowStrings.paymentMethod),
-            CartPaymentMethodList(
-              options: CartFlowData.paymentOptions,
-              selectedId: _paymentId,
-              onSelected: (id) => setState(() => _paymentId = id),
-            ),
-            SizedBox(height: 18.h),
-            const CartSectionTitle(CartFlowStrings.billSummary),
-            BillSummaryCard(
-              lines: CartFlowData.billLines,
-              showCashback: true,
-            ),
-            SizedBox(height: 12.h),
-            CartZoodBanner(
-              onTap: () => context.push(CartRoutes.zoodWaitingList),
-            ),
-          ],
-        ),
+        padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 16.h),
+        children: [
+          const CartSectionTitle(CartFlowStrings.deliveryDetails),
+          CartDeliveryDetailsCard(
+            address: CartFlowData.selectedAddress,
+            addressDetail: CartFlowData.selectedAddressDetail,
+            phone: CartFlowData.userPhone,
+            onChange: () => context.push(CartRoutes.changeAddress),
+          ),
+          SizedBox(height: 18.h),
+          CartDropOffGrid(
+            options: CartFlowData.dropOffOptions,
+            selectedIndex: _dropOffIndex,
+            onSelected: (index) => setState(() => _dropOffIndex = index),
+            saveForAddress: _saveDropOff,
+            onSaveChanged: (value) => setState(() => _saveDropOff = value),
+            showTitle: true,
+          ),
+          SizedBox(height: 18.h),
+          CartTipSelector(
+            options: CartFlowData.tipOptions,
+            selectedIndex: _tipIndex,
+            onSelected: (index) => setState(() => _tipIndex = index),
+            showHeader: true,
+          ),
+          SizedBox(height: 18.h),
+          const CartSectionTitle(CartFlowStrings.paymentMethod),
+          CartPaymentMethodList(
+            options: CartFlowData.paymentOptions,
+            selectedId: _paymentId,
+            onSelected: (id) => setState(() => _paymentId = id),
+            showSecurityNotes: true,
+          ),
+          SizedBox(height: 18.h),
+          const CartSectionTitle(CartFlowStrings.billSummary),
+          CartZoodPromoBanner(
+            onTap: () => context.push(CartRoutes.zoodWaitingList),
+          ),
+          SizedBox(height: 12.h),
+          BillSummaryCard(
+            lines: CartFlowData.billLines,
+            showCashback: true,
+          ),
+        ],
+      ),
       bottom: CartStickyFooter(
         total: CartFlowData.orderTotal,
         buttonLabel: CartFlowStrings.placeOrder,

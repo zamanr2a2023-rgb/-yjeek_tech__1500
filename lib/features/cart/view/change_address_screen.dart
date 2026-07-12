@@ -23,82 +23,138 @@ class _ChangeAddressScreenState extends State<ChangeAddressScreen> {
     return CartFlowScaffold(
       title: CartFlowStrings.deliveryAddress,
       subtitle: CartFlowStrings.chooseWhereToDeliver,
-      body: ListView(
-          padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 16.h),
+      lightHeader: true,
+      onBack: () {
+        if (context.canPop()) context.pop();
+      },
+      body: SingleChildScrollView(
+        padding: EdgeInsets.fromLTRB(20.w, 8.h, 20.w, 20.h),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             GestureDetector(
               onTap: () => context.push(CartRoutes.setLocation),
               child: Container(
                 width: double.infinity,
-                padding: EdgeInsets.symmetric(vertical: 14.h),
+                padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
                 decoration: BoxDecoration(
                   color: AppColors.white,
                   borderRadius: BorderRadius.circular(14.r),
-                  border: Border.all(color: AppColors.primary, width: 1.5),
+                  border: Border.all(color: const Color(0xFFE0E6E0)),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 36.w,
+                      height: 36.w,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFE3F2EB),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.location_on,
+                        color: const Color(0xFFE53935),
+                        size: 18.sp,
+                      ),
+                    ),
+                    SizedBox(width: 12.w),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            CartFlowStrings.useCurrentLocation,
+                            style: AppTextStyles.labelMedium(
+                              color: AppColors.textPrimary,
+                            ).copyWith(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14.sp,
+                            ),
+                          ),
+                          SizedBox(height: 2.h),
+                          Text(
+                            CartFlowStrings.detectGpsLocation,
+                            style: AppTextStyles.labelSmall(
+                              color: AppColors.textSecondary,
+                            ).copyWith(
+                              fontWeight: FontWeight.w400,
+                              fontSize: 12.sp,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Icon(
+                      Icons.chevron_right,
+                      color: AppColors.textSecondary,
+                      size: 22.sp,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            SizedBox(height: 14.h),
+            Text(
+              CartFlowStrings.savedAddresses,
+              style: AppTextStyles.titleSmall(
+                color: AppColors.textPrimary,
+              ).copyWith(
+                fontWeight: FontWeight.w700,
+                fontSize: 15.sp,
+              ),
+            ),
+            SizedBox(height: 10.h),
+            for (final address in CartFlowData.deliveryAddresses)
+              CartAddressRadioTile(
+                address: address,
+                selected: address.id == _selectedId,
+                onTap: () => setState(() => _selectedId = address.id),
+                onEdit: () => context.push(CartRoutes.editAddressFor(address.id)),
+              ),
+            SizedBox(height: 8.h),
+            GestureDetector(
+              onTap: () => context.push(CartRoutes.addAddress),
+              child: Container(
+                width: double.infinity,
+                height: 50.h,
+                decoration: BoxDecoration(
+                  color: AppColors.white,
+                  borderRadius: BorderRadius.circular(14.r),
+                  border: Border.all(color: AppColors.cartTabActive, width: 1.5),
                 ),
                 alignment: Alignment.center,
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.my_location, color: AppColors.primary, size: 18.sp),
+                    Icon(Icons.add, color: const Color(0xFF127036), size: 18.sp),
                     SizedBox(width: 8.w),
                     Text(
-                      CartFlowStrings.useCurrentLocation,
-                      style: AppTextStyles.labelMedium(color: AppColors.primary).copyWith(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 14.sp,
+                      'Add new address',
+                      style: AppTextStyles.labelMedium(
+                        color: const Color(0xFF127036),
+                      ).copyWith(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 15.sp,
                       ),
                     ),
                   ],
                 ),
               ),
             ),
-            SizedBox(height: 16.h),
-            for (final address in CartFlowData.deliveryAddresses)
-              GestureDetector(
-                onLongPress: () => context.push(CartRoutes.editAddressFor(address.id)),
-                child: CartAddressRadioTile(
-                  address: address,
-                  selected: address.id == _selectedId,
-                  onTap: () => setState(() => _selectedId = address.id),
-                ),
-              ),
-            GestureDetector(
-              onTap: () => context.push(CartRoutes.addAddress),
-              child: Container(
-                width: double.infinity,
-                padding: EdgeInsets.symmetric(vertical: 14.h),
-                decoration: BoxDecoration(
-                  color: AppColors.white,
-                  borderRadius: BorderRadius.circular(14.r),
-                  border: Border.all(color: AppColors.border),
-                ),
-                alignment: Alignment.center,
-                child: Text(
-                  CartFlowStrings.addNewAddress,
-                  style: AppTextStyles.labelMedium(color: AppColors.primary).copyWith(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 14.sp,
-                  ),
-                ),
-              ),
+            SizedBox(height: 12.h),
+            PrimaryGreenButton(
+              label: CartFlowStrings.deliverHere,
+              backgroundColor: AppColors.cartTabActive,
+              height: 54,
+              onPressed: () {
+                if (_selectedId == 'home-adliya') {
+                  context.push(CartRoutes.outOfDelivery);
+                } else {
+                  context.pop();
+                }
+              },
             ),
           ],
-        ),
-      bottom: SafeArea(
-        top: false,
-        child: Padding(
-          padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 12.h),
-          child: PrimaryGreenButton(
-            label: CartFlowStrings.deliverHere,
-            onPressed: () {
-              if (_selectedId == 'home-adliya') {
-                context.push(CartRoutes.outOfDelivery);
-              } else {
-                context.pop();
-              }
-            },
-          ),
         ),
       ),
     );

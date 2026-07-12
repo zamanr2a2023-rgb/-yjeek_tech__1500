@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:yjeek_app/core/constants/app_colors.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/features/browse/browse_routes.dart';
 import 'package:yjeek_app/features/browse/model/dine_in_data.dart';
@@ -20,17 +19,30 @@ class DineInBrowseScreen extends StatefulWidget {
 
 class _DineInBrowseScreenState extends State<DineInBrowseScreen> {
   bool _isGridView = true;
-  bool _freeDeliveryOnly = false;
+  bool _bookableOnly = false;
+  bool _offersOnly = false;
   String _selectedFilter = DineInData.cuisineFilters.first;
 
+  /// Design: `rgba(44, 107, 71, 0.55)` over white → sage green.
+  static const Color _screenBg = Color(0xFF8BAE9A);
+
   List<DineInRestaurant> get _restaurants {
-    return DineInData.restaurantsForFilter(_selectedFilter);
+    var list = DineInData.restaurantsForFilter(_selectedFilter);
+    if (_bookableOnly) {
+      list = list.where((r) => r.status == DineInVenueStatus.bookable).toList();
+    }
+    if (_offersOnly) {
+      list = list
+          .where((r) => r.badge != null && r.badge != 'Bookable')
+          .toList();
+    }
+    return list;
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: _screenBg,
       body: CustomScrollView(
         slivers: [
           SliverToBoxAdapter(
@@ -42,7 +54,7 @@ class _DineInBrowseScreenState extends State<DineInBrowseScreen> {
                   onCart: () => context.goHome(tab: 2, dineInCart: true),
                 ),
                 Padding(
-                  padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 0),
+                  padding: EdgeInsets.fromLTRB(20.w, 6.h, 20.w, 0),
                   child: BrowseSearchBar(
                     hint: _isGridView
                         ? 'Search in Dine In…'
@@ -51,7 +63,7 @@ class _DineInBrowseScreenState extends State<DineInBrowseScreen> {
                   ),
                 ),
                 Padding(
-                  padding: EdgeInsets.fromLTRB(16.w, 14.h, 16.w, 0),
+                  padding: EdgeInsets.fromLTRB(20.w, 13.h, 20.w, 0),
                   child: BrowseFilterChips(
                     options: DineInData.cuisineFilters,
                     selected: _selectedFilter,
@@ -59,18 +71,14 @@ class _DineInBrowseScreenState extends State<DineInBrowseScreen> {
                   ),
                 ),
                 Padding(
-                  padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 0),
-                  child: DineInOrderAgainRow(
-                    onSeeAll: () => context.push(BrowseRoutes.dineInOrderAgain()),
-                  ),
-                ),
-                Padding(
-                  padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 0),
-                  child: BrowseSortBar(
+                  padding: EdgeInsets.fromLTRB(20.w, 13.h, 20.w, 0),
+                  child: DineInSortBar(
                     isGridView: _isGridView,
                     onViewChanged: (v) => setState(() => _isGridView = v),
-                    freeDeliveryOnly: _freeDeliveryOnly,
-                    onFreeDeliveryChanged: (v) => setState(() => _freeDeliveryOnly = v),
+                    bookableOnly: _bookableOnly,
+                    onBookableChanged: (v) => setState(() => _bookableOnly = v),
+                    offersOnly: _offersOnly,
+                    onOffersChanged: (v) => setState(() => _offersOnly = v),
                   ),
                 ),
               ],
@@ -78,13 +86,13 @@ class _DineInBrowseScreenState extends State<DineInBrowseScreen> {
           ),
           if (_isGridView)
             SliverPadding(
-              padding: EdgeInsets.fromLTRB(16.w, 14.h, 16.w, 24.h),
+              padding: EdgeInsets.fromLTRB(20.w, 13.h, 20.w, 24.h),
               sliver: SliverGrid(
                 gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 4,
-                  mainAxisSpacing: 8.h,
-                  crossAxisSpacing: 8.w,
-                  childAspectRatio: 0.62,
+                  mainAxisSpacing: 10.h,
+                  crossAxisSpacing: 9.w,
+                  childAspectRatio: 80.75 / 130,
                 ),
                 delegate: SliverChildBuilderDelegate(
                   (context, index) => DineInRestaurantGridCard(
@@ -99,7 +107,7 @@ class _DineInBrowseScreenState extends State<DineInBrowseScreen> {
             )
           else
             SliverPadding(
-              padding: EdgeInsets.fromLTRB(16.w, 14.h, 16.w, 24.h),
+              padding: EdgeInsets.fromLTRB(20.w, 13.h, 20.w, 24.h),
               sliver: SliverList.separated(
                 itemCount: _restaurants.length,
                 separatorBuilder: (_, _) => SizedBox(height: 10.h),

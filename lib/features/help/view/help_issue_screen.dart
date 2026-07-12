@@ -86,7 +86,6 @@ class _HelpIssueScreenState extends State<HelpIssueScreen> {
       };
 
   bool get _phase2HasExternalBottom =>
-      widget.type == HelpIssueType.propertyDamage ||
       widget.type == HelpIssueType.modifyRequest ||
       widget.type == HelpIssueType.paymentIssue;
 
@@ -102,6 +101,7 @@ class _HelpIssueScreenState extends State<HelpIssueScreen> {
       title: _title,
       bottomNavIndex: widget.bottomNavIndex,
       showBottomNav: false,
+      darkTitle: true,
       banner: _showReportBanner
           ? const HelpInfoBanner(message: HelpData.reportWindowBanner)
           : null,
@@ -502,15 +502,6 @@ class _HelpIssueScreenState extends State<HelpIssueScreen> {
           onTap: () => context.push(
             HelpRoutes.helpChat(variant: HelpChatVariant.payment),
           ),
-        ),
-      );
-    }
-    if (widget.type == HelpIssueType.propertyDamage) {
-      return Padding(
-        padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 16.h),
-        child: HelpDestructiveButton(
-          label: 'Report property damage',
-          onTap: () => _submit(context),
         ),
       );
     }
