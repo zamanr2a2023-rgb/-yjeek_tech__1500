@@ -14,9 +14,14 @@ class OrderStatusScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return OrderFlowScaffold(
-      title: OrderFlowData.orderIdDisplay,
+      title: OrderFlowData.orderStatusTitle,
       subtitle: OrderFlowData.vendor,
       lightHeader: true,
+      trailing: Icon(
+        Icons.more_horiz_rounded,
+        size: 22.sp,
+        color: const Color(0xFF1A1A1A),
+      ),
       body: ListView(
         padding: EdgeInsets.fromLTRB(20.w, 8.h, 20.w, 24.h),
         children: [

@@ -11,28 +11,36 @@ class ScheduledStatusScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Figma E · Order status: light header, #F2F7F2, Home nav, sticky View receipt.
     return OrderFlowScaffold(
       title: ScheduledOrderFlowStrings.orderStatus,
       subtitle: ScheduledOrderFlowData.statusSubtitle,
-      bottomNavIndex: 1,
+      lightHeader: true,
+      bottomNavIndex: 0,
+      backgroundColor: const Color(0xFFF2F7F2),
       body: ListView(
-        padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 16.h),
+        padding: EdgeInsets.fromLTRB(20.w, 8.h, 20.w, 16.h),
         children: [
           const OrderMapPlaceholder(),
-          SizedBox(height: 14.h),
+          SizedBox(height: 16.h),
           const ScheduledLiveMapBanner(),
-          SizedBox(height: 10.h),
+          SizedBox(height: 16.h),
           const ScheduledPackedBanner(),
-          SizedBox(height: 14.h),
+          SizedBox(height: 16.h),
           ScheduledStatusTimeline(steps: ScheduledOrderFlowData.statusTimeline),
-          SizedBox(height: 14.h),
+          SizedBox(height: 16.h),
           const ScheduledStatusSummaryCard(),
-          SizedBox(height: 14.h),
-          OrderOutlineButton(
+        ],
+      ),
+      bottom: SafeArea(
+        top: false,
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(20.w, 8.h, 20.w, 12.h),
+          child: OrderOutlineButton(
             label: ScheduledOrderFlowStrings.viewReceipt,
             onPressed: () => context.push(ScheduledOrderFlowRoutes.receipt),
           ),
-        ],
+        ),
       ),
     );
   }

@@ -1,30 +1,45 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:yjeek_app/core/constants/app_assets.dart';
 import 'package:yjeek_app/core/constants/app_colors.dart';
 import 'package:yjeek_app/core/constants/app_text_styles.dart';
 import 'package:yjeek_app/core/constants/navigation_strings.dart';
+import 'package:yjeek_app/core/providers/app_providers.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
-import 'package:yjeek_app/features/navigation/model/navigation_data.dart';
-import 'package:yjeek_app/features/navigation/model/wallet_data.dart';
+import 'package:yjeek_app/features/navigation/model/user_me.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/navigation_widgets.dart';
 import 'package:yjeek_app/routes/app_router.dart';
 import 'package:yjeek_app/routes/route_names.dart';
 
-class AccountScreen extends StatelessWidget {
+class AccountScreen extends ConsumerWidget {
   const AccountScreen({super.key});
 
+  Future<void> _logout(BuildContext context, WidgetRef ref) async {
+    final storage = ref.read(storageServiceProvider);
+    await ref.read(authApiProvider).logout(bearerToken: storage.token);
+    await storage.clearSession();
+    ref.invalidate(userMeProvider);
+    if (!context.mounted) return;
+    context.go(RouteNames.welcome);
+  }
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final userAsync = ref.watch(userMeProvider);
+    final user = userAsync.valueOrNull;
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: CustomScrollView(
         slivers: [
-          SliverToBoxAdapter(child: _AccountHeader()),
+          SliverToBoxAdapter(child: _AccountHeader(user: user)),
           SliverToBoxAdapter(
             child: Padding(
               padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 0),
               child: _WalletCashbackRow(
+                balanceLabel: user?.wallet.balanceLabel ?? 'BHD 0.000',
+                cashbackLabel: user?.wallet.cashbackLabel ?? 'BHD 0.000',
                 onWalletTap: () => context.push(RouteNames.wallet),
                 onCashbackTap: () => context.push(RouteNames.walletCashback),
               ),
@@ -42,13 +57,13 @@ class AccountScreen extends StatelessWidget {
                 ProfileMenuTile(
                   iconAsset: AppAssets.accountIdCard,
                   title: NavigationStrings.idVerification,
-                  badge: NavigationStrings.notVerified,
+                  badge: user?.verificationBadge ?? NavigationStrings.notVerified,
                   onTap: () => context.push(RouteNames.idVerification),
                 ),
                 ProfileMenuTile(
                   iconAsset: AppAssets.accountLocation,
                   title: NavigationStrings.savedAddresses,
-                  trailing: '${WalletData.savedAddresses.length}',
+                  trailing: '${user?.profile.addressCount ?? 0}',
                   onTap: () => context.push(RouteNames.savedAddresses),
                 ),
               ],
@@ -78,14 +93,14 @@ class AccountScreen extends StatelessWidget {
                 ProfileMenuTile(
                   iconAsset: AppAssets.accountGlobe,
                   title: NavigationStrings.language,
-                  trailing: NavigationStrings.english,
+                  trailing: user?.profile.languageLabel ?? NavigationStrings.english,
                   onTap: () => context.push(RouteNames.language),
                 ),
                 ProfileMenuTile(
                   iconAsset: AppAssets.accountWorldGlobe,
                   iconSize: 24,
                   title: NavigationStrings.countryRegion,
-                  trailing: NavigationStrings.bahrain,
+                  trailing: user?.profile.countryLabel ?? NavigationStrings.bahrain,
                   onTap: () => context.push(RouteNames.countryRegion),
                 ),
               ],
@@ -115,7 +130,7 @@ class AccountScreen extends StatelessWidget {
                 iconAsset: AppAssets.accountLogout,
                 title: NavigationStrings.logout,
                 destructive: true,
-                onTap: () {},
+                onTap: () => _logout(context, ref),
               ),
             ),
           ),
@@ -138,8 +153,16 @@ class AccountScreen extends StatelessWidget {
 }
 
 class _AccountHeader extends StatelessWidget {
+  const _AccountHeader({this.user});
+
+  final UserMe? user;
+
   @override
   Widget build(BuildContext context) {
+    final name = user?.displayName ?? 'Customer';
+    final phone = user?.formattedPhone ?? '';
+    final letter = user?.avatarLetter ?? 'C';
+
     return Container(
       width: double.infinity,
       padding: EdgeInsets.fromLTRB(20.w, 14.h, 20.w, 20.h),
@@ -188,7 +211,7 @@ class _AccountHeader extends StatelessWidget {
                   ),
                   alignment: Alignment.center,
                   child: Text(
-                    NavigationData.userName[0],
+                    letter,
                     style: AppTextStyles.displayMedium(
                       color: AppColors.primary,
                     ).copyWith(fontSize: 24.sp),
@@ -200,14 +223,14 @@ class _AccountHeader extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        NavigationData.userName,
+                        name,
                         style: AppTextStyles.titleSmall(
                           color: AppColors.white,
                         ).copyWith(fontSize: 20.sp),
                       ),
                       SizedBox(height: 2.h),
                       Text(
-                        NavigationData.userPhone,
+                        phone,
                         style: AppTextStyles.bodyMedium(
                           color: const Color(0xFFDCE7D4),
                         ).copyWith(fontSize: 13.sp),
@@ -259,10 +282,14 @@ class _AccountHeader extends StatelessWidget {
 
 class _WalletCashbackRow extends StatelessWidget {
   const _WalletCashbackRow({
+    required this.balanceLabel,
+    required this.cashbackLabel,
     required this.onWalletTap,
     required this.onCashbackTap,
   });
 
+  final String balanceLabel;
+  final String cashbackLabel;
   final VoidCallback onWalletTap;
   final VoidCallback onCashbackTap;
 
@@ -306,7 +333,7 @@ class _WalletCashbackRow extends StatelessWidget {
                   ),
                   SizedBox(height: 5.h),
                   Text(
-                    NavigationData.walletBalance,
+                    balanceLabel,
                     style: AppTextStyles.titleSmall().copyWith(fontSize: 18.sp),
                   ),
                 ],
@@ -343,7 +370,7 @@ class _WalletCashbackRow extends StatelessWidget {
                   ),
                   SizedBox(height: 5.h),
                   Text(
-                    WalletData.accountCashbackBalance,
+                    cashbackLabel,
                     style: AppTextStyles.titleSmall().copyWith(fontSize: 18.sp),
                   ),
                 ],

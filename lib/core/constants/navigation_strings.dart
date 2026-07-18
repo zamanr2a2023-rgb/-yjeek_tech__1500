@@ -128,6 +128,7 @@ abstract final class NavigationStrings {
   static const String defaultLabel = 'Default';
   static const String addNewAddress = 'Add new address';
   static const String addAddress = 'Add address';
+  static const String addressLabel = 'Label';
   static const String area = 'Area';
   static const String block = 'Block';
   static const String road = 'Road';

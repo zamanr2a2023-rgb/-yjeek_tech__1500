@@ -15,9 +15,19 @@ import 'package:yjeek_app/routes/app_router.dart';
 enum OtpScreenState { normal, wrongCode, resent, blocked }
 
 class OtpVerifyScreen extends ConsumerStatefulWidget {
-  const OtpVerifyScreen({super.key, required this.phoneNumber});
+  const OtpVerifyScreen({
+    super.key,
+    required this.phoneNumber,
+    this.phoneDigits = '',
+    this.expiresInSeconds = 300,
+  });
 
+  /// Display form, e.g. `+973 3300 0000`.
   final String phoneNumber;
+
+  /// Local digits sent to the API, e.g. `33000001`.
+  final String phoneDigits;
+  final int expiresInSeconds;
 
   @override
   ConsumerState<OtpVerifyScreen> createState() => _OtpVerifyScreenState();
@@ -27,15 +37,31 @@ class _OtpVerifyScreenState extends ConsumerState<OtpVerifyScreen> {
   final _otpController = TextEditingController();
   OtpScreenState _state = OtpScreenState.normal;
   int _attemptsLeft = 3;
-  int _resendSeconds = 24;
+  late int _resendSeconds;
   int _blockSeconds = 299;
+  bool _verifying = false;
+  String? _responseMessage;
   Timer? _timer;
+
+  String get _apiPhone => widget.phoneDigits.isNotEmpty
+      ? widget.phoneDigits
+      : widget.phoneNumber
+          .replaceAll(AppStrings.countryCode, '')
+          .replaceAll(RegExp(r'\D'), '');
 
   @override
   void initState() {
     super.initState();
-    _startResendTimer();
-    _otpController.addListener(() => setState(() {}));
+    _startResendTimer(widget.expiresInSeconds);
+    _otpController.addListener(() {
+      // Typing a new code clears the previous error state.
+      if (_state == OtpScreenState.wrongCode &&
+          _otpController.text.isNotEmpty) {
+        _state = OtpScreenState.normal;
+        _responseMessage = null;
+      }
+      setState(() {});
+    });
   }
 
   @override
@@ -45,9 +71,9 @@ class _OtpVerifyScreenState extends ConsumerState<OtpVerifyScreen> {
     super.dispose();
   }
 
-  void _startResendTimer() {
+  void _startResendTimer([int? seconds]) {
     _timer?.cancel();
-    _resendSeconds = 24;
+    _resendSeconds = seconds ?? widget.expiresInSeconds;
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (!mounted) return;
       if (_resendSeconds > 0) {
@@ -59,9 +85,9 @@ class _OtpVerifyScreenState extends ConsumerState<OtpVerifyScreen> {
     });
   }
 
-  void _startBlockTimer() {
+  void _startBlockTimer([int seconds = 300]) {
     _timer?.cancel();
-    _blockSeconds = 299;
+    _blockSeconds = seconds;
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (!mounted) return;
       if (_blockSeconds > 0) {
@@ -71,6 +97,7 @@ class _OtpVerifyScreenState extends ConsumerState<OtpVerifyScreen> {
         setState(() {
           _state = OtpScreenState.normal;
           _attemptsLeft = 3;
+          _responseMessage = null;
           _otpController.clear();
         });
         _startResendTimer();
@@ -84,39 +111,89 @@ class _OtpVerifyScreenState extends ConsumerState<OtpVerifyScreen> {
     return '$minutes:$secs';
   }
 
-  void _verify(String code) {
-    if (_state == OtpScreenState.blocked) return;
+  Future<void> _verify(String code) async {
+    if (_state == OtpScreenState.blocked || _verifying || code.length != 4) {
+      return;
+    }
+    setState(() => _verifying = true);
 
-    if (code == AppStrings.wrongOtpDemo) {
-      setState(() {
-        _attemptsLeft--;
-        if (_attemptsLeft <= 0) {
-          _state = OtpScreenState.blocked;
-          _startBlockTimer();
-        } else {
-          _state = OtpScreenState.wrongCode;
-        }
-      });
+    final result = await ref.read(authApiProvider).verifyOtp(
+          phone: _apiPhone,
+          countryCode: AppStrings.countryCode,
+          code: code,
+        );
+
+    if (!mounted) return;
+    setState(() => _verifying = false);
+
+    if (result.success) {
+      final storage = ref.read(storageServiceProvider);
+      await storage.setLoggedIn(true);
+      await storage.savePhone(widget.phoneNumber);
+      if (result.token != null) await storage.saveToken(result.token!);
+      if (!mounted) return;
+      context.goHome();
       return;
     }
 
-    if (code.length == 4) {
-      ref.read(storageServiceProvider).setLoggedIn(true);
-      ref.read(storageServiceProvider).savePhone(widget.phoneNumber);
-      context.goHome();
+    if (result.isNetworkError) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(result.error ?? 'Network error.')),
+      );
+      return;
     }
+
+    final message = result.error ?? 'Verification failed. Please try again.';
+    final isTooManyAttempts =
+        message.toLowerCase().contains('too many attempts');
+    final timeMatch = RegExp(r'(\d{1,2}):(\d{2})').firstMatch(message);
+    final blockSeconds = timeMatch == null
+        ? 300
+        : (int.parse(timeMatch.group(1)!) * 60) +
+            int.parse(timeMatch.group(2)!);
+
+    setState(() {
+      _responseMessage = message;
+      if (isTooManyAttempts) {
+        _state = OtpScreenState.blocked;
+        _startBlockTimer(blockSeconds);
+        _otpController.clear();
+      } else {
+        _attemptsLeft--;
+        _state = OtpScreenState.wrongCode;
+        // Clear the boxes so the user can type a fresh code right away.
+        _otpController.clear();
+      }
+    });
   }
 
-  void _resendCode() {
+  Future<void> _resendCode() async {
     if (_resendSeconds > 0 || _state == OtpScreenState.blocked) return;
+
+    final result = await ref.read(authApiProvider).resendOtp(
+          phone: _apiPhone,
+          countryCode: AppStrings.countryCode,
+        );
+
+    if (!mounted) return;
+
+    if (!result.success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(result.error ?? 'Failed to resend code.')),
+      );
+      return;
+    }
+
     setState(() {
       _state = OtpScreenState.resent;
+      _responseMessage = null;
       _otpController.clear();
     });
-    _startResendTimer();
+    _startResendTimer(result.expiresInSeconds);
   }
 
   String get _buttonLabel {
+    if (_verifying) return 'Verifying...';
     if (_state == OtpScreenState.wrongCode) return AppStrings.tryAgain;
     if (_state == OtpScreenState.blocked) return AppStrings.verify;
     return AppStrings.verifyAndContinue;
@@ -131,7 +208,7 @@ class _OtpVerifyScreenState extends ConsumerState<OtpVerifyScreen> {
       scrollable: true,
       bottomBar: CustomButton(
         label: _buttonLabel,
-        enabled: !isBlocked && _otpController.text.length == 4,
+        enabled: !isBlocked && !_verifying && _otpController.text.length == 4,
         onPressed: () => _verify(_otpController.text),
       ),
       body: Column(
@@ -149,16 +226,20 @@ class _OtpVerifyScreenState extends ConsumerState<OtpVerifyScreen> {
             length: 4,
             error: hasError,
             disabled: isBlocked,
-            onCompleted: _verify,
           ),
           const SizedBox(height: 8),
           if (_state == OtpScreenState.resent)
             const StatusBanner.success(message: AppStrings.newCodeSent),
           if (hasError)
             StatusBanner.error(
-              message: AppStrings.incorrectCode(_attemptsLeft),
+              message:
+                  _responseMessage ?? AppStrings.incorrectCode(_attemptsLeft),
             ),
-          if (isBlocked) BlockedBanner(remaining: _formatTime(_blockSeconds)),
+          if (isBlocked)
+            BlockedBanner(
+              remaining: _formatTime(_blockSeconds),
+              message: _responseMessage,
+            ),
           const SizedBox(height: 8),
           if (!isBlocked && _resendSeconds > 0)
             Row(

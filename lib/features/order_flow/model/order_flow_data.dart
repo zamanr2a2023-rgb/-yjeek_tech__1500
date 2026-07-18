@@ -70,6 +70,8 @@ class DriverChatMessage {
 abstract final class OrderFlowData {
   static const String orderId = 'YJK-3920';
   static const String orderIdDisplay = '#YJK-3920';
+  /// Figma order-status header: "Order #YJK-3920".
+  static const String orderStatusTitle = 'Order #YJK-3920';
   static const String vendor = 'The Green Kitchen';
   static const String vendorLocation = 'The Green Kitchen — Seef';
   static const String vendorAddress = 'Block 338, Road 3801, Seef · CR 12345';

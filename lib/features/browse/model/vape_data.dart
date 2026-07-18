@@ -154,8 +154,18 @@ abstract final class VapeData {
   }
 
   static List<VapeProduct> productsForStore(String storeId, String category) {
-    return products
-        .where((product) => product.storeId == storeId && product.category == category)
-        .toList();
+    final forStore =
+        products.where((product) => product.storeId == storeId).toList();
+    // Figma Vapeology “Disposables” frame also shows Salt Nic in the mix.
+    if (category == 'Disposables') {
+      return forStore
+          .where(
+            (product) =>
+                product.category == 'Disposables' ||
+                product.id == 'salt-nic-e-liquid',
+          )
+          .toList();
+    }
+    return forStore.where((product) => product.category == category).toList();
   }
 }

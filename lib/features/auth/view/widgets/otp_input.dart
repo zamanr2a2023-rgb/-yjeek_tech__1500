@@ -411,9 +411,14 @@ class StatusBanner extends StatelessWidget {
 }
 
 class BlockedBanner extends StatelessWidget {
-  const BlockedBanner({super.key, required this.remaining});
+  const BlockedBanner({
+    super.key,
+    required this.remaining,
+    this.message,
+  });
 
   final String remaining;
+  final String? message;
 
   @override
   Widget build(BuildContext context) {
@@ -453,7 +458,7 @@ class BlockedBanner extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  '${AppStrings.tooManyAttempts} $remaining.',
+                  message ?? '${AppStrings.tooManyAttempts} $remaining.',
                   style: AppTextStyles.labelSmall(
                     color: AppColors.error,
                   ).copyWith(fontWeight: FontWeight.w500),

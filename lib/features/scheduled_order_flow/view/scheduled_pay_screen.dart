@@ -39,21 +39,32 @@ class _ScheduledPayScreenState extends State<ScheduledPayScreen> {
   String get _timerLabel {
     final m = _secondsLeft ~/ 60;
     final s = _secondsLeft % 60;
-    return '${m.toString()}:${s.toString().padLeft(2, '0')}';
+    return '$m:${s.toString().padLeft(2, '0')}';
+  }
+
+  String get _footerTimerLabel {
+    final m = _secondsLeft ~/ 60;
+    final s = _secondsLeft % 60;
+    return '${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
   }
 
   @override
   Widget build(BuildContext context) {
+    // Figma S5: Home nav, #F2F7F2, content gap 14.
     return OrderFlowScaffold(
       showHeader: false,
-      bottomNavIndex: 1,
+      bottomNavIndex: 0,
+      backgroundColor: const Color(0xFFF2F7F2),
       body: ListView(
-        padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 16.h),
+        padding: EdgeInsets.fromLTRB(20.w, 8.h, 20.w, 16.h),
         children: [
           SizedBox(height: MediaQuery.paddingOf(context).top + 8.h),
           const ScheduledAcceptedBanner(),
           SizedBox(height: 14.h),
-          ScheduledPayTimerCard(timerLabel: _timerLabel),
+          ScheduledPayTimerCard(
+            timerLabel: _timerLabel,
+            progress: _secondsLeft / _totalSeconds,
+          ),
           SizedBox(height: 14.h),
           const ScheduledPayMethodCard(),
           SizedBox(height: 14.h),
@@ -61,7 +72,7 @@ class _ScheduledPayScreenState extends State<ScheduledPayScreen> {
         ],
       ),
       bottom: ScheduledPayStickyFooter(
-        timerLabel: _timerLabel,
+        timerLabel: _footerTimerLabel,
         onPay: () => context.pushReplacement(ScheduledOrderFlowRoutes.confirmed),
       ),
     );

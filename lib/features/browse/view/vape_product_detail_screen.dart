@@ -33,6 +33,11 @@ class _VapeProductDetailScreenState extends ConsumerState<VapeProductDetailScree
   VapeStore get _store => VapeData.storeById(widget.storeId);
   VapeProduct get _product => VapeData.productById(widget.productId);
 
+  void _openCart() {
+    ref.read(shellProvider.notifier).openVapeCartWithItems();
+    context.goHome(tab: 2, vapeCart: true);
+  }
+
   @override
   Widget build(BuildContext context) {
     final specs = _product.detailSpecs ?? _product.specs;
@@ -43,7 +48,9 @@ class _VapeProductDetailScreenState extends ConsumerState<VapeProductDetailScree
         children: [
           VapeStoreTopBar(
             store: _store,
+            title: _product.name,
             onBack: () => context.pop(),
+            onCart: _openCart,
           ),
           Expanded(
             child: ListView(
@@ -60,33 +67,26 @@ class _VapeProductDetailScreenState extends ConsumerState<VapeProductDetailScree
                   ),
                 ),
                 SizedBox(height: 16.h),
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        _product.name,
-                        style: AppTextStyles.titleMedium().copyWith(
-                          fontWeight: FontWeight.w700,
-                          fontSize: 18.sp,
-                        ),
-                      ),
-                    ),
-                    const VapeAgeBadge(),
-                  ],
-                ),
-                SizedBox(height: 6.h),
                 Text(
-                  specs,
-                  style: AppTextStyles.bodySmall(color: const Color(0xFF737873)).copyWith(
-                    fontSize: 12.sp,
+                  _product.name,
+                  style: AppTextStyles.titleMedium().copyWith(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 18.sp,
                   ),
                 ),
-                SizedBox(height: 8.h),
+                SizedBox(height: 6.h),
                 Text(
                   'BHD ${_product.price}',
                   style: AppTextStyles.titleSmall(color: const Color(0xFF216B2E)).copyWith(
                     fontWeight: FontWeight.w700,
                     fontSize: 18.sp,
+                  ),
+                ),
+                SizedBox(height: 4.h),
+                Text(
+                  specs,
+                  style: AppTextStyles.bodySmall(color: const Color(0xFF737873)).copyWith(
+                    fontSize: 12.sp,
                   ),
                 ),
                 SizedBox(height: 14.h),
@@ -127,12 +127,9 @@ class _VapeProductDetailScreenState extends ConsumerState<VapeProductDetailScree
               border: Border(top: BorderSide(color: AppColors.border)),
             ),
             child: GestureDetector(
-              onTap: () {
-                ref.read(shellProvider.notifier).openVapeCartWithItems();
-                context.goHome(tab: 2, vapeCart: true);
-              },
+              onTap: _openCart,
               child: Container(
-                padding: EdgeInsets.symmetric(vertical: 16.h),
+                height: 48.h,
                 decoration: BoxDecoration(
                   color: const Color(0xFF4DB04F),
                   borderRadius: BorderRadius.circular(14.r),
@@ -141,7 +138,7 @@ class _VapeProductDetailScreenState extends ConsumerState<VapeProductDetailScree
                 child: Text(
                   'Add to cart · BHD ${_product.price}',
                   style: AppTextStyles.labelMedium(color: AppColors.white).copyWith(
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w600,
                     fontSize: 15.sp,
                   ),
                 ),

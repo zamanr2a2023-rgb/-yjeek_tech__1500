@@ -18,6 +18,7 @@ import 'package:yjeek_app/features/browse/view/services_provider_screen.dart';
 import 'package:yjeek_app/features/browse/view/electronics_browse_screen.dart';
 import 'package:yjeek_app/features/browse/view/electronics_product_detail_screen.dart';
 import 'package:yjeek_app/features/browse/view/electronics_store_screen.dart';
+import 'package:yjeek_app/features/home/view/home_screen.dart';
 import 'package:yjeek_app/features/vape_cart/view/vape_age_verify_screen.dart';
 import 'package:yjeek_app/features/vape_cart/view/vape_checkout_screen.dart';
 import 'package:yjeek_app/features/vape_cart/view/vape_review_screen.dart';
@@ -121,6 +122,10 @@ class AppRouter {
           path: RouteNames.splash,
           builder: (_, _) => const SplashScreen(),
         ),
+         GoRoute(
+          path: RouteNames.splash,
+          builder: (_, _) => const HomeScreen(),
+        ),
         GoRoute(
           path: RouteNames.welcome,
           builder: (_, _) => const WelcomeScreen(),
@@ -133,7 +138,14 @@ class AppRouter {
           path: RouteNames.otpVerify,
           builder: (context, state) {
             final phone = state.uri.queryParameters['phone'] ?? '+973 3300 0000';
-            return OtpVerifyScreen(phoneNumber: phone);
+            final digits = state.uri.queryParameters['digits'] ?? '';
+            final expiresInSeconds =
+                int.tryParse(state.uri.queryParameters['expires'] ?? '') ?? 300;
+            return OtpVerifyScreen(
+              phoneNumber: phone,
+              phoneDigits: digits,
+              expiresInSeconds: expiresInSeconds,
+            );
           },
         ),
         GoRoute(

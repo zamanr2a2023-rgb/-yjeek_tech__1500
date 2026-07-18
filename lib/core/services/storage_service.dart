@@ -8,6 +8,7 @@ class StorageService {
 
   static const _keyLoggedIn = 'logged_in';
   static const _keyPhone = 'phone';
+  static const _keyToken = 'auth_token';
 
   static Future<StorageService> init() async {
     final prefs = await SharedPreferences.getInstance();
@@ -22,4 +23,16 @@ class StorageService {
   String? get phone => _prefs.getString(_keyPhone);
 
   Future<void> savePhone(String value) => _prefs.setString(_keyPhone, value);
+
+  String? get token => _prefs.getString(_keyToken);
+
+  Future<void> saveToken(String value) => _prefs.setString(_keyToken, value);
+
+  Future<void> clearSession() async {
+    await _prefs.remove(_keyLoggedIn);
+    await _prefs.remove(_keyPhone);
+    await _prefs.remove(_keyToken);
+  }
+
+  bool get hasSession => isLoggedIn && (token?.isNotEmpty ?? false);
 }

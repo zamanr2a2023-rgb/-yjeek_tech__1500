@@ -59,14 +59,16 @@ class _ScheduledCheckoutScreenState extends State<ScheduledCheckoutScreen> {
     return CartFlowScaffold(
       title: ScheduledCartStrings.checkout,
       subtitle: ScheduledCartData.vendor,
+      lightHeader: true,
+      backgroundColor: const Color(0xFFF2F7F2),
       body: ListView(
-        padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 16.h),
+        padding: EdgeInsets.fromLTRB(20.w, 8.h, 20.w, 24.h),
         children: [
           const CartSectionTitle(ScheduledCartStrings.deliveryAddress),
           ScheduledAddressCard(
             onChange: () => context.push(CartRoutes.changeAddress),
           ),
-          SizedBox(height: 18.h),
+          SizedBox(height: 14.h),
           const CartSectionTitle(ScheduledCartStrings.deliveryMethod),
           ...ScheduledCartData.deliveryMethods.map(
             (method) => ScheduledDeliveryMethodCard(
@@ -77,13 +79,13 @@ class _ScheduledCheckoutScreenState extends State<ScheduledCheckoutScreen> {
             ),
           ),
           SizedBox(height: 8.h),
-          const CartSectionTitle(ScheduledCartStrings.dropOffPreferences),
           CartDropOffGrid(
+            showTitle: true,
             options: ScheduledCartData.dropOffOptions,
             selectedIndex: _dropOffIndex,
             onSelected: (index) => setState(() => _dropOffIndex = index),
           ),
-          SizedBox(height: 18.h),
+          SizedBox(height: 14.h),
           const CartSectionTitle(ScheduledCartStrings.paymentMethod),
           const ScheduledPaymentNoteBanner(),
           SizedBox(height: 12.h),
@@ -91,23 +93,24 @@ class _ScheduledCheckoutScreenState extends State<ScheduledCheckoutScreen> {
             options: ScheduledCartData.paymentOptions,
             selectedId: _paymentId,
             onSelected: (id) => setState(() => _paymentId = id),
+            showSecurityNotes: true,
           ),
-          SizedBox(height: 18.h),
-          const CartSectionTitle(ScheduledCartStrings.tipYourChamp),
+          SizedBox(height: 14.h),
           CartTipSelector(
+            showHeader: true,
             options: ScheduledCartData.tipOptions,
             selectedIndex: _tipIndex,
             onSelected: (index) => setState(() => _tipIndex = index),
           ),
-          SizedBox(height: 18.h),
+          SizedBox(height: 14.h),
+          CartZoodPromoBanner(
+            onTap: () => context.push(CartRoutes.zoodWaitingList),
+          ),
+          SizedBox(height: 14.h),
           const CartSectionTitle(ScheduledCartStrings.billSummary),
           BillSummaryCard(lines: billLines),
           SizedBox(height: 10.h),
           const ScheduledCashbackBanner(),
-          SizedBox(height: 12.h),
-          CartZoodBanner(
-            onTap: () => context.push(CartRoutes.zoodWaitingList),
-          ),
         ],
       ),
       bottom: CartStickyFooter(

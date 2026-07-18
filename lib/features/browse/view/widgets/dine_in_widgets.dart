@@ -27,78 +27,85 @@ class DineInRestaurantGridCard extends StatelessWidget {
           border: Border.all(color: const Color(0xFFE2E8DD)),
         ),
         clipBehavior: Clip.antiAlias,
+        // Design card 80.75×130: image 68, body 62 — flex keeps ratio with
+        // width-based grid aspect ratio (avoids 68.h overflowing when .h ≠ .w).
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Stack(
-              children: [
-                Container(
-                  height: 68.h,
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: const Alignment(-0.6, -1),
-                      end: const Alignment(0.6, 1),
-                      colors: [restaurant.gradientStart, restaurant.gradientEnd],
-                    ),
-                  ),
-                ),
-                Positioned(
-                  top: 5.h,
-                  left: 5.w,
-                  child: Container(
-                    padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 2.h),
+            Expanded(
+              flex: 68,
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  DecoratedBox(
                     decoration: BoxDecoration(
-                      color: AppColors.white,
-                      borderRadius: BorderRadius.circular(7.r),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          '★',
-                          style: TextStyle(
-                            color: const Color(0xFFC9A84C),
-                            fontSize: 8.sp,
-                            fontWeight: FontWeight.w700,
-                            height: 1.2,
-                          ),
-                        ),
-                        SizedBox(width: 2.w),
-                        Text(
-                          restaurant.rating.toStringAsFixed(1),
-                          style: AppTextStyles.caption(color: AppColors.textPrimary).copyWith(
-                            fontWeight: FontWeight.w700,
-                            fontSize: 9.sp,
-                            height: 1.2,
-                          ),
-                        ),
-                      ],
+                      gradient: LinearGradient(
+                        begin: const Alignment(-0.6, -1),
+                        end: const Alignment(0.6, 1),
+                        colors: [restaurant.gradientStart, restaurant.gradientEnd],
+                      ),
                     ),
                   ),
-                ),
-              ],
+                  Positioned(
+                    top: 5.w,
+                    left: 5.w,
+                    child: Container(
+                      padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 2.w),
+                      decoration: BoxDecoration(
+                        color: AppColors.white,
+                        borderRadius: BorderRadius.circular(7.r),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            '★',
+                            style: TextStyle(
+                              color: const Color(0xFFC9A84C),
+                              fontSize: 8.sp,
+                              fontWeight: FontWeight.w700,
+                              height: 1.2,
+                            ),
+                          ),
+                          SizedBox(width: 2.w),
+                          Text(
+                            restaurant.rating.toStringAsFixed(1),
+                            style: AppTextStyles.caption(color: AppColors.textPrimary).copyWith(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 9.sp,
+                              height: 1.2,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
             Expanded(
+              flex: 62,
               child: Padding(
-                padding: EdgeInsets.fromLTRB(8.w, 8.h, 8.w, 8.h),
+                padding: EdgeInsets.all(8.w),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      restaurant.name,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppTextStyles.caption(color: AppColors.textPrimary).copyWith(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 11.5.sp,
-                        height: 1.2,
+                    Flexible(
+                      child: Text(
+                        restaurant.name,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTextStyles.caption(color: AppColors.textPrimary).copyWith(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 11.5.sp,
+                          height: 1.2,
+                        ),
                       ),
                     ),
                     if (restaurant.badge != null) ...[
-                      SizedBox(height: 3.h),
+                      SizedBox(height: 3.w),
                       Container(
-                        padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 2.h),
+                        padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 2.w),
                         decoration: BoxDecoration(
                           color: const Color(0xFFF7F0DC),
                           borderRadius: BorderRadius.circular(5.r),

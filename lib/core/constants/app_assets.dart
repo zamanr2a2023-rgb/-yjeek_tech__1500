@@ -52,6 +52,14 @@ abstract final class AppAssets {
   static const String payBenefitPay = 'assets/Frame (74).png';
   static const String payGoogle = 'assets/ggggg.png';
   static const String payPinkPurse = 'assets/pink.png';
+  static const String orderChat = 'assets/chat.png';
+
+  /// Scheduled / electronics checkout delivery method icons.
+  static const String deliveryEconomy = 'assets/Frame (75).png';
+  static const String deliveryStandard = 'assets/Frame (76).png';
+  static const String deliveryNextDay = 'assets/Frame (77).png';
+  /// Duplicate moon export; keep for parity with design kit.
+  static const String deliveryNextDayAlt = 'assets/Frame (78).png';
 
   static const String addressBuildingPhoto = 'assets/binding.png';
   static const String addressDoorPhoto = 'assets/door.png';

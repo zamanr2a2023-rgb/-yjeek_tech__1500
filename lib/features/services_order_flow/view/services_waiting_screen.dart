@@ -20,6 +20,8 @@ class ServicesWaitingScreen extends StatefulWidget {
 
 class _ServicesWaitingScreenState extends State<ServicesWaitingScreen> {
   static const _totalSeconds = 300;
+  static const Color _muted = Color(0xFF6B7A6E);
+
   late int _secondsLeft;
   Timer? _timer;
   Timer? _acceptTimer;
@@ -52,32 +54,40 @@ class _ServicesWaitingScreenState extends State<ServicesWaitingScreen> {
     return '${m.toString()}:${s.toString().padLeft(2, '0')}';
   }
 
+  void _cancelBooking() {
+    _timer?.cancel();
+    _acceptTimer?.cancel();
+    context.go('${RouteNames.home}?tab=1');
+  }
+
   @override
   Widget build(BuildContext context) {
     return OrderFlowScaffold(
       showHeader: false,
-      bottomNavIndex: 1,
+      bottomNavIndex: 0,
       body: ListView(
-        padding: EdgeInsets.fromLTRB(24.w, 20.h, 24.w, 16.h),
+        padding: EdgeInsets.fromLTRB(24.w, 20.h, 24.w, 28.h),
         children: [
-          SizedBox(height: MediaQuery.paddingOf(context).top + 8.h),
+          SizedBox(height: MediaQuery.paddingOf(context).top + 12.h),
           Center(child: ServicesWaitingTimer(label: _timerLabel)),
           SizedBox(height: 16.h),
           Text(
             ServicesOrderFlowStrings.sentToProvider,
             textAlign: TextAlign.center,
-            style: AppTextStyles.titleMedium().copyWith(
+            style: AppTextStyles.titleMedium(color: AppColors.textPrimary).copyWith(
               fontWeight: FontWeight.w700,
               fontSize: 22.sp,
+              height: 27 / 22,
             ),
           ),
           SizedBox(height: 8.h),
           Text(
             ServicesOrderFlowStrings.waitingSubtitle,
             textAlign: TextAlign.center,
-            style: AppTextStyles.bodySmall(color: AppColors.textSecondary).copyWith(
+            style: AppTextStyles.bodySmall(color: _muted).copyWith(
+              fontWeight: FontWeight.w400,
               fontSize: 14.sp,
-              height: 1.35,
+              height: 17 / 14,
             ),
           ),
           SizedBox(height: 16.h),
@@ -85,16 +95,15 @@ class _ServicesWaitingScreenState extends State<ServicesWaitingScreen> {
           SizedBox(height: 16.h),
           const ServicesBookingSummaryRow(),
           SizedBox(height: 24.h),
-          OrderOutlineButton(
-            label: ServicesOrderFlowStrings.cancelBooking,
-            onPressed: () => context.go('${RouteNames.home}?tab=1'),
-          ),
-          SizedBox(height: 10.h),
+          ServicesCancelBookingButton(onPressed: _cancelBooking),
+          SizedBox(height: 6.h),
           Text(
             ServicesOrderFlowStrings.freeCancelHint,
             textAlign: TextAlign.center,
-            style: AppTextStyles.caption(color: AppColors.textSecondary).copyWith(
-              fontSize: 11.sp,
+            style: AppTextStyles.caption(color: _muted).copyWith(
+              fontWeight: FontWeight.w400,
+              fontSize: 12.sp,
+              height: 15 / 12,
             ),
           ),
         ],

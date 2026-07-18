@@ -22,12 +22,14 @@ class VapeUpsellItem {
   const VapeUpsellItem({
     required this.name,
     required this.price,
-    required this.color,
+    required this.gradientStart,
+    required this.gradientEnd,
   });
 
   final String name;
   final String price;
-  final Color color;
+  final Color gradientStart;
+  final Color gradientEnd;
 }
 
 class VapeDeliveryMethod {
@@ -76,24 +78,30 @@ abstract final class VapeCartStrings {
   static const String orderTotal = 'Order total';
   static const String cashOnDelivery = 'Cash on delivery';
   static const String customTip = 'Custom';
+  static const String idVerification = 'ID verification';
   static const String verified = 'VERIFIED ✓';
   static const String verifiedNote =
       'Your CPR is verified by Yjeek. The champ still checks your ID (18+) on delivery.';
   static const String arrivesIn = 'Arrives in 30–45 mins';
+  static const String phone = '+973 3558 0000';
+  static const String paymentNote =
+      "You won't be charged now. Once the vendor accepts, you'll have 5 minutes to pay";
   static const String verifyTitle = 'Verify your age first';
   static const String verifyBody =
       'This is an age-restricted (18+) order. You need to upload your CPR and documents and get verified before you can place this order.';
   static const String goToVerification = 'Go to verification';
   static const String notNow = 'Not now';
-  static const String cashbackEarn = 'Earn 2% cashback to your Wallet';
+  static const String cashbackEarn = 'Earn 3% cashback to your Wallet';
+  static const String enterPromoCode = 'Enter promo code';
+  static const String submit = 'Submit';
 }
 
 abstract final class VapeCartData {
   static const String vendor = 'Vapeology';
-  static const String selectedAddress = 'Apartment - Seef';
-  static const String selectedAddressDetail = 'Seef - Block 428, Road 6000, Bldg 23';
+  static const String selectedAddress = 'Apartment · Seef';
+  static const String selectedAddressDetail = 'Road 6000, Bldg 23, Flat 82';
   static const String orderTotal = 'BHD 6.610';
-  static const String cashbackAmount = '+ BHD 0.130';
+  static const String cashbackAmount = '+ BHD 0.198';
 
   static const List<VapeCartItem> cartItems = [
     VapeCartItem(
@@ -108,17 +116,20 @@ abstract final class VapeCartData {
     VapeUpsellItem(
       name: 'Blue Razz',
       price: 'BHD 6.500',
-      color: Color(0xFFE8ECF5),
+      gradientStart: Color(0xFF6B4A2A),
+      gradientEnd: Color(0xFF15302B),
     ),
     VapeUpsellItem(
       name: 'Watermelon Ice',
       price: 'BHD 6.500',
-      color: Color(0xFFFFE8EC),
+      gradientStart: Color(0xFF8A5B2A),
+      gradientEnd: Color(0xFF15302B),
     ),
     VapeUpsellItem(
       name: 'Mint Tobacco',
       price: 'BHD 6.500',
-      color: Color(0xFFE3F2EB),
+      gradientStart: Color(0xFF7A4A22),
+      gradientEnd: Color(0xFF15302B),
     ),
   ];
 

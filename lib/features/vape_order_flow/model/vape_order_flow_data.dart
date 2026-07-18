@@ -31,9 +31,13 @@ abstract final class VapeOrderFlowStrings {
   static const String cancelOrder = 'Cancel order';
   static const String freeCancelHint = 'Free cancellation before the vendor accepts';
   static const String vendorAccepted = 'Vapeology said yes! 🙌';
+  static const String payWithinTitle = 'Complete payment within 5 minutes';
+  static const String payWithinSubtitle =
+      'If payment is not completed in time, your order will be cancelled automatically.';
   static const String payWithinHint =
       'Complete payment within 5 minutes. If payment is not completed in time, your order will be cancelled automatically.';
   static const String payWith = 'Pay with';
+  static const String tapPayToComplete = 'Tap pay to complete';
   static const String change = 'Change';
   static const String subtotal = 'Subtotal';
   static const String sameDayDelivery = 'Same Day delivery';
@@ -56,6 +60,8 @@ abstract final class VapeOrderFlowStrings {
   static const String paidBadge = 'PAID';
   static const String ageNote =
       'Age-restricted (18+) · ID checked on delivery.';
+  /// Receipt footer note (vape-specific; electronics uses warranty).
+  static const String warrantyNote = ageNote;
   static const String paidWith = 'Paid: BenefitPay';
   static const String orderNumber = 'Order #';
   static const String items = 'Items';
@@ -64,6 +70,7 @@ abstract final class VapeOrderFlowStrings {
   static const String total = 'Total';
   static const String orderTotal = 'Order total';
   static const String benefitPay = 'BenefitPay';
+  static const String applePay = 'BenefitPay';
 }
 
 abstract final class VapeOrderFlowData {

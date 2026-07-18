@@ -3,9 +3,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
-import 'package:yjeek_app/features/order_flow/view/widgets/order_flow_widgets.dart';
 import 'package:yjeek_app/features/vape_order_flow/vape_order_flow_routes.dart';
 import 'package:yjeek_app/features/vape_order_flow/view/widgets/vape_order_flow_widgets.dart';
+import 'package:yjeek_app/features/order_flow/view/widgets/order_flow_widgets.dart';
 
 class VapePayScreen extends StatefulWidget {
   const VapePayScreen({super.key});
@@ -39,21 +39,32 @@ class _VapePayScreenState extends State<VapePayScreen> {
   String get _timerLabel {
     final m = _secondsLeft ~/ 60;
     final s = _secondsLeft % 60;
-    return '${m.toString()}:${s.toString().padLeft(2, '0')}';
+    return '$m:${s.toString().padLeft(2, '0')}';
+  }
+
+  String get _footerTimerLabel {
+    final m = _secondsLeft ~/ 60;
+    final s = _secondsLeft % 60;
+    return '${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
   }
 
   @override
   Widget build(BuildContext context) {
+    // Figma S5: Home nav, #F2F7F2, content gap 14.
     return OrderFlowScaffold(
       showHeader: false,
-      bottomNavIndex: 1,
+      bottomNavIndex: 0,
+      backgroundColor: const Color(0xFFF2F7F2),
       body: ListView(
-        padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 16.h),
+        padding: EdgeInsets.fromLTRB(20.w, 8.h, 20.w, 16.h),
         children: [
           SizedBox(height: MediaQuery.paddingOf(context).top + 8.h),
           const VapeAcceptedBanner(),
           SizedBox(height: 14.h),
-          VapePayTimerCard(timerLabel: _timerLabel),
+          VapePayTimerCard(
+            timerLabel: _timerLabel,
+            progress: _secondsLeft / _totalSeconds,
+          ),
           SizedBox(height: 14.h),
           const VapePayMethodCard(),
           SizedBox(height: 14.h),
@@ -61,7 +72,7 @@ class _VapePayScreenState extends State<VapePayScreen> {
         ],
       ),
       bottom: VapePayStickyFooter(
-        timerLabel: _timerLabel,
+        timerLabel: _footerTimerLabel,
         onPay: () => context.pushReplacement(VapeOrderFlowRoutes.confirmed),
       ),
     );

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:yjeek_app/core/constants/app_assets.dart';
 import 'package:yjeek_app/features/cart/model/cart_flow_data.dart';
 import 'package:yjeek_app/features/navigation/model/navigation_data.dart';
 
@@ -27,20 +27,6 @@ class BookingUpsellItem {
   final bool selected;
 }
 
-class ServicesPaymentOption {
-  const ServicesPaymentOption({
-    required this.id,
-    required this.label,
-    this.subtitle,
-    this.icon,
-  });
-
-  final String id;
-  final String label;
-  final String? subtitle;
-  final IconData? icon;
-}
-
 abstract final class ServicesBookingStrings {
   static const String booking = 'Booking';
   static const String checkout = 'Checkout';
@@ -54,14 +40,16 @@ abstract final class ServicesBookingStrings {
   static const String time = 'Time';
   static const String addTheseToo = 'Add these too?';
   static const String popularWith = 'Popular with Haircut & styling';
-  static const String promoCode = 'Have a promo code?';
+  static const String promoCode = 'Promo code';
+  static const String enterPromoCode = 'Enter promo code';
   static const String promoApplied = '✓ WELCOME10 applied';
   static const String billSummary = 'Bill summary';
   static const String addMore = 'Add more';
   static const String checkoutBtn = 'Checkout';
   static const String serviceLocation = 'Service location';
-  static const String venueAddress = 'Building 210, Road 2810, Adliya';
   static const String venueLocationLabel = 'At venue · Glow Beauty Lounge';
+  static const String venueLocationShort = 'At venue · Adliya';
+  static const String venueAddress = 'Building 210, Road 2810, Adliya';
   static const String appointment = 'Appointment';
   static const String service = 'Service';
   static const String when = 'When';
@@ -131,6 +119,13 @@ abstract final class ServicesBookingData {
       price: '2.000',
       emoji: '💆',
     ),
+    BookingUpsellItem(
+      id: 'gloss-shine',
+      name: 'Gloss & shine',
+      duration: '45 min',
+      price: '12.000',
+      emoji: '✨',
+    ),
   ];
 
   static const List<BillLine> bookingBillLines = [
@@ -165,33 +160,31 @@ abstract final class ServicesBookingData {
     TipOption(label: ServicesBookingStrings.customTip),
   ];
 
-  static const List<ServicesPaymentOption> paymentOptions = [
-    ServicesPaymentOption(
+  static const List<PaymentOption> paymentOptions = [
+    PaymentOption(
       id: 'benefitpay',
       label: 'BenefitPay',
-      subtitle: 'Forwarded to BenefitPay',
-      icon: Icons.account_balance_wallet_outlined,
+      iconAsset: AppAssets.payBenefitPay,
     ),
-    ServicesPaymentOption(
+    PaymentOption(
       id: 'apple',
       label: 'Apple Pay',
-      icon: Icons.apple,
+      iconAsset: AppAssets.payApple,
     ),
-    ServicesPaymentOption(
+    PaymentOption(
       id: 'google',
       label: 'Google Pay',
-      icon: Icons.g_mobiledata,
+      iconAsset: AppAssets.payGoogle,
     ),
-    ServicesPaymentOption(
+    PaymentOption(
       id: 'benefit',
       label: 'Benefit',
-      subtitle: 'Forwarded to Benefit',
-      icon: Icons.credit_card_outlined,
+      iconAsset: AppAssets.payBenefit,
     ),
-    ServicesPaymentOption(
+    PaymentOption(
       id: 'new-card',
       label: 'Add new card',
-      icon: Icons.add_card_outlined,
+      iconAsset: AppAssets.payAddCard,
     ),
   ];
 }

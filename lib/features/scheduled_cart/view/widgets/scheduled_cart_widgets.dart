@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:yjeek_app/core/constants/app_assets.dart';
 import 'package:yjeek_app/core/constants/app_colors.dart';
 import 'package:yjeek_app/core/constants/app_text_styles.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
@@ -56,7 +57,7 @@ class _ScheduledCartBodyState extends State<ScheduledCartBody> {
                 child: ListView.separated(
                   scrollDirection: Axis.horizontal,
                   itemCount: ScheduledCartData.addMoreItems.length,
-                  separatorBuilder: (_, _) => SizedBox(width: 10.w),
+                  separatorBuilder: (_, _) => SizedBox(width: 12.w),
                   itemBuilder: (context, index) {
                     return ScheduledAddMoreCard(
                       item: ScheduledCartData.addMoreItems[index],
@@ -66,7 +67,7 @@ class _ScheduledCartBodyState extends State<ScheduledCartBody> {
               ),
               SizedBox(height: 16.h),
               const _PromoRow(),
-              SizedBox(height: 16.h),
+              SizedBox(height: 14.h),
               BillSummaryCard(
                 lines: ScheduledCartData.cartBillLines,
                 showPromo: false,
@@ -98,22 +99,22 @@ class ScheduledCartItemCard extends StatelessWidget {
       padding: EdgeInsets.all(12.w),
       decoration: BoxDecoration(
         color: AppColors.white,
-        borderRadius: BorderRadius.circular(16.r),
-        border: Border.all(color: AppColors.border),
+        borderRadius: BorderRadius.circular(14.r),
+        border: Border.all(color: const Color(0xFFE0E6E0)),
       ),
       child: Row(
         children: [
           Container(
-            width: 72.w,
-            height: 72.w,
+            width: 64.w,
+            height: 64.w,
             decoration: BoxDecoration(
-              color: item.color,
-              borderRadius: BorderRadius.circular(14.r),
+              color: const Color(0xFFDBE8DE),
+              borderRadius: BorderRadius.circular(10.r),
             ),
-            child: Icon(
-              Icons.smartphone_outlined,
-              color: AppColors.primary.withValues(alpha: 0.7),
-              size: 28.sp,
+            alignment: Alignment.center,
+            child: Text(
+              '📦',
+              style: TextStyle(fontSize: 20.sp, height: 1),
             ),
           ),
           SizedBox(width: 12.w),
@@ -123,24 +124,34 @@ class ScheduledCartItemCard extends StatelessWidget {
               children: [
                 Text(
                   item.name,
-                  style: AppTextStyles.labelMedium().copyWith(
+                  style: AppTextStyles.labelMedium(
+                    color: const Color(0xFF1A1A1A),
+                  ).copyWith(
                     fontWeight: FontWeight.w600,
                     fontSize: 14.sp,
+                    height: 17 / 14,
                   ),
                 ),
-                SizedBox(height: 2.h),
+                SizedBox(height: 4.h),
                 Text(
                   item.subtitle,
-                  style: AppTextStyles.caption(color: AppColors.textSecondary).copyWith(
+                  style: AppTextStyles.caption(
+                    color: const Color(0xFF6B756E),
+                  ).copyWith(
+                    fontWeight: FontWeight.w400,
                     fontSize: 12.sp,
+                    height: 15 / 12,
                   ),
                 ),
                 SizedBox(height: 4.h),
                 Text(
                   item.price,
-                  style: AppTextStyles.labelMedium().copyWith(
+                  style: AppTextStyles.labelMedium(
+                    color: const Color(0xFF1A1A1A),
+                  ).copyWith(
                     fontWeight: FontWeight.w700,
                     fontSize: 14.sp,
+                    height: 17 / 14,
                   ),
                 ),
               ],
@@ -228,61 +239,78 @@ class ScheduledAddMoreCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    // Figma: 120×133 column, image 90, gap 6 — no outer card padding.
+    return SizedBox(
       width: 120.w,
-      padding: EdgeInsets.all(8.w),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(14.r),
-        border: Border.all(color: AppColors.border),
-      ),
+      height: 133.h,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Stack(
-            children: [
-              Container(
-                width: double.infinity,
-                height: 90.h,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(14.r),
-                  gradient: LinearGradient(
-                    colors: [item.gradientStart, item.gradientEnd],
-                  ),
-                ),
-              ),
-              Positioned(
-                right: 0,
-                bottom: 0,
-                child: Container(
-                  width: 28.w,
-                  height: 28.w,
+          SizedBox(
+            width: 120.w,
+            height: 90.h,
+            child: Stack(
+              children: [
+                Container(
+                  width: 120.w,
+                  height: 90.h,
                   decoration: BoxDecoration(
-                    color: AppColors.white,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: AppColors.border),
+                    borderRadius: BorderRadius.circular(14.r),
+                    gradient: LinearGradient(
+                      begin: const Alignment(-0.8, -0.6),
+                      end: const Alignment(0.8, 0.8),
+                      colors: [item.gradientStart, item.gradientEnd],
+                    ),
                   ),
-                  child: Icon(Icons.add, size: 16.sp, color: AppColors.primary),
                 ),
-              ),
-            ],
-          ),
-          SizedBox(height: 6.h),
-          Text(
-            item.name,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: AppTextStyles.caption().copyWith(
-              fontWeight: FontWeight.w600,
-              fontSize: 12.5.sp,
+                Positioned(
+                  right: 6.w,
+                  bottom: 6.h,
+                  child: Container(
+                    width: 28.w,
+                    height: 28.w,
+                    decoration: BoxDecoration(
+                      color: AppColors.white,
+                      borderRadius: BorderRadius.circular(14.r),
+                      border: Border.all(color: const Color(0xFFE2E8DD)),
+                    ),
+                    alignment: Alignment.center,
+                    child: Icon(
+                      Icons.add,
+                      size: 16.sp,
+                      color: const Color(0xFF4CAF50),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
-          SizedBox(height: 2.h),
-          Text(
-            item.price,
-            style: AppTextStyles.caption().copyWith(
-              fontWeight: FontWeight.w700,
-              fontSize: 12.sp,
+          SizedBox(height: 6.h),
+          SizedBox(
+            height: 16.h,
+            child: Text(
+              item.name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: AppTextStyles.caption(color: const Color(0xFF1A1A1A)).copyWith(
+                fontWeight: FontWeight.w600,
+                fontSize: 12.5.sp,
+                height: 1,
+              ),
+            ),
+          ),
+          SizedBox(height: 6.h),
+          SizedBox(
+            height: 15.h,
+            child: Text(
+              item.price,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: AppTextStyles.caption(color: const Color(0xFF1A1A1A)).copyWith(
+                fontWeight: FontWeight.w700,
+                fontSize: 12.sp,
+                height: 1,
+              ),
             ),
           ),
         ],
@@ -296,26 +324,56 @@ class _PromoRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(14.r),
-        border: Border.all(color: AppColors.border),
-      ),
+    // Figma: input + solid green Apply button (48h).
+    return SizedBox(
+      height: 48.h,
       child: Row(
         children: [
           Expanded(
-            child: Text(
-              ScheduledCartStrings.promoCode,
-              style: AppTextStyles.bodyMedium().copyWith(fontSize: 14.sp),
+            child: Container(
+              height: 48.h,
+              padding: EdgeInsets.symmetric(horizontal: 14.w),
+              alignment: Alignment.centerLeft,
+              decoration: BoxDecoration(
+                color: AppColors.white,
+                borderRadius: BorderRadius.circular(12.r),
+                border: Border.all(color: const Color(0xFFE0E6E0)),
+              ),
+              child: Text(
+                'Promo code',
+                style: AppTextStyles.bodyMedium(
+                  color: const Color(0xFF6B756E),
+                ).copyWith(
+                  fontWeight: FontWeight.w400,
+                  fontSize: 14.sp,
+                  height: 17 / 14,
+                ),
+              ),
             ),
           ),
-          Text(
-            'Apply',
-            style: AppTextStyles.labelSmall(color: AppColors.primary).copyWith(
-              fontWeight: FontWeight.w700,
-              fontSize: 13.sp,
+          SizedBox(width: 8.w),
+          SizedBox(
+            width: 84.w,
+            height: 48.h,
+            child: ElevatedButton(
+              onPressed: () {},
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF2E9E4D),
+                foregroundColor: AppColors.white,
+                elevation: 0,
+                padding: EdgeInsets.zero,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12.r),
+                ),
+              ),
+              child: Text(
+                'Apply',
+                style: AppTextStyles.labelMedium(color: AppColors.white).copyWith(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 15.sp,
+                  height: 18 / 15,
+                ),
+              ),
             ),
           ),
         ],
@@ -385,25 +443,50 @@ class ScheduledAddressCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return CartFlowCard(
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(16.r),
+        border: Border.all(color: const Color(0xFFE0E6E0)),
+      ),
       child: Row(
         children: [
+          Container(
+            width: 40.w,
+            height: 40.w,
+            decoration: BoxDecoration(
+              color: const Color(0xFFE3F2EB),
+              borderRadius: BorderRadius.circular(10.r),
+            ),
+            alignment: Alignment.center,
+            child: Text('📍', style: TextStyle(fontSize: 18.sp, height: 1)),
+          ),
+          SizedBox(width: 12.w),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   ScheduledCartData.selectedAddress,
-                  style: AppTextStyles.labelMedium().copyWith(
-                    fontWeight: FontWeight.w700,
+                  style: AppTextStyles.labelMedium(
+                    color: const Color(0xFF1A1A1A),
+                  ).copyWith(
+                    fontWeight: FontWeight.w600,
                     fontSize: 14.sp,
+                    height: 17 / 14,
                   ),
                 ),
-                SizedBox(height: 4.h),
+                SizedBox(height: 2.h),
                 Text(
                   ScheduledCartData.selectedAddressDetail,
-                  style: AppTextStyles.caption(color: AppColors.textSecondary).copyWith(
+                  style: AppTextStyles.caption(
+                    color: const Color(0xFF6B756E),
+                  ).copyWith(
+                    fontWeight: FontWeight.w400,
                     fontSize: 12.sp,
+                    height: 15 / 12,
                   ),
                 ),
               ],
@@ -413,9 +496,12 @@ class ScheduledAddressCard extends StatelessWidget {
             onTap: onChange,
             child: Text(
               'Change',
-              style: AppTextStyles.labelSmall(color: AppColors.primary).copyWith(
-                fontWeight: FontWeight.w700,
+              style: AppTextStyles.labelSmall(
+                color: const Color(0xFF2E9E4D),
+              ).copyWith(
+                fontWeight: FontWeight.w600,
                 fontSize: 13.sp,
+                height: 16 / 13,
               ),
             ),
           ),
@@ -439,40 +525,78 @@ class ScheduledDeliveryMethodCard extends StatelessWidget {
   final VoidCallback onTap;
   final bool showFreePrice;
 
+  /// Asset path for line icons; null means Same Day bolt (no Frame export yet).
+  static String? _assetFor(String id) {
+    return switch (id) {
+      'next-day' => AppAssets.deliveryNextDay,
+      'standard' => AppAssets.deliveryStandard,
+      'economy' => AppAssets.deliveryEconomy,
+      _ => null,
+    };
+  }
+
+  Widget _methodIcon({required bool selected}) {
+    final asset = _assetFor(method.id);
+
+    // Figma CSS: selected / Next Day strokes #FFFFFF; Standard & Economy #0F4D27.
+    final Color tint = selected || method.id == 'next-day'
+        ? Colors.white
+        : const Color(0xFF0F4D27);
+
+    // Same Day — bolt (no Frame lightning export yet).
+    if (asset == null) {
+      return Icon(
+        Icons.bolt_rounded,
+        size: 22.sp,
+        color: tint,
+      );
+    }
+
+    return ColorFiltered(
+      colorFilter: ColorFilter.mode(tint, BlendMode.srcIn),
+      child: Image.asset(
+        asset,
+        width: 20.w,
+        height: 20.w,
+        fit: BoxFit.contain,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final displayPrice = showFreePrice && method.freeAfterNoon ? 'BHD 0.000' : method.price;
+    final displayPrice =
+        showFreePrice && method.freeAfterNoon ? 'BHD 0.000' : method.price;
     final showStrike = showFreePrice && method.freeAfterNoon;
 
+    // Figma: icon left · label · price · radio right.
+    // Selected: bg #E4F1E9, border 2px #4CAF50.
     return GestureDetector(
       onTap: onTap,
       child: Container(
         margin: EdgeInsets.only(bottom: 10.h),
-        padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
+        padding: EdgeInsets.all(14.w),
         decoration: BoxDecoration(
-          color: AppColors.white,
-          borderRadius: BorderRadius.circular(14.r),
+          color: selected ? const Color(0xFFE4F1E9) : AppColors.white,
+          borderRadius: BorderRadius.circular(16.r),
           border: Border.all(
-            color: selected ? AppColors.primary : AppColors.border,
-            width: selected ? 1.5 : 1,
+            color: selected ? const Color(0xFF4CAF50) : const Color(0xFFE2E8DD),
+            width: selected ? 2 : 1,
           ),
         ),
         child: Row(
           children: [
             Container(
-              width: 22.w,
-              height: 22.w,
+              width: 40.w,
+              height: 40.w,
               decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: selected ? AppColors.primary : AppColors.white,
-                border: Border.all(
-                  color: selected ? AppColors.primary : AppColors.border,
-                  width: 1.5,
-                ),
+                color: selected
+                    ? const Color(0xFF4CAF50)
+                    : const Color(0xFFDBE6D4),
+                borderRadius: BorderRadius.circular(11.r),
               ),
-              child: selected
-                  ? Icon(Icons.check, size: 14.sp, color: AppColors.white)
-                  : null,
+              alignment: Alignment.center,
+              child: _methodIcon(selected: selected),
             ),
             SizedBox(width: 12.w),
             Expanded(
@@ -481,16 +605,22 @@ class ScheduledDeliveryMethodCard extends StatelessWidget {
                 children: [
                   Text(
                     method.label,
-                    style: AppTextStyles.labelMedium().copyWith(
+                    style: AppTextStyles.labelMedium(
+                      color: const Color(0xFF1A1A1A),
+                    ).copyWith(
                       fontWeight: FontWeight.w700,
                       fontSize: 15.sp,
+                      height: 1.28,
                     ),
                   ),
                   if (method.subtitle != null) ...[
                     SizedBox(height: 2.h),
                     Text(
                       method.subtitle!,
-                      style: AppTextStyles.caption(color: AppColors.textSecondary).copyWith(
+                      style: AppTextStyles.caption(
+                        color: const Color(0xFF6B756E),
+                      ).copyWith(
+                        fontWeight: FontWeight.w400,
                         fontSize: 12.sp,
                       ),
                     ),
@@ -503,19 +633,39 @@ class ScheduledDeliveryMethodCard extends StatelessWidget {
               children: [
                 Text(
                   displayPrice,
-                  style: AppTextStyles.labelMedium().copyWith(
+                  style: AppTextStyles.labelMedium(
+                    color: const Color(0xFF1A1A1A),
+                  ).copyWith(
                     fontWeight: FontWeight.w700,
                     fontSize: 13.sp,
+                    height: 1.28,
                   ),
                 ),
                 if (showStrike)
                   Text(
                     method.price,
-                    style: AppTextStyles.caption(color: AppColors.textSecondary).copyWith(
+                    style: AppTextStyles.caption(
+                      color: const Color(0xFF6B756E),
+                    ).copyWith(
                       fontSize: 11.sp,
                       decoration: TextDecoration.lineThrough,
                     ),
                   ),
+                SizedBox(height: 6.h),
+                Container(
+                  width: 22.w,
+                  height: 22.w,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: AppColors.white,
+                    border: Border.all(
+                      color: selected
+                          ? const Color(0xFF4CAF50)
+                          : const Color(0xFFE0E6E0),
+                      width: selected ? 6.5 : 1.5,
+                    ),
+                  ),
+                ),
               ],
             ),
           ],
@@ -573,7 +723,7 @@ class ScheduledCashbackBanner extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(Icons.savings_outlined, size: 16.sp, color: const Color(0xFF7A5E12)),
+          Icon(Icons.star_outline_rounded, size: 18.sp, color: const Color(0xFF7A5E12)),
           SizedBox(width: 8.w),
           Expanded(
             child: Text(
@@ -604,29 +754,44 @@ class ScheduledReviewStatusCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final progress = (secondsLeft.clamp(0, 10)) / 10;
+
+    // Figma: #4CAF50 card, 92px ring (track #2C6B47, fill #C9A84C), white count.
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.all(18.w),
+      padding: EdgeInsets.all(20.w),
       decoration: BoxDecoration(
-        color: AppColors.primary,
-        borderRadius: BorderRadius.circular(18.r),
+        color: const Color(0xFF4CAF50),
+        borderRadius: BorderRadius.circular(20.r),
       ),
       child: Column(
         children: [
-          Container(
-            width: 64.w,
-            height: 64.w,
-            decoration: const BoxDecoration(
-              color: AppColors.white,
-              shape: BoxShape.circle,
-            ),
-            alignment: Alignment.center,
-            child: Text(
-              '$secondsLeft',
-              style: AppTextStyles.titleMedium(color: AppColors.primary).copyWith(
-                fontWeight: FontWeight.w800,
-                fontSize: 38.sp,
-              ),
+          SizedBox(
+            width: 92.w,
+            height: 92.w,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                SizedBox(
+                  width: 92.w,
+                  height: 92.w,
+                  child: CircularProgressIndicator(
+                    value: progress,
+                    strokeWidth: 7,
+                    backgroundColor: const Color(0xFF2C6B47),
+                    color: const Color(0xFFC9A84C),
+                    strokeCap: StrokeCap.round,
+                  ),
+                ),
+                Text(
+                  '$secondsLeft',
+                  style: AppTextStyles.titleMedium(color: AppColors.white).copyWith(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 38.sp,
+                    height: 1.3,
+                  ),
+                ),
+              ],
             ),
           ),
           SizedBox(height: 12.h),
@@ -636,6 +801,7 @@ class ScheduledReviewStatusCard extends StatelessWidget {
             style: AppTextStyles.labelMedium(color: AppColors.white).copyWith(
               fontWeight: FontWeight.w700,
               fontSize: 16.sp,
+              height: 1.3,
             ),
           ),
           SizedBox(height: 6.h),
@@ -643,16 +809,17 @@ class ScheduledReviewStatusCard extends StatelessWidget {
             ScheduledCartStrings.autoConfirmHint,
             textAlign: TextAlign.center,
             style: AppTextStyles.caption(color: const Color(0xFFCFE8D8)).copyWith(
+              fontWeight: FontWeight.w500,
               fontSize: 12.5.sp,
-              height: 1.35,
+              height: 1.3,
             ),
           ),
           SizedBox(height: 12.h),
           ClipRRect(
             borderRadius: BorderRadius.circular(3.r),
             child: LinearProgressIndicator(
-              value: secondsLeft / 10,
-              minHeight: 6.h,
+              value: progress,
+              minHeight: 6,
               backgroundColor: const Color(0xFF2C6B47),
               valueColor: const AlwaysStoppedAnimation(Color(0xFFC9A84C)),
             ),
@@ -675,71 +842,96 @@ class ScheduledReviewSummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return CartFlowCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            ScheduledCartStrings.orderSummary,
-            style: AppTextStyles.labelMedium().copyWith(
-              fontWeight: FontWeight.w700,
-              fontSize: 16.sp,
-            ),
+    // Figma: "Order summary" title above card; card padding 14×16, gap 8.
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          ScheduledCartStrings.orderSummary,
+          style: AppTextStyles.labelMedium(color: const Color(0xFF1A1A1A)).copyWith(
+            fontWeight: FontWeight.w700,
+            fontSize: 16.sp,
+            height: 1.3,
           ),
-          SizedBox(height: 12.h),
-          Text(
-            ScheduledCartStrings.orderType,
-            style: AppTextStyles.caption(color: AppColors.textSecondary).copyWith(
-              fontWeight: FontWeight.w600,
-              fontSize: 11.sp,
-            ),
-          ),
-          SizedBox(height: 10.h),
-          _summaryRow(ScheduledCartStrings.method, deliveryLabel),
-          _summaryRow(ScheduledCartStrings.deliverTo, ScheduledCartData.selectedAddress),
-          _summaryRow(ScheduledCartStrings.payment, ScheduledCartStrings.cashOnDelivery),
-          Divider(height: 20.h, color: AppColors.border),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        ),
+        SizedBox(height: 8.h),
+        CartFlowCard(
+          padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                ScheduledCartStrings.orderTotal,
-                style: AppTextStyles.labelMedium().copyWith(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 16.sp,
+                ScheduledCartStrings.orderType,
+                style: AppTextStyles.caption(color: const Color(0xFF6B7B6E)).copyWith(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 11.sp,
+                  height: 1.3,
                 ),
               ),
-              Text(
-                total,
-                style: AppTextStyles.titleSmall().copyWith(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 18.sp,
-                ),
+              SizedBox(height: 8.h),
+              _summaryRow(ScheduledCartStrings.method, deliveryLabel),
+              _summaryRow(
+                ScheduledCartStrings.deliverTo,
+                ScheduledCartData.selectedAddress,
+              ),
+              _summaryRow(
+                ScheduledCartStrings.payment,
+                ScheduledCartStrings.cashOnDelivery,
+              ),
+              Divider(height: 16.h, thickness: 1, color: const Color(0xFFE2E8DD)),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    ScheduledCartStrings.orderTotal,
+                    style: AppTextStyles.labelMedium(
+                      color: const Color(0xFF1A1A1A),
+                    ).copyWith(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 16.sp,
+                    ),
+                  ),
+                  Text(
+                    total,
+                    style: AppTextStyles.titleSmall(
+                      color: const Color(0xFF1A1A1A),
+                    ).copyWith(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 18.sp,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
   Widget _summaryRow(String label, String value) {
     return Padding(
-      padding: EdgeInsets.only(bottom: 8.h),
+      padding: EdgeInsets.symmetric(vertical: 3.h),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(
             label,
-            style: AppTextStyles.labelSmall(color: AppColors.textSecondary).copyWith(
+            style: AppTextStyles.labelSmall(color: const Color(0xFF6B7B6E)).copyWith(
+              fontWeight: FontWeight.w500,
               fontSize: 13.sp,
+              height: 1.3,
             ),
           ),
-          Text(
-            value,
-            style: AppTextStyles.labelMedium().copyWith(
-              fontWeight: FontWeight.w700,
-              fontSize: 13.sp,
+          Flexible(
+            child: Text(
+              value,
+              textAlign: TextAlign.right,
+              style: AppTextStyles.labelMedium(color: const Color(0xFF1A1A1A)).copyWith(
+                fontWeight: FontWeight.w700,
+                fontSize: 13.sp,
+                height: 1.3,
+              ),
             ),
           ),
         ],

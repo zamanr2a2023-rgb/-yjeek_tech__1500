@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:yjeek_app/core/providers/shell_provider.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:yjeek_app/core/constants/app_colors.dart';
-import 'package:yjeek_app/core/constants/app_text_styles.dart';
+import 'package:yjeek_app/core/providers/shell_provider.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/features/browse/model/electronics_data.dart';
 import 'package:yjeek_app/features/browse/view/widgets/electronics_widgets.dart';
@@ -27,53 +27,43 @@ class ElectronicsProductDetailScreen extends ConsumerStatefulWidget {
       _ElectronicsProductDetailScreenState();
 }
 
-class _ElectronicsProductDetailScreenState extends ConsumerState<ElectronicsProductDetailScreen> {
+class _ElectronicsProductDetailScreenState
+    extends ConsumerState<ElectronicsProductDetailScreen> {
   int _quantity = 1;
   int _selectedStorage = 0;
   int _selectedColor = 0;
 
-  ElectronicsStore get _store => ElectronicsData.storeById(widget.storeId);
   ElectronicsProduct get _product => ElectronicsData.productById(widget.productId);
 
-  String get _displayPrice {
+  int get _unitPrice {
     final base = int.tryParse(_product.price) ?? 0;
     final storageExtra = _product.storageOptions.isNotEmpty
         ? _product.storageOptions[_selectedStorage].extraPrice
         : 0;
-    return ((base + storageExtra) * _quantity).toString();
+    return base + storageExtra;
   }
+
+  String get _displayPrice => (_unitPrice * _quantity).toString();
 
   @override
   Widget build(BuildContext context) {
     final title = _product.detailTitle ?? _product.name;
     final subtitle = _product.detailSubtitle ??
         '★ ${_product.rating} · ${_product.specs}';
+    final top = MediaQuery.paddingOf(context).top;
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: const Color(0xFFF2F7F2),
       body: Column(
         children: [
           SizedBox(
-            height: 280.h,
+            height: top + 260.h,
             child: Stack(
               fit: StackFit.expand,
               children: [
-                DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [_store.gradientStart, _store.gradientEnd],
-                    ),
-                  ),
-                  child: Center(
-                    child: Icon(
-                      Icons.smartphone_outlined,
-                      size: 120.sp,
-                      color: AppColors.primary.withValues(alpha: 0.35),
-                    ),
-                  ),
-                ),
+                const ColoredBox(color: ElectronicsTokens.mint),
                 Positioned(
-                  top: 12.h,
+                  top: top + 12.h,
                   left: 16.w,
                   child: GestureDetector(
                     onTap: () => context.pop(),
@@ -87,27 +77,24 @@ class _ElectronicsProductDetailScreenState extends ConsumerState<ElectronicsProd
                       alignment: Alignment.center,
                       child: Text(
                         '‹',
-                        style: TextStyle(
+                        style: GoogleFonts.inter(
                           fontSize: 20.sp,
                           fontWeight: FontWeight.w600,
+                          color: ElectronicsTokens.text,
                           height: 1,
                         ),
                       ),
                     ),
                   ),
                 ),
-                Positioned(
-                  top: 12.h,
-                  right: 16.w,
-                  child: Container(
-                    width: 38.w,
-                    height: 38.w,
-                    decoration: const BoxDecoration(
-                      color: AppColors.white,
-                      shape: BoxShape.circle,
+                Center(
+                  child: Text(
+                    '📱',
+                    style: TextStyle(
+                      fontSize: 64.sp,
+                      height: 1,
+                      color: ElectronicsTokens.deepGreen,
                     ),
-                    alignment: Alignment.center,
-                    child: Icon(Icons.more_horiz, size: 20.sp),
                   ),
                 ),
               ],
@@ -115,25 +102,31 @@ class _ElectronicsProductDetailScreenState extends ConsumerState<ElectronicsProd
           ),
           Expanded(
             child: ListView(
-              padding: EdgeInsets.fromLTRB(20.w, 18.h, 20.w, 8.h),
+              padding: EdgeInsets.fromLTRB(20.w, 8.h, 20.w, 24.h),
               children: [
                 Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     Expanded(
                       child: Text(
                         title,
-                        style: AppTextStyles.titleMedium().copyWith(
+                        textAlign: TextAlign.left,
+                        style: GoogleFonts.inter(
+                          color: ElectronicsTokens.text,
                           fontWeight: FontWeight.w700,
                           fontSize: 22.sp,
+                          height: 27 / 22,
                         ),
                       ),
                     ),
+                    SizedBox(width: 8.w),
                     Text(
-                      'BHD ${_product.price}',
-                      style: AppTextStyles.titleSmall(color: AppColors.primary).copyWith(
+                      'BHD $_unitPrice',
+                      style: GoogleFonts.inter(
+                        color: ElectronicsTokens.green,
                         fontWeight: FontWeight.w700,
                         fontSize: 18.sp,
+                        height: 22 / 18,
                       ),
                     ),
                   ],
@@ -141,41 +134,51 @@ class _ElectronicsProductDetailScreenState extends ConsumerState<ElectronicsProd
                 SizedBox(height: 8.h),
                 Text(
                   subtitle,
-                  style: AppTextStyles.labelSmall(color: AppColors.textSecondary).copyWith(
+                  textAlign: TextAlign.left,
+                  style: GoogleFonts.inter(
+                    color: ElectronicsTokens.muted,
                     fontWeight: FontWeight.w500,
                     fontSize: 13.sp,
+                    height: 16 / 13,
                   ),
                 ),
                 if (_product.storageOptions.isNotEmpty) ...[
-                  SizedBox(height: 18.h),
+                  SizedBox(height: 14.h),
                   Text(
                     'STORAGE',
-                    style: AppTextStyles.labelSmall(color: AppColors.textSecondary).copyWith(
+                    textAlign: TextAlign.left,
+                    style: GoogleFonts.inter(
+                      color: ElectronicsTokens.muted,
                       fontWeight: FontWeight.w700,
                       fontSize: 12.sp,
+                      height: 15 / 12,
                     ),
                   ),
                   SizedBox(height: 10.h),
-                  Wrap(
-                    spacing: 8.w,
-                    runSpacing: 8.h,
+                  // Figma: single horizontal row of storage pills.
+                  Row(
                     children: [
-                      for (var i = 0; i < _product.storageOptions.length; i++)
+                      for (var i = 0; i < _product.storageOptions.length; i++) ...[
+                        if (i > 0) SizedBox(width: 8.w),
                         ElectronicsOptionChip(
                           label: _product.storageOptions[i].label,
                           selected: _selectedStorage == i,
                           onTap: () => setState(() => _selectedStorage = i),
                         ),
+                      ],
                     ],
                   ),
                 ],
                 if (_product.colorOptions.isNotEmpty) ...[
-                  SizedBox(height: 18.h),
+                  SizedBox(height: 14.h),
                   Text(
                     'COLOR',
-                    style: AppTextStyles.labelSmall(color: AppColors.textSecondary).copyWith(
+                    textAlign: TextAlign.left,
+                    style: GoogleFonts.inter(
+                      color: ElectronicsTokens.muted,
                       fontWeight: FontWeight.w700,
                       fontSize: 12.sp,
+                      height: 15 / 12,
                     ),
                   ),
                   SizedBox(height: 10.h),
@@ -186,85 +189,119 @@ class _ElectronicsProductDetailScreenState extends ConsumerState<ElectronicsProd
                   ),
                 ],
                 if (_product.highlights.isNotEmpty) ...[
-                  SizedBox(height: 18.h),
+                  SizedBox(height: 14.h),
                   ElectronicsHighlightsCard(highlights: _product.highlights),
                 ],
               ],
             ),
           ),
           Container(
-            padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 16.h),
+            padding: EdgeInsets.fromLTRB(20.w, 0, 20.w, 12.h),
             decoration: const BoxDecoration(
               color: AppColors.white,
-              border: Border(top: BorderSide(color: AppColors.border)),
+              border: Border(top: BorderSide(color: ElectronicsTokens.border)),
             ),
-            child: Row(
-              children: [
-                Container(
-                  decoration: BoxDecoration(
-                    border: Border.all(color: AppColors.border),
-                    borderRadius: BorderRadius.circular(12.r),
-                  ),
-                  child: Row(
-                    children: [
-                      _qtyButton(Icons.remove, () {
-                        if (_quantity > 1) setState(() => _quantity--);
-                      }),
-                      SizedBox(
-                        width: 28.w,
-                        child: Text(
-                          '$_quantity',
-                          textAlign: TextAlign.center,
-                          style: AppTextStyles.labelMedium().copyWith(
-                            fontWeight: FontWeight.w700,
-                            fontSize: 15.sp,
+            child: SafeArea(
+              top: false,
+              child: SizedBox(
+                height: 55.h,
+                child: Row(
+                  children: [
+                    Container(
+                      width: 92.w,
+                      height: 46.h,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF2F7F2),
+                        borderRadius: BorderRadius.circular(12.r),
+                        border: Border.all(color: ElectronicsTokens.border),
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: () {
+                                if (_quantity > 1) {
+                                  setState(() => _quantity--);
+                                }
+                              },
+                              child: Text(
+                                '−',
+                                textAlign: TextAlign.center,
+                                style: GoogleFonts.inter(
+                                  color: ElectronicsTokens.green,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 22.sp,
+                                  height: 1,
+                                ),
+                              ),
+                            ),
+                          ),
+                          Text(
+                            '$_quantity',
+                            style: GoogleFonts.inter(
+                              color: ElectronicsTokens.text,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 16.sp,
+                            ),
+                          ),
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: () => setState(() => _quantity++),
+                              child: Text(
+                                '+',
+                                textAlign: TextAlign.center,
+                                style: GoogleFonts.inter(
+                                  color: ElectronicsTokens.green,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 22.sp,
+                                  height: 1,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    SizedBox(width: 12.w),
+                    Expanded(
+                      child: SizedBox(
+                        height: 55.h,
+                        child: ElevatedButton(
+                          onPressed: () {
+                            ref
+                                .read(shellProvider.notifier)
+                                .openScheduledCartWithItems();
+                            context.goHome(tab: 2, scheduledCart: true);
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: ElectronicsTokens.green,
+                            foregroundColor: AppColors.white,
+                            elevation: 0,
+                            padding: EdgeInsets.zero,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14.r),
+                            ),
+                          ),
+                          child: Text(
+                            'Add to cart · BHD $_displayPrice',
+                            style: GoogleFonts.inter(
+                              color: AppColors.white,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 16.sp,
+                              height: 19 / 16,
+                            ),
                           ),
                         ),
                       ),
-                      _qtyButton(Icons.add, () => setState(() => _quantity++)),
-                    ],
-                  ),
-                ),
-                SizedBox(width: 12.w),
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () {
-                      ref.read(shellProvider.notifier).openScheduledCartWithItems();
-                      context.goHome(tab: 2, scheduledCart: true);
-                    },
-                    child: Container(
-                      padding: EdgeInsets.symmetric(vertical: 14.h),
-                      decoration: BoxDecoration(
-                        color: AppColors.primary,
-                        borderRadius: BorderRadius.circular(12.r),
-                      ),
-                      alignment: Alignment.center,
-                      child: Text(
-                        'Add to cart · BHD $_displayPrice',
-                        style: AppTextStyles.labelMedium(color: AppColors.white).copyWith(
-                          fontWeight: FontWeight.w700,
-                          fontSize: 14.sp,
-                        ),
-                      ),
                     ),
-                  ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
         ],
       ),
       bottomNavigationBar: ShellBottomNavBar(currentIndex: widget.bottomNavIndex),
-    );
-  }
-
-  Widget _qtyButton(IconData icon, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Padding(
-        padding: EdgeInsets.all(10.w),
-        child: Icon(icon, size: 18.sp, color: AppColors.textPrimary),
-      ),
     );
   }
 }

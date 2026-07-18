@@ -23,7 +23,8 @@ class WithdrawBankScreen extends StatelessWidget {
           GreenScreenHeader(title: NavigationStrings.withdrawToBank),
           Expanded(
             child: ListView(
-              padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 16.h),
+              // Figma H11 body: padding 16/16/0 · gap 14.
+              padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 24.h),
               children: [
                 _WithdrawBalanceCard(),
                 SizedBox(height: 14.h),
@@ -128,43 +129,60 @@ class _KycPromptTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Figma: height 54 · pad L14/R16 · text column centered · › trailing.
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
+        width: double.infinity,
+        height: 54.h,
+        padding: EdgeInsets.fromLTRB(14.w, 0, 16.w, 0),
         decoration: BoxDecoration(
           color: const Color(0xFFE3F2EB),
           borderRadius: BorderRadius.circular(14.r),
-          border: Border.all(color: AppColors.cartTabActive, width: 1.3),
+          border: Border.all(color: const Color(0xFF2E9E4D), width: 1.3),
         ),
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Expanded(
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   Text(
                     NavigationStrings.verifyIdentity,
+                    textAlign: TextAlign.center,
                     style: AppTextStyles.labelMedium(
                       color: const Color(0xFF127036),
-                    ).copyWith(fontWeight: FontWeight.w600, fontSize: 14.5.sp),
+                    ).copyWith(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14.5.sp,
+                      height: 18 / 14.5,
+                    ),
                   ),
                   SizedBox(height: 1.h),
                   Text(
                     NavigationStrings.requiredBeforeWithdrawal,
+                    textAlign: TextAlign.center,
                     style: AppTextStyles.labelSmall(
                       color: const Color(0xFF597361),
-                    ).copyWith(fontSize: 12.sp),
+                    ).copyWith(
+                      fontWeight: FontWeight.w400,
+                      fontSize: 12.sp,
+                      height: 15 / 12,
+                    ),
                   ),
                 ],
               ),
             ),
+            SizedBox(width: 12.w),
             Text(
               '›',
               style: TextStyle(
                 fontSize: 20.sp,
+                height: 24 / 20,
                 fontWeight: FontWeight.w700,
-                color: AppColors.cartTabActive,
+                color: const Color(0xFF2E9E4D),
               ),
             ),
           ],
@@ -180,32 +198,43 @@ class _VerifiedKycTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
+      width: double.infinity,
+      height: 54.h,
+      padding: EdgeInsets.fromLTRB(14.w, 0, 16.w, 0),
       decoration: BoxDecoration(
         color: const Color(0xFFE3F2EB),
         borderRadius: BorderRadius.circular(14.r),
-        border: Border.all(color: AppColors.cartTabActive, width: 1.3),
+        border: Border.all(color: const Color(0xFF2E9E4D), width: 1.3),
       ),
       child: Row(
         children: [
-          Icon(Icons.check_circle, color: AppColors.cartTabActive, size: 22.sp),
+          Icon(Icons.check_circle, color: const Color(0xFF2E9E4D), size: 22.sp),
           SizedBox(width: 10.w),
           Expanded(
             child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   NavigationStrings.identityVerified,
                   style: AppTextStyles.labelMedium(
                     color: const Color(0xFF127036),
-                  ).copyWith(fontWeight: FontWeight.w600, fontSize: 14.5.sp),
+                  ).copyWith(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14.5.sp,
+                    height: 18 / 14.5,
+                  ),
                 ),
                 SizedBox(height: 1.h),
                 Text(
                   NavigationStrings.kycApproved,
                   style: AppTextStyles.labelSmall(
                     color: const Color(0xFF597361),
-                  ).copyWith(fontSize: 12.sp),
+                  ).copyWith(
+                    fontWeight: FontWeight.w400,
+                    fontSize: 12.sp,
+                    height: 15 / 12,
+                  ),
                 ),
               ],
             ),

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:yjeek_app/core/constants/app_colors.dart';
-import 'package:yjeek_app/core/constants/app_text_styles.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/features/browse/browse_routes.dart';
 import 'package:yjeek_app/features/browse/model/services_data.dart';
@@ -26,8 +25,9 @@ class ServicesProviderScreen extends StatefulWidget {
 
 class _ServicesProviderScreenState extends State<ServicesProviderScreen> {
   String _selectedSection = ServicesData.glowBeautySections.first;
-  int _bookingCount = 0;
-  String _bookingTotal = '0.000';
+  // Design provider frame shows booking bar with 1 × Haircut already selected.
+  int _bookingCount = 1;
+  String _bookingTotal = '8.000';
 
   ServiceProvider get _provider => ServicesData.providerById(widget.providerId);
 
@@ -37,15 +37,9 @@ class _ServicesProviderScreenState extends State<ServicesProviderScreen> {
 
   void _addService(ServiceMenuItem item) {
     setState(() {
-      _bookingCount++;
+      _bookingCount = (_bookingCount <= 0 ? 0 : _bookingCount) + 1;
       _bookingTotal = item.price;
     });
-    context.push(
-      BrowseRoutes.servicesItemDetail(
-        providerId: widget.providerId,
-        itemId: item.id,
-      ),
-    );
   }
 
   @override
@@ -57,38 +51,33 @@ class _ServicesProviderScreenState extends State<ServicesProviderScreen> {
           ServicesProviderHero(provider: _provider),
           Expanded(
             child: ListView(
-              padding: EdgeInsets.fromLTRB(16.w, 14.h, 16.w, 8.h),
+              // Design body: padding 16 20, gap 14
+              padding: EdgeInsets.fromLTRB(20.w, 16.w, 20.w, 16.w),
               children: [
                 BrowseSearchBar(hint: 'Search services…', onTap: () {}),
-                SizedBox(height: 12.h),
+                SizedBox(height: 14.w),
                 ServicesProviderInfoCard(provider: _provider),
-                SizedBox(height: 14.h),
-                BrowseFilterChips(
+                SizedBox(height: 14.w),
+                ServicesSectionChips(
                   options: ServicesData.glowBeautySections,
                   selected: _selectedSection,
                   onSelected: (v) => setState(() => _selectedSection = v),
                 ),
-                SizedBox(height: 8.h),
-                Text(
-                  _selectedSection.toUpperCase(),
-                  style: AppTextStyles.labelSmall(color: AppColors.textSecondary).copyWith(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 11.sp,
-                    letterSpacing: 0.5,
-                  ),
-                ),
-                ..._items.map(
-                  (item) => ServicesMenuItemRow(
-                    item: item,
-                    onAdd: () => _addService(item),
+                SizedBox(height: 14.w),
+                for (var i = 0; i < _items.length; i++) ...[
+                  if (i > 0)
+                    Divider(height: 1, thickness: 1, color: const Color(0xFFE0E6E0)),
+                  ServicesMenuItemRow(
+                    item: _items[i],
+                    onAdd: () => _addService(_items[i]),
                     onTap: () => context.push(
                       BrowseRoutes.servicesItemDetail(
                         providerId: widget.providerId,
-                        itemId: item.id,
+                        itemId: _items[i].id,
                       ),
                     ),
                   ),
-                ),
+                ],
               ],
             ),
           ),

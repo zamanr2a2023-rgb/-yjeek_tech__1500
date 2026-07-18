@@ -311,15 +311,34 @@ abstract final class HelpPhase2Data {
     ),
   ];
 
+  /// Figma H13 · Support chat (Payments dispute thread).
   static const paymentChatMessages = [
-    HelpChatMessage(
-      text: 'Hi — I see a BenefitPay double charge on order #YJK-…41. I’m checking now.',
-    ),
-    HelpChatMessage(text: 'Yes, I was charged twice for BHD 35.800', isUser: true),
+    HelpChatMessage(text: 'Today', isSystem: true),
     HelpChatMessage(
       text:
-          'Confirmed. The duplicate BHD 35.800 has been reversed to your BenefitPay card. '
-          'It may take 1–3 working days to appear.',
+          'Hi Sara 👋 I’ve opened a dispute for order #YJK-2026-00041 — Double charge, '
+          'BHD 35.800 on BenefitPay. Reviewing now.',
+    ),
+    HelpChatMessage(
+      text: 'I was charged twice for the same order.',
+      isUser: true,
+    ),
+    HelpChatMessage(
+      text:
+          'You’re right — two BenefitPay charges at 13:20 and 13:21. I’ve reversed the '
+          'duplicate. BHD 35.800 is back in your Wallet now, and the card refund lands '
+          'in 3–7 working days.',
+    ),
+    HelpChatMessage(
+      // Figma payment thread: grey system pill (same as “Today”), not purple join.
+      text: 'Live agent — Maryam joined',
+      isSystem: true,
+    ),
+    HelpChatMessage(
+      text:
+          'Hi, this is Maryam from Yjeek Care 😊 Your duplicate charge is reversed. '
+          'Reference RP-2026-10511. Anything else?',
+      avatarLabel: 'M',
     ),
     HelpChatMessage(text: 'No, that’s perfect. Thank you!', isUser: true),
   ];
@@ -370,7 +389,8 @@ abstract final class HelpPhase2Data {
       };
 
   static String chatTitleFor(HelpChatVariant variant) => switch (variant) {
-        HelpChatVariant.payment => 'Payments',
+        // Figma payment thread header is still “Support chat”; status carries “Payments”.
+        HelpChatVariant.payment => 'Support chat',
         HelpChatVariant.serviceNoShow => 'Support chat',
         HelpChatVariant.support => 'Support chat',
       };

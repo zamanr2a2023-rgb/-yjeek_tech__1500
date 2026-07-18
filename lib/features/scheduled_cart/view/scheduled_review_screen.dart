@@ -59,41 +59,56 @@ class _ScheduledReviewScreenState extends State<ScheduledReviewScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Figma: light header, Home nav, content gap 14, buttons above nav.
     return CartFlowScaffold(
       title: ScheduledCartStrings.reviewConfirm,
-      body: ListView(
-        padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 16.h),
+      lightHeader: true,
+      bottomNavIndex: 0,
+      backgroundColor: const Color(0xFFF2F7F2),
+      body: Column(
         children: [
-          ScheduledReviewStatusCard(secondsLeft: _secondsLeft),
-          SizedBox(height: 16.h),
-          ScheduledReviewSummaryCard(
-            deliveryLabel: _deliveryMethod.label,
-            total: _orderTotal,
+          Expanded(
+            child: ListView(
+              padding: EdgeInsets.fromLTRB(20.w, 8.h, 20.w, 14.h),
+              children: [
+                ScheduledReviewStatusCard(secondsLeft: _secondsLeft),
+                SizedBox(height: 14.h),
+                ScheduledReviewSummaryCard(
+                  deliveryLabel: _deliveryMethod.label,
+                  total: _orderTotal,
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: EdgeInsets.fromLTRB(20.w, 0, 20.w, 12.h),
+            child: Row(
+              children: [
+                Expanded(
+                  child: CartOutlineButton(
+                    label: ScheduledCartStrings.editOrder,
+                    onPressed: () {
+                      _timer?.cancel();
+                      context.pop();
+                    },
+                  ),
+                ),
+                SizedBox(width: 12.w),
+                Expanded(
+                  child: PrimaryGreenButton(
+                    label: ScheduledCartStrings.sendToVendor,
+                    backgroundColor: const Color(0xFF4CAF50),
+                    height: 53,
+                    onPressed: () {
+                      _timer?.cancel();
+                      context.pushReplacement(ScheduledOrderFlowRoutes.waiting);
+                    },
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
-      ),
-      bottom: SafeArea(
-        top: false,
-        child: Padding(
-          padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 12.h),
-          child: Row(
-            children: [
-              Expanded(
-                child: CartOutlineButton(
-                  label: ScheduledCartStrings.editOrder,
-                  onPressed: () => context.pop(),
-                ),
-              ),
-              SizedBox(width: 12.w),
-              Expanded(
-                child: PrimaryGreenButton(
-                  label: ScheduledCartStrings.sendToVendor,
-                  onPressed: () => context.pushReplacement(ScheduledOrderFlowRoutes.waiting),
-                ),
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }

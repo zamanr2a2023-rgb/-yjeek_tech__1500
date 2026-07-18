@@ -101,7 +101,8 @@ class _HelpIssueScreenState extends State<HelpIssueScreen> {
       title: _title,
       bottomNavIndex: widget.bottomNavIndex,
       showBottomNav: false,
-      darkTitle: true,
+      // Figma H4–H9: white title + back on green header.
+      darkTitle: false,
       banner: _showReportBanner
           ? const HelpInfoBanner(message: HelpData.reportWindowBanner)
           : null,

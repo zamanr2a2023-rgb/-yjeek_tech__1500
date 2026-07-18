@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:yjeek_app/core/constants/app_colors.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/features/browse/browse_routes.dart';
 import 'package:yjeek_app/features/browse/model/electronics_data.dart';
@@ -33,40 +32,41 @@ class _ElectronicsStoreScreenState extends State<ElectronicsStoreScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: const Color(0xFFF2F7F2),
       body: Column(
         children: [
           ElectronicsStoreTopBar(store: _store),
           Expanded(
             child: ListView(
-              padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 24.h),
+              padding: EdgeInsets.fromLTRB(20.w, 8.h, 20.w, 24.h),
               children: [
                 BrowseSearchBar(
                   hint: ElectronicsData.searchHint,
                   onTap: () {},
                 ),
                 SizedBox(height: 14.h),
-                BrowseFilterChips(
+                ElectronicsFilterChips(
                   options: ElectronicsData.productFilters,
                   selected: _selectedFilter,
                   onSelected: (v) => setState(() => _selectedFilter = v),
                 ),
-                SizedBox(height: 8.h),
+                SizedBox(height: 14.h),
                 ..._products.map(
-                  (product) => ElectronicsProductRow(
-                    product: product,
-                    gradientStart: _store.gradientStart,
-                    gradientEnd: _store.gradientEnd,
-                    onTap: () => context.push(
-                      BrowseRoutes.electronicsProductDetail(
-                        storeId: widget.storeId,
-                        productId: product.id,
+                  (product) => Padding(
+                    padding: EdgeInsets.only(bottom: 10.h),
+                    child: ElectronicsProductRow(
+                      product: product,
+                      onTap: () => context.push(
+                        BrowseRoutes.electronicsProductDetail(
+                          storeId: widget.storeId,
+                          productId: product.id,
+                        ),
                       ),
-                    ),
-                    onAdd: () => context.push(
-                      BrowseRoutes.electronicsProductDetail(
-                        storeId: widget.storeId,
-                        productId: product.id,
+                      onAdd: () => context.push(
+                        BrowseRoutes.electronicsProductDetail(
+                          storeId: widget.storeId,
+                          productId: product.id,
+                        ),
                       ),
                     ),
                   ),

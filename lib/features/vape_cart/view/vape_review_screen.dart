@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -9,6 +9,7 @@ import 'package:yjeek_app/features/vape_cart/model/vape_cart_data.dart';
 import 'package:yjeek_app/features/vape_cart/view/widgets/vape_cart_widgets.dart';
 import 'package:yjeek_app/features/vape_order_flow/vape_order_flow_routes.dart';
 
+/// Same flow as Electronics review: timer → summary → Edit / Send to vendor.
 class VapeReviewScreen extends StatefulWidget {
   const VapeReviewScreen({
     super.key,
@@ -29,6 +30,11 @@ class _VapeReviewScreenState extends State<VapeReviewScreen> {
   VapeDeliveryMethod get _deliveryMethod =>
       VapeCartData.deliveryMethods.firstWhere((m) => m.id == widget.deliveryId);
 
+  String get _orderTotal => VapeCartData.checkoutTotalFor(
+        method: _deliveryMethod,
+        tip: 0.3,
+      );
+
   @override
   void initState() {
     super.initState();
@@ -38,15 +44,11 @@ class _VapeReviewScreenState extends State<VapeReviewScreen> {
       if (_secondsLeft <= 1) {
         _timer?.cancel();
         setState(() => _secondsLeft = 0);
-        _finishOrder();
+        context.pushReplacement(VapeOrderFlowRoutes.waiting);
         return;
       }
       setState(() => _secondsLeft--);
     });
-  }
-
-  void _finishOrder() {
-    context.pushReplacement(VapeOrderFlowRoutes.waiting);
   }
 
   @override
@@ -59,36 +61,53 @@ class _VapeReviewScreenState extends State<VapeReviewScreen> {
   Widget build(BuildContext context) {
     return CartFlowScaffold(
       title: VapeCartStrings.reviewConfirm,
-      body: ListView(
-        padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 16.h),
+      lightHeader: true,
+      bottomNavIndex: 0,
+      backgroundColor: const Color(0xFFF2F7F2),
+      body: Column(
         children: [
-          VapeReviewStatusCard(secondsLeft: _secondsLeft),
-          SizedBox(height: 16.h),
-          VapeReviewSummaryCard(deliveryLabel: _deliveryMethod.label),
-        ],
-      ),
-      bottom: SafeArea(
-        top: false,
-        child: Padding(
-          padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 12.h),
-          child: Row(
-            children: [
-              Expanded(
-                child: CartOutlineButton(
-                  label: VapeCartStrings.editOrder,
-                  onPressed: () => context.pop(),
+          Expanded(
+            child: ListView(
+              padding: EdgeInsets.fromLTRB(20.w, 8.h, 20.w, 14.h),
+              children: [
+                VapeReviewStatusCard(secondsLeft: _secondsLeft),
+                SizedBox(height: 14.h),
+                VapeReviewSummaryCard(
+                  deliveryLabel: _deliveryMethod.label,
+                  total: _orderTotal,
                 ),
-              ),
-              SizedBox(width: 12.w),
-              Expanded(
-                child: PrimaryGreenButton(
-                  label: VapeCartStrings.sendToVendor,
-                  onPressed: _finishOrder,
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
+          Padding(
+            padding: EdgeInsets.fromLTRB(20.w, 0, 20.w, 12.h),
+            child: Row(
+              children: [
+                Expanded(
+                  child: CartOutlineButton(
+                    label: VapeCartStrings.editOrder,
+                    onPressed: () {
+                      _timer?.cancel();
+                      context.pop();
+                    },
+                  ),
+                ),
+                SizedBox(width: 12.w),
+                Expanded(
+                  child: PrimaryGreenButton(
+                    label: VapeCartStrings.sendToVendor,
+                    backgroundColor: const Color(0xFF4CAF50),
+                    height: 53,
+                    onPressed: () {
+                      _timer?.cancel();
+                      context.pushReplacement(VapeOrderFlowRoutes.waiting);
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

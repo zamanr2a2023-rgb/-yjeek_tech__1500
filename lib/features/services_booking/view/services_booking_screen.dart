@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:yjeek_app/core/constants/app_colors.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/features/cart/view/widgets/cart_flow_widgets.dart';
 import 'package:yjeek_app/features/services_booking/model/services_booking_data.dart';
@@ -35,8 +36,10 @@ class _ServicesBookingScreenState extends State<ServicesBookingScreen> {
     return CartFlowScaffold(
       title: ServicesBookingStrings.booking,
       subtitle: ServicesBookingStrings.provider,
+      lightHeader: true,
+      bottomNavIndex: 0,
       body: ListView(
-        padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 16.h),
+        padding: EdgeInsets.fromLTRB(20.w, 8.h, 20.w, 16.h),
         children: [
           const CartSectionTitle(ServicesBookingStrings.yourService),
           const ServicesServiceCard(),
@@ -66,10 +69,12 @@ class _ServicesBookingScreenState extends State<ServicesBookingScreen> {
             ServicesBookingStrings.popularWith,
             style: TextStyle(
               fontSize: 13.sp,
+              fontWeight: FontWeight.w400,
               color: const Color(0xFF6B756E),
+              height: 16 / 13,
             ),
           ),
-          SizedBox(height: 10.h),
+          SizedBox(height: 8.h),
           for (final item in ServicesBookingData.upsells)
             ServicesUpsellCard(
               item: item,
@@ -83,6 +88,7 @@ class _ServicesBookingScreenState extends State<ServicesBookingScreen> {
               }),
             ),
           SizedBox(height: 14.h),
+          const CartSectionTitle(ServicesBookingStrings.promoCode),
           const ServicesPromoField(),
           SizedBox(height: 14.h),
           const CartSectionTitle(ServicesBookingStrings.billSummary),
@@ -92,20 +98,42 @@ class _ServicesBookingScreenState extends State<ServicesBookingScreen> {
       bottom: SafeArea(
         top: false,
         child: Padding(
-          padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 12.h),
+          padding: EdgeInsets.fromLTRB(20.w, 8.h, 20.w, 12.h),
           child: Row(
             children: [
               Expanded(
-                child: CartOutlineButton(
-                  label: ServicesBookingStrings.addMore,
-                  onPressed: () => context.pop(),
+                child: SizedBox(
+                  height: 52.h,
+                  child: OutlinedButton(
+                    onPressed: () => context.pop(),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.textPrimary,
+                      backgroundColor: AppColors.white,
+                      side: const BorderSide(color: Color(0xFFE2E8DD), width: 1.5),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(28.r),
+                      ),
+                      padding: EdgeInsets.symmetric(horizontal: 20.w),
+                    ),
+                    child: Text(
+                      ServicesBookingStrings.addMore,
+                      style: TextStyle(
+                        color: AppColors.textPrimary,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 16.sp,
+                        height: 1.28,
+                      ),
+                    ),
+                  ),
                 ),
               ),
               SizedBox(width: 12.w),
               Expanded(
                 child: PrimaryGreenButton(
                   label: ServicesBookingStrings.checkoutBtn,
-                  onPressed: () => context.push(ServicesBookingRoutes.checkout),
+                  backgroundColor: AppColors.primary,
+                  height: 52,
+                  onPressed: () => context.push(ServicesBookingRoutes.review),
                 ),
               ),
             ],

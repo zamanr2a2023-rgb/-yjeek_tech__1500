@@ -1115,6 +1115,12 @@ class ShellBottomNavBar extends StatelessWidget {
     return HomeBottomNavBar(
       currentIndex: currentIndex,
       onTap: (index) {
+        // Home must always open the home shell — nested screens often
+        // highlight tab 0 without being on /home, so pop would stay off-home.
+        if (index == 0) {
+          context.goHome(tab: 0);
+          return;
+        }
         if (index == currentIndex) {
           if (context.canPop()) {
             context.pop();

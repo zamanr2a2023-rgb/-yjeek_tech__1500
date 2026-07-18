@@ -1,8 +1,127 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:yjeek_app/core/constants/app_colors.dart';
-import 'package:yjeek_app/core/constants/app_text_styles.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/features/browse/model/electronics_data.dart';
+
+const Color _kGreen = Color(0xFF2E9E4D);
+const Color _kMuted = Color(0xFF6B756E);
+const Color _kText = Color(0xFF1A1A1A);
+const Color _kBorder = Color(0xFFE0E6E0);
+const Color _kTile = Color(0xFFDBE8DE);
+const Color _kStar = Color(0xFFD98C1A);
+const Color _kMint = Color(0xFFE3F2EB);
+const Color _kDeepGreen = Color(0xFF127036);
+
+class ElectronicsToolbar extends StatelessWidget {
+  const ElectronicsToolbar({
+    super.key,
+    required this.isGridView,
+    required this.onViewChanged,
+    this.freeDeliveryOnly = false,
+    this.onFreeDeliveryChanged,
+  });
+
+  final bool isGridView;
+  final ValueChanged<bool> onViewChanged;
+  final bool freeDeliveryOnly;
+  final ValueChanged<bool>? onFreeDeliveryChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        _chip('⇅ Sort'),
+        SizedBox(width: 8.w),
+        GestureDetector(
+          onTap: () => onFreeDeliveryChanged?.call(!freeDeliveryOnly),
+          child: _chip(
+            'Free delivery',
+            selected: freeDeliveryOnly,
+          ),
+        ),
+        const Spacer(),
+        Container(
+          width: 72.w,
+          height: 34.h,
+          decoration: BoxDecoration(
+            color: AppColors.white,
+            borderRadius: BorderRadius.circular(10.r),
+            border: Border.all(color: _kBorder, width: 1.2),
+          ),
+          child: Row(
+            children: [
+              _viewSeg(
+                label: '≡',
+                active: !isGridView,
+                onTap: () => onViewChanged(false),
+              ),
+              _viewSeg(
+                label: '▦',
+                active: isGridView,
+                onTap: () => onViewChanged(true),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _chip(String label, {bool selected = false}) {
+    return Container(
+      height: 29.h,
+      padding: EdgeInsets.symmetric(horizontal: 12.w),
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: selected ? const Color(0xFFE8F5E9) : AppColors.white,
+        borderRadius: BorderRadius.circular(16.r),
+        border: Border.all(
+          color: selected ? _kGreen : _kBorder,
+          width: 1.2,
+        ),
+      ),
+      child: Text(
+        label,
+        style: GoogleFonts.inter(
+          color: selected ? _kGreen : _kText,
+          fontWeight: FontWeight.w600,
+          fontSize: 12.5.sp,
+          height: 15 / 12.5,
+        ),
+      ),
+    );
+  }
+
+  Widget _viewSeg({
+    required String label,
+    required bool active,
+    required VoidCallback onTap,
+  }) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          height: 34.h,
+          decoration: BoxDecoration(
+            color: active ? _kGreen : Colors.transparent,
+            borderRadius: BorderRadius.circular(9.r),
+          ),
+          alignment: Alignment.center,
+          child: Text(
+            label,
+            style: GoogleFonts.inter(
+              color: active ? AppColors.white : _kMuted,
+              fontWeight: FontWeight.w700,
+              fontSize: active ? 18.sp : 15.sp,
+              height: 1,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
 
 class ElectronicsStoreListCard extends StatelessWidget {
   const ElectronicsStoreListCard({
@@ -19,58 +138,162 @@ class ElectronicsStoreListCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: EdgeInsets.all(12.w),
+        padding: EdgeInsets.fromLTRB(12.w, 12.h, 14.w, 12.h),
         decoration: BoxDecoration(
           color: AppColors.white,
-          borderRadius: BorderRadius.circular(14.r),
-          border: Border.all(color: AppColors.border),
+          borderRadius: BorderRadius.circular(16.r),
+          border: Border.all(color: _kBorder),
         ),
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Container(
-              width: 52.w,
-              height: 52.w,
+              width: 56.w,
+              height: 56.w,
               decoration: BoxDecoration(
-                color: const Color(0xFFE3F2EB),
+                color: _kTile,
                 borderRadius: BorderRadius.circular(12.r),
               ),
-              child: Icon(
-                Icons.devices_other_outlined,
-                size: 24.sp,
-                color: AppColors.primary,
+              alignment: Alignment.center,
+              child: Text(
+                '🏪',
+                style: TextStyle(fontSize: 24.sp, height: 1),
               ),
             ),
             SizedBox(width: 12.w),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
                     store.name,
-                    style: AppTextStyles.labelMedium().copyWith(
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.inter(
+                      color: _kText,
                       fontWeight: FontWeight.w700,
                       fontSize: 15.sp,
+                      height: 18 / 15,
                     ),
                   ),
                   SizedBox(height: 4.h),
-                  Text(
-                    '★ ${store.rating} (${store.reviewCount}) · ${store.distance}',
-                    style: AppTextStyles.caption(color: const Color(0xFFD98C1A)).copyWith(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 12.sp,
+                  Text.rich(
+                    TextSpan(
+                      children: [
+                        TextSpan(
+                          text: '★ ${store.rating}',
+                          style: GoogleFonts.inter(
+                            color: _kStar,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 12.5.sp,
+                            height: 15 / 12.5,
+                          ),
+                        ),
+                        TextSpan(
+                          text: ' (${store.reviewCount}) · ${store.distance}',
+                          style: GoogleFonts.inter(
+                            color: _kMuted,
+                            fontWeight: FontWeight.w400,
+                            fontSize: 12.sp,
+                            height: 15 / 12,
+                          ),
+                        ),
+                      ],
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  SizedBox(height: 2.h),
+                  SizedBox(height: 4.h),
                   Text(
                     store.categories,
-                    style: AppTextStyles.caption(color: AppColors.textSecondary).copyWith(
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.inter(
+                      color: _kMuted,
+                      fontWeight: FontWeight.w400,
                       fontSize: 12.sp,
+                      height: 15 / 12,
                     ),
                   ),
                 ],
               ),
             ),
-            Icon(Icons.chevron_right, size: 22.sp, color: AppColors.textSecondary),
+            SizedBox(width: 8.w),
+            Icon(Icons.chevron_right, size: 20.sp, color: _kMuted),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class ElectronicsStoreGridCard extends StatelessWidget {
+  const ElectronicsStoreGridCard({
+    super.key,
+    required this.store,
+    this.onTap,
+  });
+
+  final ElectronicsStore store;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: EdgeInsets.all(12.w),
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          borderRadius: BorderRadius.circular(16.r),
+          border: Border.all(color: _kBorder),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: double.infinity,
+              height: 72.h,
+              decoration: BoxDecoration(
+                color: _kTile,
+                borderRadius: BorderRadius.circular(12.r),
+              ),
+              alignment: Alignment.center,
+              child: Text('🏪', style: TextStyle(fontSize: 28.sp, height: 1)),
+            ),
+            SizedBox(height: 10.h),
+            Text(
+              store.name,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: GoogleFonts.inter(
+                color: _kText,
+                fontWeight: FontWeight.w700,
+                fontSize: 14.sp,
+                height: 17 / 14,
+              ),
+            ),
+            SizedBox(height: 4.h),
+            Text(
+              '★ ${store.rating} · ${store.distance}',
+              style: GoogleFonts.inter(
+                color: _kStar,
+                fontWeight: FontWeight.w600,
+                fontSize: 12.sp,
+              ),
+            ),
+            SizedBox(height: 2.h),
+            Text(
+              store.categories,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: GoogleFonts.inter(
+                color: _kMuted,
+                fontWeight: FontWeight.w400,
+                fontSize: 11.sp,
+              ),
+            ),
           ],
         ),
       ),
@@ -90,46 +313,63 @@ class ElectronicsStoreTopBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 0),
-      child: SafeArea(
-        bottom: false,
+    // Figma hd: padding 4/20/8, gap 12, back + title/subtitle, trailing ⋯.
+    return SafeArea(
+      bottom: false,
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(20.w, 4.h, 20.w, 8.h),
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             GestureDetector(
               onTap: onBack ?? () => Navigator.of(context).maybePop(),
-              child: Text(
-                '‹',
-                style: TextStyle(
-                  fontSize: 26.sp,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textPrimary,
-                  height: 1,
+              child: Container(
+                width: 36.w,
+                height: 36.w,
+                decoration: BoxDecoration(
+                  color: AppColors.white,
+                  borderRadius: BorderRadius.circular(18.r),
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  '‹',
+                  style: GoogleFonts.inter(
+                    fontSize: 20.sp,
+                    fontWeight: FontWeight.w600,
+                    color: _kText,
+                    height: 24 / 20,
+                  ),
                 ),
               ),
             ),
-            SizedBox(width: 8.w),
+            SizedBox(width: 12.w),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
                     store.name,
-                    style: AppTextStyles.titleMedium().copyWith(
+                    style: GoogleFonts.inter(
+                      color: _kText,
                       fontWeight: FontWeight.w700,
-                      fontSize: 18.sp,
+                      fontSize: 20.sp,
+                      height: 24 / 20,
                     ),
                   ),
+                  SizedBox(height: 1.h),
                   Text(
                     '${store.productCount} products',
-                    style: AppTextStyles.caption(color: AppColors.textSecondary).copyWith(
+                    style: GoogleFonts.inter(
+                      color: _kMuted,
+                      fontWeight: FontWeight.w400,
                       fontSize: 12.sp,
+                      height: 15 / 12,
                     ),
                   ),
                 ],
               ),
             ),
-            Icon(Icons.more_horiz, size: 22.sp, color: AppColors.textPrimary),
           ],
         ),
       ),
@@ -141,15 +381,11 @@ class ElectronicsProductRow extends StatelessWidget {
   const ElectronicsProductRow({
     super.key,
     required this.product,
-    required this.gradientStart,
-    required this.gradientEnd,
     this.onTap,
     this.onAdd,
   });
 
   final ElectronicsProduct product;
-  final Color gradientStart;
-  final Color gradientEnd;
   final VoidCallback? onTap;
   final VoidCallback? onAdd;
 
@@ -158,24 +394,31 @@ class ElectronicsProductRow extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
-      child: Padding(
-        padding: EdgeInsets.symmetric(vertical: 12.h),
+      child: Container(
+        padding: EdgeInsets.fromLTRB(10.w, 10.h, 12.w, 10.h),
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          borderRadius: BorderRadius.circular(14.r),
+          border: Border.all(color: _kBorder),
+        ),
         child: Row(
           children: [
             Container(
-              width: 72.w,
-              height: 72.w,
+              width: 76.w,
+              height: 76.w,
               decoration: BoxDecoration(
-                color: const Color(0xFFE3F2EB),
-                borderRadius: BorderRadius.circular(14.r),
-                gradient: LinearGradient(
-                  colors: [gradientStart, gradientEnd],
-                ),
+                color: _kTile,
+                borderRadius: BorderRadius.circular(10.r),
               ),
-              child: Icon(
-                Icons.smartphone_outlined,
-                size: 28.sp,
-                color: AppColors.primary.withValues(alpha: 0.7),
+              alignment: Alignment.center,
+              child: Text(
+                product.id.contains('buds') ||
+                        product.id.contains('sound')
+                    ? '🎧'
+                    : product.id.contains('band')
+                        ? '⌚'
+                        : '📱',
+                style: TextStyle(fontSize: 24.sp, height: 1),
               ),
             ),
             SizedBox(width: 12.w),
@@ -185,24 +428,31 @@ class ElectronicsProductRow extends StatelessWidget {
                 children: [
                   Text(
                     product.name,
-                    style: AppTextStyles.labelMedium().copyWith(
+                    style: GoogleFonts.inter(
+                      color: _kText,
                       fontWeight: FontWeight.w600,
                       fontSize: 15.sp,
+                      height: 18 / 15,
                     ),
                   ),
-                  SizedBox(height: 2.h),
+                  SizedBox(height: 4.h),
                   Text(
                     product.specs,
-                    style: AppTextStyles.caption(color: AppColors.textSecondary).copyWith(
+                    style: GoogleFonts.inter(
+                      color: _kMuted,
+                      fontWeight: FontWeight.w400,
                       fontSize: 12.sp,
+                      height: 15 / 12,
                     ),
                   ),
                   SizedBox(height: 4.h),
                   Text(
                     '★ ${product.rating}',
-                    style: AppTextStyles.caption(color: const Color(0xFFD98C1A)).copyWith(
+                    style: GoogleFonts.inter(
+                      color: _kStar,
                       fontWeight: FontWeight.w600,
                       fontSize: 12.sp,
+                      height: 15 / 12,
                     ),
                   ),
                   SizedBox(height: 4.h),
@@ -210,18 +460,23 @@ class ElectronicsProductRow extends StatelessWidget {
                     children: [
                       Text(
                         'BHD ${product.price}',
-                        style: AppTextStyles.labelMedium(color: AppColors.textPrimary).copyWith(
+                        style: GoogleFonts.inter(
+                          color: _kText,
                           fontWeight: FontWeight.w700,
                           fontSize: 15.sp,
+                          height: 18 / 15,
                         ),
                       ),
                       if (product.originalPrice != null) ...[
                         SizedBox(width: 6.w),
                         Text(
                           'BHD ${product.originalPrice}',
-                          style: AppTextStyles.caption(color: AppColors.textSecondary).copyWith(
+                          style: GoogleFonts.inter(
+                            color: _kMuted,
+                            fontWeight: FontWeight.w400,
                             fontSize: 11.sp,
                             decoration: TextDecoration.lineThrough,
+                            decorationColor: _kMuted,
                           ),
                         ),
                       ],
@@ -232,21 +487,22 @@ class ElectronicsProductRow extends StatelessWidget {
             ),
             GestureDetector(
               onTap: onAdd ?? onTap,
+              // Figma: mint circle #E3F2EB, dark green + #127036
               child: Container(
                 width: 34.w,
                 height: 34.w,
                 decoration: const BoxDecoration(
-                  color: AppColors.primary,
+                  color: _kMint,
                   shape: BoxShape.circle,
                 ),
                 alignment: Alignment.center,
                 child: Text(
                   '+',
-                  style: TextStyle(
-                    color: AppColors.white,
-                    fontSize: 20.sp,
-                    fontWeight: FontWeight.w600,
-                    height: 1,
+                  style: GoogleFonts.inter(
+                    color: _kDeepGreen,
+                    fontSize: 16.sp,
+                    fontWeight: FontWeight.w700,
+                    height: 19 / 16,
                   ),
                 ),
               ),
@@ -272,22 +528,28 @@ class ElectronicsOptionChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Intrinsic width only — do not expand to full row width.
     return GestureDetector(
       onTap: onTap,
-      child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 13.w, vertical: 7.h),
-        decoration: BoxDecoration(
-          color: selected ? AppColors.primary : AppColors.white,
-          borderRadius: BorderRadius.circular(16.r),
-          border: Border.all(
-            color: selected ? AppColors.primary : AppColors.border,
+      child: UnconstrainedBox(
+        child: Container(
+          height: 29.h,
+          padding: EdgeInsets.symmetric(horizontal: 13.w),
+          decoration: BoxDecoration(
+            color: selected ? _kGreen : AppColors.white,
+            borderRadius: BorderRadius.circular(16.r),
+            border: Border.all(color: selected ? _kGreen : _kBorder),
           ),
-        ),
-        child: Text(
-          label,
-          style: AppTextStyles.labelSmall(
-            color: selected ? AppColors.white : AppColors.textPrimary,
-          ).copyWith(fontWeight: FontWeight.w600, fontSize: 12.5.sp),
+          alignment: Alignment.center,
+          child: Text(
+            label,
+            style: GoogleFonts.inter(
+              color: selected ? AppColors.white : _kText,
+              fontWeight: FontWeight.w600,
+              fontSize: 12.5.sp,
+              height: 15 / 12.5,
+            ),
+          ),
         ),
       ),
     );
@@ -321,8 +583,8 @@ class ElectronicsColorSwatches extends StatelessWidget {
                 color: options[i].color,
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: selectedIndex == i ? AppColors.primary : AppColors.border,
-                  width: selectedIndex == i ? 2 : 1,
+                  color: selectedIndex == i ? _kGreen : _kBorder,
+                  width: selectedIndex == i ? 2 : 1.2,
                 ),
               ),
             ),
@@ -343,35 +605,108 @@ class ElectronicsHighlightsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.fromLTRB(16.w, 14.h, 16.w, 14.h),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(16.r),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Highlights',
-            style: AppTextStyles.labelMedium().copyWith(
-              fontWeight: FontWeight.w700,
-              fontSize: 15.sp,
-            ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Highlights',
+          style: GoogleFonts.inter(
+            color: _kText,
+            fontWeight: FontWeight.w700,
+            fontSize: 15.sp,
+            height: 18 / 15,
           ),
-          SizedBox(height: 10.h),
-          for (final highlight in highlights)
-            Padding(
-              padding: EdgeInsets.only(bottom: 6.h),
+        ),
+        SizedBox(height: 10.h),
+        Container(
+          width: double.infinity,
+          padding: EdgeInsets.fromLTRB(16.w, 14.h, 16.w, 14.h),
+          decoration: BoxDecoration(
+            color: AppColors.white,
+            borderRadius: BorderRadius.circular(16.r),
+            border: Border.all(color: _kBorder),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              for (var i = 0; i < highlights.length; i++) ...[
+                if (i > 0) SizedBox(height: 10.h),
+                Text(
+                  '• ${highlights[i]}',
+                  textAlign: TextAlign.left,
+                  style: GoogleFonts.inter(
+                    color: _kText,
+                    fontWeight: FontWeight.w400,
+                    fontSize: 13.sp,
+                    height: 16 / 13,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class ElectronicsFilterChips extends StatelessWidget {
+  const ElectronicsFilterChips({
+    super.key,
+    required this.options,
+    required this.selected,
+    required this.onSelected,
+  });
+
+  final List<String> options;
+  final String selected;
+  final ValueChanged<String> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 29.h,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: options.length,
+        separatorBuilder: (_, _) => SizedBox(width: 8.w),
+        itemBuilder: (context, index) {
+          final option = options[index];
+          final active = option == selected;
+          return GestureDetector(
+            onTap: () => onSelected(option),
+            child: Container(
+              height: 29.h,
+              padding: EdgeInsets.symmetric(horizontal: 13.w),
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: active ? _kGreen : AppColors.white,
+                borderRadius: BorderRadius.circular(16.r),
+                border: Border.all(color: active ? _kGreen : _kBorder),
+              ),
               child: Text(
-                '• $highlight',
-                style: AppTextStyles.bodySmall().copyWith(fontSize: 13.sp),
+                option,
+                style: GoogleFonts.inter(
+                  color: active ? AppColors.white : _kText,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 12.5.sp,
+                  height: 15 / 12.5,
+                ),
               ),
             ),
-        ],
+          );
+        },
       ),
     );
   }
+}
+
+// Exposed tokens for product detail screen.
+abstract final class ElectronicsTokens {
+  static const green = _kGreen;
+  static const muted = _kMuted;
+  static const text = _kText;
+  static const border = _kBorder;
+  static const mint = _kMint;
+  static const deepGreen = _kDeepGreen;
 }

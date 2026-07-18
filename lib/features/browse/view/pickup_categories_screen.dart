@@ -21,38 +21,44 @@ class _PickupCategoriesScreenState extends State<PickupCategoriesScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Figma PK6: light bg · search 44 · grid/list toggle · 4-col tiles · spotlight.
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: ListView(
-        padding: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 24.h),
+      body: Column(
         children: [
           BrowseTopBar(
             title: PickupData.homeTitle,
             onCart: () => context.goHome(tab: 2),
           ),
-          SizedBox(height: 12.h),
-          BrowseSearchBar(
-            hint: PickupData.searchHint,
-            onTap: () {},
-          ),
-          SizedBox(height: 16.h),
-          PickupCategoriesToolbar(
-            isGridView: _isGridView,
-            onViewChanged: (value) => setState(() => _isGridView = value),
-          ),
-          SizedBox(height: 14.h),
-          if (_isGridView)
-            PickupCategoryGrid(
-              categories: PickupData.allCategories,
-              onCategoryTap: (_) {},
-            )
-          else
-            PickupCategoryList(
-              categories: PickupData.allCategories,
-              onCategoryTap: (_) {},
+          Expanded(
+            child: ListView(
+              padding: EdgeInsets.fromLTRB(20.w, 6.h, 20.w, 24.h),
+              children: [
+                BrowseSearchBar(
+                  hint: PickupData.searchHint,
+                  onTap: () {},
+                ),
+                SizedBox(height: 14.h),
+                PickupCategoriesToolbar(
+                  isGridView: _isGridView,
+                  onViewChanged: (value) => setState(() => _isGridView = value),
+                ),
+                SizedBox(height: 14.h),
+                if (_isGridView)
+                  PickupCategoryGrid(
+                    categories: PickupData.allCategories,
+                    onCategoryTap: (_) {},
+                  )
+                else
+                  PickupCategoryList(
+                    categories: PickupData.allCategories,
+                    onCategoryTap: (_) {},
+                  ),
+                SizedBox(height: 16.h),
+                PickupSpotlightBanner(onOrderNow: () {}),
+              ],
             ),
-          SizedBox(height: 18.h),
-          PickupSpotlightBanner(onOrderNow: () {}),
+          ),
         ],
       ),
       bottomNavigationBar: ShellBottomNavBar(currentIndex: widget.bottomNavIndex),

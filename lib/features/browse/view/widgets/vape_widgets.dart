@@ -18,17 +18,17 @@ class VapeAgeBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     final text = message ??
         (detailed ? VapeData.products.first.ageWarningDetail : VapeData.ageBannerShort);
+    // Figma: full-width #FFF2DB · 12px radius · #C74D00 copy.
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 10.h),
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
       decoration: BoxDecoration(
         color: const Color(0xFFFFF2DB),
         borderRadius: BorderRadius.circular(12.r),
       ),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('🔞', style: TextStyle(fontSize: 15.sp)),
+          Text('🔞', style: TextStyle(fontSize: 15.sp, height: 1.2)),
           SizedBox(width: 10.w),
           Expanded(
             child: Text(
@@ -36,7 +36,7 @@ class VapeAgeBanner extends StatelessWidget {
               style: AppTextStyles.labelSmall(color: const Color(0xFFC74D00)).copyWith(
                 fontWeight: FontWeight.w600,
                 fontSize: 12.sp,
-                height: 1.35,
+                height: 1.25,
               ),
             ),
           ),
@@ -147,16 +147,23 @@ class VapeStoreTopBar extends StatelessWidget {
   const VapeStoreTopBar({
     super.key,
     required this.store,
+    this.title,
     this.onBack,
     this.onCart,
   });
 
   final VapeStore store;
+  /// Product detail uses product name; store screens keep [store.shortName].
+  final String? title;
   final VoidCallback? onBack;
   final VoidCallback? onCart;
 
   @override
   Widget build(BuildContext context) {
+    final heading = title ?? store.shortName;
+    final showCart = onCart != null;
+    final centered = title != null;
+
     return Padding(
       padding: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 0),
       child: SafeArea(
@@ -165,40 +172,58 @@ class VapeStoreTopBar extends StatelessWidget {
           children: [
             GestureDetector(
               onTap: onBack ?? () => Navigator.of(context).maybePop(),
-              child: Text(
-                '‹',
-                style: TextStyle(
-                  fontSize: 26.sp,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textPrimary,
-                  height: 1,
+              child: Container(
+                width: 36.w,
+                height: 36.w,
+                decoration: BoxDecoration(
+                  color: AppColors.white,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: const Color(0xFFE2E8DD)),
+                ),
+                alignment: Alignment.center,
+                child: Icon(
+                  Icons.chevron_left_rounded,
+                  size: 22.sp,
+                  color: const Color(0xFF1A1A1A),
                 ),
               ),
             ),
-            SizedBox(width: 8.w),
+            SizedBox(width: 10.w),
             Expanded(
               child: Text(
-                store.shortName,
+                heading,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: centered ? TextAlign.center : TextAlign.start,
                 style: AppTextStyles.titleMedium().copyWith(
                   fontWeight: FontWeight.w700,
-                  fontSize: 18.sp,
+                  fontSize: centered ? 16.sp : 18.sp,
+                  color: const Color(0xFF1A1A1A),
                 ),
               ),
             ),
-            if (onCart != null)
+            SizedBox(width: 10.w),
+            if (showCart)
               GestureDetector(
                 onTap: onCart,
                 child: Container(
-                  width: 40.w,
-                  height: 40.w,
+                  width: 36.w,
+                  height: 36.w,
                   decoration: BoxDecoration(
                     color: AppColors.white,
-                    borderRadius: BorderRadius.circular(20.r),
-                    border: Border.all(color: AppColors.border),
+                    shape: BoxShape.circle,
+                    border: Border.all(color: const Color(0xFFE2E8DD)),
                   ),
-                  child: Icon(Icons.shopping_cart_outlined, size: 20.sp),
+                  alignment: Alignment.center,
+                  child: Icon(
+                    Icons.shopping_cart_outlined,
+                    size: 18.sp,
+                    color: const Color(0xFF1A1A1A),
+                  ),
                 ),
-              ),
+              )
+            else
+              SizedBox(width: 36.w),
           ],
         ),
       ),
@@ -224,11 +249,18 @@ class VapeProductRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Figma prod: white card #E6E8E6 border · radius 14 · padding 12 · + #4DB04F.
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
-      child: Padding(
-        padding: EdgeInsets.symmetric(vertical: 12.h),
+      child: Container(
+        margin: EdgeInsets.only(bottom: 10.h),
+        padding: EdgeInsets.all(12.w),
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          borderRadius: BorderRadius.circular(14.r),
+          border: Border.all(color: const Color(0xFFE6E8E6)),
+        ),
         child: Row(
           children: [
             Expanded(
@@ -237,24 +269,32 @@ class VapeProductRow extends StatelessWidget {
                 children: [
                   Text(
                     product.name,
-                    style: AppTextStyles.labelMedium().copyWith(
+                    style: AppTextStyles.labelMedium(
+                      color: const Color(0xFF1A1F1A),
+                    ).copyWith(
                       fontWeight: FontWeight.w600,
                       fontSize: 14.sp,
+                      height: 1.2,
                     ),
                   ),
-                  SizedBox(height: 2.h),
+                  SizedBox(height: 3.h),
                   Text(
                     product.specs,
                     style: AppTextStyles.caption(color: const Color(0xFF737873)).copyWith(
+                      fontWeight: FontWeight.w400,
                       fontSize: 11.sp,
+                      height: 1.2,
                     ),
                   ),
-                  SizedBox(height: 4.h),
+                  SizedBox(height: 3.h),
                   Text(
                     'BHD ${product.price}',
-                    style: AppTextStyles.labelMedium(color: const Color(0xFF216B2E)).copyWith(
+                    style: AppTextStyles.labelMedium(
+                      color: const Color(0xFF4DB04F),
+                    ).copyWith(
                       fontWeight: FontWeight.w700,
                       fontSize: 13.sp,
+                      height: 1.2,
                     ),
                   ),
                 ],
@@ -264,16 +304,15 @@ class VapeProductRow extends StatelessWidget {
               width: 56.w,
               height: 56.w,
               decoration: BoxDecoration(
-                color: const Color(0xFFEDEDF2),
                 borderRadius: BorderRadius.circular(12.r),
                 gradient: LinearGradient(
                   colors: [gradientStart, gradientEnd],
                 ),
               ),
             ),
-            SizedBox(width: 10.w),
+            SizedBox(width: 12.w),
             GestureDetector(
-              onTap: onAdd ?? onTap,
+              onTap: onAdd,
               child: Container(
                 width: 28.w,
                 height: 28.w,
@@ -288,7 +327,7 @@ class VapeProductRow extends StatelessWidget {
                     color: AppColors.white,
                     fontSize: 18.sp,
                     fontWeight: FontWeight.w700,
-                    height: 1,
+                    height: 1.2,
                   ),
                 ),
               ),
@@ -325,7 +364,7 @@ class VapeViewCartBar extends StatelessWidget {
         ),
         alignment: Alignment.center,
         child: Text(
-          'View cart · $itemCount item · BHD $total',
+          'View cart · $itemCount ${itemCount == 1 ? 'item' : 'items'} · BHD $total',
           style: AppTextStyles.labelMedium(color: AppColors.white).copyWith(
             fontWeight: FontWeight.w700,
             fontSize: 14.sp,

@@ -40,7 +40,8 @@ class _DineInCheckoutScreenState extends State<DineInCheckoutScreen> {
       title: DineInCartStrings.checkout,
       subtitle: DineInCartData.checkoutSubtitle,
       lightHeader: true,
-      backgroundColor: AppColors.background,
+      // Figma dine-in: rgba(44, 107, 71, 0.55) over white → sage #8BAE9A.
+      backgroundColor: const Color(0xFF8BAE9A),
       body: ListView(
         padding: EdgeInsets.fromLTRB(20.w, 8.h, 20.w, 28.h),
         children: [

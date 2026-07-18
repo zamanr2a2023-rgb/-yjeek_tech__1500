@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:yjeek_app/core/constants/app_assets.dart';
 import 'package:yjeek_app/core/constants/app_colors.dart';
 import 'package:yjeek_app/core/constants/app_text_styles.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
@@ -35,13 +36,14 @@ class _VapeCartBodyState extends State<VapeCartBody> {
                 style: AppTextStyles.titleSmall().copyWith(
                   fontSize: 16.sp,
                   fontWeight: FontWeight.w700,
+                  color: const Color(0xFF1A1A1A),
                 ),
               ),
               SizedBox(height: 10.h),
               VapeCartItemCard(
                 item: item,
                 quantity: _quantity,
-                onQuantityChanged: (v) => setState(() => _quantity = v),
+                onQuantityChanged: (v) => setState(() => _quantity = v < 1 ? 1 : v),
               ),
               SizedBox(height: 18.h),
               Text(
@@ -49,27 +51,47 @@ class _VapeCartBodyState extends State<VapeCartBody> {
                 style: AppTextStyles.titleSmall().copyWith(
                   fontSize: 16.sp,
                   fontWeight: FontWeight.w700,
+                  color: const Color(0xFF1A1A1A),
                 ),
               ),
               SizedBox(height: 10.h),
               SizedBox(
-                height: 130.h,
+                height: 133.h,
                 child: ListView.separated(
                   scrollDirection: Axis.horizontal,
                   itemCount: VapeCartData.upsellItems.length,
-                  separatorBuilder: (_, _) => SizedBox(width: 10.w),
+                  separatorBuilder: (_, _) => SizedBox(width: 12.w),
                   itemBuilder: (context, index) {
                     return VapeUpsellCard(item: VapeCartData.upsellItems[index]);
                   },
                 ),
               ),
               SizedBox(height: 16.h),
+              Text(
+                VapeCartStrings.promoCode,
+                style: AppTextStyles.titleSmall().copyWith(
+                  fontSize: 16.sp,
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF1A1A1A),
+                ),
+              ),
+              SizedBox(height: 10.h),
               const VapePromoRow(),
               SizedBox(height: 16.h),
+              Text(
+                VapeCartStrings.billSummary,
+                style: AppTextStyles.titleSmall().copyWith(
+                  fontSize: 16.sp,
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF1A1A1A),
+                ),
+              ),
+              SizedBox(height: 10.h),
               BillSummaryCard(
                 lines: VapeCartData.cartBillLines,
                 showPromo: false,
                 showCashback: true,
+                cashbackAmount: VapeCartData.cashbackAmount,
               ),
             ],
           ),
@@ -94,86 +116,112 @@ class VapeCartItemCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Figma: white card · #E2E8DD · radius 18 · image right · prices bottom-left · qty under image.
     return Container(
       padding: EdgeInsets.all(14.w),
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(18.r),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: const Color(0xFFE2E8DD)),
       ),
-      child: Row(
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  item.name,
-                  style: AppTextStyles.titleSmall().copyWith(
-                    fontSize: 15.sp,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                SizedBox(height: 4.h),
-                Text(
-                  item.subtitle,
-                  style: AppTextStyles.caption(color: AppColors.textSecondary).copyWith(
-                    fontSize: 12.sp,
-                  ),
-                ),
-                SizedBox(height: 6.h),
-                GestureDetector(
-                  onTap: () {},
-                  child: Text(
-                    VapeCartStrings.edit,
-                    style: AppTextStyles.labelSmall(color: AppColors.primary).copyWith(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 13.sp,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Column(
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                width: 82.w,
-                height: 82.w,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF1F2129),
-                  borderRadius: BorderRadius.circular(14.r),
-                ),
-              ),
-              SizedBox(height: 8.h),
-              _QuantityStepper(
-                quantity: quantity,
-                onChanged: onQuantityChanged,
-              ),
-              SizedBox(height: 6.h),
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    item.price,
-                    style: AppTextStyles.labelMedium(color: AppColors.textPrimary).copyWith(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 14.sp,
-                    ),
-                  ),
-                  if (item.originalPrice != null) ...[
-                    SizedBox(width: 4.w),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
                     Text(
-                      item.originalPrice!,
-                      style: AppTextStyles.caption(color: AppColors.textSecondary).copyWith(
-                        fontSize: 11.sp,
-                        decoration: TextDecoration.lineThrough,
+                      item.name,
+                      style: AppTextStyles.titleSmall().copyWith(
+                        fontSize: 15.sp,
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFF1A1A1A),
+                        height: 1.28,
+                      ),
+                    ),
+                    SizedBox(height: 5.h),
+                    Text(
+                      item.subtitle,
+                      style: AppTextStyles.caption(color: const Color(0xFF6B7B6E)).copyWith(
+                        fontSize: 12.sp,
+                        fontWeight: FontWeight.w500,
+                        height: 1.28,
+                      ),
+                    ),
+                    SizedBox(height: 6.h),
+                    GestureDetector(
+                      onTap: () {},
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.edit_outlined, size: 14.sp, color: const Color(0xFF4CAF50)),
+                          SizedBox(width: 5.w),
+                          Text(
+                            VapeCartStrings.edit,
+                            style: AppTextStyles.labelSmall(color: const Color(0xFF4CAF50)).copyWith(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 13.sp,
+                              height: 1.28,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
+                ),
+              ),
+              SizedBox(width: 12.w),
+              Column(
+                children: [
+                  Container(
+                    width: 82.w,
+                    height: 82.w,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(14.r),
+                      gradient: const LinearGradient(
+                        begin: Alignment(-0.8, -0.6),
+                        end: Alignment(0.8, 0.8),
+                        colors: [Color(0xFF7A4A22), Color(0xFF15302B)],
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 8.h),
+                  _QuantityStepper(
+                    quantity: quantity,
+                    onChanged: onQuantityChanged,
+                  ),
                 ],
               ),
+            ],
+          ),
+          SizedBox(height: 10.h),
+          Row(
+            children: [
+              Text(
+                item.price,
+                style: AppTextStyles.labelMedium(color: const Color(0xFF4CAF50)).copyWith(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 16.sp,
+                  height: 1.28,
+                ),
+              ),
+              if (item.originalPrice != null) ...[
+                SizedBox(width: 8.w),
+                Text(
+                  item.originalPrice!,
+                  style: AppTextStyles.caption(color: const Color(0xFF6B7B6E)).copyWith(
+                    fontSize: 13.sp,
+                    fontWeight: FontWeight.w500,
+                    decoration: TextDecoration.lineThrough,
+                    decorationColor: const Color(0xFF6B7B6E),
+                    height: 1.28,
+                  ),
+                ),
+              ],
             ],
           ),
         ],
@@ -194,49 +242,40 @@ class _QuantityStepper extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+      height: 31.h,
+      padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 7.h),
       decoration: BoxDecoration(
-        border: Border.all(color: AppColors.border),
-        borderRadius: BorderRadius.circular(20.r),
+        color: AppColors.white,
+        border: Border.all(color: const Color(0xFFE2E8DD)),
+        borderRadius: BorderRadius.circular(16.r),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          _QtyBtn(
-            label: '−',
-            onTap: quantity > 1 ? () => onChanged(quantity - 1) : null,
-          ),
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: 10.w),
-            child: Text(
-              '$quantity',
-              style: AppTextStyles.labelMedium().copyWith(fontWeight: FontWeight.w700),
+          GestureDetector(
+            onTap: quantity > 1 ? () => onChanged(quantity - 1) : () {},
+            child: Icon(
+              quantity > 1 ? Icons.remove : Icons.delete_outline,
+              size: 15.sp,
+              color: quantity > 1 ? const Color(0xFF1A1A1A) : const Color(0xFFC0392B),
             ),
           ),
-          _QtyBtn(label: '+', onTap: () => onChanged(quantity + 1)),
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: 11.w),
+            child: Text(
+              '$quantity',
+              style: AppTextStyles.labelMedium().copyWith(
+                fontWeight: FontWeight.w700,
+                fontSize: 13.sp,
+                color: const Color(0xFF1A1A1A),
+              ),
+            ),
+          ),
+          GestureDetector(
+            onTap: () => onChanged(quantity + 1),
+            child: Icon(Icons.add, size: 15.sp, color: const Color(0xFF4CAF50)),
+          ),
         ],
-      ),
-    );
-  }
-}
-
-class _QtyBtn extends StatelessWidget {
-  const _QtyBtn({required this.label, this.onTap});
-
-  final String label;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Text(
-        label,
-        style: TextStyle(
-          fontSize: 16.sp,
-          fontWeight: FontWeight.w700,
-          color: onTap != null ? AppColors.primary : AppColors.textSecondary,
-        ),
       ),
     );
   }
@@ -249,52 +288,75 @@ class VapeUpsellCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 100.w,
-      padding: EdgeInsets.all(10.w),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(14.r),
-        border: Border.all(color: AppColors.border),
-      ),
+    // Figma: 120×133 · image 90 · + white circle on image · no outer padding.
+    return SizedBox(
+      width: 120.w,
+      height: 133.h,
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 56.w,
-            height: 56.w,
-            decoration: BoxDecoration(
-              color: item.color,
-              borderRadius: BorderRadius.circular(12.r),
+          SizedBox(
+            width: 120.w,
+            height: 90.h,
+            child: Stack(
+              children: [
+                Container(
+                  width: 120.w,
+                  height: 90.h,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(14.r),
+                    gradient: LinearGradient(
+                      begin: const Alignment(-0.8, -0.6),
+                      end: const Alignment(0.8, 0.8),
+                      colors: [item.gradientStart, item.gradientEnd],
+                    ),
+                  ),
+                ),
+                Positioned(
+                  right: 6.w,
+                  bottom: 6.h,
+                  child: Container(
+                    width: 28.w,
+                    height: 28.w,
+                    decoration: BoxDecoration(
+                      color: AppColors.white,
+                      borderRadius: BorderRadius.circular(14.r),
+                      border: Border.all(color: const Color(0xFFE2E8DD)),
+                    ),
+                    alignment: Alignment.center,
+                    child: Icon(Icons.add, size: 16.sp, color: const Color(0xFF4CAF50)),
+                  ),
+                ),
+              ],
             ),
           ),
           SizedBox(height: 6.h),
-          Text(
-            item.name,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: AppTextStyles.caption().copyWith(fontWeight: FontWeight.w600),
+          SizedBox(
+            height: 16.h,
+            child: Text(
+              item.name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: AppTextStyles.caption(color: const Color(0xFF1A1A1A)).copyWith(
+                fontWeight: FontWeight.w600,
+                fontSize: 12.5.sp,
+                height: 1,
+              ),
+            ),
           ),
-          const Spacer(),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                item.price,
-                style: AppTextStyles.caption(color: const Color(0xFF216B2E)).copyWith(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 11.sp,
-                ),
+          SizedBox(height: 6.h),
+          SizedBox(
+            height: 15.h,
+            child: Text(
+              item.price,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: AppTextStyles.caption(color: const Color(0xFF1A1A1A)).copyWith(
+                fontWeight: FontWeight.w700,
+                fontSize: 12.sp,
+                height: 1,
               ),
-              Container(
-                width: 22.w,
-                height: 22.w,
-                decoration: const BoxDecoration(
-                  color: AppColors.primary,
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(Icons.add, color: AppColors.white, size: 14.sp),
-              ),
-            ],
+            ),
           ),
         ],
       ),
@@ -307,26 +369,33 @@ class VapePromoRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Figma: ticket icon · "Enter promo code" · Submit · #4CAF50 accents.
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
+      height: 46.h,
+      padding: EdgeInsets.symmetric(horizontal: 14.w),
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(14.r),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: const Color(0xFFE2E8DD)),
       ),
       child: Row(
         children: [
+          Icon(Icons.local_activity_outlined, size: 18.sp, color: const Color(0xFF4CAF50)),
+          SizedBox(width: 10.w),
           Expanded(
             child: Text(
-              VapeCartStrings.promoCode,
-              style: AppTextStyles.bodyMedium().copyWith(fontSize: 14.sp),
+              VapeCartStrings.enterPromoCode,
+              style: AppTextStyles.bodyMedium(color: const Color(0xFF6B7B6E)).copyWith(
+                fontSize: 14.sp,
+                fontWeight: FontWeight.w500,
+              ),
             ),
           ),
           Text(
-            'Submit',
-            style: AppTextStyles.labelSmall(color: AppColors.primary).copyWith(
+            VapeCartStrings.submit,
+            style: AppTextStyles.labelSmall(color: const Color(0xFF4CAF50)).copyWith(
               fontWeight: FontWeight.w700,
-              fontSize: 13.sp,
+              fontSize: 14.sp,
             ),
           ),
         ],
@@ -386,29 +455,84 @@ class VapeIdVerifiedCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return CartFlowCard(
+    // Figma idcard: white · #E0E6E0 · radius 16 · title + mint VERIFIED pill.
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(14.w),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(16.r),
+        border: Border.all(color: const Color(0xFFE0E6E0)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(
+                VapeCartStrings.idVerification,
+                style: AppTextStyles.labelMedium(color: const Color(0xFF1A1A1A)).copyWith(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14.sp,
+                  height: 17 / 14,
+                ),
+              ),
+              SizedBox(width: 8.w),
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 9.w, vertical: 3.h),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE3F2EB),
+                  borderRadius: BorderRadius.circular(20.r),
+                ),
+                child: Text(
+                  VapeCartStrings.verified,
+                  style: AppTextStyles.caption(color: const Color(0xFF127036)).copyWith(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 10.5.sp,
+                    height: 1.2,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 8.h),
+          Text(
+            VapeCartStrings.verifiedNote,
+            style: AppTextStyles.caption(color: const Color(0xFF697A6E)).copyWith(
+              fontWeight: FontWeight.w400,
+              fontSize: 12.sp,
+              height: 15 / 12,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class VapePaymentNoteBanner extends StatelessWidget {
+  const VapePaymentNoteBanner({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(12.w),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF8E8),
+        borderRadius: BorderRadius.circular(12.r),
+        border: Border.all(color: const Color(0xFFE8D9A8)),
+      ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
-            decoration: BoxDecoration(
-              color: const Color(0xFFE3F2EB),
-              borderRadius: BorderRadius.circular(8.r),
-            ),
-            child: Text(
-              VapeCartStrings.verified,
-              style: AppTextStyles.caption(color: AppColors.primary).copyWith(
-                fontWeight: FontWeight.w800,
-                fontSize: 11.sp,
-              ),
-            ),
-          ),
+          Icon(Icons.info_outline, size: 18.sp, color: const Color(0xFF8A5A12)),
           SizedBox(width: 10.w),
           Expanded(
             child: Text(
-              VapeCartStrings.verifiedNote,
-              style: AppTextStyles.caption(color: AppColors.textSecondary).copyWith(
+              VapeCartStrings.paymentNote,
+              style: AppTextStyles.caption(color: const Color(0xFF8A5A12)).copyWith(
+                fontWeight: FontWeight.w600,
                 fontSize: 12.sp,
                 height: 1.35,
               ),
@@ -432,37 +556,58 @@ class VapeDeliveryMethodCard extends StatelessWidget {
   final bool selected;
   final VoidCallback onTap;
 
+  static String? _assetFor(String id) {
+    return switch (id) {
+      'next-day' => AppAssets.deliveryNextDay,
+      'standard' => AppAssets.deliveryStandard,
+      'economy' => AppAssets.deliveryEconomy,
+      _ => null,
+    };
+  }
+
+  Widget _methodIcon({required bool selected}) {
+    final asset = _assetFor(method.id);
+    final Color tint = selected || method.id == 'next-day'
+        ? Colors.white
+        : const Color(0xFF0F4D27);
+
+    if (asset == null) {
+      return Icon(Icons.bolt_rounded, size: 22.sp, color: tint);
+    }
+
+    return ColorFiltered(
+      colorFilter: ColorFilter.mode(tint, BlendMode.srcIn),
+      child: Image.asset(asset, width: 20.w, height: 20.w, fit: BoxFit.contain),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    // Same card chrome as Electronics scheduled checkout.
     return GestureDetector(
       onTap: onTap,
       child: Container(
         margin: EdgeInsets.only(bottom: 10.h),
-        padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
+        padding: EdgeInsets.all(14.w),
         decoration: BoxDecoration(
-          color: AppColors.white,
-          borderRadius: BorderRadius.circular(14.r),
+          color: selected ? const Color(0xFFE4F1E9) : AppColors.white,
+          borderRadius: BorderRadius.circular(16.r),
           border: Border.all(
-            color: selected ? AppColors.primary : AppColors.border,
-            width: selected ? 1.5 : 1,
+            color: selected ? const Color(0xFF4CAF50) : const Color(0xFFE2E8DD),
+            width: selected ? 2 : 1,
           ),
         ),
         child: Row(
           children: [
             Container(
-              width: 22.w,
-              height: 22.w,
+              width: 40.w,
+              height: 40.w,
               decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: selected ? AppColors.primary : AppColors.white,
-                border: Border.all(
-                  color: selected ? AppColors.primary : AppColors.border,
-                  width: 1.5,
-                ),
+                color: selected ? const Color(0xFF4CAF50) : const Color(0xFFDBE6D4),
+                borderRadius: BorderRadius.circular(11.r),
               ),
-              child: selected
-                  ? Icon(Icons.check, size: 14.sp, color: AppColors.white)
-                  : null,
+              alignment: Alignment.center,
+              child: _methodIcon(selected: selected),
             ),
             SizedBox(width: 12.w),
             Expanded(
@@ -471,16 +616,18 @@ class VapeDeliveryMethodCard extends StatelessWidget {
                 children: [
                   Text(
                     method.label,
-                    style: AppTextStyles.labelMedium().copyWith(
+                    style: AppTextStyles.labelMedium(color: const Color(0xFF1A1A1A)).copyWith(
                       fontWeight: FontWeight.w700,
                       fontSize: 15.sp,
+                      height: 1.28,
                     ),
                   ),
                   if (method.subtitle != null) ...[
                     SizedBox(height: 2.h),
                     Text(
                       method.subtitle!,
-                      style: AppTextStyles.caption(color: AppColors.textSecondary).copyWith(
+                      style: AppTextStyles.caption(color: const Color(0xFF6B756E)).copyWith(
+                        fontWeight: FontWeight.w400,
                         fontSize: 12.sp,
                       ),
                     ),
@@ -488,12 +635,31 @@ class VapeDeliveryMethodCard extends StatelessWidget {
                 ],
               ),
             ),
-            Text(
-              method.price,
-              style: AppTextStyles.labelMedium().copyWith(
-                fontWeight: FontWeight.w700,
-                fontSize: 13.sp,
-              ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  method.price,
+                  style: AppTextStyles.labelMedium(color: const Color(0xFF1A1A1A)).copyWith(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13.sp,
+                    height: 1.28,
+                  ),
+                ),
+                SizedBox(height: 6.h),
+                Container(
+                  width: 22.w,
+                  height: 22.w,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: AppColors.white,
+                    border: Border.all(
+                      color: selected ? const Color(0xFF4CAF50) : const Color(0xFFE0E6E0),
+                      width: selected ? 6.5 : 1.5,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ],
         ),
@@ -516,7 +682,7 @@ class VapeCashbackBanner extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(Icons.savings_outlined, size: 16.sp, color: const Color(0xFF7A5E12)),
+          Icon(Icons.star_border, size: 15.sp, color: const Color(0xFFC9A84C)),
           SizedBox(width: 8.w),
           Expanded(
             child: Text(
@@ -547,29 +713,44 @@ class VapeReviewStatusCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final progress = (secondsLeft.clamp(0, 10)) / 10;
+
+    // Same as Electronics: #4CAF50 card, gold ring / white count.
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.all(18.w),
+      padding: EdgeInsets.all(20.w),
       decoration: BoxDecoration(
-        color: AppColors.primary,
-        borderRadius: BorderRadius.circular(18.r),
+        color: const Color(0xFF4CAF50),
+        borderRadius: BorderRadius.circular(20.r),
       ),
       child: Column(
         children: [
-          Container(
-            width: 64.w,
-            height: 64.w,
-            decoration: const BoxDecoration(
-              color: AppColors.white,
-              shape: BoxShape.circle,
-            ),
-            alignment: Alignment.center,
-            child: Text(
-              '$secondsLeft',
-              style: AppTextStyles.titleMedium(color: AppColors.primary).copyWith(
-                fontWeight: FontWeight.w800,
-                fontSize: 38.sp,
-              ),
+          SizedBox(
+            width: 92.w,
+            height: 92.w,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                SizedBox(
+                  width: 92.w,
+                  height: 92.w,
+                  child: CircularProgressIndicator(
+                    value: progress,
+                    strokeWidth: 7,
+                    backgroundColor: const Color(0xFF2C6B47),
+                    color: const Color(0xFFC9A84C),
+                    strokeCap: StrokeCap.round,
+                  ),
+                ),
+                Text(
+                  '$secondsLeft',
+                  style: AppTextStyles.titleMedium(color: AppColors.white).copyWith(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 38.sp,
+                    height: 1.3,
+                  ),
+                ),
+              ],
             ),
           ),
           SizedBox(height: 12.h),
@@ -579,6 +760,7 @@ class VapeReviewStatusCard extends StatelessWidget {
             style: AppTextStyles.labelMedium(color: AppColors.white).copyWith(
               fontWeight: FontWeight.w700,
               fontSize: 16.sp,
+              height: 1.3,
             ),
           ),
           SizedBox(height: 6.h),
@@ -586,16 +768,17 @@ class VapeReviewStatusCard extends StatelessWidget {
             VapeCartStrings.autoConfirmHint,
             textAlign: TextAlign.center,
             style: AppTextStyles.caption(color: const Color(0xFFCFE8D8)).copyWith(
+              fontWeight: FontWeight.w500,
               fontSize: 12.5.sp,
-              height: 1.35,
+              height: 1.3,
             ),
           ),
           SizedBox(height: 12.h),
           ClipRRect(
             borderRadius: BorderRadius.circular(3.r),
             child: LinearProgressIndicator(
-              value: secondsLeft / 10,
-              minHeight: 6.h,
+              value: progress,
+              minHeight: 6,
               backgroundColor: const Color(0xFF2C6B47),
               valueColor: const AlwaysStoppedAnimation(Color(0xFFC9A84C)),
             ),
@@ -610,77 +793,93 @@ class VapeReviewSummaryCard extends StatelessWidget {
   const VapeReviewSummaryCard({
     super.key,
     required this.deliveryLabel,
+    required this.total,
   });
 
   final String deliveryLabel;
+  final String total;
 
   @override
   Widget build(BuildContext context) {
-    return CartFlowCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            VapeCartStrings.orderSummary,
-            style: AppTextStyles.labelMedium().copyWith(
-              fontWeight: FontWeight.w700,
-              fontSize: 16.sp,
-            ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          VapeCartStrings.orderSummary,
+          style: AppTextStyles.labelMedium(color: const Color(0xFF1A1A1A)).copyWith(
+            fontWeight: FontWeight.w700,
+            fontSize: 16.sp,
+            height: 1.3,
           ),
-          SizedBox(height: 12.h),
-          Text(
-            VapeCartStrings.orderType,
-            style: AppTextStyles.caption(color: AppColors.textSecondary).copyWith(
-              fontWeight: FontWeight.w600,
-              fontSize: 11.sp,
-            ),
-          ),
-          SizedBox(height: 10.h),
-          _row(VapeCartStrings.method, deliveryLabel),
-          _row(VapeCartStrings.deliverTo, VapeCartData.selectedAddress),
-          _row(VapeCartStrings.payment, VapeCartStrings.cashOnDelivery),
-          Divider(height: 20.h, color: AppColors.border),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        ),
+        SizedBox(height: 8.h),
+        CartFlowCard(
+          padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                VapeCartStrings.orderTotal,
-                style: AppTextStyles.labelMedium().copyWith(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 16.sp,
+                VapeCartStrings.orderType,
+                style: AppTextStyles.caption(color: const Color(0xFF6B7B6E)).copyWith(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 11.sp,
+                  height: 1.3,
                 ),
               ),
-              Text(
-                VapeCartData.orderTotal,
-                style: AppTextStyles.titleSmall().copyWith(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 18.sp,
-                ),
+              SizedBox(height: 8.h),
+              _summaryRow(VapeCartStrings.method, deliveryLabel),
+              _summaryRow(VapeCartStrings.deliverTo, VapeCartData.selectedAddress),
+              _summaryRow(VapeCartStrings.payment, VapeCartStrings.cashOnDelivery),
+              Divider(height: 16.h, thickness: 1, color: const Color(0xFFE2E8DD)),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    VapeCartStrings.orderTotal,
+                    style: AppTextStyles.labelMedium(color: const Color(0xFF1A1A1A)).copyWith(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 16.sp,
+                    ),
+                  ),
+                  Text(
+                    total,
+                    style: AppTextStyles.titleSmall(color: const Color(0xFF1A1A1A)).copyWith(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 18.sp,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
-  Widget _row(String label, String value) {
+  Widget _summaryRow(String label, String value) {
     return Padding(
-      padding: EdgeInsets.only(bottom: 8.h),
+      padding: EdgeInsets.symmetric(vertical: 3.h),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(
             label,
-            style: AppTextStyles.labelSmall(color: AppColors.textSecondary).copyWith(
+            style: AppTextStyles.labelSmall(color: const Color(0xFF6B7B6E)).copyWith(
+              fontWeight: FontWeight.w500,
               fontSize: 13.sp,
+              height: 1.3,
             ),
           ),
-          Text(
-            value,
-            style: AppTextStyles.labelMedium().copyWith(
-              fontWeight: FontWeight.w700,
-              fontSize: 13.sp,
+          Flexible(
+            child: Text(
+              value,
+              textAlign: TextAlign.right,
+              style: AppTextStyles.labelMedium(color: const Color(0xFF1A1A1A)).copyWith(
+                fontWeight: FontWeight.w700,
+                fontSize: 13.sp,
+                height: 1.3,
+              ),
             ),
           ),
         ],

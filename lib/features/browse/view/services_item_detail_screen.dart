@@ -30,7 +30,11 @@ class _ServicesItemDetailScreenState extends State<ServicesItemDetailScreen> {
   String _selectedSpecialist = ServicesData.specialists.first;
   final Set<int> _selectedAddons = {};
 
-  ServiceProvider get _provider => ServicesData.providerById(widget.providerId);
+  static const Color _muted = Color(0xFF6B7A6E);
+  static const Color _green = Color(0xFF2E9E4D);
+  static const Color _mint = Color(0xFFE3F2EB);
+  static const Color _border = Color(0xFFE0E6E0);
+
   ServiceMenuItem get _item => ServicesData.menuItemById(widget.itemId);
 
   String get _displayPrice {
@@ -45,24 +49,22 @@ class _ServicesItemDetailScreenState extends State<ServicesItemDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final topInset = MediaQuery.paddingOf(context).top;
+    // Design hero is 260; scale with width so title stays on-screen (260.h was too tall).
+    final heroHeight = topInset + 200.w;
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: Column(
         children: [
           SizedBox(
-            height: 260.h,
+            height: heroHeight,
             child: Stack(
               fit: StackFit.expand,
               children: [
-                DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [_provider.gradientStart, _provider.gradientEnd],
-                    ),
-                  ),
-                ),
+                const ColoredBox(color: _mint),
                 Positioned(
-                  top: 12.h,
+                  top: topInset + 12.w,
                   left: 16.w,
                   child: GestureDetector(
                     onTap: () => context.pop(),
@@ -80,6 +82,7 @@ class _ServicesItemDetailScreenState extends State<ServicesItemDetailScreen> {
                           fontSize: 20.sp,
                           fontWeight: FontWeight.w600,
                           height: 1,
+                          color: AppColors.textPrimary,
                         ),
                       ),
                     ),
@@ -90,84 +93,89 @@ class _ServicesItemDetailScreenState extends State<ServicesItemDetailScreen> {
           ),
           Expanded(
             child: ListView(
-              padding: EdgeInsets.fromLTRB(20.w, 18.h, 20.w, 8.h),
+              padding: EdgeInsets.fromLTRB(20.w, 18.w, 20.w, 8.w),
               children: [
                 Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     Expanded(
                       child: Text(
                         _item.name,
-                        style: AppTextStyles.titleMedium().copyWith(
+                        style: AppTextStyles.titleMedium(color: AppColors.textPrimary).copyWith(
                           fontWeight: FontWeight.w700,
                           fontSize: 24.sp,
+                          height: 29 / 24,
                         ),
                       ),
                     ),
                     Text(
                       'BHD ${_item.price}',
-                      style: AppTextStyles.titleSmall(color: AppColors.primary).copyWith(
-                        fontWeight: FontWeight.w600,
+                      style: AppTextStyles.titleSmall(color: _green).copyWith(
+                        fontWeight: FontWeight.w700,
                         fontSize: 18.sp,
+                        height: 22 / 18,
                       ),
                     ),
                   ],
                 ),
-                SizedBox(height: 8.h),
+                SizedBox(height: 8.w),
                 Text(
                   '🕒 ${_item.duration} · with a senior stylist',
-                  style: AppTextStyles.labelSmall(color: AppColors.textSecondary).copyWith(
+                  style: AppTextStyles.labelSmall(color: _muted).copyWith(
                     fontWeight: FontWeight.w500,
                     fontSize: 13.sp,
+                    height: 16 / 13,
                   ),
                 ),
-                SizedBox(height: 12.h),
+                SizedBox(height: 12.w),
                 Text(
                   ServicesData.haircutDescription,
-                  style: AppTextStyles.bodySmall(color: AppColors.textSecondary).copyWith(
+                  style: AppTextStyles.bodySmall(color: _muted).copyWith(
+                    fontWeight: FontWeight.w400,
                     fontSize: 14.sp,
-                    height: 1.35,
+                    height: 17 / 14,
                   ),
                 ),
-                SizedBox(height: 18.h),
+                SizedBox(height: 18.w),
                 Text(
                   'CHOOSE OPTION',
-                  style: AppTextStyles.labelSmall(color: AppColors.textSecondary).copyWith(
+                  style: AppTextStyles.labelSmall(color: _muted).copyWith(
                     fontWeight: FontWeight.w700,
                     fontSize: 12.sp,
-                    letterSpacing: 0.3,
+                    height: 15 / 12,
                   ),
                 ),
-                SizedBox(height: 10.h),
+                SizedBox(height: 10.w),
                 for (var i = 0; i < ServicesData.haircutOptions.length; i++) ...[
-                  if (i > 0) SizedBox(height: 8.h),
+                  if (i > 0) SizedBox(height: 8.w),
                   ServicesOptionCard(
                     option: ServicesData.haircutOptions[i],
                     selected: _selectedOption == i,
                     onTap: () => setState(() => _selectedOption = i),
                   ),
                 ],
-                SizedBox(height: 18.h),
+                SizedBox(height: 18.w),
                 Text(
                   'SELECT SPECIALIST',
-                  style: AppTextStyles.labelSmall(color: AppColors.textSecondary).copyWith(
+                  style: AppTextStyles.labelSmall(color: _muted).copyWith(
                     fontWeight: FontWeight.w700,
                     fontSize: 12.sp,
-                    letterSpacing: 0.3,
+                    height: 15 / 12,
                   ),
                 ),
-                SizedBox(height: 10.h),
+                SizedBox(height: 10.w),
                 ServicesSpecialistChips(
                   options: ServicesData.specialists,
                   selected: _selectedSpecialist,
                   onSelected: (v) => setState(() => _selectedSpecialist = v),
                 ),
-                SizedBox(height: 18.h),
+                SizedBox(height: 18.w),
                 Text(
                   'ADD-ONS',
-                  style: AppTextStyles.labelSmall(color: AppColors.textSecondary).copyWith(
+                  style: AppTextStyles.labelSmall(color: _muted).copyWith(
                     fontWeight: FontWeight.w700,
                     fontSize: 12.sp,
+                    height: 15 / 12,
                   ),
                 ),
                 for (var i = 0; i < ServicesData.haircutAddons.length; i++)
@@ -186,34 +194,69 @@ class _ServicesItemDetailScreenState extends State<ServicesItemDetailScreen> {
             ),
           ),
           Container(
-            padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 16.h),
+            padding: EdgeInsets.fromLTRB(20.w, 15.w, 20.w, 15.w),
             decoration: const BoxDecoration(
               color: AppColors.white,
-              border: Border(top: BorderSide(color: AppColors.border)),
+              border: Border(top: BorderSide(color: _border)),
             ),
             child: Row(
               children: [
+                // Design qty: #F2F7F2 bg, green − / +, black count, 92×46, radius 12
                 Container(
+                  width: 92.w,
+                  height: 46.w,
+                  padding: EdgeInsets.symmetric(horizontal: 8.w),
                   decoration: BoxDecoration(
-                    border: Border.all(color: AppColors.border),
+                    color: const Color(0xFFF2F7F2),
+                    border: Border.all(color: _border),
                     borderRadius: BorderRadius.circular(12.r),
                   ),
                   child: Row(
                     children: [
-                      _qtyButton(Icons.remove, () {
-                        if (_quantity > 1) setState(() => _quantity--);
-                      }),
-                      Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 14.w),
-                        child: Text(
-                          '$_quantity',
-                          style: AppTextStyles.labelMedium().copyWith(
-                            fontWeight: FontWeight.w700,
-                            fontSize: 15.sp,
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () {
+                            if (_quantity > 1) setState(() => _quantity--);
+                          },
+                          behavior: HitTestBehavior.opaque,
+                          child: Center(
+                            child: Text(
+                              '−',
+                              style: TextStyle(
+                                color: _green,
+                                fontSize: 22.sp,
+                                fontWeight: FontWeight.w700,
+                                height: 27 / 22,
+                              ),
+                            ),
                           ),
                         ),
                       ),
-                      _qtyButton(Icons.add, () => setState(() => _quantity++)),
+                      Text(
+                        '$_quantity',
+                        style: AppTextStyles.labelMedium(color: AppColors.textPrimary).copyWith(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 16.sp,
+                          height: 19 / 16,
+                        ),
+                      ),
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () => setState(() => _quantity++),
+                          behavior: HitTestBehavior.opaque,
+                          child: Center(
+                            child: Text(
+                              '+',
+                              style: TextStyle(
+                                color: _green,
+                                fontSize: 22.sp,
+                                fontWeight: FontWeight.w700,
+                                height: 27 / 22,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -222,17 +265,19 @@ class _ServicesItemDetailScreenState extends State<ServicesItemDetailScreen> {
                   child: GestureDetector(
                     onTap: () => context.push(ServicesBookingRoutes.booking),
                     child: Container(
-                      padding: EdgeInsets.symmetric(vertical: 14.h),
+                      height: 55.w,
                       decoration: BoxDecoration(
-                        color: AppColors.primary,
-                        borderRadius: BorderRadius.circular(12.r),
+                        color: _green,
+                        // Design CSS: border-radius 14
+                        borderRadius: BorderRadius.circular(14.r),
                       ),
                       alignment: Alignment.center,
                       child: Text(
                         'Add to booking · BHD $_displayPrice',
                         style: AppTextStyles.labelMedium(color: AppColors.white).copyWith(
                           fontWeight: FontWeight.w700,
-                          fontSize: 14.sp,
+                          fontSize: 16.sp,
+                          height: 19 / 16,
                         ),
                       ),
                     ),
@@ -244,16 +289,6 @@ class _ServicesItemDetailScreenState extends State<ServicesItemDetailScreen> {
         ],
       ),
       bottomNavigationBar: ShellBottomNavBar(currentIndex: widget.bottomNavIndex),
-    );
-  }
-
-  Widget _qtyButton(IconData icon, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Padding(
-        padding: EdgeInsets.all(10.w),
-        child: Icon(icon, size: 18.sp, color: AppColors.textPrimary),
-      ),
     );
   }
 }

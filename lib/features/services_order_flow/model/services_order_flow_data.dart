@@ -19,11 +19,16 @@ abstract final class ServicesOrderFlowStrings {
   static const String notChargedYet =
       "You won't be charged until the vendor accepts your order.";
   static const String cancelBooking = 'Cancel booking';
-  static const String freeCancelHint = 'Free cancellation before the provider accepts';
+  static const String freeCancelHint =
+      'Free cancellation before the provider accepts.';
   static const String providerAccepted = 'Glow Beauty Lounge accepted! 🙌';
+  static const String payWithinTitle = 'Complete payment within 5 minutes';
+  static const String payWithinBody =
+      'If payment is not completed in time, your order will be cancelled automatically.';
   static const String payWithinHint =
       'Complete payment within 5 minutes. If payment is not completed in time, your order will be cancelled automatically.';
   static const String payWith = 'Pay with';
+  static const String yjeekWallet = 'Yjeek Wallet';
   static const String change = 'Change';
   static const String subtotal = 'Subtotal';
   static const String serviceFee = 'Service fee';
@@ -80,8 +85,8 @@ abstract final class ServicesOrderFlowData {
   static const List<ServicesOrderTimelineStep> statusTimeline = [
     ServicesOrderTimelineStep(label: 'Requested', time: 'Mon 12', completed: true),
     ServicesOrderTimelineStep(label: 'Confirmed', time: 'Mon 12', completed: true),
-    ServicesOrderTimelineStep(label: 'In progress', time: '--'),
-    ServicesOrderTimelineStep(label: 'Completed', time: '--'),
+    ServicesOrderTimelineStep(label: 'In progress', time: '—'),
+    ServicesOrderTimelineStep(label: 'Completed', time: '—'),
   ];
 
   static const List<BillLine> receiptBillLines = [

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:yjeek_app/core/constants/app_colors.dart';
-import 'package:yjeek_app/core/constants/app_text_styles.dart';
 import 'package:yjeek_app/core/providers/shell_provider.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/features/browse/browse_routes.dart';
@@ -32,14 +31,14 @@ class PickupBrowseScreen extends ConsumerWidget {
                   onCart: () => context.goHome(tab: 2),
                 ),
                 Padding(
-                  padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 0),
+                  padding: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 0),
                   child: BrowseSearchBar(
                     hint: PickupData.searchHint,
                     onTap: () {},
                   ),
                 ),
                 Padding(
-                  padding: EdgeInsets.fromLTRB(16.w, 18.h, 16.w, 0),
+                  padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 0),
                   child: PickupSectionHeader(
                     title: PickupData.browseByCategory,
                     onViewAll: () => context.push(BrowseRoutes.pickupCategories()),
@@ -54,13 +53,9 @@ class PickupBrowseScreen extends ConsumerWidget {
                   ),
                 ),
                 Padding(
-                  padding: EdgeInsets.fromLTRB(16.w, 18.h, 16.w, 0),
-                  child: Text(
-                    PickupData.readyNearYou,
-                    style: AppTextStyles.titleSmall().copyWith(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 15.sp,
-                    ),
+                  padding: EdgeInsets.fromLTRB(16.w, 14.h, 16.w, 0),
+                  child: const PickupSectionHeader(
+                    title: PickupData.readyNearYou,
                   ),
                 ),
               ],

@@ -101,7 +101,10 @@ class _AddressCard extends StatelessWidget {
                   children: [
                     Text(
                       address.label,
-                      style: AppTextStyles.labelMedium().copyWith(
+                      // Figma labels (Home / Work / Mum's place): #1A1A1A.
+                      style: AppTextStyles.labelMedium(
+                        color: const Color(0xFF1A1A1A),
+                      ).copyWith(
                         fontWeight: FontWeight.w700,
                         fontSize: 13.5.sp,
                       ),

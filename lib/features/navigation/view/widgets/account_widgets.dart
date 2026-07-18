@@ -407,6 +407,7 @@ class AccountFormField extends StatelessWidget {
     this.suffix,
     this.readOnly = true,
     this.valueColor,
+    this.labelColor,
   });
 
   final String label;
@@ -414,6 +415,7 @@ class AccountFormField extends StatelessWidget {
   final Widget? suffix;
   final bool readOnly;
   final Color? valueColor;
+  final Color? labelColor;
 
   @override
   Widget build(BuildContext context) {
@@ -423,27 +425,28 @@ class AccountFormField extends StatelessWidget {
         Text(
           label,
           style: AppTextStyles.labelSmall(
-            color: const Color(0xFF6B756E),
-          ).copyWith(fontSize: 12.5.sp, fontWeight: FontWeight.w600),
+            color: labelColor ?? const Color(0xFF6B7B6E),
+          ).copyWith(fontSize: 12.sp, fontWeight: FontWeight.w700, height: 1.3),
         ),
-        SizedBox(height: 6.h),
+        SizedBox(height: 7.h),
         Container(
           width: double.infinity,
-          height: 50.h,
-          padding: EdgeInsets.symmetric(horizontal: 14.w),
+          height: 44.h,
+          padding: EdgeInsets.symmetric(horizontal: 13.w),
           decoration: BoxDecoration(
             color: AppColors.white,
-            borderRadius: BorderRadius.circular(12.r),
-            border: Border.all(color: const Color(0xFFD6DED6), width: 1.2),
+            borderRadius: BorderRadius.circular(11.r),
+            border: Border.all(color: const Color(0xFFE6EBE3), width: 1.2),
           ),
+          alignment: Alignment.centerLeft,
           child: Row(
             children: [
               Expanded(
                 child: Text(
                   value,
                   style: AppTextStyles.bodyMedium(
-                    color: valueColor ?? AppColors.textPrimary,
-                  ).copyWith(fontSize: 15.sp, fontWeight: FontWeight.w500),
+                    color: valueColor ?? const Color(0xFF1A1A1A),
+                  ).copyWith(fontSize: 13.5.sp, fontWeight: FontWeight.w600, height: 1.3),
                 ),
               ),
               if (suffix != null) suffix!,
@@ -655,7 +658,8 @@ class InfoNoticeBox extends StatelessWidget {
             : Border.all(color: colors.border),
       ),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        // Figma withdraw notice: row center · gap 10 · pad 13/14.
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Icon(Icons.access_time, size: 18.sp, color: colors.icon),
           SizedBox(width: 10.w),
@@ -922,9 +926,13 @@ class AccountInfoRow extends StatelessWidget {
                 SizedBox(height: 1.h),
                 Text(
                   value,
-                  style: AppTextStyles.labelMedium().copyWith(
-                    fontWeight: FontWeight.w700,
+                  // Figma personal info values: #1A1A1A · w600 · 13.5.
+                  style: AppTextStyles.labelMedium(
+                    color: const Color(0xFF1A1A1A),
+                  ).copyWith(
+                    fontWeight: FontWeight.w600,
                     fontSize: 13.5.sp,
+                    height: 1.3,
                   ),
                 ),
               ],
@@ -1079,6 +1087,7 @@ class PayoutSplitCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Figma: pad 14 · gap 12 · labels flush-left · amounts flush-right.
     return Container(
       width: double.infinity,
       padding: EdgeInsets.all(14.w),
@@ -1088,32 +1097,36 @@ class PayoutSplitCard extends StatelessWidget {
         border: Border.all(color: const Color(0xFFE6EBE3)),
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
             '70 / 30 pay-out split',
-            style: AppTextStyles.labelMedium(color: AppColors.textPrimary).copyWith(
+            textAlign: TextAlign.left,
+            style: AppTextStyles.labelMedium(color: const Color(0xFF1A1A1A)).copyWith(
               fontWeight: FontWeight.w700,
               fontSize: 13.5.sp,
+              height: 1.32,
             ),
           ),
           SizedBox(height: 12.h),
           _PayoutRow(
             label: 'You withdraw',
             value: WalletData.withdrawableBalance,
-            valueColor: AppColors.textPrimary,
+            valueColor: const Color(0xFF1A1A1A),
             valueWeight: FontWeight.w600,
           ),
+          SizedBox(height: 8.h),
           _PayoutRow(
             label: 'You receive (70%)',
             value: WalletData.withdrawReceive,
-            valueColor: AppColors.successText,
+            valueColor: const Color(0xFF0F4D27),
             valueWeight: FontWeight.w700,
           ),
+          SizedBox(height: 8.h),
           _PayoutRow(
             label: 'Processing fee (30%)',
             value: WalletData.withdrawFee,
-            valueColor: AppColors.textSecondary,
+            valueColor: const Color(0xFF6B7B6E),
             valueWeight: FontWeight.w600,
           ),
         ],
@@ -1137,27 +1150,29 @@ class _PayoutRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.only(bottom: 8.h),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              label,
-              style: AppTextStyles.labelSmall(
-                color: AppColors.textSecondary,
-              ).copyWith(fontSize: 12.5.sp, fontWeight: FontWeight.w500),
-            ),
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Text(
+          label,
+          textAlign: TextAlign.left,
+          style: AppTextStyles.labelSmall(color: const Color(0xFF6B7B6E)).copyWith(
+            fontSize: 12.5.sp,
+            fontWeight: FontWeight.w500,
+            height: 1.32,
           ),
-          Text(
-            value,
-            style: AppTextStyles.labelMedium(color: valueColor).copyWith(
-              fontWeight: valueWeight,
-              fontSize: 12.5.sp,
-            ),
+        ),
+        const Spacer(),
+        Text(
+          value,
+          textAlign: TextAlign.right,
+          style: AppTextStyles.labelMedium(color: valueColor).copyWith(
+            fontWeight: valueWeight,
+            fontSize: 12.5.sp,
+            height: 1.32,
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

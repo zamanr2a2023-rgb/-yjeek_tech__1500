@@ -51,7 +51,7 @@ abstract final class PickupData {
     PickupCategory(
       id: 'food',
       name: 'Food',
-      icon: Icons.lunch_dining_outlined,
+      icon: Icons.lunch_dining,
       backgroundColor: Color(0xFFFFE7D6),
     ),
     PickupCategory(
@@ -76,21 +76,22 @@ abstract final class PickupData {
       id: 'gifts',
       name: 'Gifts',
       icon: Icons.card_giftcard_outlined,
-      backgroundColor: Color(0xFFFCE8E4),
+      backgroundColor: Color(0xFFFBE1E3),
     ),
   ];
 
+  // Figma PK6 tile fills (authoritative).
   static const List<PickupCategory> allCategories = [
     PickupCategory(
       id: 'food',
       name: 'Food',
-      icon: Icons.lunch_dining_outlined,
+      icon: Icons.lunch_dining,
       backgroundColor: Color(0xFFFFE7D6),
     ),
     PickupCategory(
       id: 'groceries',
       name: 'Groceries',
-      icon: Icons.shopping_basket_outlined,
+      icon: Icons.shopping_bag_outlined,
       backgroundColor: Color(0xFFD6F0EA),
     ),
     PickupCategory(
@@ -102,50 +103,50 @@ abstract final class PickupData {
     PickupCategory(
       id: 'sports',
       name: 'Sports',
-      icon: Icons.sports_soccer_outlined,
-      backgroundColor: Color(0xFFE8F4FC),
+      icon: Icons.sports_tennis,
+      backgroundColor: Color(0xFFE7F2D4),
     ),
     PickupCategory(
       id: 'cosmetics',
       name: 'Cosmetics',
-      icon: Icons.face_retouching_natural_outlined,
+      icon: Icons.brush_outlined,
       backgroundColor: Color(0xFFFBE2EF),
     ),
     PickupCategory(
       id: 'gifts',
       name: 'Gifts',
       icon: Icons.card_giftcard_outlined,
-      backgroundColor: Color(0xFFFCE8E4),
+      backgroundColor: Color(0xFFFBE1E3),
     ),
     PickupCategory(
       id: 'fashion',
       name: 'Fashion',
       icon: Icons.checkroom_outlined,
-      backgroundColor: Color(0xFFE8E4F8),
+      backgroundColor: Color(0xFFECE6FB),
     ),
     PickupCategory(
       id: 'electronics',
       name: 'Electronics',
-      icon: Icons.devices_outlined,
-      backgroundColor: Color(0xFFE2EEFB),
+      icon: Icons.headphones_outlined,
+      backgroundColor: Color(0xFFE6E9F2),
     ),
     PickupCategory(
       id: 'jewelry',
       name: 'Jewelry',
       icon: Icons.diamond_outlined,
-      backgroundColor: Color(0xFFFFF0D9),
+      backgroundColor: Color(0xFFE6F3FA),
     ),
     PickupCategory(
       id: 'stationery',
       name: 'Stationery',
-      icon: Icons.edit_note_outlined,
-      backgroundColor: Color(0xFFE3F5E8),
+      icon: Icons.edit_outlined,
+      backgroundColor: Color(0xFFFBEFD0),
     ),
     PickupCategory(
       id: 'baby-kids',
       name: 'Baby & Kids',
-      icon: Icons.child_care_outlined,
-      backgroundColor: Color(0xFFEDE3FA),
+      icon: Icons.toys_outlined,
+      backgroundColor: Color(0xFFFCE8E0),
     ),
   ];
 
@@ -158,7 +159,7 @@ abstract final class PickupData {
       distance: '0.4 km',
       pickupEta: '~8 min',
       promoLabel: '15% off pickup',
-      imageColor: Color(0xFFE8F5E9),
+      imageColor: Color(0xFFEAF3DE),
     ),
     PickupSpot(
       id: 'green-kitchen',
@@ -167,7 +168,7 @@ abstract final class PickupData {
       categoryLabel: 'Healthy',
       distance: '0.6 km',
       pickupEta: '~12 min',
-      imageColor: Color(0xFFE3F2EB),
+      imageColor: Color(0xFFEAF3DE),
     ),
     PickupSpot(
       id: 'lulu-express',
@@ -176,7 +177,7 @@ abstract final class PickupData {
       categoryLabel: 'Grocery',
       distance: '0.9 km',
       pickupEta: '~15 min',
-      imageColor: Color(0xFFE8F4FC),
+      imageColor: Color(0xFFEAF3DE),
     ),
     PickupSpot(
       id: 'city-pharmacy',
@@ -185,7 +186,7 @@ abstract final class PickupData {
       categoryLabel: 'Pharmacy',
       distance: '1.1 km',
       pickupEta: '~10 min',
-      imageColor: Color(0xFFE2EEFB),
+      imageColor: Color(0xFFEAF3DE),
     ),
   ];
 }

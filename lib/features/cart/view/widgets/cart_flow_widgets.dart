@@ -100,9 +100,12 @@ class _CheckoutLightHeader extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: AppTextStyles.titleSmall().copyWith(
+                    style: AppTextStyles.titleSmall(
+                      color: const Color(0xFF1A1A1A),
+                    ).copyWith(
                       fontSize: 19.sp,
                       fontWeight: FontWeight.w700,
+                      height: 1.3,
                     ),
                   ),
                   if (subtitle != null) ...[
@@ -222,11 +225,13 @@ class CartDeliveryDetailsCard extends StatelessWidget {
     required this.onChange,
     this.addressDetail,
     this.phone,
+    this.arrivesLabel,
   });
 
   final String address;
   final String? addressDetail;
   final String? phone;
+  final String? arrivesLabel;
   final VoidCallback onChange;
 
   @override
@@ -345,7 +350,7 @@ class CartDeliveryDetailsCard extends StatelessWidget {
           Padding(
             padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 13.h),
             child: Text(
-              CartFlowStrings.arrivesIn,
+              arrivesLabel ?? CartFlowStrings.arrivesIn,
               style: AppTextStyles.labelMedium(
                 color: AppColors.textPrimary,
               ).copyWith(
@@ -380,81 +385,94 @@ class CartDropOffGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Figma: white card padding 16, title→grid gap 12, chips 74×64, gap 8×6.
     return CartFlowCard(
+      padding: EdgeInsets.all(16.w),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (showTitle) ...[
             Text(
               CartFlowStrings.dropOffPreferences,
-              style: AppTextStyles.titleSmall().copyWith(
-                fontSize: 15.sp,
+              style: AppTextStyles.titleSmall(
+                color: const Color(0xFF1A1A1A),
+              ).copyWith(
+                fontSize: 16.sp,
                 fontWeight: FontWeight.w700,
+                height: 1.28,
               ),
             ),
             SizedBox(height: 12.h),
           ],
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 4,
-              mainAxisSpacing: 8.h,
-              crossAxisSpacing: 6.w,
-              childAspectRatio: 74 / 68,
-            ),
-            itemCount: options.length,
-            itemBuilder: (context, index) {
-              final option = options[index];
-              final selected = index == selectedIndex;
-              return GestureDetector(
-                onTap: () => onSelected(index),
-                child: Container(
-                  padding: EdgeInsets.fromLTRB(10.w, 12.h, 10.w, 10.h),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFEAF1E6),
-                    borderRadius: BorderRadius.circular(12.r),
-                    border: Border.all(
-                      color: selected
-                          ? AppColors.primary
-                          : Colors.transparent,
-                      width: 1.5,
-                    ),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (option.iconAsset != null)
-                        Image.asset(
-                          option.iconAsset!,
-                          width: 16.w,
-                          height: 16.w,
-                          fit: BoxFit.contain,
-                        )
-                      else
-                        Icon(
-                          option.icon,
-                          size: 16.sp,
-                          color: const Color(0xFF0F4D27),
-                        ),
-                      SizedBox(height: 5.h),
-                      Expanded(
-                        child: Text(
-                          option.label,
-                          maxLines: 3,
-                          overflow: TextOverflow.ellipsis,
-                          style: AppTextStyles.caption(
-                            color: AppColors.textPrimary,
-                          ).copyWith(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 10.sp,
-                            height: 1.15,
-                          ),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              const columns = 4;
+              final gapX = 6.w;
+              final gapY = 8.h;
+              final tileW =
+                  (constraints.maxWidth - gapX * (columns - 1)) / columns;
+              // Keep Figma 74×64 proportion without oversized row height.
+              final tileH = tileW * (64 / 74);
+
+              return Wrap(
+                spacing: gapX,
+                runSpacing: gapY,
+                children: List.generate(options.length, (index) {
+                  final option = options[index];
+                  final selected = index == selectedIndex;
+                  return GestureDetector(
+                    onTap: () => onSelected(index),
+                    child: Container(
+                      width: tileW,
+                      height: tileH,
+                      padding: EdgeInsets.fromLTRB(10.w, 12.h, 10.w, 8.h),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFEAF1E6),
+                        borderRadius: BorderRadius.circular(12.r),
+                        border: Border.all(
+                          color: selected
+                              ? AppColors.primary
+                              : Colors.transparent,
+                          width: 1.5,
                         ),
                       ),
-                    ],
-                  ),
-                ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (option.iconAsset != null)
+                            Image.asset(
+                              option.iconAsset!,
+                              width: 16.w,
+                              height: 16.w,
+                              fit: BoxFit.contain,
+                            )
+                          else
+                            Icon(
+                              option.icon,
+                              size: 16.sp,
+                              color: const Color(0xFF0F4D27),
+                            ),
+                          SizedBox(height: 5.h),
+                          Expanded(
+                            child: Text(
+                              option.label,
+                              maxLines: 3,
+                              overflow: TextOverflow.ellipsis,
+                              style: AppTextStyles.caption(
+                                color: const Color(0xFF1A1A1A),
+                              ).copyWith(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 10.sp,
+                                height: 1.2,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }),
               );
             },
           ),
@@ -650,19 +668,25 @@ class CartPaymentMethodList extends StatelessWidget {
                       ),
                       child: Row(
                         children: [
-                          SizedBox(
-                            width: 22.w,
-                            height: 22.w,
+                          // Figma: 38×38 · #EAF1E6 · radius 9 icon tile.
+                          Container(
+                            width: 38.w,
+                            height: 38.w,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFEAF1E6),
+                              borderRadius: BorderRadius.circular(9.r),
+                            ),
+                            alignment: Alignment.center,
                             child: option.iconAsset != null
                                 ? Image.asset(
                                     option.iconAsset!,
-                                    width: 22.w,
-                                    height: 22.w,
+                                    width: 18.w,
+                                    height: 18.w,
                                     fit: BoxFit.contain,
                                   )
                                 : Icon(
                                     option.icon,
-                                    size: 22.sp,
+                                    size: 18.sp,
                                     color: AppColors.textPrimary,
                                   ),
                           ),
@@ -702,27 +726,35 @@ class CartPaymentMethodList extends StatelessWidget {
         ),
         if (showSecurityNotes) ...[
           SizedBox(height: 12.h),
-          Row(
-            children: [
-              Image.asset(
-                AppAssets.payPciShield,
-                width: 16.w,
-                height: 16.w,
-                fit: BoxFit.contain,
-              ),
-              SizedBox(width: 8.w),
-              Expanded(
-                child: Text(
-                  CartFlowStrings.pciProtected,
-                  style: AppTextStyles.labelSmall(
-                    color: const Color(0xFF3D7BD9),
-                  ).copyWith(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 12.sp,
+          Container(
+            width: double.infinity,
+            padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 10.h),
+            decoration: BoxDecoration(
+              color: const Color(0xFFE8F1FB),
+              borderRadius: BorderRadius.circular(12.r),
+            ),
+            child: Row(
+              children: [
+                Image.asset(
+                  AppAssets.payPciShield,
+                  width: 16.w,
+                  height: 16.w,
+                  fit: BoxFit.contain,
+                ),
+                SizedBox(width: 8.w),
+                Expanded(
+                  child: Text(
+                    CartFlowStrings.pciProtected,
+                    style: AppTextStyles.labelSmall(
+                      color: const Color(0xFF3A5A7A),
+                    ).copyWith(
+                      fontWeight: FontWeight.w500,
+                      fontSize: 12.sp,
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
           SizedBox(height: 10.h),
           Container(
@@ -942,11 +974,13 @@ class CartStickyFooter extends StatelessWidget {
     required this.total,
     required this.buttonLabel,
     required this.onPressed,
+    this.buttonColor = AppColors.primary,
   });
 
   final String total;
   final String buttonLabel;
   final VoidCallback onPressed;
+  final Color buttonColor;
 
   @override
   Widget build(BuildContext context) {
@@ -970,30 +1004,33 @@ class CartStickyFooter extends StatelessWidget {
                 Text(
                   'TOTAL',
                   style: AppTextStyles.caption(
-                    color: AppColors.textSecondary,
+                    color: const Color(0xFF6B7B6E),
                   ).copyWith(
                     fontWeight: FontWeight.w600,
                     fontSize: 10.sp,
+                    height: 1.28,
                   ),
                 ),
                 Text(
                   total,
                   style: AppTextStyles.titleSmall(
-                    color: AppColors.textPrimary,
+                    color: const Color(0xFF1A1A1A),
                   ).copyWith(
                     fontWeight: FontWeight.w700,
                     fontSize: 20.sp,
+                    height: 1.28,
                   ),
                 ),
               ],
             ),
+            // Figma: Place order 149×52 · pad 16/30 · radius 28 (not full-bleed Expanded).
             SizedBox(
               width: 149.w,
               height: 52.h,
               child: ElevatedButton(
                 onPressed: onPressed,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
+                  backgroundColor: buttonColor,
                   foregroundColor: AppColors.white,
                   elevation: 0,
                   padding: EdgeInsets.symmetric(horizontal: 30.w, vertical: 16.h),
@@ -1003,9 +1040,12 @@ class CartStickyFooter extends StatelessWidget {
                 ),
                 child: Text(
                   buttonLabel,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: AppTextStyles.labelLarge().copyWith(
                     fontSize: 16.sp,
                     fontWeight: FontWeight.w700,
+                    height: 1.28,
                     color: AppColors.white,
                   ),
                 ),
@@ -1671,14 +1711,15 @@ class CartOutlineButton extends StatelessWidget {
       child: OutlinedButton(
         onPressed: onPressed,
         style: OutlinedButton.styleFrom(
-          foregroundColor: AppColors.textPrimary,
+          backgroundColor: AppColors.white,
+          foregroundColor: const Color(0xFF1A1A1A),
           side: const BorderSide(color: Color(0xFFE2E8DD), width: 1.5),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28.r)),
           padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 16.h),
         ),
         child: Text(
           label,
-          style: AppTextStyles.labelMedium(color: AppColors.textPrimary).copyWith(
+          style: AppTextStyles.labelMedium(color: const Color(0xFF1A1A1A)).copyWith(
             fontWeight: FontWeight.w700,
             fontSize: 16.sp,
           ),

@@ -85,15 +85,30 @@ class _OrderLightHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.fromLTRB(20.w, 6.h, 20.w, 8.h),
-      child: SafeArea(
-        bottom: false,
+    // Figma light header: padding 4/20/8, gap 12, title 20/700, subtitle #6B756E.
+    return SafeArea(
+      bottom: false,
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(20.w, 4.h, 20.w, 8.h),
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            NavCircleBackButton(
+            GestureDetector(
               onTap: onBack ?? () => Navigator.of(context).maybePop(),
-              iconColor: AppColors.textPrimary,
+              child: Container(
+                width: 36.w,
+                height: 36.w,
+                decoration: BoxDecoration(
+                  color: AppColors.white,
+                  borderRadius: BorderRadius.circular(18.r),
+                ),
+                alignment: Alignment.center,
+                child: Icon(
+                  Icons.arrow_back_ios_new_rounded,
+                  size: 16.sp,
+                  color: const Color(0xFF1A1A1A),
+                ),
+              ),
             ),
             SizedBox(width: 12.w),
             Expanded(
@@ -102,20 +117,26 @@ class _OrderLightHeader extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: AppTextStyles.titleSmall().copyWith(
-                      fontSize: 19.sp,
+                    textAlign: TextAlign.left,
+                    style: AppTextStyles.titleSmall(
+                      color: const Color(0xFF1A1A1A),
+                    ).copyWith(
+                      fontSize: 20.sp,
                       fontWeight: FontWeight.w700,
+                      height: 24 / 20,
                     ),
                   ),
                   if (subtitle != null) ...[
-                    SizedBox(height: 2.h),
+                    SizedBox(height: 1.h),
                     Text(
                       subtitle!,
+                      textAlign: TextAlign.left,
                       style: AppTextStyles.labelSmall(
-                        color: AppColors.textSecondary,
+                        color: const Color(0xFF6B756E),
                       ).copyWith(
                         fontWeight: FontWeight.w400,
                         fontSize: 12.sp,
+                        height: 15 / 12,
                       ),
                     ),
                   ],
@@ -393,47 +414,55 @@ class OrderVendorSummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Figma: two rows — vendor (#6B756E) · items | Order total · BHD (no leading icon).
     return OrderFlowCard(
       padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
-      child: Row(
+      child: Column(
         children: [
-          Container(
-            width: 40.w,
-            height: 40.w,
-            decoration: BoxDecoration(
-              color: const Color(0xFFE3F2EB),
-              borderRadius: BorderRadius.circular(12.r),
-            ),
-            child: Icon(Icons.restaurant, color: AppColors.cartTabActive, size: 20.sp),
-          ),
-          SizedBox(width: 12.w),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
+          Row(
+            children: [
+              Expanded(
+                child: Text(
                   OrderFlowData.vendor,
-                  style: AppTextStyles.labelMedium(color: AppColors.textPrimary).copyWith(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 14.sp,
+                  style: AppTextStyles.labelMedium(color: const Color(0xFF6B756E)).copyWith(
+                    fontWeight: FontWeight.w400,
+                    fontSize: 13.sp,
+                    height: 1.23,
                   ),
                 ),
-                SizedBox(height: 2.h),
-                Text(
-                  OrderFlowData.itemCount,
-                  style: AppTextStyles.labelSmall(color: AppColors.textSecondary).copyWith(
-                    fontSize: 12.sp,
-                  ),
+              ),
+              Text(
+                OrderFlowData.itemCount,
+                style: AppTextStyles.labelMedium(color: const Color(0xFF1A1A1A)).copyWith(
+                  fontWeight: FontWeight.w500,
+                  fontSize: 13.sp,
+                  height: 1.23,
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-          Text(
-            OrderFlowData.orderTotal,
-            style: AppTextStyles.labelMedium(color: AppColors.textPrimary).copyWith(
-              fontWeight: FontWeight.w700,
-              fontSize: 14.sp,
-            ),
+          SizedBox(height: 10.h),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  OrderFlowStrings.orderTotal,
+                  style: AppTextStyles.labelMedium(color: const Color(0xFF1A1A1A)).copyWith(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 15.sp,
+                    height: 1.2,
+                  ),
+                ),
+              ),
+              Text(
+                OrderFlowData.orderTotal,
+                style: AppTextStyles.labelMedium(color: const Color(0xFF1A1A1A)).copyWith(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 16.sp,
+                  height: 1.2,
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -453,14 +482,21 @@ class OrderChampCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Figma champ card: mint avatar · meta · Call outline + Chat #2E9E4D (+ chat.png).
     return OrderFlowCard(
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
       child: Column(
         children: [
           Row(
             children: [
-              CircleAvatar(
-                radius: 22.r,
-                backgroundColor: AppColors.accountIconBackground,
+              Container(
+                width: 48.w,
+                height: 48.w,
+                decoration: const BoxDecoration(
+                  color: Color(0xFFE3F2EB),
+                  shape: BoxShape.circle,
+                ),
+                alignment: Alignment.center,
                 child: Icon(Icons.person_outline, color: AppColors.primary, size: 24.sp),
               ),
               SizedBox(width: 12.w),
@@ -470,16 +506,19 @@ class OrderChampCard extends StatelessWidget {
                   children: [
                     Text(
                       OrderFlowData.driverSubtitle,
-                      style: AppTextStyles.labelMedium().copyWith(
-                        fontWeight: FontWeight.w700,
+                      style: AppTextStyles.labelMedium(color: const Color(0xFF1A1A1A)).copyWith(
+                        fontWeight: FontWeight.w600,
                         fontSize: 14.sp,
+                        height: 1.2,
                       ),
                     ),
                     SizedBox(height: 2.h),
                     Text(
                       OrderFlowData.driverMeta,
-                      style: AppTextStyles.labelSmall(color: AppColors.textSecondary).copyWith(
+                      style: AppTextStyles.labelSmall(color: const Color(0xFF6B756E)).copyWith(
+                        fontWeight: FontWeight.w400,
                         fontSize: 12.sp,
+                        height: 1.25,
                       ),
                     ),
                   ],
@@ -487,7 +526,7 @@ class OrderChampCard extends StatelessWidget {
               ),
             ],
           ),
-          SizedBox(height: 12.h),
+          SizedBox(height: 10.h),
           Row(
             children: [
               Expanded(
@@ -502,7 +541,7 @@ class OrderChampCard extends StatelessWidget {
               Expanded(
                 child: _ActionButton(
                   label: OrderFlowStrings.chat,
-                  icon: Icons.chat_bubble_outline,
+                  iconAsset: AppAssets.orderChat,
                   onTap: onChat,
                 ),
               ),
@@ -521,22 +560,34 @@ class OrderPaymentRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Figma change-pay: mint 40 tile · cash · Change #2E9E4D · chevron #6B756E.
     return OrderFlowCard(
+      padding: EdgeInsets.fromLTRB(14.w, 14.h, 16.w, 14.h),
       child: Row(
         children: [
-          Image.asset(
-            AppAssets.payCashStack,
-            width: 28.w,
-            height: 28.w,
-            fit: BoxFit.contain,
+          Container(
+            width: 40.w,
+            height: 40.w,
+            decoration: BoxDecoration(
+              color: const Color(0xFFE3F2EB),
+              borderRadius: BorderRadius.circular(10.r),
+            ),
+            alignment: Alignment.center,
+            child: Image.asset(
+              AppAssets.payCashStack,
+              width: 18.w,
+              height: 18.w,
+              fit: BoxFit.contain,
+            ),
           ),
           SizedBox(width: 12.w),
           Expanded(
             child: Text(
               OrderFlowData.paymentMethod,
-              style: AppTextStyles.labelMedium(color: AppColors.textPrimary).copyWith(
+              style: AppTextStyles.labelMedium(color: const Color(0xFF1A1A1A)).copyWith(
                 fontWeight: FontWeight.w600,
                 fontSize: 14.sp,
+                height: 1.2,
               ),
             ),
           ),
@@ -547,12 +598,14 @@ class OrderPaymentRow extends StatelessWidget {
               children: [
                 Text(
                   OrderFlowStrings.change,
-                  style: AppTextStyles.labelSmall(color: AppColors.cartTabActive).copyWith(
-                    fontWeight: FontWeight.w700,
+                  style: AppTextStyles.labelSmall(color: const Color(0xFF2E9E4D)).copyWith(
+                    fontWeight: FontWeight.w600,
                     fontSize: 13.sp,
+                    height: 1.23,
                   ),
                 ),
-                Icon(Icons.chevron_right, color: AppColors.cartTabActive, size: 18.sp),
+                SizedBox(width: 2.w),
+                Icon(Icons.chevron_right, color: const Color(0xFF6B756E), size: 18.sp),
               ],
             ),
           ),
@@ -632,19 +685,25 @@ class _OrderStarRatingCardState extends State<OrderStarRatingCard> {
   @override
   Widget build(BuildContext context) {
     return OrderFlowCard(
-      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
+      padding: EdgeInsets.fromLTRB(16.w, 14.h, 16.w, 14.h),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            widget.title,
-            style: AppTextStyles.labelMedium(color: AppColors.textPrimary).copyWith(
-              fontWeight: FontWeight.w600,
-              fontSize: 14.sp,
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              widget.title,
+              textAlign: TextAlign.left,
+              style: AppTextStyles.labelMedium(color: AppColors.textPrimary).copyWith(
+                fontWeight: FontWeight.w600,
+                fontSize: 14.sp,
+                height: 17 / 14,
+              ),
             ),
           ),
           SizedBox(height: 10.h),
           Row(
+            mainAxisAlignment: MainAxisAlignment.start,
             children: List.generate(5, (index) {
               final filled = index < _rating;
               return GestureDetector(
@@ -652,9 +711,9 @@ class _OrderStarRatingCardState extends State<OrderStarRatingCard> {
                 child: Padding(
                   padding: EdgeInsets.only(right: index < 4 ? 6.w : 0),
                   child: Icon(
-                    Icons.star,
+                    Icons.star_rounded,
                     color: filled ? _starFilled : _starEmpty,
-                    size: 28.sp,
+                    size: 26.sp,
                   ),
                 ),
               );
@@ -1030,24 +1089,27 @@ class DriverChatInputBar extends StatelessWidget {
 class _ActionButton extends StatelessWidget {
   const _ActionButton({
     required this.label,
-    required this.icon,
+    this.icon,
+    this.iconAsset,
     this.outlined = false,
     this.onTap,
   });
 
   final String label;
-  final IconData icon;
+  final IconData? icon;
+  final String? iconAsset;
   final bool outlined;
   final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
+    final color = outlined ? const Color(0xFF1A1A1A) : AppColors.white;
     return GestureDetector(
       onTap: onTap,
       child: Container(
         height: 52.h,
         decoration: BoxDecoration(
-          color: outlined ? AppColors.white : AppColors.cartTabActive,
+          color: outlined ? AppColors.white : const Color(0xFF2E9E4D),
           borderRadius: BorderRadius.circular(28.r),
           border: outlined
               ? Border.all(color: const Color(0xFFE0E6E0), width: 1.5)
@@ -1056,17 +1118,19 @@ class _ActionButton extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              icon,
-              size: 18.sp,
-              color: outlined ? AppColors.textPrimary : AppColors.white,
-            ),
-            SizedBox(width: 8.w),
+            if (iconAsset != null) ...[
+              Image.asset(iconAsset!, width: 18.w, height: 18.w, fit: BoxFit.contain),
+              SizedBox(width: 8.w),
+            ] else if (icon != null) ...[
+              Icon(icon, size: 18.sp, color: color),
+              SizedBox(width: 8.w),
+            ],
             Text(
               label,
-              style: AppTextStyles.labelMedium(
-                color: outlined ? AppColors.textPrimary : AppColors.white,
-              ).copyWith(fontWeight: FontWeight.w700, fontSize: 14.sp),
+              style: AppTextStyles.labelMedium(color: color).copyWith(
+                fontWeight: FontWeight.w600,
+                fontSize: outlined ? 15.sp : 16.sp,
+              ),
             ),
           ],
         ),

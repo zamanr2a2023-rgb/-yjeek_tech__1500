@@ -29,11 +29,16 @@ abstract final class ScheduledOrderFlowStrings {
   static const String notChargedYet =
       "You won't be charged until the vendor accepts your order.";
   static const String cancelOrder = 'Cancel order';
-  static const String freeCancelHint = 'Free cancellation before the vendor accepts';
+  static const String freeCancelHint =
+      'Free cancellation before the vendor accepts.';
   static const String vendorAccepted = 'TechHub Electronics said yes! 🙌';
+  static const String payWithinTitle = 'Complete payment within 5 minutes';
+  static const String payWithinSubtitle =
+      'If payment is not completed in time, your order will be cancelled automatically.';
   static const String payWithinHint =
       'Complete payment within 5 minutes. If payment is not completed in time, your order will be cancelled automatically.';
   static const String payWith = 'Pay with';
+  static const String tapPayToComplete = 'Tap pay to complete';
   static const String change = 'Change';
   static const String subtotal = 'Subtotal';
   static const String sameDayDelivery = 'Same Day delivery';
@@ -85,15 +90,15 @@ abstract final class ScheduledOrderFlowData {
     ScheduledOrderTimelineStep(label: 'Order confirmed', time: '9:41', completed: true),
     ScheduledOrderTimelineStep(label: 'Vendor accepted', time: '9:42', completed: true),
     ScheduledOrderTimelineStep(label: 'Preparing', time: '9:43', completed: true),
-    ScheduledOrderTimelineStep(label: 'Picked up', time: '--'),
-    ScheduledOrderTimelineStep(label: 'On the way', time: '--'),
-    ScheduledOrderTimelineStep(label: 'Delivered', time: '--'),
+    ScheduledOrderTimelineStep(label: 'Picked up', time: '—'),
+    ScheduledOrderTimelineStep(label: 'On the way', time: '—'),
+    ScheduledOrderTimelineStep(label: 'Delivered', time: '—'),
   ];
 
   static const List<ScheduledReceiptLine> receiptItems = [
     ScheduledReceiptLine(name: 'Nova 12 smartphone ×1', price: 'BHD 119.000'),
     ScheduledReceiptLine(name: 'Pulse Buds Pro ×1', price: 'BHD 28.000'),
-    ScheduledReceiptLine(name: 'Fast charger 33W ×1', price: 'BHD 6.300'),
+    ScheduledReceiptLine(name: 'Fast charger 33W ×1', price: 'BHD 6.000'),
   ];
 
   static const List<BillLine> receiptBillLines = [

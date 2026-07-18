@@ -42,10 +42,9 @@ class _ServicesCategoryScreenState extends State<ServicesCategoryScreen> {
               children: [
                 ServicesCategoryHeader(
                   title: _category.name,
-                  subtitle: _isGridView ? 'Grid view' : 'List view',
                 ),
                 Padding(
-                  padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 0),
+                  padding: EdgeInsets.fromLTRB(20.w, 12.h, 20.w, 0),
                   child: ServicesVenueFilterChips(
                     options: ServicesData.venueFilters,
                     selected: _venueFilter,
@@ -53,7 +52,7 @@ class _ServicesCategoryScreenState extends State<ServicesCategoryScreen> {
                   ),
                 ),
                 Padding(
-                  padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 0),
+                  padding: EdgeInsets.fromLTRB(20.w, 12.h, 20.w, 0),
                   child: ServicesToolbar(
                     isGridView: _isGridView,
                     onViewChanged: (v) => setState(() => _isGridView = v),
@@ -64,13 +63,14 @@ class _ServicesCategoryScreenState extends State<ServicesCategoryScreen> {
           ),
           if (_isGridView)
             SliverPadding(
-              padding: EdgeInsets.fromLTRB(16.w, 14.h, 16.w, 24.h),
+              padding: EdgeInsets.fromLTRB(20.w, 14.h, 20.w, 24.h),
               sliver: SliverGrid(
+                // Design provider card: 169 × 196
                 gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 2,
-                  mainAxisSpacing: 10.h,
-                  crossAxisSpacing: 10.w,
-                  childAspectRatio: 0.86,
+                  mainAxisSpacing: 12.h,
+                  crossAxisSpacing: 12.w,
+                  childAspectRatio: 169 / 196,
                 ),
                 delegate: SliverChildBuilderDelegate(
                   (context, index) => ServicesProviderGridCard(
@@ -85,7 +85,7 @@ class _ServicesCategoryScreenState extends State<ServicesCategoryScreen> {
             )
           else
             SliverPadding(
-              padding: EdgeInsets.fromLTRB(16.w, 14.h, 16.w, 24.h),
+              padding: EdgeInsets.fromLTRB(20.w, 14.h, 20.w, 24.h),
               sliver: SliverList.separated(
                 itemCount: _providers.length,
                 separatorBuilder: (_, _) => SizedBox(height: 10.h),

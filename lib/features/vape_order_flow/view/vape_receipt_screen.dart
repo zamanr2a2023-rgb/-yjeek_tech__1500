@@ -10,17 +10,22 @@ class VapeReceiptScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Figma E · Receipt: light header, #F2F7F2, Home nav, Share #2E9E4D h50.
     return OrderFlowScaffold(
       title: VapeOrderFlowStrings.receipt,
       subtitle: '#${VapeOrderFlowData.orderId}',
-      bottomNavIndex: 1,
+      lightHeader: true,
+      bottomNavIndex: 0,
+      backgroundColor: const Color(0xFFF2F7F2),
       body: ListView(
-        padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 16.h),
+        padding: EdgeInsets.fromLTRB(20.w, 8.h, 20.w, 24.h),
         children: [
           const VapeReceiptPaper(),
-          SizedBox(height: 20.h),
+          SizedBox(height: 14.h),
           PrimaryGreenButton(
             label: VapeOrderFlowStrings.shareReceipt,
+            backgroundColor: const Color(0xFF2E9E4D),
+            height: 50,
             onPressed: () {},
           ),
         ],

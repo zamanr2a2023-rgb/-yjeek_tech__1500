@@ -3,9 +3,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
+import 'package:yjeek_app/features/order_flow/view/widgets/order_flow_widgets.dart';
 import 'package:yjeek_app/features/services_order_flow/services_order_flow_routes.dart';
 import 'package:yjeek_app/features/services_order_flow/view/widgets/services_order_flow_widgets.dart';
-import 'package:yjeek_app/features/order_flow/view/widgets/order_flow_widgets.dart';
 
 class ServicesPayScreen extends StatefulWidget {
   const ServicesPayScreen({super.key});
@@ -36,7 +36,14 @@ class _ServicesPayScreenState extends State<ServicesPayScreen> {
     super.dispose();
   }
 
-  String get _timerLabel {
+  /// Circle uses `4:59`; footer uses `04:59`.
+  String get _circleTimerLabel {
+    final m = _secondsLeft ~/ 60;
+    final s = _secondsLeft % 60;
+    return '$m:${s.toString().padLeft(2, '0')}';
+  }
+
+  String get _footerTimerLabel {
     final m = _secondsLeft ~/ 60;
     final s = _secondsLeft % 60;
     return '${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
@@ -46,14 +53,14 @@ class _ServicesPayScreenState extends State<ServicesPayScreen> {
   Widget build(BuildContext context) {
     return OrderFlowScaffold(
       showHeader: false,
-      bottomNavIndex: 1,
+      bottomNavIndex: 0,
       body: ListView(
-        padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 16.h),
+        padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 16.h),
         children: [
           SizedBox(height: MediaQuery.paddingOf(context).top + 8.h),
           const ServicesAcceptedBanner(),
           SizedBox(height: 14.h),
-          ServicesPayTimerCard(timerLabel: _timerLabel),
+          ServicesPayTimerCard(timerLabel: _circleTimerLabel),
           SizedBox(height: 14.h),
           const ServicesPayMethodCard(),
           SizedBox(height: 14.h),
@@ -61,7 +68,7 @@ class _ServicesPayScreenState extends State<ServicesPayScreen> {
         ],
       ),
       bottom: ServicesPayStickyFooter(
-        timerLabel: _timerLabel,
+        timerLabel: _footerTimerLabel,
         onPay: () => context.pushReplacement(ServicesOrderFlowRoutes.confirmed),
       ),
     );

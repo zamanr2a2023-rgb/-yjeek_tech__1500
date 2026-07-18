@@ -162,7 +162,13 @@ class _CartScreenState extends State<CartScreen> {
               child: _showPopulatedHeader
                   ? Row(
                       children: [
-                        NavCircleBackButton(onTap: widget.onBack),
+                        NavCircleBackButton(
+                          onTap: widget.onBack,
+                          // Figma vape cart: #1A1A1A chevron (not brand green).
+                          iconColor: _tabIndex == CartTab.services.index
+                              ? const Color(0xFF1A1A1A)
+                              : AppColors.primary,
+                        ),
                         SizedBox(width: 12.w),
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -567,6 +573,16 @@ class _PopulatedCartBody extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 12),
+              // Figma cart: Bill summary → promo → bill lines.
+              Text(
+                NavigationStrings.billSummary,
+                style: AppTextStyles.titleSmall().copyWith(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF1A1A1A),
+                ),
+              ),
+              const SizedBox(height: 10),
               Text(
                 NavigationStrings.haveAPromoCode,
                 style: AppTextStyles.titleSmall().copyWith(fontSize: 16),

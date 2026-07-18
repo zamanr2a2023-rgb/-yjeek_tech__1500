@@ -1,15 +1,32 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:yjeek_app/core/constants/app_colors.dart';
 import 'package:yjeek_app/core/constants/home_strings.dart';
+import 'package:yjeek_app/core/providers/app_providers.dart';
 import 'package:yjeek_app/features/browse/browse_routes.dart';
 import 'package:yjeek_app/features/home/model/home_data.dart';
 import 'package:yjeek_app/features/home/view/widgets/home_widgets.dart';
 import 'package:yjeek_app/features/order_flow/order_flow_routes.dart';
 import 'package:yjeek_app/routes/route_names.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends ConsumerStatefulWidget {
+  static const routeName = '/home';
   const HomeScreen({super.key});
+
+  @override
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends ConsumerState<HomeScreen> {
+  late Future<Map<String, dynamic>?> _activeOrder;
+
+  @override
+  void initState() {
+    super.initState();
+    _activeOrder =
+        ref.read(activeOrderRepositoryProvider).fetchActiveOrder();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -33,10 +50,23 @@ class HomeScreen extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
             sliver: SliverList(
               delegate: SliverChildListDelegate([
-                OrderStatusCard(
-                  onTrack: () => context.push(OrderFlowRoutes.status),
+                FutureBuilder<Map<String, dynamic>?>(
+                  future: _activeOrder,
+                  builder: (context, snapshot) {
+                    if (snapshot.data == null) {
+                      return const SizedBox.shrink();
+                    }
+                    return Column(
+                      children: [
+                        OrderStatusCard(
+                          onTrack: () =>
+                              context.push(OrderFlowRoutes.status),
+                        ),
+                        const SizedBox(height: 18),
+                      ],
+                    );
+                  },
                 ),
-                const SizedBox(height: 18),
                 SectionHeader(
                   title: HomeStrings.categories,
                   onSeeAll: () => context.push(RouteNames.categories),
@@ -61,7 +91,10 @@ class HomeScreen extends StatelessWidget {
                   },
                 ),
                 const SizedBox(height: 18),
-                const SectionHeader(title: HomeStrings.orderAgain),
+                SectionHeader(
+                  title: HomeStrings.orderAgain,
+                  onSeeAll: () {},
+                ),
                 const SizedBox(height: 14),
                 SizedBox(
                   height: 104,

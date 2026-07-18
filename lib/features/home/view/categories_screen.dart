@@ -65,18 +65,21 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                             ],
                           ),
                         ),
-                        Container(
-                          width: 40,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            color: AppColors.white,
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: AppColors.border),
-                          ),
-                          child: const Icon(
-                            Icons.shopping_cart_outlined,
-                            size: 20,
-                            color: AppColors.textPrimary,
+                        GestureDetector(
+                          onTap: () => context.goHome(tab: 2),
+                          child: Container(
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              color: AppColors.white,
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(color: AppColors.border),
+                            ),
+                            child: const Icon(
+                              Icons.shopping_cart_outlined,
+                              size: 20,
+                              color: AppColors.textPrimary,
+                            ),
                           ),
                         ),
                       ],

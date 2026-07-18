@@ -142,7 +142,7 @@ abstract final class ElectronicsData {
       detailTitle: 'Nova 12 smartphone',
       detailSubtitle: '★ 4.7 (812) · 6.5" AMOLED · 5G · 50MP camera',
       storageOptions: [
-        ElectronicsStorageOption(label: '128GB · Included'),
+        ElectronicsStorageOption(label: '128GB · included'),
         ElectronicsStorageOption(label: '256GB · +BHD 30', extraPrice: 30),
       ],
       colorOptions: [

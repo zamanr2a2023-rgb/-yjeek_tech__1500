@@ -748,12 +748,13 @@ class CategoriesViewToggle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Figma: track #DCE7D4 · active segment #4CAF50 · radius 11 / 8.
     return Container(
       width: 74,
       height: 34,
       padding: const EdgeInsets.all(3),
       decoration: BoxDecoration(
-        color: AppColors.iconBackground,
+        color: const Color(0xFFDCE7D4),
         borderRadius: BorderRadius.circular(11),
       ),
       child: Row(
@@ -793,14 +794,14 @@ class _ToggleSegment extends StatelessWidget {
         child: Container(
           height: 28,
           decoration: BoxDecoration(
-            color: active ? AppColors.primary : Colors.transparent,
+            color: active ? const Color(0xFF4CAF50) : Colors.transparent,
             borderRadius: BorderRadius.circular(8),
           ),
           alignment: Alignment.center,
           child: Icon(
             icon,
             size: 16,
-            color: active ? AppColors.white : AppColors.textSecondary,
+            color: active ? AppColors.white : const Color(0xFF6B7B6E),
           ),
         ),
       ),

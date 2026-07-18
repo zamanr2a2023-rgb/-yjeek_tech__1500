@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:yjeek_app/core/constants/app_colors.dart';
 import 'package:yjeek_app/core/constants/app_text_styles.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
+import 'package:yjeek_app/features/cart/model/cart_flow_data.dart';
 import 'package:yjeek_app/features/services_booking/model/services_booking_data.dart';
 
 class ServicesLocationToggle extends StatelessWidget {
@@ -13,6 +14,9 @@ class ServicesLocationToggle extends StatelessWidget {
 
   final bool atVenue;
   final ValueChanged<bool> onChanged;
+
+  static const Color _chipBorder = Color(0xFFE0E6E0);
+  static const Color _labelMuted = Color(0xFF6B756E);
 
   @override
   Widget build(BuildContext context) {
@@ -39,17 +43,17 @@ class ServicesLocationToggle extends StatelessWidget {
       child: Container(
         padding: EdgeInsets.symmetric(horizontal: 13.w, vertical: 7.h),
         decoration: BoxDecoration(
-          color: selected ? const Color(0xFFE3F2EB) : AppColors.white,
+          color: selected ? AppColors.offerBadgeGreenBg : AppColors.white,
           borderRadius: BorderRadius.circular(20.r),
           border: Border.all(
-            color: selected ? AppColors.primary : AppColors.border,
+            color: selected ? AppColors.cartTabActive : _chipBorder,
             width: selected ? 1.5 : 1.2,
           ),
         ),
         child: Text(
           label,
           style: AppTextStyles.labelSmall(
-            color: selected ? AppColors.primary : AppColors.textSecondary,
+            color: selected ? AppColors.offerBadgeGreenText : _labelMuted,
           ).copyWith(fontWeight: FontWeight.w600, fontSize: 12.5.sp),
         ),
       ),
@@ -69,6 +73,9 @@ class ServicesDatePicker extends StatelessWidget {
   final int selectedIndex;
   final ValueChanged<int> onSelected;
 
+  static const Color _chipBorder = Color(0xFFE0E6E0);
+  static const Color _labelMuted = Color(0xFF6B756E);
+
   @override
   Widget build(BuildContext context) {
     return SizedBox(
@@ -85,11 +92,11 @@ class ServicesDatePicker extends StatelessWidget {
             child: Container(
               width: 58.w,
               decoration: BoxDecoration(
-                color: selected ? const Color(0xFFE3F2EB) : AppColors.white,
+                color: selected ? AppColors.cartTabActive : AppColors.white,
                 borderRadius: BorderRadius.circular(12.r),
                 border: Border.all(
-                  color: selected ? AppColors.primary : AppColors.border,
-                  width: selected ? 1.5 : 1.2,
+                  color: selected ? AppColors.cartTabActive : _chipBorder,
+                  width: 1.2,
                 ),
               ),
               child: Column(
@@ -97,24 +104,23 @@ class ServicesDatePicker extends StatelessWidget {
                 children: [
                   Text(
                     date.day,
-                    style: AppTextStyles.caption(color: AppColors.textSecondary).copyWith(
+                    style: AppTextStyles.caption(
+                      color: selected ? AppColors.white : _labelMuted,
+                    ).copyWith(
                       fontSize: 11.sp,
+                      fontWeight: FontWeight.w500,
+                      height: 13 / 11,
                     ),
                   ),
                   SizedBox(height: 2.h),
-                  Container(
-                    width: 28.w,
-                    height: 28.w,
-                    decoration: BoxDecoration(
-                      color: selected ? AppColors.primary : Colors.transparent,
-                      shape: BoxShape.circle,
-                    ),
-                    alignment: Alignment.center,
-                    child: Text(
-                      '${date.date}',
-                      style: AppTextStyles.labelMedium(
-                        color: selected ? AppColors.white : AppColors.textPrimary,
-                      ).copyWith(fontWeight: FontWeight.w700, fontSize: 14.sp),
+                  Text(
+                    '${date.date}',
+                    style: AppTextStyles.labelMedium(
+                      color: selected ? AppColors.white : AppColors.textPrimary,
+                    ).copyWith(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 16.sp,
+                      height: 19 / 16,
                     ),
                   ),
                 ],
@@ -139,6 +145,10 @@ class ServicesTimeGrid extends StatelessWidget {
   final int selectedIndex;
   final ValueChanged<int> onSelected;
 
+  static const Color _chipBorder = Color(0xFFE0E6E0);
+
+  static const Color _labelMuted = Color(0xFF6B756E);
+
   @override
   Widget build(BuildContext context) {
     return Wrap(
@@ -149,20 +159,77 @@ class ServicesTimeGrid extends StatelessWidget {
         return GestureDetector(
           onTap: () => onSelected(index),
           child: Container(
-            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
+            height: 29.h,
+            padding: EdgeInsets.symmetric(horizontal: 13.w),
             decoration: BoxDecoration(
-              color: selected ? const Color(0xFFE3F2EB) : AppColors.white,
-              borderRadius: BorderRadius.circular(12.r),
+              color: selected ? AppColors.offerBadgeGreenBg : AppColors.white,
+              borderRadius: BorderRadius.circular(20.r),
               border: Border.all(
-                color: selected ? AppColors.primary : AppColors.border,
+                color: selected ? AppColors.cartTabActive : _chipBorder,
                 width: selected ? 1.5 : 1.2,
               ),
             ),
-            child: Text(
-              slots[index],
-              style: AppTextStyles.labelSmall(
-                color: selected ? AppColors.primary : AppColors.textPrimary,
-              ).copyWith(fontWeight: FontWeight.w600, fontSize: 13.sp),
+            // Center(widthFactor: 1) keeps chip intrinsic width so Wrap
+            // lays out compact chips in a grid (not full-width rows).
+            child: Center(
+              widthFactor: 1,
+              child: Text(
+                slots[index],
+                style: AppTextStyles.labelSmall(
+                  color: selected ? AppColors.offerBadgeGreenText : _labelMuted,
+                ).copyWith(fontWeight: FontWeight.w600, fontSize: 12.5.sp),
+              ),
+            ),
+          ),
+        );
+      }),
+    );
+  }
+}
+
+class ServicesTipSelector extends StatelessWidget {
+  const ServicesTipSelector({
+    super.key,
+    required this.options,
+    required this.selectedIndex,
+    required this.onSelected,
+  });
+
+  final List<TipOption> options;
+  final int selectedIndex;
+  final ValueChanged<int> onSelected;
+
+  static const Color _chipBorder = Color(0xFFE0E6E0);
+  static const Color _labelMuted = Color(0xFF6B756E);
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: List.generate(options.length, (index) {
+        final selected = index == selectedIndex;
+        return Expanded(
+          child: Padding(
+            padding: EdgeInsets.only(right: index < options.length - 1 ? 8.w : 0),
+            child: GestureDetector(
+              onTap: () => onSelected(index),
+              child: Container(
+                height: 36.h,
+                decoration: BoxDecoration(
+                  color: selected ? AppColors.cartTabActive : AppColors.white,
+                  borderRadius: BorderRadius.circular(18.r),
+                  border: Border.all(
+                    color: selected ? AppColors.cartTabActive : _chipBorder,
+                    width: 1.2,
+                  ),
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  options[index].label,
+                  style: AppTextStyles.labelSmall(
+                    color: selected ? AppColors.white : _labelMuted,
+                  ).copyWith(fontWeight: FontWeight.w600, fontSize: 12.5.sp),
+                ),
+              ),
             ),
           ),
         );
@@ -183,6 +250,10 @@ class ServicesUpsellCard extends StatelessWidget {
   final bool selected;
   final VoidCallback onToggle;
 
+  static const Color _chipBorder = Color(0xFFE0E6E0);
+  static const Color _labelMuted = Color(0xFF6B756E);
+  static const Color _iconTile = Color(0xFFDBE8DE);
+
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
@@ -194,17 +265,17 @@ class ServicesUpsellCard extends StatelessWidget {
           color: AppColors.white,
           borderRadius: BorderRadius.circular(14.r),
           border: Border.all(
-            color: selected ? AppColors.primary : AppColors.border,
+            color: selected ? AppColors.cartTabActive : _chipBorder,
             width: selected ? 1.5 : 1,
           ),
         ),
         child: Row(
           children: [
             Container(
-              width: 44.w,
-              height: 44.w,
+              width: 46.w,
+              height: 46.w,
               decoration: BoxDecoration(
-                color: const Color(0xFFE3F2EB),
+                color: _iconTile,
                 borderRadius: BorderRadius.circular(10.r),
               ),
               alignment: Alignment.center,
@@ -217,34 +288,43 @@ class ServicesUpsellCard extends StatelessWidget {
                 children: [
                   Text(
                     item.name,
-                    style: AppTextStyles.labelMedium().copyWith(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 14.sp,
-                    ),
+                    style: AppTextStyles.labelMedium(
+                      color: AppColors.textPrimary,
+                    ).copyWith(fontWeight: FontWeight.w600, fontSize: 15.sp),
                   ),
                   Text(
-                    '${item.duration} · BHD ${item.price}',
-                    style: AppTextStyles.caption(color: AppColors.textSecondary).copyWith(
-                      fontSize: 12.sp,
+                    '🕒 ${item.duration} · BHD ${item.price}',
+                    style: AppTextStyles.caption(color: _labelMuted).copyWith(
+                      fontSize: 12.5.sp,
                     ),
                   ),
                 ],
               ),
             ),
             Container(
-              width: 28.w,
-              height: 28.w,
+              width: 34.w,
+              height: 34.w,
               decoration: BoxDecoration(
-                color: selected ? AppColors.primary : const Color(0xFFE3F2EB),
+                color: selected
+                    ? AppColors.cartTabActive
+                    : AppColors.offerBadgeGreenBg,
                 shape: BoxShape.circle,
               ),
               alignment: Alignment.center,
               child: selected
-                  ? Icon(Icons.check, color: AppColors.white, size: 14.sp)
+                  ? Text(
+                      '✓',
+                      style: TextStyle(
+                        color: AppColors.white,
+                        fontSize: 16.sp,
+                        fontWeight: FontWeight.w700,
+                        height: 1,
+                      ),
+                    )
                   : Text(
                       '+',
                       style: TextStyle(
-                        color: AppColors.primary,
+                        color: AppColors.offerBadgeGreenText,
                         fontSize: 16.sp,
                         fontWeight: FontWeight.w700,
                         height: 1,
@@ -263,6 +343,9 @@ class ServicesPromoField extends StatelessWidget {
 
   final bool applied;
 
+  static const Color _chipBorder = Color(0xFFE0E6E0);
+  static const Color _labelMuted = Color(0xFF6B756E);
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -272,35 +355,36 @@ class ServicesPromoField extends StatelessWidget {
           children: [
             Expanded(
               child: Container(
-                height: 44.h,
+                height: 48.h,
                 padding: EdgeInsets.symmetric(horizontal: 14.w),
                 decoration: BoxDecoration(
                   color: AppColors.white,
                   borderRadius: BorderRadius.circular(12.r),
-                  border: Border.all(color: AppColors.border),
+                  border: Border.all(color: _chipBorder),
                 ),
                 alignment: Alignment.centerLeft,
                 child: Text(
-                  applied ? 'WELCOME10' : ServicesBookingStrings.promoCode,
-                  style: AppTextStyles.bodySmall(
-                    color: applied ? AppColors.textPrimary : AppColors.textSecondary,
-                  ).copyWith(fontSize: 14.sp),
+                  ServicesBookingStrings.enterPromoCode,
+                  style: AppTextStyles.bodySmall(color: _labelMuted).copyWith(
+                    fontSize: 14.sp,
+                  ),
                 ),
               ),
             ),
             SizedBox(width: 10.w),
             Container(
-              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+              width: 84.w,
+              height: 48.h,
+              alignment: Alignment.center,
               decoration: BoxDecoration(
-                color: AppColors.white,
+                color: AppColors.cartTabActive,
                 borderRadius: BorderRadius.circular(12.r),
-                border: Border.all(color: AppColors.border),
               ),
               child: Text(
                 ServicesBookingStrings.apply,
-                style: AppTextStyles.labelSmall(color: AppColors.primary).copyWith(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 13.sp,
+                style: AppTextStyles.labelSmall(color: AppColors.white).copyWith(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 15.sp,
                 ),
               ),
             ),
@@ -310,10 +394,9 @@ class ServicesPromoField extends StatelessWidget {
           SizedBox(height: 8.h),
           Text(
             ServicesBookingStrings.promoApplied,
-            style: AppTextStyles.labelSmall(color: AppColors.primary).copyWith(
-              fontWeight: FontWeight.w600,
-              fontSize: 12.sp,
-            ),
+            style: AppTextStyles.labelSmall(
+              color: AppColors.cartTabActive,
+            ).copyWith(fontWeight: FontWeight.w600, fontSize: 12.sp),
           ),
         ],
       ],
@@ -324,6 +407,9 @@ class ServicesPromoField extends StatelessWidget {
 class ServicesServiceCard extends StatelessWidget {
   const ServicesServiceCard({super.key});
 
+  static const Color _chipBorder = Color(0xFFE0E6E0);
+  static const Color _labelMuted = Color(0xFF6B756E);
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -331,7 +417,7 @@ class ServicesServiceCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(16.r),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: _chipBorder),
       ),
       child: Row(
         children: [
@@ -341,14 +427,13 @@ class ServicesServiceCard extends StatelessWidget {
               children: [
                 Text(
                   ServicesBookingData.mainService,
-                  style: AppTextStyles.labelMedium().copyWith(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14.sp,
-                  ),
+                  style: AppTextStyles.labelMedium(
+                    color: AppColors.textPrimary,
+                  ).copyWith(fontWeight: FontWeight.w600, fontSize: 14.sp),
                 ),
                 Text(
                   ServicesBookingData.mainServiceDuration,
-                  style: AppTextStyles.caption(color: AppColors.textSecondary).copyWith(
+                  style: AppTextStyles.caption(color: _labelMuted).copyWith(
                     fontSize: 12.sp,
                   ),
                 ),
@@ -357,10 +442,9 @@ class ServicesServiceCard extends StatelessWidget {
           ),
           Text(
             ServicesBookingData.mainServicePrice,
-            style: AppTextStyles.labelSmall(color: AppColors.primary).copyWith(
-              fontWeight: FontWeight.w600,
-              fontSize: 13.sp,
-            ),
+            style: AppTextStyles.labelSmall(
+              color: AppColors.offerBadgeGreenText,
+            ).copyWith(fontWeight: FontWeight.w600, fontSize: 13.sp),
           ),
         ],
       ),
@@ -371,6 +455,9 @@ class ServicesServiceCard extends StatelessWidget {
 class ServicesLocationCard extends StatelessWidget {
   const ServicesLocationCard({super.key});
 
+  static const Color _chipBorder = Color(0xFFE0E6E0);
+  static const Color _labelMuted = Color(0xFF6B756E);
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -378,7 +465,7 @@ class ServicesLocationCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(16.r),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: _chipBorder),
       ),
       child: Row(
         children: [
@@ -386,7 +473,7 @@ class ServicesLocationCard extends StatelessWidget {
             width: 40.w,
             height: 40.w,
             decoration: BoxDecoration(
-              color: const Color(0xFFE3F2EB),
+              color: AppColors.offerBadgeGreenBg,
               borderRadius: BorderRadius.circular(10.r),
             ),
             alignment: Alignment.center,
@@ -399,14 +486,13 @@ class ServicesLocationCard extends StatelessWidget {
               children: [
                 Text(
                   ServicesBookingStrings.venueLocationLabel,
-                  style: AppTextStyles.labelMedium().copyWith(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14.sp,
-                  ),
+                  style: AppTextStyles.labelMedium(
+                    color: AppColors.textPrimary,
+                  ).copyWith(fontWeight: FontWeight.w600, fontSize: 14.sp),
                 ),
                 Text(
                   ServicesBookingStrings.venueAddress,
-                  style: AppTextStyles.caption(color: AppColors.textSecondary).copyWith(
+                  style: AppTextStyles.caption(color: _labelMuted).copyWith(
                     fontSize: 12.sp,
                   ),
                 ),
@@ -422,6 +508,9 @@ class ServicesLocationCard extends StatelessWidget {
 class ServicesAppointmentCard extends StatelessWidget {
   const ServicesAppointmentCard({super.key});
 
+  static const Color _chipBorder = Color(0xFFE0E6E0);
+  static const Color _labelMuted = Color(0xFF6B756E);
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -429,7 +518,7 @@ class ServicesAppointmentCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(16.r),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: _chipBorder),
       ),
       child: Column(
         children: [
@@ -447,113 +536,22 @@ class ServicesAppointmentCard extends StatelessWidget {
       padding: EdgeInsets.only(bottom: 10.h),
       child: Row(
         children: [
-          SizedBox(
-            width: 80.w,
-            child: Text(
-              label,
-              style: AppTextStyles.labelSmall(color: AppColors.textSecondary).copyWith(
-                fontSize: 13.sp,
-              ),
-            ),
-          ),
           Expanded(
             child: Text(
-              value,
-              style: AppTextStyles.labelMedium().copyWith(
-                fontWeight: FontWeight.w500,
+              label,
+              style: AppTextStyles.labelSmall(color: _labelMuted).copyWith(
                 fontSize: 13.sp,
+                fontWeight: FontWeight.w400,
               ),
             ),
           ),
+          Text(
+            value,
+            style: AppTextStyles.labelMedium(
+              color: AppColors.textPrimary,
+            ).copyWith(fontWeight: FontWeight.w500, fontSize: 13.sp),
+          ),
         ],
-      ),
-    );
-  }
-}
-
-class ServicesPaymentMethodList extends StatelessWidget {
-  const ServicesPaymentMethodList({
-    super.key,
-    required this.options,
-    required this.selectedId,
-    required this.onSelected,
-  });
-
-  final List<ServicesPaymentOption> options;
-  final String selectedId;
-  final ValueChanged<String> onSelected;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(16.r),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Column(
-        children: List.generate(options.length, (index) {
-          final option = options[index];
-          final selected = option.id == selectedId;
-          return Column(
-            children: [
-              if (index > 0) Divider(height: 1, color: AppColors.border.withValues(alpha: 0.7)),
-              InkWell(
-                onTap: () => onSelected(option.id),
-                child: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
-                  child: Row(
-                    children: [
-                      if (option.icon != null)
-                        Container(
-                          width: 38.w,
-                          height: 38.w,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFE3F2EB),
-                            borderRadius: BorderRadius.circular(10.r),
-                          ),
-                          child: Icon(option.icon, size: 20.sp, color: AppColors.primary),
-                        ),
-                      SizedBox(width: 12.w),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              option.label,
-                              style: AppTextStyles.labelMedium().copyWith(
-                                fontWeight: FontWeight.w600,
-                                fontSize: 14.sp,
-                              ),
-                            ),
-                            if (option.subtitle != null)
-                              Text(
-                                option.subtitle!,
-                                style: AppTextStyles.caption(color: AppColors.textSecondary).copyWith(
-                                  fontSize: 12.sp,
-                                ),
-                              ),
-                          ],
-                        ),
-                      ),
-                      Container(
-                        width: 22.w,
-                        height: 22.w,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: selected ? AppColors.primary : AppColors.border,
-                            width: selected ? 6 : 1.5,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          );
-        }),
       ),
     );
   }
@@ -569,8 +567,12 @@ class ServicesBookingReviewStatusCard extends StatelessWidget {
   final int secondsLeft;
   final double progress;
 
+  static const Color _ringTrack = Color(0xFF2C6B47);
+  static const Color _ringProgress = Color(0xFFC9A84C);
+
   @override
   Widget build(BuildContext context) {
+    final value = progress.clamp(0.0, 1.0);
     return Container(
       width: double.infinity,
       padding: EdgeInsets.all(20.w),
@@ -586,26 +588,23 @@ class ServicesBookingReviewStatusCard extends StatelessWidget {
             child: Stack(
               alignment: Alignment.center,
               children: [
-                CircularProgressIndicator(
-                  value: progress,
-                  strokeWidth: 7,
-                  backgroundColor: const Color(0xFF2C6B47),
-                  valueColor: const AlwaysStoppedAnimation(Color(0xFF2C6B47)),
-                ),
-                Container(
-                  width: 72.w,
-                  height: 72.w,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFC9A84C),
-                    shape: BoxShape.circle,
+                SizedBox(
+                  width: 92.w,
+                  height: 92.w,
+                  child: CircularProgressIndicator(
+                    value: value,
+                    strokeWidth: 7,
+                    backgroundColor: _ringTrack,
+                    color: _ringProgress,
+                    strokeCap: StrokeCap.round,
                   ),
-                  alignment: Alignment.center,
-                  child: Text(
-                    '$secondsLeft',
-                    style: AppTextStyles.titleMedium(color: AppColors.white).copyWith(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 38.sp,
-                    ),
+                ),
+                Text(
+                  '$secondsLeft',
+                  style: AppTextStyles.titleMedium(color: AppColors.white).copyWith(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 38.sp,
+                    height: 1.1,
                   ),
                 ),
               ],
@@ -621,23 +620,26 @@ class ServicesBookingReviewStatusCard extends StatelessWidget {
               height: 1.3,
             ),
           ),
-          SizedBox(height: 8.h),
+          SizedBox(height: 6.h),
           Text(
             ServicesBookingStrings.autoConfirmHint,
             textAlign: TextAlign.center,
-            style: AppTextStyles.caption(color: AppColors.white.withValues(alpha: 0.95)).copyWith(
+            style: AppTextStyles.caption(
+              color: const Color(0xFFCFE8D8),
+            ).copyWith(
+              fontWeight: FontWeight.w500,
               fontSize: 12.5.sp,
               height: 1.3,
             ),
           ),
-          SizedBox(height: 14.h),
+          SizedBox(height: 12.h),
           ClipRRect(
-            borderRadius: BorderRadius.circular(4.r),
+            borderRadius: BorderRadius.circular(3.r),
             child: LinearProgressIndicator(
-              value: progress,
-              minHeight: 4.h,
-              backgroundColor: Colors.white.withValues(alpha: 0.25),
-              valueColor: const AlwaysStoppedAnimation(AppColors.white),
+              value: value,
+              minHeight: 6,
+              backgroundColor: _ringTrack,
+              color: _ringProgress,
             ),
           ),
         ],
@@ -649,57 +651,58 @@ class ServicesBookingReviewStatusCard extends StatelessWidget {
 class ServicesBookingSummaryCard extends StatelessWidget {
   const ServicesBookingSummaryCard({super.key});
 
+  static const Color _chipBorder = Color(0xFFE0E6E0);
+  static const Color _labelMuted = Color(0xFF6B756E);
+
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: EdgeInsets.all(14.w),
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(16.r),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: _chipBorder),
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            ServicesBookingStrings.bookingSummary,
-            style: AppTextStyles.labelMedium().copyWith(
-              fontWeight: FontWeight.w700,
-              fontSize: 14.sp,
-            ),
-          ),
-          SizedBox(height: 12.h),
           _row(ServicesBookingStrings.service, ServicesBookingData.mainService),
           _row(ServicesBookingStrings.providerLabel, ServicesBookingStrings.provider),
           _row(ServicesBookingStrings.when, ServicesBookingData.appointmentWhen),
-          _row(ServicesBookingStrings.location, ServicesBookingStrings.venueLocationLabel),
-          _row(ServicesBookingStrings.people, ServicesBookingData.peopleCount),
+          _row(ServicesBookingStrings.location, ServicesBookingStrings.venueLocationShort),
+          _row(ServicesBookingStrings.people, ServicesBookingData.peopleCount, isLast: true),
         ],
       ),
     );
   }
 
-  Widget _row(String label, String value) {
+  Widget _row(String label, String value, {bool isLast = false}) {
     return Padding(
-      padding: EdgeInsets.only(bottom: 10.h),
+      padding: EdgeInsets.only(bottom: isLast ? 0 : 10.h),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          SizedBox(
-            width: 72.w,
-            child: Text(
-              label,
-              style: AppTextStyles.labelSmall(color: AppColors.textSecondary).copyWith(
-                fontSize: 13.sp,
-              ),
+          Text(
+            label,
+            style: AppTextStyles.labelSmall(color: _labelMuted).copyWith(
+              fontSize: 13.sp,
+              fontWeight: FontWeight.w400,
+              height: 16 / 13,
             ),
           ),
+          SizedBox(width: 8.w),
           Expanded(
             child: Text(
               value,
-              style: AppTextStyles.labelMedium().copyWith(
+              textAlign: TextAlign.right,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: AppTextStyles.labelMedium(
+                color: AppColors.textPrimary,
+              ).copyWith(
                 fontWeight: FontWeight.w500,
                 fontSize: 13.sp,
+                height: 16 / 13,
               ),
             ),
           ),

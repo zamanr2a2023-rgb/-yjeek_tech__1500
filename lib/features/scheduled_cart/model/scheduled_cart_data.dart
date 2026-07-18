@@ -119,14 +119,20 @@ abstract final class ScheduledCartData {
     ScheduledAddMoreItem(
       name: 'Airpods Case',
       price: 'BHD 0.500',
-      gradientStart: Color(0xFFE3F2EB),
-      gradientEnd: Color(0xFFC8E6D4),
+      gradientStart: Color(0xFF6B4A2A),
+      gradientEnd: Color(0xFF15302B),
     ),
     ScheduledAddMoreItem(
-      name: 'Phone Case',
+      name: 'iPhone Cases',
       price: 'BHD 0.600',
       gradientStart: Color(0xFF8A5B2A),
       gradientEnd: Color(0xFF15302B),
+    ),
+    ScheduledAddMoreItem(
+      name: 'Screen Guard',
+      price: 'BHD 0.400',
+      gradientStart: Color(0xFF5A4030),
+      gradientEnd: Color(0xFF1A2E28),
     ),
   ];
 
