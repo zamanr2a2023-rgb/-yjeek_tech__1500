@@ -14,6 +14,7 @@ class BrowseRestaurant {
     this.deliveryFee = '0.8',
     this.minOrder = '5',
     this.distance = '2.4 km',
+    this.imageUrl,
   });
 
   final String id;
@@ -28,6 +29,7 @@ class BrowseRestaurant {
   final String deliveryFee;
   final String minOrder;
   final String distance;
+  final String? imageUrl;
 }
 
 class BrowseMenuItem {
@@ -68,16 +70,22 @@ class BrowseAddonOption {
 abstract final class BrowseData {
   static const category = 'Food';
 
-  static const cuisineFilters = ['All', 'Burgers', 'Shawarma', 'Indian', 'Sushi'];
+  static const cuisineFilters = [
+    'All',
+    'Burgers',
+    'Shawarma',
+    'Indian',
+    'Sushi',
+  ];
 
   static const menuSections = ['Starters', 'Main Dishes', 'Desserts', 'Drinks'];
 
   static const orderAgainBrands = [
-  ('McDonald\'s', Color(0xFFFFBC0D)),
-  ('KFC', Color(0xFFE4002B)),
-  ('Starbucks', Color(0xFF00704A)),
-  ('Pizza Hut', Color(0xFFEE3124)),
-  ('Burger King', Color(0xFFF5A623)),
+    ('McDonald\'s', Color(0xFFFFBC0D)),
+    ('KFC', Color(0xFFE4002B)),
+    ('Starbucks', Color(0xFF00704A)),
+    ('Pizza Hut', Color(0xFFEE3124)),
+    ('Burger King', Color(0xFFF5A623)),
   ];
 
   static const recentSearches = ['Burgers', 'Sushi', 'Coffee', 'Flowers'];
@@ -169,7 +177,11 @@ abstract final class BrowseData {
 
   static const mezzeSizes = [
     BrowseSizeOption(label: 'Regular — for 2', subtitle: 'Included'),
-    BrowseSizeOption(label: 'Family — for 4', subtitle: '+ BHD 8.0', extraPrice: '8.0'),
+    BrowseSizeOption(
+      label: 'Family — for 4',
+      subtitle: '+ BHD 8.0',
+      extraPrice: '8.0',
+    ),
   ];
 
   static const mezzeAddons = [
@@ -212,9 +224,7 @@ abstract final class BrowseData {
     return restaurants.where((r) {
       return r.name.toLowerCase().contains(q) ||
           r.cuisine.toLowerCase().contains(q) ||
-          greenKitchenMenu.any(
-            (item) => item.name.toLowerCase().contains(q),
-          );
+          greenKitchenMenu.any((item) => item.name.toLowerCase().contains(q));
     }).toList();
   }
 }

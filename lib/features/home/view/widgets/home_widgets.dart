@@ -4,6 +4,7 @@ import 'package:yjeek_app/core/constants/app_assets.dart';
 import 'package:yjeek_app/core/constants/app_colors.dart';
 import 'package:yjeek_app/core/constants/app_text_styles.dart';
 import 'package:yjeek_app/core/constants/home_strings.dart';
+import 'package:yjeek_app/core/widgets/app_network_image.dart';
 import 'package:yjeek_app/features/home/model/category_item.dart';
 import 'package:yjeek_app/features/home/model/home_data.dart';
 
@@ -64,7 +65,10 @@ class HomeGreenHeader extends StatelessWidget {
 }
 
 class HomeGreetingHeader extends StatelessWidget {
-  const HomeGreetingHeader({super.key});
+  const HomeGreetingHeader({super.key, this.greeting, this.deliveryLocation});
+
+  final String? greeting;
+  final String? deliveryLocation;
 
   @override
   Widget build(BuildContext context) {
@@ -72,7 +76,7 @@ class HomeGreetingHeader extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          HomeStrings.hello,
+          greeting ?? HomeStrings.hello,
           style: AppTextStyles.labelMedium(
             color: const Color(0xFFCFE8D8),
           ).copyWith(fontSize: 13),
@@ -87,10 +91,14 @@ class HomeGreetingHeader extends StatelessWidget {
               ).copyWith(fontSize: 12),
             ),
             const SizedBox(width: 5),
-            Text(
-              HomeData.deliveryLocation,
-              style: AppTextStyles.bodyLarge(color: AppColors.white).copyWith(
-                fontSize: 16,
+            Flexible(
+              child: Text(
+                deliveryLocation ?? HomeData.deliveryLocation,
+                style: AppTextStyles.bodyLarge(
+                  color: AppColors.white,
+                ).copyWith(fontSize: 16),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
             const SizedBox(width: 5),
@@ -114,40 +122,43 @@ class HomeSearchBar extends StatelessWidget {
     super.key,
     required this.hint,
     this.height = 52,
+    this.onTap,
   });
 
   final String hint;
   final double height;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: height,
-      padding: const EdgeInsets.symmetric(horizontal: 14),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.search, color: AppColors.textSecondary, size: 22),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              hint,
-              style: AppTextStyles.bodySmall(),
-            ),
-          ),
-        ],
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        height: height,
+        padding: const EdgeInsets.symmetric(horizontal: 14),
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.search, color: AppColors.textSecondary, size: 22),
+            const SizedBox(width: 10),
+            Expanded(child: Text(hint, style: AppTextStyles.bodySmall())),
+          ],
+        ),
       ),
     );
   }
 }
 
 class OrderStatusCard extends StatelessWidget {
-  const OrderStatusCard({super.key, this.onTrack});
+  const OrderStatusCard({super.key, this.onTrack, this.title, this.subtitle});
 
   final VoidCallback? onTrack;
+  final String? title;
+  final String? subtitle;
 
   @override
   Widget build(BuildContext context) {
@@ -183,14 +194,14 @@ class OrderStatusCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        HomeStrings.preparingOrder,
+                        title ?? HomeStrings.preparingOrder,
                         style: AppTextStyles.labelMedium(
                           color: AppColors.textPrimary,
                         ).copyWith(fontWeight: FontWeight.w600, fontSize: 14),
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        HomeStrings.orderSubtitle,
+                        subtitle ?? HomeStrings.orderSubtitle,
                         style: AppTextStyles.labelSmall(
                           color: const Color(0xFF6B756E),
                         ).copyWith(fontSize: 12),
@@ -199,15 +210,19 @@ class OrderStatusCard extends StatelessWidget {
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 7,
+                  ),
                   decoration: BoxDecoration(
                     color: const Color(0xFF2E9E4D),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
                     HomeStrings.track,
-                    style: AppTextStyles.labelSmall(color: AppColors.white)
-                        .copyWith(fontWeight: FontWeight.w700, fontSize: 12),
+                    style: AppTextStyles.labelSmall(
+                      color: AppColors.white,
+                    ).copyWith(fontWeight: FontWeight.w700, fontSize: 12),
                   ),
                 ),
               ],
@@ -230,11 +245,7 @@ class OrderStatusCard extends StatelessWidget {
 }
 
 class SectionHeader extends StatelessWidget {
-  const SectionHeader({
-    super.key,
-    required this.title,
-    this.onSeeAll,
-  });
+  const SectionHeader({super.key, required this.title, this.onSeeAll});
 
   final String title;
   final VoidCallback? onSeeAll;
@@ -244,17 +255,15 @@ class SectionHeader extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(
-          title,
-          style: AppTextStyles.titleSmall().copyWith(fontSize: 18),
-        ),
+        Text(title, style: AppTextStyles.titleSmall().copyWith(fontSize: 18)),
         if (onSeeAll != null)
           GestureDetector(
             onTap: onSeeAll,
             child: Text(
               HomeStrings.seeAll,
-              style: AppTextStyles.labelMedium(color: AppColors.primary)
-                  .copyWith(fontWeight: FontWeight.w600, fontSize: 13),
+              style: AppTextStyles.labelMedium(
+                color: AppColors.primary,
+              ).copyWith(fontWeight: FontWeight.w600, fontSize: 13),
             ),
           ),
       ],
@@ -304,7 +313,9 @@ class _CategoryRow extends StatelessWidget {
             (category) => SizedBox(
               width: 60,
               child: GestureDetector(
-                onTap: onCategoryTap != null ? () => onCategoryTap!(category) : null,
+                onTap: onCategoryTap != null
+                    ? () => onCategoryTap!(category)
+                    : null,
                 child: CategoryIconTile(category: category),
               ),
             ),
@@ -330,7 +341,7 @@ class CategoryIconTile extends StatelessWidget {
     final iconSize = compact ? 28.0 : 26.0;
 
     return SizedBox(
-      height: compact ? 83 : 80,
+      height: compact ? 90 : 80,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -355,16 +366,17 @@ class CategoryIconTile extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 7),
-          SizedBox(
-            height: compact ? 14 : 15,
-            child: Text(
-              category.name,
-              textAlign: TextAlign.center,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: AppTextStyles.labelSmall(color: AppColors.textPrimary)
-                  .copyWith(fontWeight: FontWeight.w600, fontSize: 11.5),
-            ),
+          Text(
+            category.name,
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: AppTextStyles.labelSmall(color: AppColors.textPrimary)
+                .copyWith(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 11.5,
+                  height: 1.2,
+                ),
           ),
         ],
       ),
@@ -381,6 +393,7 @@ class BrandAvatar extends StatelessWidget {
   Widget build(BuildContext context) {
     final label = brand.name.replaceAll('\n', ' ');
     final initial = label.isNotEmpty ? label[0] : '';
+    final logoUrl = brand.logoUrl;
 
     return SizedBox(
       width: 72,
@@ -395,15 +408,23 @@ class BrandAvatar extends StatelessWidget {
               shape: BoxShape.circle,
               border: Border.all(color: AppColors.border),
             ),
+            clipBehavior: Clip.antiAlias,
             alignment: Alignment.center,
-            child: Text(
-              initial,
-              style: const TextStyle(
-                color: AppColors.white,
-                fontWeight: FontWeight.w700,
-                fontSize: 20,
-              ),
-            ),
+            child: logoUrl != null && logoUrl.isNotEmpty
+                ? AppNetworkImage(
+                    url: logoUrl,
+                    width: 64,
+                    height: 64,
+                    fit: BoxFit.cover,
+                  )
+                : Text(
+                    initial,
+                    style: const TextStyle(
+                      color: AppColors.white,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 20,
+                    ),
+                  ),
           ),
           const SizedBox(height: 8),
           SizedBox(
@@ -413,8 +434,9 @@ class BrandAvatar extends StatelessWidget {
               textAlign: TextAlign.center,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: AppTextStyles.labelSmall(color: AppColors.textPrimary)
-                  .copyWith(fontWeight: FontWeight.w600, fontSize: 11),
+              style: AppTextStyles.labelSmall(
+                color: AppColors.textPrimary,
+              ).copyWith(fontWeight: FontWeight.w600, fontSize: 11),
             ),
           ),
         ],
@@ -430,6 +452,8 @@ class OfferProductCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final imageUrl = offer.imageUrl;
+
     return Container(
       width: 150,
       decoration: BoxDecoration(
@@ -440,20 +464,28 @@ class OfferProductCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            height: 96,
-            decoration: BoxDecoration(
-              color: offer.imageColor,
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(16),
-              ),
-            ),
-            child: Center(
-              child: Icon(
-                Icons.image_outlined,
-                size: 40,
-                color: AppColors.textSecondary.withValues(alpha: 0.5),
-              ),
+          ClipRRect(
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+            child: SizedBox(
+              height: 96,
+              width: double.infinity,
+              child: imageUrl != null && imageUrl.isNotEmpty
+                  ? AppNetworkImage(
+                      url: imageUrl,
+                      height: 96,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                    )
+                  : ColoredBox(
+                      color: offer.imageColor,
+                      child: Center(
+                        child: Icon(
+                          Icons.image_outlined,
+                          size: 40,
+                          color: AppColors.textSecondary.withValues(alpha: 0.5),
+                        ),
+                      ),
+                    ),
             ),
           ),
           Padding(
@@ -465,14 +497,16 @@ class OfferProductCard extends StatelessWidget {
                   offer.name,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: AppTextStyles.labelSmall(color: AppColors.textPrimary)
-                      .copyWith(fontWeight: FontWeight.w700, fontSize: 13),
+                  style: AppTextStyles.labelSmall(
+                    color: AppColors.textPrimary,
+                  ).copyWith(fontWeight: FontWeight.w700, fontSize: 13),
                 ),
                 const SizedBox(height: 3),
                 Text(
                   offer.price,
-                  style: AppTextStyles.labelSmall(color: AppColors.primary)
-                      .copyWith(fontWeight: FontWeight.w700, fontSize: 13),
+                  style: AppTextStyles.labelSmall(
+                    color: AppColors.primary,
+                  ).copyWith(fontWeight: FontWeight.w700, fontSize: 13),
                 ),
               ],
             ),
@@ -484,7 +518,16 @@ class OfferProductCard extends StatelessWidget {
 }
 
 class WeeklySpotlightBanner extends StatelessWidget {
-  const WeeklySpotlightBanner({super.key});
+  const WeeklySpotlightBanner({
+    super.key,
+    this.title,
+    this.ctaLabel,
+    this.eyebrow,
+  });
+
+  final String? title;
+  final String? ctaLabel;
+  final String? eyebrow;
 
   @override
   Widget build(BuildContext context) {
@@ -537,20 +580,20 @@ class WeeklySpotlightBanner extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    HomeStrings.weeklySpotlight,
-                    style: AppTextStyles.caption(
-                      color: const Color(0xFFEBC34A),
-                    ).copyWith(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 9,
-                      letterSpacing: 0.5,
-                    ),
+                    (eyebrow ?? HomeStrings.weeklySpotlight).toUpperCase(),
+                    style: AppTextStyles.caption(color: const Color(0xFFEBC34A))
+                        .copyWith(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 9,
+                          letterSpacing: 0.5,
+                        ),
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    HomeStrings.spotlightTitle,
-                    style: AppTextStyles.titleSmall(color: AppColors.white)
-                        .copyWith(fontSize: 18),
+                    title ?? HomeStrings.spotlightTitle,
+                    style: AppTextStyles.titleSmall(
+                      color: AppColors.white,
+                    ).copyWith(fontSize: 18),
                   ),
                   const Spacer(),
                   Container(
@@ -563,7 +606,7 @@ class WeeklySpotlightBanner extends StatelessWidget {
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
-                      HomeStrings.orderNow,
+                      ctaLabel ?? HomeStrings.orderNow,
                       style: AppTextStyles.labelSmall(
                         color: const Color(0xFF0F4D27),
                       ).copyWith(fontWeight: FontWeight.w700, fontSize: 13),
@@ -658,11 +701,10 @@ class HomeBottomNavBar extends StatelessWidget {
                       Text(
                         item.label,
                         style: AppTextStyles.caption(
-                          color: active ? AppColors.primary : AppColors.textSecondary,
-                        ).copyWith(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 11,
-                        ),
+                          color: active
+                              ? AppColors.primary
+                              : AppColors.textSecondary,
+                        ).copyWith(fontWeight: FontWeight.w600, fontSize: 11),
                       ),
                     ],
                   ),
@@ -724,10 +766,7 @@ class _NavIcon extends StatelessWidget {
 
     if (active && tintWhenActive) {
       return ColorFiltered(
-        colorFilter: const ColorFilter.mode(
-          AppColors.primary,
-          BlendMode.srcIn,
-        ),
+        colorFilter: const ColorFilter.mode(AppColors.primary, BlendMode.srcIn),
         child: image,
       );
     }

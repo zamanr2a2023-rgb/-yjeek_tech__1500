@@ -17,12 +17,18 @@ abstract final class _ServicesDesign {
 }
 
 class ServicesCategoryGrid extends StatelessWidget {
-  const ServicesCategoryGrid({super.key, required this.onCategoryTap});
+  const ServicesCategoryGrid({
+    super.key,
+    required this.onCategoryTap,
+    this.categories,
+  });
 
   final ValueChanged<ServiceCategoryItem> onCategoryTap;
+  final List<ServiceCategoryItem>? categories;
 
   @override
   Widget build(BuildContext context) {
+    final items = categories ?? ServicesData.categories;
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
@@ -33,9 +39,9 @@ class ServicesCategoryGrid extends StatelessWidget {
         // Design 169×97; +3px height absorbs border + font metrics (was overflowing ~2.4px).
         childAspectRatio: 169 / 100,
       ),
-      itemCount: ServicesData.categories.length,
+      itemCount: items.length,
       itemBuilder: (context, index) {
-        final category = ServicesData.categories[index];
+        final category = items[index];
         return GestureDetector(
           onTap: () => onCategoryTap(category),
           child: Container(

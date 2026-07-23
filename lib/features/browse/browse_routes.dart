@@ -85,6 +85,15 @@ abstract final class BrowseRoutes {
     return '${RouteNames.servicesBrowse}?tab=$tab';
   }
 
+  static String servicesSearch({String? query, int tab = 0}) {
+    final queryBuffer = StringBuffer(RouteNames.servicesSearch);
+    final params = <String>[];
+    if (query != null && query.isNotEmpty) params.add('q=$query');
+    if (tab != 0) params.add('tab=$tab');
+    if (params.isNotEmpty) queryBuffer.write('?${params.join('&')}');
+    return queryBuffer.toString();
+  }
+
   static String servicesCategory({
     required String categoryId,
     int tab = 0,

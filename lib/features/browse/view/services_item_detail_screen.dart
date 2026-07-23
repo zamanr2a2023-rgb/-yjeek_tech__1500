@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:yjeek_app/core/constants/app_colors.dart';
 import 'package:yjeek_app/core/constants/app_text_styles.dart';
+import 'package:yjeek_app/core/providers/app_providers.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/features/browse/model/services_data.dart';
 import 'package:yjeek_app/features/browse/view/widgets/services_widgets.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/navigation_widgets.dart';
 import 'package:yjeek_app/features/services_booking/services_booking_routes.dart';
 
-class ServicesItemDetailScreen extends StatefulWidget {
+class ServicesItemDetailScreen extends ConsumerStatefulWidget {
   const ServicesItemDetailScreen({
     super.key,
     required this.providerId,
@@ -21,28 +23,81 @@ class ServicesItemDetailScreen extends StatefulWidget {
   final int bottomNavIndex;
 
   @override
-  State<ServicesItemDetailScreen> createState() => _ServicesItemDetailScreenState();
+  ConsumerState<ServicesItemDetailScreen> createState() =>
+      _ServicesItemDetailScreenState();
 }
 
-class _ServicesItemDetailScreenState extends State<ServicesItemDetailScreen> {
+class _ServicesItemDetailScreenState
+    extends ConsumerState<ServicesItemDetailScreen> {
   int _quantity = 1;
   int _selectedOption = 0;
-  String _selectedSpecialist = ServicesData.specialists.first;
+  String _selectedSpecialist = 'Any';
   final Set<int> _selectedAddons = {};
+  bool _loading = true;
+
+  ServiceMenuItem _item = ServicesData.glowBeautyMenu.first;
+  String _description = ServicesData.haircutDescription;
+  List<ServiceOption> _options = ServicesData.haircutOptions;
+  List<ServiceAddon> _addons = ServicesData.haircutAddons;
+  List<String> _specialists = ServicesData.specialists;
 
   static const Color _muted = Color(0xFF6B7A6E);
   static const Color _green = Color(0xFF2E9E4D);
   static const Color _mint = Color(0xFFE3F2EB);
   static const Color _border = Color(0xFFE0E6E0);
 
-  ServiceMenuItem get _item => ServicesData.menuItemById(widget.itemId);
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _load());
+  }
+
+  Future<void> _load() async {
+    setState(() => _loading = true);
+    try {
+      final detail = await ref
+          .read(servicesVendorsRepositoryProvider)
+          .fetchProductDetail(
+            providerId: widget.providerId,
+            itemId: widget.itemId,
+          );
+      if (!mounted) return;
+      if (detail == null) {
+        setState(() => _loading = false);
+        return;
+      }
+      setState(() {
+        _item = detail.item;
+        _description = detail.description;
+        _options = detail.options;
+        _addons = detail.addons;
+        _specialists = detail.specialists;
+        _selectedSpecialist = detail.specialists.first;
+        _selectedOption = 0;
+        _selectedAddons.clear();
+        _loading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _item = ServicesData.menuItemById(widget.itemId);
+        _loading = false;
+      });
+    }
+  }
 
   String get _displayPrice {
     final base = double.tryParse(_item.price) ?? 8;
-    final optionExtra = _selectedOption == 1 ? 4.0 : 0.0;
+    var optionExtra = 0.0;
+    if (_selectedOption >= 0 && _selectedOption < _options.length) {
+      optionExtra =
+          double.tryParse(_options[_selectedOption].extraPrice ?? '') ?? 0;
+    }
     var addonTotal = 0.0;
     for (final index in _selectedAddons) {
-      addonTotal += double.tryParse(ServicesData.haircutAddons[index].price) ?? 0;
+      if (index >= 0 && index < _addons.length) {
+        addonTotal += double.tryParse(_addons[index].price) ?? 0;
+      }
     }
     return ((base + optionExtra + addonTotal) * _quantity).toStringAsFixed(3);
   }
@@ -92,106 +147,120 @@ class _ServicesItemDetailScreenState extends State<ServicesItemDetailScreen> {
             ),
           ),
           Expanded(
-            child: ListView(
-              padding: EdgeInsets.fromLTRB(20.w, 18.w, 20.w, 8.w),
-              children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        _item.name,
-                        style: AppTextStyles.titleMedium(color: AppColors.textPrimary).copyWith(
-                          fontWeight: FontWeight.w700,
-                          fontSize: 24.sp,
-                          height: 29 / 24,
+            child: _loading
+                ? const Center(
+                    child: CircularProgressIndicator(color: AppColors.primary),
+                  )
+                : ListView(
+                    padding: EdgeInsets.fromLTRB(20.w, 18.w, 20.w, 8.w),
+                    children: [
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              _item.name,
+                              style: AppTextStyles.titleMedium(
+                                color: AppColors.textPrimary,
+                              ).copyWith(
+                                fontWeight: FontWeight.w700,
+                                fontSize: 24.sp,
+                                height: 29 / 24,
+                              ),
+                            ),
+                          ),
+                          Text(
+                            'BHD ${_item.price}',
+                            style: AppTextStyles.titleSmall(color: _green)
+                                .copyWith(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 18.sp,
+                              height: 22 / 18,
+                            ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 8.w),
+                      Text(
+                        '🕒 ${_item.duration} · with a senior stylist',
+                        style: AppTextStyles.labelSmall(color: _muted).copyWith(
+                          fontWeight: FontWeight.w500,
+                          fontSize: 13.sp,
+                          height: 16 / 13,
                         ),
                       ),
-                    ),
-                    Text(
-                      'BHD ${_item.price}',
-                      style: AppTextStyles.titleSmall(color: _green).copyWith(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 18.sp,
-                        height: 22 / 18,
+                      SizedBox(height: 12.w),
+                      Text(
+                        _description,
+                        style: AppTextStyles.bodySmall(color: _muted).copyWith(
+                          fontWeight: FontWeight.w400,
+                          fontSize: 14.sp,
+                          height: 17 / 14,
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-                SizedBox(height: 8.w),
-                Text(
-                  '🕒 ${_item.duration} · with a senior stylist',
-                  style: AppTextStyles.labelSmall(color: _muted).copyWith(
-                    fontWeight: FontWeight.w500,
-                    fontSize: 13.sp,
-                    height: 16 / 13,
+                      if (_options.isNotEmpty) ...[
+                        SizedBox(height: 18.w),
+                        Text(
+                          'CHOOSE OPTION',
+                          style: AppTextStyles.labelSmall(color: _muted)
+                              .copyWith(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 12.sp,
+                            height: 15 / 12,
+                          ),
+                        ),
+                        SizedBox(height: 10.w),
+                        for (var i = 0; i < _options.length; i++) ...[
+                          if (i > 0) SizedBox(height: 8.w),
+                          ServicesOptionCard(
+                            option: _options[i],
+                            selected: _selectedOption == i,
+                            onTap: () => setState(() => _selectedOption = i),
+                          ),
+                        ],
+                      ],
+                      SizedBox(height: 18.w),
+                      Text(
+                        'SELECT SPECIALIST',
+                        style: AppTextStyles.labelSmall(color: _muted).copyWith(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 12.sp,
+                          height: 15 / 12,
+                        ),
+                      ),
+                      SizedBox(height: 10.w),
+                      ServicesSpecialistChips(
+                        options: _specialists,
+                        selected: _selectedSpecialist,
+                        onSelected: (v) =>
+                            setState(() => _selectedSpecialist = v),
+                      ),
+                      if (_addons.isNotEmpty) ...[
+                        SizedBox(height: 18.w),
+                        Text(
+                          'ADD-ONS',
+                          style: AppTextStyles.labelSmall(color: _muted)
+                              .copyWith(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 12.sp,
+                            height: 15 / 12,
+                          ),
+                        ),
+                        for (var i = 0; i < _addons.length; i++)
+                          ServicesAddonRow(
+                            addon: _addons[i],
+                            checked: _selectedAddons.contains(i),
+                            onChanged: (v) => setState(() {
+                              if (v) {
+                                _selectedAddons.add(i);
+                              } else {
+                                _selectedAddons.remove(i);
+                              }
+                            }),
+                          ),
+                      ],
+                    ],
                   ),
-                ),
-                SizedBox(height: 12.w),
-                Text(
-                  ServicesData.haircutDescription,
-                  style: AppTextStyles.bodySmall(color: _muted).copyWith(
-                    fontWeight: FontWeight.w400,
-                    fontSize: 14.sp,
-                    height: 17 / 14,
-                  ),
-                ),
-                SizedBox(height: 18.w),
-                Text(
-                  'CHOOSE OPTION',
-                  style: AppTextStyles.labelSmall(color: _muted).copyWith(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 12.sp,
-                    height: 15 / 12,
-                  ),
-                ),
-                SizedBox(height: 10.w),
-                for (var i = 0; i < ServicesData.haircutOptions.length; i++) ...[
-                  if (i > 0) SizedBox(height: 8.w),
-                  ServicesOptionCard(
-                    option: ServicesData.haircutOptions[i],
-                    selected: _selectedOption == i,
-                    onTap: () => setState(() => _selectedOption = i),
-                  ),
-                ],
-                SizedBox(height: 18.w),
-                Text(
-                  'SELECT SPECIALIST',
-                  style: AppTextStyles.labelSmall(color: _muted).copyWith(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 12.sp,
-                    height: 15 / 12,
-                  ),
-                ),
-                SizedBox(height: 10.w),
-                ServicesSpecialistChips(
-                  options: ServicesData.specialists,
-                  selected: _selectedSpecialist,
-                  onSelected: (v) => setState(() => _selectedSpecialist = v),
-                ),
-                SizedBox(height: 18.w),
-                Text(
-                  'ADD-ONS',
-                  style: AppTextStyles.labelSmall(color: _muted).copyWith(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 12.sp,
-                    height: 15 / 12,
-                  ),
-                ),
-                for (var i = 0; i < ServicesData.haircutAddons.length; i++)
-                  ServicesAddonRow(
-                    addon: ServicesData.haircutAddons[i],
-                    checked: _selectedAddons.contains(i),
-                    onChanged: (v) => setState(() {
-                      if (v) {
-                        _selectedAddons.add(i);
-                      } else {
-                        _selectedAddons.remove(i);
-                      }
-                    }),
-                  ),
-              ],
-            ),
           ),
           Container(
             padding: EdgeInsets.fromLTRB(20.w, 15.w, 20.w, 15.w),
@@ -234,7 +303,9 @@ class _ServicesItemDetailScreenState extends State<ServicesItemDetailScreen> {
                       ),
                       Text(
                         '$_quantity',
-                        style: AppTextStyles.labelMedium(color: AppColors.textPrimary).copyWith(
+                        style: AppTextStyles.labelMedium(
+                          color: AppColors.textPrimary,
+                        ).copyWith(
                           fontWeight: FontWeight.w600,
                           fontSize: 16.sp,
                           height: 19 / 16,
@@ -274,7 +345,9 @@ class _ServicesItemDetailScreenState extends State<ServicesItemDetailScreen> {
                       alignment: Alignment.center,
                       child: Text(
                         'Add to booking · BHD $_displayPrice',
-                        style: AppTextStyles.labelMedium(color: AppColors.white).copyWith(
+                        style: AppTextStyles.labelMedium(
+                          color: AppColors.white,
+                        ).copyWith(
                           fontWeight: FontWeight.w700,
                           fontSize: 16.sp,
                           height: 19 / 16,
@@ -288,7 +361,9 @@ class _ServicesItemDetailScreenState extends State<ServicesItemDetailScreen> {
           ),
         ],
       ),
-      bottomNavigationBar: ShellBottomNavBar(currentIndex: widget.bottomNavIndex),
+      bottomNavigationBar: ShellBottomNavBar(
+        currentIndex: widget.bottomNavIndex,
+      ),
     );
   }
 }

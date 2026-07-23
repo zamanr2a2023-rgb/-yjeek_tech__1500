@@ -131,6 +131,8 @@ class _OtpVerifyScreenState extends ConsumerState<OtpVerifyScreen> {
       await storage.setLoggedIn(true);
       await storage.savePhone(widget.phoneNumber);
       if (result.token != null) await storage.saveToken(result.token!);
+      ref.invalidate(userMeProvider);
+      ref.invalidate(homeFeedProvider);
       if (!mounted) return;
       context.goHome();
       return;

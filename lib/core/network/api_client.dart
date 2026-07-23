@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
+import 'package:yjeek_app/core/constants/api_constants.dart';
 import 'package:yjeek_app/core/utils/app_logger.dart';
 
 /// Raw HTTP response wrapper. `statusCode == 0` means the request never
@@ -43,17 +44,14 @@ class ApiClient {
 
   final http.Client _client;
 
-  // Dev setup: phone reaches the backend (192.168.10.251:3000) over USB via
-  // `adb reverse tcp:3000 tcp:3000` + `node tool/dev_proxy.js` on the PC.
-  // The phone's own network can't route to 192.168.10.x directly.
-  static const _baseUrl = 'http://127.0.0.1:3000/api/v1';
-
+  // Dev setup: phone reaches the backend over USB via
+  // `adb reverse tcp:3000 tcp:3000` (see ApiConstants.baseUrl).
   Future<Map<String, dynamic>?> getJson(
     String path, {
     String? bearerToken,
   }) async {
     try {
-      final uri = Uri.parse('$_baseUrl$path');
+      final uri = Uri.parse('${ApiConstants.baseUrl}$path');
       appLogger.d('GET $uri');
       final response = await _client.get(
         uri,
@@ -78,7 +76,7 @@ class ApiClient {
     Map<String, dynamic> body, {
     String? bearerToken,
   }) async {
-    final uri = Uri.parse('$_baseUrl$path');
+    final uri = Uri.parse('${ApiConstants.baseUrl}$path');
     try {
       appLogger.d('POST $uri $body');
       final response = await _client.post(

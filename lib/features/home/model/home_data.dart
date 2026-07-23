@@ -2,10 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:yjeek_app/features/home/model/category_item.dart';
 
 class BrandItem {
-  const BrandItem({required this.name, required this.color});
+  const BrandItem({
+    required this.name,
+    required this.color,
+    this.id,
+    this.logoUrl,
+  });
 
+  final String? id;
   final String name;
   final Color color;
+  final String? logoUrl;
 }
 
 class OfferItem {
@@ -13,11 +20,15 @@ class OfferItem {
     required this.name,
     required this.price,
     required this.imageColor,
+    this.imageUrl,
+    this.badgeLabel,
   });
 
   final String name;
   final String price;
   final Color imageColor;
+  final String? imageUrl;
+  final String? badgeLabel;
 }
 
 abstract final class HomeData {

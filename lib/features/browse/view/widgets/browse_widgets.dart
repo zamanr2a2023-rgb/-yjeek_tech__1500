@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:yjeek_app/core/constants/app_colors.dart';
 import 'package:yjeek_app/core/constants/app_text_styles.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
+import 'package:yjeek_app/core/widgets/app_network_image.dart';
 import 'package:yjeek_app/features/browse/model/browse_data.dart';
 import 'package:yjeek_app/features/home/view/widgets/home_widgets.dart';
 
@@ -51,11 +52,12 @@ class BrowseTopBar extends StatelessWidget {
             Expanded(
               child: Text(
                 title,
-                style: AppTextStyles.titleMedium(color: AppColors.textPrimary).copyWith(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 20.sp,
-                  height: 1.26,
-                ),
+                style: AppTextStyles.titleMedium(color: AppColors.textPrimary)
+                    .copyWith(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 20.sp,
+                      height: 1.26,
+                    ),
               ),
             ),
             if (onCart != null)
@@ -121,11 +123,13 @@ class BrowseSearchBar extends StatelessWidget {
             child: onChanged != null
                 ? TextField(
                     autofocus: true,
-                    controller: value != null ? TextEditingController(text: value) : null,
+                    controller: value != null
+                        ? TextEditingController(text: value)
+                        : null,
                     onChanged: onChanged,
-                    style: AppTextStyles.bodyMedium(color: AppColors.textPrimary).copyWith(
-                      fontSize: 13.sp,
-                    ),
+                    style: AppTextStyles.bodyMedium(
+                      color: AppColors.textPrimary,
+                    ).copyWith(fontSize: 13.sp),
                     decoration: const InputDecoration(
                       border: InputBorder.none,
                       isDense: true,
@@ -134,16 +138,19 @@ class BrowseSearchBar extends StatelessWidget {
                   )
                 : Text(
                     hint,
-                    style: AppTextStyles.bodySmall(color: const Color(0xFF6B756E)).copyWith(
-                      fontSize: 13.sp,
-                      height: 16 / 13,
-                    ),
+                    style: AppTextStyles.bodySmall(
+                      color: const Color(0xFF6B756E),
+                    ).copyWith(fontSize: 13.sp, height: 16 / 13),
                   ),
           ),
           if (value != null && value!.isNotEmpty)
             GestureDetector(
               onTap: () => onChanged?.call(''),
-              child: Icon(Icons.close, size: 18.sp, color: AppColors.textSecondary),
+              child: Icon(
+                Icons.close,
+                size: 18.sp,
+                color: AppColors.textSecondary,
+              ),
             ),
         ],
       ),
@@ -152,7 +159,9 @@ class BrowseSearchBar extends StatelessWidget {
     return Row(
       children: [
         Expanded(
-          child: onTap != null ? GestureDetector(onTap: onTap, child: child) : child,
+          child: onTap != null
+              ? GestureDetector(onTap: onTap, child: child)
+              : child,
         ),
         if (showCancel) ...[
           SizedBox(width: 10.w),
@@ -160,10 +169,9 @@ class BrowseSearchBar extends StatelessWidget {
             onTap: onCancel,
             child: Text(
               'Cancel',
-              style: AppTextStyles.labelMedium(color: AppColors.primary).copyWith(
-                fontWeight: FontWeight.w600,
-                fontSize: 14.sp,
-              ),
+              style: AppTextStyles.labelMedium(
+                color: AppColors.primary,
+              ).copyWith(fontWeight: FontWeight.w600, fontSize: 14.sp),
             ),
           ),
         ],
@@ -209,9 +217,7 @@ class BrowseFilterChips extends StatelessWidget {
               decoration: BoxDecoration(
                 color: active ? selectedColor : AppColors.white,
                 borderRadius: BorderRadius.circular(20.r),
-                border: Border.all(
-                  color: active ? selectedColor : idleBorder,
-                ),
+                border: Border.all(color: active ? selectedColor : idleBorder),
               ),
               child: Text(
                 option,
@@ -234,36 +240,77 @@ class BrowseSortBar extends StatelessWidget {
     required this.onViewChanged,
     this.freeDeliveryOnly = false,
     this.onFreeDeliveryChanged,
+    this.sort = 'rating',
+    this.onSortChanged,
   });
 
   final bool isGridView;
   final ValueChanged<bool> onViewChanged;
   final bool freeDeliveryOnly;
   final ValueChanged<bool>? onFreeDeliveryChanged;
+  final String sort;
+  final ValueChanged<String>? onSortChanged;
+
+  static const _options = <(String value, String label)>[
+    ('rating', 'Top rated'),
+    ('popular', 'Most Popular'),
+    ('fastest', 'Fastest Delivery'),
+  ];
+
+  String get _sortLabel {
+    for (final option in _options) {
+      if (option.$1 == sort) return option.$2;
+    }
+    return 'Top rated';
+  }
 
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Container(
-          padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 8.h),
-          decoration: BoxDecoration(
-            color: AppColors.white,
+        PopupMenuButton<String>(
+          initialValue: sort,
+          onSelected: onSortChanged,
+          offset: Offset(0, 36.h),
+          shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(10.r),
-            border: Border.all(color: AppColors.border),
           ),
-          child: Row(
-            children: [
-              Text(
-                'Sort: Top rated',
-                style: AppTextStyles.labelSmall(color: AppColors.textPrimary).copyWith(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 12.sp,
+          itemBuilder: (context) => [
+            for (final option in _options)
+              PopupMenuItem<String>(
+                value: option.$1,
+                child: Text(
+                  option.$2,
+                  style: AppTextStyles.labelSmall(
+                    color: option.$1 == sort
+                        ? AppColors.primary
+                        : AppColors.textPrimary,
+                  ).copyWith(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 12.sp,
+                  ),
                 ),
               ),
-              SizedBox(width: 4.w),
-              Icon(Icons.keyboard_arrow_down_rounded, size: 16.sp),
-            ],
+          ],
+          child: Container(
+            padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 8.h),
+            decoration: BoxDecoration(
+              color: AppColors.white,
+              borderRadius: BorderRadius.circular(10.r),
+              border: Border.all(color: AppColors.border),
+            ),
+            child: Row(
+              children: [
+                Text(
+                  'Sort: $_sortLabel',
+                  style: AppTextStyles.labelSmall(
+                    color: AppColors.textPrimary,
+                  ).copyWith(fontWeight: FontWeight.w600, fontSize: 12.sp),
+                ),
+                SizedBox(width: 4.w),
+                Icon(Icons.keyboard_arrow_down_rounded, size: 16.sp),
+              ],
+            ),
           ),
         ),
         SizedBox(width: 8.w),
@@ -272,7 +319,9 @@ class BrowseSortBar extends StatelessWidget {
           child: Container(
             padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 8.h),
             decoration: BoxDecoration(
-              color: freeDeliveryOnly ? const Color(0xFFE8F5E9) : AppColors.white,
+              color: freeDeliveryOnly
+                  ? const Color(0xFFE8F5E9)
+                  : AppColors.white,
               borderRadius: BorderRadius.circular(10.r),
               border: Border.all(
                 color: freeDeliveryOnly ? AppColors.primary : AppColors.border,
@@ -281,7 +330,9 @@ class BrowseSortBar extends StatelessWidget {
             child: Text(
               'Free delivery',
               style: AppTextStyles.labelSmall(
-                color: freeDeliveryOnly ? AppColors.primary : AppColors.textPrimary,
+                color: freeDeliveryOnly
+                    ? AppColors.primary
+                    : AppColors.textPrimary,
               ).copyWith(fontWeight: FontWeight.w600, fontSize: 12.sp),
             ),
           ),
@@ -305,8 +356,8 @@ class BrowseRestaurantGridCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final promoLabel = restaurant.badge ??
-        (restaurant.freeDelivery ? 'Free delivery' : null);
+    final promoLabel =
+        restaurant.badge ?? (restaurant.freeDelivery ? 'Free delivery' : null);
 
     return GestureDetector(
       onTap: onTap,
@@ -330,15 +381,29 @@ class BrowseRestaurantGridCard extends StatelessWidget {
                       gradient: LinearGradient(
                         begin: const Alignment(-0.8, -0.6),
                         end: const Alignment(0.8, 0.8),
-                        colors: [restaurant.gradientStart, restaurant.gradientEnd],
+                        colors: [
+                          restaurant.gradientStart,
+                          restaurant.gradientEnd,
+                        ],
                       ),
                     ),
                   ),
+                  if (restaurant.imageUrl != null &&
+                      restaurant.imageUrl!.isNotEmpty)
+                    Positioned.fill(
+                      child: AppNetworkImage(
+                        url: restaurant.imageUrl!,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
                   Positioned(
                     top: 5.w,
                     left: 5.w,
                     child: Container(
-                      padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 2.w),
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 5.w,
+                        vertical: 2.w,
+                      ),
                       decoration: BoxDecoration(
                         color: AppColors.white,
                         borderRadius: BorderRadius.circular(7.r),
@@ -358,12 +423,14 @@ class BrowseRestaurantGridCard extends StatelessWidget {
                           SizedBox(width: 2.w),
                           Text(
                             '${restaurant.rating}',
-                            style: AppTextStyles.labelSmall(color: AppColors.textPrimary)
-                                .copyWith(
-                              fontWeight: FontWeight.w700,
-                              fontSize: 9.sp,
-                              height: 1.2,
-                            ),
+                            style:
+                                AppTextStyles.labelSmall(
+                                  color: AppColors.textPrimary,
+                                ).copyWith(
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 9.sp,
+                                  height: 1.2,
+                                ),
                           ),
                         ],
                       ),
@@ -384,18 +451,23 @@ class BrowseRestaurantGridCard extends StatelessWidget {
                         restaurant.name,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style: AppTextStyles.labelSmall(color: AppColors.textPrimary)
-                            .copyWith(
-                          fontWeight: FontWeight.w700,
-                          fontSize: 11.5.sp,
-                          height: 1.2,
-                        ),
+                        style:
+                            AppTextStyles.labelSmall(
+                              color: AppColors.textPrimary,
+                            ).copyWith(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 11.5.sp,
+                              height: 1.2,
+                            ),
                       ),
                     ),
                     if (promoLabel != null) ...[
                       SizedBox(height: 3.w),
                       Container(
-                        padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 2.w),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 5.w,
+                          vertical: 2.w,
+                        ),
                         decoration: BoxDecoration(
                           color: const Color(0xFFF7F0DC),
                           borderRadius: BorderRadius.circular(5.r),
@@ -404,12 +476,14 @@ class BrowseRestaurantGridCard extends StatelessWidget {
                           promoLabel,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: AppTextStyles.labelSmall(color: const Color(0xFF7A5E12))
-                              .copyWith(
-                            fontWeight: FontWeight.w700,
-                            fontSize: 9.sp,
-                            height: 1.2,
-                          ),
+                          style:
+                              AppTextStyles.labelSmall(
+                                color: const Color(0xFF7A5E12),
+                              ).copyWith(
+                                fontWeight: FontWeight.w700,
+                                fontSize: 9.sp,
+                                height: 1.2,
+                              ),
                         ),
                       ),
                     ],
@@ -458,28 +532,47 @@ class BrowseRestaurantListCard extends StatelessWidget {
                     gradient: LinearGradient(
                       begin: const Alignment(-0.8, -0.6),
                       end: const Alignment(0.8, 0.8),
-                      colors: [restaurant.gradientStart, restaurant.gradientEnd],
+                      colors: [
+                        restaurant.gradientStart,
+                        restaurant.gradientEnd,
+                      ],
                     ),
                   ),
+                  clipBehavior: Clip.antiAlias,
+                  child: restaurant.imageUrl != null &&
+                          restaurant.imageUrl!.isNotEmpty
+                      ? AppNetworkImage(
+                          url: restaurant.imageUrl!,
+                          width: 72.w,
+                          height: 72.w,
+                          fit: BoxFit.cover,
+                          borderRadius: BorderRadius.circular(14.r),
+                        )
+                      : null,
                 ),
                 if (restaurant.badge != null)
                   Positioned(
                     top: 4.h,
                     left: 4.w,
                     child: Container(
-                      padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 3.h),
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 6.w,
+                        vertical: 3.h,
+                      ),
                       decoration: BoxDecoration(
                         color: const Color(0xFFEBC34A),
                         borderRadius: BorderRadius.circular(6.r),
                       ),
                       child: Text(
                         restaurant.badge!,
-                        style: AppTextStyles.labelSmall(color: const Color(0xFF5A4503))
-                            .copyWith(
-                          fontWeight: FontWeight.w700,
-                          fontSize: 8.sp,
-                          height: 1.25,
-                        ),
+                        style:
+                            AppTextStyles.labelSmall(
+                              color: const Color(0xFF5A4503),
+                            ).copyWith(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 8.sp,
+                              height: 1.25,
+                            ),
                       ),
                     ),
                   ),
@@ -498,12 +591,14 @@ class BrowseRestaurantListCard extends StatelessWidget {
                           restaurant.name,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: AppTextStyles.labelMedium(color: AppColors.textPrimary)
-                              .copyWith(
-                            fontWeight: FontWeight.w700,
-                            fontSize: 15.sp,
-                            height: 1.26,
-                          ),
+                          style:
+                              AppTextStyles.labelMedium(
+                                color: AppColors.textPrimary,
+                              ).copyWith(
+                                fontWeight: FontWeight.w700,
+                                fontSize: 15.sp,
+                                height: 1.26,
+                              ),
                         ),
                       ),
                       SizedBox(width: 8.w),
@@ -519,12 +614,14 @@ class BrowseRestaurantListCard extends StatelessWidget {
                       SizedBox(width: 3.w),
                       Text(
                         '${restaurant.rating}',
-                        style: AppTextStyles.labelSmall(color: AppColors.textPrimary)
-                            .copyWith(
-                          fontWeight: FontWeight.w700,
-                          fontSize: 12.sp,
-                          height: 1.26,
-                        ),
+                        style:
+                            AppTextStyles.labelSmall(
+                              color: AppColors.textPrimary,
+                            ).copyWith(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 12.sp,
+                              height: 1.26,
+                            ),
                       ),
                     ],
                   ),
@@ -533,30 +630,36 @@ class BrowseRestaurantListCard extends StatelessWidget {
                     restaurant.cuisine,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: AppTextStyles.caption(color: const Color(0xFF6B7B6E)).copyWith(
-                      fontWeight: FontWeight.w500,
-                      fontSize: 12.sp,
-                      height: 1.26,
-                    ),
+                    style: AppTextStyles.caption(color: const Color(0xFF6B7B6E))
+                        .copyWith(
+                          fontWeight: FontWeight.w500,
+                          fontSize: 12.sp,
+                          height: 1.26,
+                        ),
                   ),
                   SizedBox(height: 4.h),
                   Row(
                     children: [
                       if (restaurant.freeDelivery) ...[
                         Container(
-                          padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 8.w,
+                            vertical: 4.h,
+                          ),
                           decoration: BoxDecoration(
                             color: const Color(0xFFD9EFE0),
                             borderRadius: BorderRadius.circular(7.r),
                           ),
                           child: Text(
                             'Free Delivery',
-                            style: AppTextStyles.labelSmall(color: AppColors.primary)
-                                .copyWith(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 10.5.sp,
-                              height: 1.26,
-                            ),
+                            style:
+                                AppTextStyles.labelSmall(
+                                  color: AppColors.primary,
+                                ).copyWith(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 10.5.sp,
+                                  height: 1.26,
+                                ),
                           ),
                         ),
                         SizedBox(width: 8.w),
@@ -572,12 +675,14 @@ class BrowseRestaurantListCard extends StatelessWidget {
                           '${restaurant.deliveryMin} min',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: AppTextStyles.caption(color: const Color(0xFF6B7B6E))
-                              .copyWith(
-                            fontWeight: FontWeight.w500,
-                            fontSize: 11.sp,
-                            height: 1.26,
-                          ),
+                          style:
+                              AppTextStyles.caption(
+                                color: const Color(0xFF6B7B6E),
+                              ).copyWith(
+                                fontWeight: FontWeight.w500,
+                                fontSize: 11.sp,
+                                height: 1.26,
+                              ),
                         ),
                       ),
                     ],
@@ -593,12 +698,19 @@ class BrowseRestaurantListCard extends StatelessWidget {
 }
 
 class BrowseOrderAgainRow extends StatelessWidget {
-  const BrowseOrderAgainRow({super.key, this.onSeeAll});
+  const BrowseOrderAgainRow({
+    super.key,
+    this.onSeeAll,
+    this.brands,
+  });
 
   final VoidCallback? onSeeAll;
+  final List<(String, Color)>? brands;
 
   @override
   Widget build(BuildContext context) {
+    final items = brands ?? BrowseData.orderAgainBrands;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -617,11 +729,12 @@ class BrowseOrderAgainRow extends StatelessWidget {
               onTap: onSeeAll,
               child: Text(
                 'See all',
-                style: AppTextStyles.labelSmall(color: AppColors.primary).copyWith(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 13.sp,
-                  height: 1.28,
-                ),
+                style: AppTextStyles.labelSmall(color: AppColors.primary)
+                    .copyWith(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13.sp,
+                      height: 1.28,
+                    ),
               ),
             ),
           ],
@@ -636,10 +749,11 @@ class BrowseOrderAgainRow extends StatelessWidget {
               height: circleSize + gap + labelHeight,
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
-                itemCount: BrowseData.orderAgainBrands.length,
+                itemCount: items.length,
                 separatorBuilder: (_, _) => SizedBox(width: 16.w),
                 itemBuilder: (context, index) {
-                  final (name, color) = BrowseData.orderAgainBrands[index];
+                  final (name, color) = items[index];
+                  final initial = name.isNotEmpty ? name[0] : '';
                   return SizedBox(
                     width: circleSize,
                     child: Column(
@@ -655,12 +769,14 @@ class BrowseOrderAgainRow extends StatelessWidget {
                           ),
                           alignment: Alignment.center,
                           child: Text(
-                            name[0],
-                            style: AppTextStyles.labelMedium(color: AppColors.white)
-                                .copyWith(
-                              fontWeight: FontWeight.w700,
-                              fontSize: 18.sp,
-                            ),
+                            initial,
+                            style:
+                                AppTextStyles.labelMedium(
+                                  color: AppColors.white,
+                                ).copyWith(
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 18.sp,
+                                ),
                           ),
                         ),
                         SizedBox(height: gap),
@@ -671,12 +787,14 @@ class BrowseOrderAgainRow extends StatelessWidget {
                             textAlign: TextAlign.center,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: AppTextStyles.caption(color: AppColors.textPrimary)
-                                .copyWith(
-                              fontWeight: FontWeight.w500,
-                              fontSize: 11.sp,
-                              height: 1.0,
-                            ),
+                            style:
+                                AppTextStyles.caption(
+                                  color: AppColors.textPrimary,
+                                ).copyWith(
+                                  fontWeight: FontWeight.w500,
+                                  fontSize: 11.sp,
+                                  height: 1.0,
+                                ),
                           ),
                         ),
                       ],
@@ -755,11 +873,12 @@ class BrowseVendorHero extends StatelessWidget {
               children: [
                 Text(
                   restaurant.name,
-                  style: AppTextStyles.displayMedium(color: AppColors.white).copyWith(
-                    fontSize: 26.sp,
-                    fontWeight: FontWeight.w700,
-                    height: 1.3,
-                  ),
+                  style: AppTextStyles.displayMedium(color: AppColors.white)
+                      .copyWith(
+                        fontSize: 26.sp,
+                        fontWeight: FontWeight.w700,
+                        height: 1.3,
+                      ),
                 ),
                 SizedBox(height: 6.h),
                 Row(
@@ -776,11 +895,12 @@ class BrowseVendorHero extends StatelessWidget {
                     SizedBox(width: 4.w),
                     Text(
                       '${restaurant.rating} (2.5k)',
-                      style: AppTextStyles.labelSmall(color: AppColors.white).copyWith(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 11.sp,
-                        height: 1.3,
-                      ),
+                      style: AppTextStyles.labelSmall(color: AppColors.white)
+                          .copyWith(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 11.sp,
+                            height: 1.3,
+                          ),
                     ),
                     SizedBox(width: 8.w),
                     Flexible(
@@ -788,12 +908,14 @@ class BrowseVendorHero extends StatelessWidget {
                         '${restaurant.cuisine} · ${restaurant.distance}',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: AppTextStyles.labelSmall(color: const Color(0xFFE2EFE6))
-                            .copyWith(
-                          fontWeight: FontWeight.w500,
-                          fontSize: 12.sp,
-                          height: 1.3,
-                        ),
+                        style:
+                            AppTextStyles.labelSmall(
+                              color: const Color(0xFFE2EFE6),
+                            ).copyWith(
+                              fontWeight: FontWeight.w500,
+                              fontSize: 12.sp,
+                              height: 1.3,
+                            ),
                       ),
                     ),
                   ],
@@ -835,9 +957,7 @@ class BrowseMenuItemRow extends StatelessWidget {
               height: 72.w,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(14.r),
-                gradient: LinearGradient(
-                  colors: [gradientStart, gradientEnd],
-                ),
+                gradient: LinearGradient(colors: [gradientStart, gradientEnd]),
               ),
             ),
             SizedBox(width: 12.w),
@@ -847,25 +967,23 @@ class BrowseMenuItemRow extends StatelessWidget {
                 children: [
                   Text(
                     item.name,
-                    style: AppTextStyles.labelMedium(color: AppColors.textPrimary).copyWith(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 15.sp,
-                    ),
+                    style: AppTextStyles.labelMedium(
+                      color: AppColors.textPrimary,
+                    ).copyWith(fontWeight: FontWeight.w700, fontSize: 15.sp),
                   ),
                   SizedBox(height: 2.h),
                   Text(
                     item.description,
-                    style: AppTextStyles.caption(color: AppColors.textSecondary).copyWith(
-                      fontSize: 12.sp,
-                    ),
+                    style: AppTextStyles.caption(
+                      color: AppColors.textSecondary,
+                    ).copyWith(fontSize: 12.sp),
                   ),
                   SizedBox(height: 4.h),
                   Text(
                     'BHD ${item.price}',
-                    style: AppTextStyles.labelMedium(color: AppColors.primary).copyWith(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 13.sp,
-                    ),
+                    style: AppTextStyles.labelMedium(
+                      color: AppColors.primary,
+                    ).copyWith(fontWeight: FontWeight.w700, fontSize: 13.sp),
                   ),
                 ],
               ),
@@ -922,11 +1040,12 @@ class BrowseCartBar extends StatelessWidget {
               ),
               child: Text(
                 '${BrowseData.cartItemCount}',
-                style: AppTextStyles.labelSmall(color: AppColors.white).copyWith(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 13.sp,
-                  height: 1.3,
-                ),
+                style: AppTextStyles.labelSmall(color: AppColors.white)
+                    .copyWith(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 13.sp,
+                      height: 1.3,
+                    ),
               ),
             ),
             SizedBox(width: 10.w),
@@ -989,22 +1108,24 @@ class BrowseSizeOptionCard extends StatelessWidget {
                 children: [
                   Text(
                     option.label,
-                    style: AppTextStyles.labelMedium(color: AppColors.textPrimary)
-                        .copyWith(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 14.sp,
-                      height: 1.3,
-                    ),
+                    style:
+                        AppTextStyles.labelMedium(
+                          color: AppColors.textPrimary,
+                        ).copyWith(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14.sp,
+                          height: 1.3,
+                        ),
                   ),
                   SizedBox(height: 2.h),
                   Text(
                     option.subtitle,
                     style: AppTextStyles.caption(color: const Color(0xFF6B7B6E))
                         .copyWith(
-                      fontWeight: FontWeight.w500,
-                      fontSize: 12.sp,
-                      height: 1.3,
-                    ),
+                          fontWeight: FontWeight.w500,
+                          fontSize: 12.sp,
+                          height: 1.3,
+                        ),
                   ),
                 ],
               ),
@@ -1070,20 +1191,22 @@ class BrowseAddonRow extends StatelessWidget {
             Expanded(
               child: Text(
                 addon.label,
-                style: AppTextStyles.labelMedium(color: AppColors.textPrimary).copyWith(
-                  fontWeight: FontWeight.w500,
-                  fontSize: 14.sp,
-                  height: 1.3,
-                ),
+                style: AppTextStyles.labelMedium(color: AppColors.textPrimary)
+                    .copyWith(
+                      fontWeight: FontWeight.w500,
+                      fontSize: 14.sp,
+                      height: 1.3,
+                    ),
               ),
             ),
             Text(
               splitPrice ? '+ BHD ${addon.price}' : '(+ BHD ${addon.price})',
-              style: AppTextStyles.labelMedium(color: AppColors.textPrimary).copyWith(
-                fontWeight: splitPrice ? FontWeight.w600 : FontWeight.w500,
-                fontSize: splitPrice ? 13.sp : 14.sp,
-                height: 1.3,
-              ),
+              style: AppTextStyles.labelMedium(color: AppColors.textPrimary)
+                  .copyWith(
+                    fontWeight: splitPrice ? FontWeight.w600 : FontWeight.w500,
+                    fontSize: splitPrice ? 13.sp : 14.sp,
+                    height: 1.3,
+                  ),
             ),
           ],
         ),

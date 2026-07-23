@@ -15,6 +15,7 @@ import 'package:yjeek_app/features/browse/view/services_browse_screen.dart';
 import 'package:yjeek_app/features/browse/view/services_category_screen.dart';
 import 'package:yjeek_app/features/browse/view/services_item_detail_screen.dart';
 import 'package:yjeek_app/features/browse/view/services_provider_screen.dart';
+import 'package:yjeek_app/features/browse/view/services_search_screen.dart';
 import 'package:yjeek_app/features/browse/view/electronics_browse_screen.dart';
 import 'package:yjeek_app/features/browse/view/electronics_product_detail_screen.dart';
 import 'package:yjeek_app/features/browse/view/electronics_store_screen.dart';
@@ -255,6 +256,14 @@ class AppRouter {
           builder: (_, state) {
             final tab = int.tryParse(state.uri.queryParameters['tab'] ?? '') ?? 0;
             return ServicesBrowseScreen(bottomNavIndex: tab);
+          },
+        ),
+        GoRoute(
+          path: RouteNames.servicesSearch,
+          builder: (_, state) {
+            final query = state.uri.queryParameters['q'] ?? '';
+            final tab = int.tryParse(state.uri.queryParameters['tab'] ?? '') ?? 0;
+            return ServicesSearchScreen(initialQuery: query, bottomNavIndex: tab);
           },
         ),
         GoRoute(

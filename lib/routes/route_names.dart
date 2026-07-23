@@ -14,6 +14,7 @@ abstract final class RouteNames {
   static const String dineInItemDetail = '/browse/dine-in/item';
   static const String dineInOrderAgain = '/browse/dine-in/order-again';
   static const String servicesBrowse = '/browse/services';
+  static const String servicesSearch = '/browse/services/search';
   static const String servicesCategory = '/browse/services/category';
   static const String servicesProvider = '/browse/services/provider';
   static const String servicesItemDetail = '/browse/services/item';

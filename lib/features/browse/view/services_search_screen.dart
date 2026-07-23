@@ -8,12 +8,13 @@ import 'package:yjeek_app/core/constants/app_text_styles.dart';
 import 'package:yjeek_app/core/providers/app_providers.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/features/browse/browse_routes.dart';
-import 'package:yjeek_app/features/browse/model/browse_data.dart';
+import 'package:yjeek_app/features/browse/model/services_data.dart';
 import 'package:yjeek_app/features/browse/view/widgets/browse_widgets.dart';
+import 'package:yjeek_app/features/browse/view/widgets/services_widgets.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/navigation_widgets.dart';
 
-class FoodSearchScreen extends ConsumerStatefulWidget {
-  const FoodSearchScreen({
+class ServicesSearchScreen extends ConsumerStatefulWidget {
+  const ServicesSearchScreen({
     super.key,
     this.initialQuery = '',
     this.bottomNavIndex = 0,
@@ -23,14 +24,17 @@ class FoodSearchScreen extends ConsumerStatefulWidget {
   final int bottomNavIndex;
 
   @override
-  ConsumerState<FoodSearchScreen> createState() => _FoodSearchScreenState();
+  ConsumerState<ServicesSearchScreen> createState() =>
+      _ServicesSearchScreenState();
 }
 
-class _FoodSearchScreenState extends ConsumerState<FoodSearchScreen> {
+class _ServicesSearchScreenState extends ConsumerState<ServicesSearchScreen> {
   late String _query;
-  List<BrowseRestaurant> _results = BrowseData.restaurants;
+  List<ServiceProvider> _results = ServicesData.popularProviders;
   Timer? _debounce;
   bool _loading = false;
+
+  static const _recent = ['Glow', 'Spa', 'Nails', 'Photoshoot'];
 
   @override
   void initState() {
@@ -55,10 +59,9 @@ class _FoodSearchScreenState extends ConsumerState<FoodSearchScreen> {
 
   Future<void> _search(String value) async {
     setState(() => _loading = true);
-    final results = await ref.read(foodVendorsRepositoryProvider).fetchVendors(
-          query: value,
-          sort: 'rating',
-        );
+    final results = await ref
+        .read(servicesVendorsRepositoryProvider)
+        .fetchProviders(query: value, sort: 'popular');
     if (!mounted) return;
     setState(() {
       _results = results;
@@ -77,7 +80,7 @@ class _FoodSearchScreenState extends ConsumerState<FoodSearchScreen> {
             Padding(
               padding: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 0),
               child: BrowseSearchBar(
-                hint: 'Search in Food…',
+                hint: ServicesData.searchHint,
                 value: _query,
                 showCancel: true,
                 onChanged: _onQueryChanged,
@@ -98,7 +101,7 @@ class _FoodSearchScreenState extends ConsumerState<FoodSearchScreen> {
               child: Wrap(
                 spacing: 8.w,
                 runSpacing: 8.h,
-                children: BrowseData.recentSearches.map((term) {
+                children: _recent.map((term) {
                   return GestureDetector(
                     onTap: () {
                       setState(() => _query = term);
@@ -116,13 +119,12 @@ class _FoodSearchScreenState extends ConsumerState<FoodSearchScreen> {
                       ),
                       child: Text(
                         term,
-                        style:
-                            AppTextStyles.labelSmall(
-                              color: AppColors.textPrimary,
-                            ).copyWith(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 12.sp,
-                            ),
+                        style: AppTextStyles.labelSmall(
+                          color: AppColors.textPrimary,
+                        ).copyWith(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 12.sp,
+                        ),
                       ),
                     ),
                   );
@@ -152,11 +154,11 @@ class _FoodSearchScreenState extends ConsumerState<FoodSearchScreen> {
                       padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 24.h),
                       itemCount: _results.length,
                       separatorBuilder: (_, _) => SizedBox(height: 10.h),
-                      itemBuilder: (context, index) => BrowseRestaurantListCard(
-                        restaurant: _results[index],
+                      itemBuilder: (context, index) => ServicesProviderListCard(
+                        provider: _results[index],
                         onTap: () => context.push(
-                          BrowseRoutes.vendorMenu(
-                            vendorId: _results[index].id,
+                          BrowseRoutes.servicesProvider(
+                            providerId: _results[index].id,
                           ),
                         ),
                       ),

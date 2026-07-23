@@ -9,10 +9,14 @@ class UserRepository {
   final StorageService _storage;
 
   /// GET /users/me — requires Bearer token from login.
+  /// Skips the network call when there is no session (avoids noisy 401s).
   Future<UserMe?> fetchMe() async {
+    final token = _storage.token;
+    if (token == null || token.isEmpty) return null;
+
     final response = await _apiClient.getJson(
       '/users/me',
-      bearerToken: _storage.token,
+      bearerToken: token,
     );
     final data = response?['data'];
     if (data is! Map<String, dynamic>) return null;
