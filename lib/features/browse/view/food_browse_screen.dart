@@ -57,19 +57,27 @@ class _FoodBrowseScreenState extends ConsumerState<FoodBrowseScreen> {
     } catch (_) {
       if (!mounted) return;
       setState(() {
-        _restaurants = BrowseData.restaurantsForFilter(_selectedFilter);
+        _restaurants = const [];
         _loading = false;
       });
     }
   }
 
-  List<(String, Color)> get _orderAgainBrands {
+  List<(String, Color, String?)> get _orderAgainBrands {
     final vendors = ref.watch(homeFeedProvider).valueOrNull?.reorderVendors;
     if (vendors == null || vendors.isEmpty) {
-      return BrowseData.orderAgainBrands;
+      return BrowseData.orderAgainBrands
+          .map<(String, Color, String?)>((e) => (e.$1, e.$2, null))
+          .toList();
     }
     return vendors
-        .map((v) => (v.name, HomeBrandStyle.forName(v.name)))
+        .map(
+          (v) => (
+            v.name,
+            HomeBrandStyle.forName(v.name),
+            v.id,
+          ),
+        )
         .toList();
   }
 
@@ -115,9 +123,13 @@ class _FoodBrowseScreenState extends ConsumerState<FoodBrowseScreen> {
                   ),
                   Padding(
                     padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 0),
-                    child: BrowseOrderAgainRow(
+                    child:                     BrowseOrderAgainRow(
                       brands: _orderAgainBrands,
                       onSeeAll: () => context.goHome(tab: 1),
+                      onBrandTap: (vendorId, name) {
+                        if (vendorId == null || vendorId.isEmpty) return;
+                        context.push(BrowseRoutes.vendorMenu(vendorId: vendorId));
+                      },
                     ),
                   ),
                   Padding(

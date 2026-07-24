@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:yjeek_app/core/network/api_client.dart';
+import 'package:yjeek_app/core/services/storage_service.dart';
 import 'package:yjeek_app/features/browse/model/services_data.dart';
 import 'package:yjeek_app/features/home/model/home_ui_mapper.dart';
 
-class ServicesProviderMenu {
-  const ServicesProviderMenu({
+class ServicesVendorMenu {
+  const ServicesVendorMenu({
     required this.provider,
     required this.sections,
     required this.items,
@@ -22,6 +23,7 @@ class ServicesProductDetail {
     required this.options,
     required this.addons,
     required this.specialists,
+    required this.specialistIds,
   });
 
   final ServiceMenuItem item;
@@ -29,12 +31,31 @@ class ServicesProductDetail {
   final List<ServiceOption> options;
   final List<ServiceAddon> addons;
   final List<String> specialists;
+  /// Parallel to [specialists]; null means "Any".
+  final List<String?> specialistIds;
+}
+
+class ServicesCartSummary {
+  const ServicesCartSummary({
+    required this.itemCount,
+    required this.totalLabel,
+    this.vendorId,
+  });
+
+  final int itemCount;
+  final String totalLabel;
+  final String? vendorId;
+
+  static const empty = ServicesCartSummary(itemCount: 0, totalLabel: '0.000');
 }
 
 class ServicesVendorsRepository {
-  const ServicesVendorsRepository(this._apiClient);
+  const ServicesVendorsRepository(this._apiClient, this._storage);
 
   final ApiClient _apiClient;
+  final StorageService _storage;
+
+  String? get _token => _storage.token;
 
   /// GET /categories/services — menuCategories for the home grid.
   Future<List<ServiceCategoryItem>> fetchServiceCategories() async {
@@ -54,20 +75,46 @@ class ServicesVendorsRepository {
     return items.isNotEmpty ? items : ServicesData.categories;
   }
 
-  /// GET /vendors?category=services&isBookable=true&sort=
+  Future<ServiceCategoryItem> fetchCategoryById(String categoryId) async {
+    final categories = await fetchServiceCategories();
+    for (final c in categories) {
+      if (c.id == categoryId ||
+          c.id.toLowerCase() == categoryId.toLowerCase() ||
+          c.name.toLowerCase() == categoryId.toLowerCase()) {
+        return c;
+      }
+    }
+    return ServicesData.categoryById(categoryId);
+  }
+
+  /// GET /vendors?category=services&isBookable=true&sort=&subcategory=&q=&hasOffers=
   Future<List<ServiceProvider>> fetchProviders({
     String sort = 'popular',
+    String? subcategory,
     String? query,
-    String? categoryId,
     String? venueFilter,
+    bool offersOnly = false,
   }) async {
     final params = <String, String>{
       'category': 'services',
       'isBookable': 'true',
       'sort': sort,
     };
+    if (subcategory != null &&
+        subcategory.isNotEmpty &&
+        subcategory.toLowerCase() != 'all') {
+      params['subcategory'] = subcategory;
+    }
     if (query != null && query.trim().isNotEmpty) {
       params['q'] = query.trim();
+    }
+    if (offersOnly) params['hasOffers'] = 'true';
+
+    final venue = venueFilter?.toLowerCase();
+    if (venue == 'at home') {
+      params['supportsDelivery'] = 'true';
+    } else if (venue == 'at venue') {
+      params['supportsPickup'] = 'true';
     }
 
     final qs = params.entries
@@ -80,42 +127,15 @@ class ServicesVendorsRepository {
 
     final response = await _apiClient.getJson('/vendors?$qs');
     final data = response?['data'];
-    if (data is! List) {
-      return _fallbackProviders(categoryId: categoryId, venueFilter: venueFilter);
-    }
+    if (data is! List) return const [];
 
-    var items = <ServiceProvider>[];
+    final items = <ServiceProvider>[];
     for (final raw in data) {
       if (raw is! Map<String, dynamic>) continue;
       final mapped = serviceProviderFromVendorJson(raw);
-      if (mapped != null) items.add(mapped);
-    }
-
-    if (items.isEmpty) {
-      return _fallbackProviders(categoryId: categoryId, venueFilter: venueFilter);
-    }
-
-    if (categoryId != null &&
-        categoryId.isNotEmpty &&
-        categoryId.toLowerCase() != 'all') {
-      final known = ServicesData.categoryById(categoryId);
-      items = items
-          .where(
-            (p) =>
-                p.categoryId == categoryId ||
-                p.category.toLowerCase() == known.name.toLowerCase(),
-          )
-          .toList();
-    }
-
-    if (venueFilter == 'At venue') {
-      items = items.where((p) => p.atVenue).toList();
-    } else if (venueFilter == 'At home') {
-      items = items.where((p) => p.atHome).toList();
-    }
-
-    if (items.isEmpty) {
-      return _fallbackProviders(categoryId: categoryId, venueFilter: venueFilter);
+      if (mapped == null) continue;
+      if (!_matchesVenue(mapped, venueFilter)) continue;
+      items.add(mapped);
     }
     return items;
   }
@@ -127,190 +147,183 @@ class ServicesVendorsRepository {
     return fetchProviders(sort: sort, query: query);
   }
 
-  /// Resolves slug or cuid to vendor cuid using existing list/detail endpoints.
-  Future<String> resolveVendorId(String idOrSlug) async {
-    final direct = await _apiClient.getJson('/vendors/$idOrSlug');
-    final data = direct?['data'];
-    if (data is Map<String, dynamic>) {
-      final id = data['id']?.toString();
-      if (id != null && id.isNotEmpty) return id;
-    }
-
-    final providers = await fetchProviders();
-    for (final provider in providers) {
-      if (provider.id == idOrSlug) return provider.id;
-    }
-
-    // Mock / legacy slug fallback: match by name-ish slug against list again via raw
-    final response = await _apiClient.getJson(
-      '/vendors?category=services&isBookable=true',
-    );
-    final list = response?['data'];
-    if (list is List) {
-      for (final raw in list) {
-        if (raw is! Map<String, dynamic>) continue;
-        final slug = raw['slug']?.toString();
-        final id = raw['id']?.toString();
-        if (id != null && (slug == idOrSlug || id == idOrSlug)) return id;
-      }
-    }
-    return idOrSlug;
-  }
-
   /// GET /vendors/:id
-  Future<ServiceProvider?> fetchProvider(String idOrSlug) async {
-    final vendorId = await resolveVendorId(idOrSlug);
-    final response = await _apiClient.getJson('/vendors/$vendorId');
+  Future<ServiceProvider> fetchProvider(String providerId) async {
+    final response = await _apiClient.getJson('/vendors/$providerId');
     final data = response?['data'];
     if (data is Map<String, dynamic>) {
-      return serviceProviderFromVendorJson(data);
+      final mapped = serviceProviderFromVendorJson(data);
+      if (mapped != null) return mapped;
     }
-    try {
-      return ServicesData.providerById(idOrSlug);
-    } catch (_) {
-      return null;
-    }
+    return ServicesData.providerById(providerId);
   }
 
-  /// GET /vendors/:id/menu
-  Future<ServicesProviderMenu?> fetchProviderMenu(String idOrSlug) async {
-    final vendorId = await resolveVendorId(idOrSlug);
-    final provider =
-        await fetchProvider(vendorId) ?? ServicesData.providerById(idOrSlug);
-
-    final response = await _apiClient.getJson('/vendors/$vendorId/menu');
+  /// GET /vendors/:id/menu?q=
+  Future<ServicesVendorMenu> fetchProviderMenu(
+    String providerId, {
+    String? query,
+  }) async {
+    final qs = (query != null && query.trim().isNotEmpty)
+        ? '?q=${Uri.encodeQueryComponent(query.trim())}'
+        : '';
+    final response = await _apiClient.getJson('/vendors/$providerId/menu$qs');
     final data = response?['data'];
     if (data is! Map<String, dynamic>) {
-      return ServicesProviderMenu(
-        provider: provider,
-        sections: ServicesData.glowBeautySections,
-        items: ServicesData.glowBeautyMenu,
+      return ServicesVendorMenu(
+        provider: await fetchProvider(providerId),
+        sections: const [],
+        items: const [],
       );
     }
+
+    final vendorRaw = data['vendor'];
+    final provider = vendorRaw is Map<String, dynamic>
+        ? (serviceProviderFromVendorJson({
+              ...vendorRaw,
+              'id': vendorRaw['id'] ?? providerId,
+              'slug': vendorRaw['slug'] ?? providerId,
+            }) ??
+            await fetchProvider(providerId))
+        : await fetchProvider(providerId);
 
     final sectionsRaw = data['sections'];
     final sections = <String>[];
     final items = <ServiceMenuItem>[];
-
     if (sectionsRaw is List) {
       for (final section in sectionsRaw) {
         if (section is! Map<String, dynamic>) continue;
         final sectionName = (section['name'] as String?)?.trim();
         if (sectionName == null || sectionName.isEmpty) continue;
-        final displaySection =
-            sectionName.toLowerCase() == 'other' ? 'Services' : sectionName;
-        if (!sections.contains(displaySection)) sections.add(displaySection);
-
         final products = section['products'];
-        if (products is! List) continue;
+        if (products is! List || products.isEmpty) continue;
+        sections.add(sectionName);
         for (final product in products) {
           if (product is! Map<String, dynamic>) continue;
-          final item = serviceMenuItemFromProductJson(
+          final mapped = serviceMenuItemFromProductJson(
             product,
-            section: displaySection,
+            section: sectionName,
           );
-          if (item != null) items.add(item);
+          if (mapped != null) items.add(mapped);
         }
       }
     }
 
-    if (items.isEmpty) {
-      return ServicesProviderMenu(
-        provider: provider,
-        sections: ServicesData.glowBeautySections,
-        items: ServicesData.glowBeautyMenu,
-      );
-    }
-
-    return ServicesProviderMenu(
+    return ServicesVendorMenu(
       provider: provider,
-      sections: sections.isNotEmpty ? sections : ['Services'],
+      sections: sections,
       items: items,
     );
   }
 
-  /// GET /vendors/:id/products/:productId + GET /vendors/:id/staff
-  Future<ServicesProductDetail?> fetchProductDetail({
+  /// GET /vendors/:id/products/:productId + /staff
+  Future<ServicesProductDetail> fetchProductDetail({
     required String providerId,
     required String itemId,
   }) async {
-    final vendorId = await resolveVendorId(providerId);
+    Map<String, dynamic>? product;
+    try {
+      final response = await _apiClient.getJson(
+        '/vendors/$providerId/products/$itemId',
+      );
+      final data = response?['data'];
+      if (data is Map<String, dynamic>) product = data;
+    } catch (_) {}
 
-    final productResponse = await _apiClient.getJson(
-      '/vendors/$vendorId/products/$itemId',
-    );
-    final productData = productResponse?['data'];
-
-    ServiceMenuItem? item;
-    var description = '';
-    var options = <ServiceOption>[];
-    var addons = <ServiceAddon>[];
-
-    if (productData is Map<String, dynamic>) {
-      item = serviceMenuItemFromProductJson(productData, section: 'Services');
-      description =
-          (productData['description'] as String?)?.trim().isNotEmpty == true
-          ? productData['description'] as String
-          : (item?.description ?? '');
-
-      final optionGroups = productData['optionGroups'];
-      if (optionGroups is List) {
-        for (final group in optionGroups) {
-          if (group is! Map<String, dynamic>) continue;
-          final groupOptions = group['options'];
-          if (groupOptions is! List) continue;
-          for (final opt in groupOptions) {
-            if (opt is! Map<String, dynamic>) continue;
-            final name = opt['name'] as String?;
-            if (name == null || name.isEmpty) continue;
-            final delta = (opt['priceDelta'] as num?)?.toDouble() ?? 0;
-            options.add(
-              ServiceOption(
-                name: name,
-                subtitle: delta > 0
-                    ? '+ BHD ${delta.toStringAsFixed(3)}'
-                    : 'Included',
-                extraPrice: delta > 0 ? delta.toStringAsFixed(3) : null,
-              ),
-            );
-          }
-        }
-      }
-
-      final addonsRaw = productData['addons'];
-      if (addonsRaw is List) {
-        for (final addon in addonsRaw) {
-          if (addon is! Map<String, dynamic>) continue;
-          final name = addon['name'] as String?;
+    var specialists = <String>['Any'];
+    var specialistIds = <String?>[null];
+    try {
+      final staffResponse = await _apiClient.getJson(
+        '/vendors/$providerId/staff',
+      );
+      final staffData = staffResponse?['data'];
+      final staffList = staffData is Map<String, dynamic>
+          ? staffData['staff']
+          : null;
+      if (staffList is List && staffList.isNotEmpty) {
+        specialists = <String>['Any'];
+        specialistIds = <String?>[null];
+        for (final member in staffList) {
+          if (member is! Map<String, dynamic>) continue;
+          final name = member['name'] as String?;
+          final id = member['id']?.toString();
           if (name == null || name.isEmpty) continue;
-          final price = (addon['price'] as num?)?.toDouble() ?? 0;
-          addons.add(
-            ServiceAddon(name: name, price: price.toStringAsFixed(3)),
-          );
+          specialists.add(name);
+          specialistIds.add(id);
         }
       }
+    } catch (_) {}
+
+    if (specialists.length == 1) {
+      specialists = List<String>.from(ServicesData.specialists);
+      specialistIds = List<String?>.filled(specialists.length, null);
     }
 
-    item ??= await _menuItemFromProviderMenu(vendorId, itemId);
-
-    if (item == null) {
+    if (product == null) {
       final fallback = ServicesData.menuItemById(itemId);
       return ServicesProductDetail(
         item: fallback,
         description: ServicesData.haircutDescription,
         options: ServicesData.haircutOptions,
         addons: ServicesData.haircutAddons,
-        specialists: await fetchSpecialists(vendorId),
+        specialists: specialists,
+        specialistIds: specialistIds,
       );
     }
 
-    if (description.isEmpty) {
-      description = item.description.isNotEmpty
-          ? item.description
-          : '${item.name} · ${item.duration}';
-    }
+    final item =
+        serviceMenuItemFromProductJson(product, section: 'Services') ??
+        ServicesData.menuItemById(itemId);
 
-    final specialists = await fetchSpecialists(vendorId);
+    final description =
+        (product['description'] as String?)?.trim().isNotEmpty == true
+        ? (product['description'] as String).trim()
+        : item.description;
+
+    final options = <ServiceOption>[];
+    final optionGroups = product['optionGroups'];
+    if (optionGroups is List) {
+      for (final group in optionGroups) {
+        if (group is! Map<String, dynamic>) continue;
+        final opts = group['options'];
+        if (opts is! List) continue;
+        for (final opt in opts) {
+          if (opt is! Map<String, dynamic>) continue;
+          final name = opt['name'] as String?;
+          if (name == null || name.isEmpty) continue;
+          final delta = (opt['priceDelta'] as num?)?.toDouble() ?? 0;
+          options.add(
+            ServiceOption(
+              id: opt['id']?.toString(),
+              name: name,
+              subtitle: delta <= 0
+                  ? 'Included'
+                  : '+ BHD ${_formatMoney(delta)}',
+              extraPrice: delta > 0 ? _formatMoney(delta) : null,
+            ),
+          );
+        }
+      }
+    }
+    if (options.isEmpty) options.addAll(ServicesData.haircutOptions);
+
+    final addons = <ServiceAddon>[];
+    final addonsRaw = product['addons'];
+    if (addonsRaw is List) {
+      for (final addon in addonsRaw) {
+        if (addon is! Map<String, dynamic>) continue;
+        final name = addon['name'] as String?;
+        if (name == null || name.isEmpty) continue;
+        final price = (addon['price'] as num?)?.toDouble() ?? 0;
+        addons.add(
+          ServiceAddon(
+            id: addon['id']?.toString(),
+            name: name,
+            price: _formatMoney(price),
+          ),
+        );
+      }
+    }
+    if (addons.isEmpty) addons.addAll(ServicesData.haircutAddons);
 
     return ServicesProductDetail(
       item: item,
@@ -318,50 +331,113 @@ class ServicesVendorsRepository {
       options: options,
       addons: addons,
       specialists: specialists,
+      specialistIds: specialistIds,
     );
   }
 
-  Future<List<String>> fetchSpecialists(String idOrSlug) async {
-    final vendorId = await resolveVendorId(idOrSlug);
-    final response = await _apiClient.getJson('/vendors/$vendorId/staff');
+  /// GET /cart?type=SERVICE
+  Future<ServicesCartSummary> fetchServiceCart() async {
+    final response = await _apiClient.getJson(
+      '/cart?type=SERVICE',
+      bearerToken: _token,
+    );
     final data = response?['data'];
-    if (data is! Map<String, dynamic>) return const ['Any'];
+    if (data is! Map<String, dynamic>) return ServicesCartSummary.empty;
 
-    final staff = data['staff'];
-    final names = <String>['Any'];
-    if (staff is List) {
-      for (final member in staff) {
-        if (member is! Map<String, dynamic>) continue;
-        final name = member['name'] as String?;
-        if (name != null && name.isNotEmpty) names.add(name);
+    final items = data['items'];
+    var count = (data['itemCount'] as num?)?.toInt();
+    if (count == null && items is List) {
+      count = 0;
+      for (final item in items) {
+        if (item is Map<String, dynamic>) {
+          count = count! + ((item['quantity'] as num?)?.toInt() ?? 1);
+        }
       }
     }
-    return names.length > 1 ? names : const ['Any'];
+    final summary = data['summary'];
+    final total = summary is Map<String, dynamic>
+        ? summary['totalAmount']
+        : null;
+    final totalNum = total is num ? total.toDouble() : 0.0;
+    final vendor = data['vendor'];
+    final vendorId = vendor is Map<String, dynamic>
+        ? vendor['id']?.toString()
+        : data['vendorId']?.toString();
+
+    return ServicesCartSummary(
+      itemCount: count ?? 0,
+      totalLabel: totalNum.toStringAsFixed(3),
+      vendorId: vendorId,
+    );
   }
 
-  Future<ServiceMenuItem?> _menuItemFromProviderMenu(
-    String vendorId,
-    String itemId,
-  ) async {
-    final menu = await fetchProviderMenu(vendorId);
-    if (menu == null) return null;
-    for (final item in menu.items) {
-      if (item.id == itemId) return item;
-    }
-    return null;
+  /// POST /cart/items?type=SERVICE
+  Future<({bool ok, bool vendorConflict, String? message})> addToCart({
+    required String productId,
+    required int quantity,
+    List<String> optionIds = const [],
+    List<String> addonIds = const [],
+    bool replaceCart = false,
+  }) async {
+    final response = await _apiClient.postJson(
+      '/cart/items?type=SERVICE',
+      {
+        'productId': productId,
+        'quantity': quantity,
+        'replaceCart': replaceCart,
+        'options': {
+          if (optionIds.isNotEmpty) 'optionIds': optionIds,
+          if (addonIds.isNotEmpty) 'addonIds': addonIds,
+        },
+      },
+      bearerToken: _token,
+    );
+
+    if (response.ok) return (ok: true, vendorConflict: false, message: null);
+
+    final error = response.json?['error'];
+    final details = error is Map ? error['details'] : null;
+    final detailCode = details is Map ? details['code']?.toString() : null;
+    final code = error is Map ? error['code']?.toString() : null;
+    final conflict = response.statusCode == 409 ||
+        code == 'VENDOR_CART_CONFLICT' ||
+        detailCode == 'VENDOR_CART_CONFLICT' ||
+        code == 'CONFLICT';
+    return (
+      ok: false,
+      vendorConflict: conflict,
+      message: response.message ?? 'Could not add to booking',
+    );
   }
 
-  List<ServiceProvider> _fallbackProviders({
-    String? categoryId,
-    String? venueFilter,
-  }) {
-    if (categoryId != null && categoryId.isNotEmpty) {
-      return ServicesData.providersForCategory(
-        categoryId,
-        venueFilter: venueFilter,
-      );
+  /// GET /search/history
+  Future<List<String>> fetchRecentSearches() async {
+    final response = await _apiClient.getJson(
+      '/search/history',
+      bearerToken: _token,
+    );
+    final data = response?['data'];
+    final list = data is List
+        ? data
+        : (data is Map<String, dynamic>
+            ? data['items'] ?? data['history']
+            : null);
+    if (list is! List || list.isEmpty) {
+      return const ['Glow Beauty', 'Spa', 'Haircut', 'Home cleaning'];
     }
-    return ServicesData.popularProviders;
+
+    final queries = <String>[];
+    for (final raw in list) {
+      if (raw is Map<String, dynamic>) {
+        final q = raw['query'] as String?;
+        if (q != null && q.trim().isNotEmpty) queries.add(q.trim());
+      } else if (raw is String && raw.trim().isNotEmpty) {
+        queries.add(raw.trim());
+      }
+    }
+    return queries.isNotEmpty
+        ? queries
+        : const ['Glow Beauty', 'Spa', 'Haircut', 'Home cleaning'];
   }
 }
 
@@ -380,7 +456,6 @@ ServiceCategoryItem? serviceCategoryFromMenuJson(Map<String, dynamic> json) {
 }
 
 ServiceProvider? serviceProviderFromVendorJson(Map<String, dynamic> json) {
-  // Prefer cuid so GET /vendors/:id works without API changes.
   final id = (json['id'] ?? json['slug'])?.toString();
   final name = json['name'] as String?;
   if (id == null || id.isEmpty || name == null || name.isEmpty) return null;
@@ -392,7 +467,6 @@ ServiceProvider? serviceProviderFromVendorJson(Map<String, dynamic> json) {
       'Services';
 
   final knownCat = _knownServiceCategory(serviceCategory);
-
   final categoryId =
       knownCat?.id ??
       (json['serviceCategoryId']?.toString()) ??
@@ -423,11 +497,18 @@ ServiceProvider? serviceProviderFromVendorJson(Map<String, dynamic> json) {
   final colors = _gradientForName(name);
   final emoji = knownCat?.emoji ?? '💇‍♀';
 
-  final atVenue = json['atVenue'] == true ||
-      json['supportsDineIn'] == true ||
-      json['supportsPickup'] == true;
-  final atHome = json['atHome'] == true ||
-      (json['isBookable'] == true && json['supportsDelivery'] == true);
+  final openHoursTitle =
+      (json['openHoursTitle'] as String?)?.trim().isNotEmpty == true
+          ? (json['openHoursTitle'] as String).trim()
+          : 'Open · 9–9';
+  final openHoursSubtitle =
+      (json['openHoursSubtitle'] as String?)?.trim().isNotEmpty == true
+          ? (json['openHoursSubtitle'] as String).trim()
+          : 'Today';
+  final bookingModeLabel =
+      (json['bookingModeLabel'] as String?)?.trim().isNotEmpty == true
+          ? (json['bookingModeLabel'] as String).trim()
+          : 'Walk-in / book';
 
   return ServiceProvider(
     id: id,
@@ -439,11 +520,17 @@ ServiceProvider? serviceProviderFromVendorJson(Map<String, dynamic> json) {
     distance: distance,
     tags: tags,
     priceFrom: fromPrice,
-    atVenue: atVenue,
-    atHome: atHome,
+    atVenue: json['atVenue'] == true ||
+        json['supportsDineIn'] == true ||
+        json['supportsPickup'] == true,
+    atHome: json['atHome'] == true ||
+        (json['isBookable'] == true && json['supportsDelivery'] == true),
     gradientStart: colors.$1,
     gradientEnd: colors.$2,
     emoji: emoji,
+    openHoursTitle: openHoursTitle,
+    openHoursSubtitle: openHoursSubtitle,
+    bookingModeLabel: bookingModeLabel,
   );
 }
 
@@ -457,47 +544,56 @@ ServiceMenuItem? serviceMenuItemFromProductJson(
 
   final priceRaw = json['price'];
   final price = priceRaw is num
-      ? priceRaw.toDouble().toStringAsFixed(3)
+      ? _formatMoney(priceRaw.toDouble())
       : (priceRaw?.toString() ?? '0.000');
 
   final prep = (json['prepTimeMin'] as num?)?.toInt();
   final duration = prep != null ? '$prep min' : '45 min';
-  final description = (json['description'] as String?)?.trim();
-  final desc = (description != null && description.isNotEmpty)
-      ? description
+  final description =
+      (json['description'] as String?)?.trim().isNotEmpty == true
+      ? (json['description'] as String).trim()
       : '$name · $duration';
 
   return ServiceMenuItem(
     id: id,
     name: name,
-    description: desc,
+    description: description,
     price: price,
     section: section,
     duration: duration,
   );
 }
 
+bool _matchesVenue(ServiceProvider provider, String? venueFilter) {
+  if (venueFilter == null) return true;
+  switch (venueFilter.toLowerCase()) {
+    case 'at venue':
+      return provider.atVenue;
+    case 'at home':
+      return provider.atHome;
+    default:
+      return true;
+  }
+}
+
 ServiceCategoryItem? _knownServiceCategory(String name) {
-  final needle = name.toLowerCase();
-  for (final category in ServicesData.categories) {
-    if (category.name.toLowerCase() == needle) return category;
+  final lower = name.toLowerCase();
+  for (final c in ServicesData.categories) {
+    if (c.name.toLowerCase() == lower ||
+        c.id.toLowerCase() == lower ||
+        lower.contains(c.id.replaceAll('-', ' '))) {
+      return c;
+    }
   }
-  return null;
-}
-
-String? _firstCategoryName(Map<String, dynamic> json) {
-  final categories = json['categories'];
-  if (categories is! List || categories.isEmpty) return null;
-  final first = categories.first;
-  if (first is Map<String, dynamic>) {
-    return first['name'] as String?;
+  if (lower.contains('salon') || lower.contains('beauty')) {
+    return ServicesData.categories[0];
   }
+  if (lower.contains('spa') || lower.contains('massage')) {
+    return ServicesData.categories[1];
+  }
+  if (lower.contains('photo')) return ServicesData.categories[2];
+  if (lower.contains('home')) return ServicesData.categories[3];
   return null;
-}
-
-String _formatPrice(double value) {
-  if (value == value.roundToDouble()) return value.toInt().toString();
-  return value.toStringAsFixed(1);
 }
 
 String? _slugify(String name) {
@@ -508,7 +604,30 @@ String? _slugify(String name) {
   return slug.isEmpty ? null : slug;
 }
 
+String? _firstCategoryName(Map<String, dynamic> json) {
+  final cats = json['categories'];
+  if (cats is! List || cats.isEmpty) return null;
+  final first = cats.first;
+  if (first is Map<String, dynamic>) return first['name'] as String?;
+  return null;
+}
+
+String _formatPrice(double value) {
+  if (value == value.roundToDouble()) return value.toStringAsFixed(0);
+  return value.toStringAsFixed(1);
+}
+
+String _formatMoney(double value) => value.toStringAsFixed(3);
+
 (Color, Color) _gradientForName(String name) {
+  for (final p in [
+    ...ServicesData.popularProviders,
+    ...ServicesData.salonBeautyProviders,
+  ]) {
+    if (p.name.toLowerCase() == name.toLowerCase()) {
+      return (p.gradientStart, p.gradientEnd);
+    }
+  }
   final base = HomeBrandStyle.forName(name);
   return (base, const Color(0xFF15302B));
 }

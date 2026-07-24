@@ -20,18 +20,43 @@ class ElectronicsToolbar extends StatelessWidget {
     required this.onViewChanged,
     this.freeDeliveryOnly = false,
     this.onFreeDeliveryChanged,
+    this.sort = 'rating',
+    this.onSortChanged,
   });
 
   final bool isGridView;
   final ValueChanged<bool> onViewChanged;
   final bool freeDeliveryOnly;
   final ValueChanged<bool>? onFreeDeliveryChanged;
+  final String sort;
+  final ValueChanged<String>? onSortChanged;
+
+  static const _sortOptions = <(String value, String label)>[
+    ('rating', 'Top rated'),
+    ('popular', 'Most Popular'),
+    ('name', 'Name'),
+  ];
+
+  String get _sortLabel {
+    for (final option in _sortOptions) {
+      if (option.$1 == sort) return option.$2;
+    }
+    return 'Sort';
+  }
 
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
-        _chip('⇅ Sort'),
+        PopupMenuButton<String>(
+          initialValue: sort,
+          onSelected: onSortChanged,
+          itemBuilder: (context) => [
+            for (final option in _sortOptions)
+              PopupMenuItem(value: option.$1, child: Text(option.$2)),
+          ],
+          child: _chip('⇅ $_sortLabel'),
+        ),
         SizedBox(width: 8.w),
         GestureDetector(
           onTap: () => onFreeDeliveryChanged?.call(!freeDeliveryOnly),

@@ -298,7 +298,9 @@ class OrderStatusBadge extends StatelessWidget {
 }
 
 class OrderArrivalCard extends StatelessWidget {
-  const OrderArrivalCard({super.key});
+  const OrderArrivalCard({super.key, this.arrivalWindow});
+
+  final String? arrivalWindow;
 
   @override
   Widget build(BuildContext context) {
@@ -316,7 +318,7 @@ class OrderArrivalCard extends StatelessWidget {
             ),
           ),
           Text(
-            OrderFlowData.arrivalWindow,
+            arrivalWindow ?? OrderFlowData.arrivalWindow,
             style: AppTextStyles.titleSmall(color: AppColors.textPrimary).copyWith(
               fontWeight: FontWeight.w700,
               fontSize: 16.sp,
@@ -410,7 +412,16 @@ class _TimelineRow extends StatelessWidget {
 }
 
 class OrderVendorSummaryCard extends StatelessWidget {
-  const OrderVendorSummaryCard({super.key});
+  const OrderVendorSummaryCard({
+    super.key,
+    this.vendor,
+    this.itemCount,
+    this.orderTotal,
+  });
+
+  final String? vendor;
+  final String? itemCount;
+  final String? orderTotal;
 
   @override
   Widget build(BuildContext context) {
@@ -423,7 +434,7 @@ class OrderVendorSummaryCard extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  OrderFlowData.vendor,
+                  vendor ?? OrderFlowData.vendor,
                   style: AppTextStyles.labelMedium(color: const Color(0xFF6B756E)).copyWith(
                     fontWeight: FontWeight.w400,
                     fontSize: 13.sp,
@@ -432,7 +443,7 @@ class OrderVendorSummaryCard extends StatelessWidget {
                 ),
               ),
               Text(
-                OrderFlowData.itemCount,
+                itemCount ?? OrderFlowData.itemCount,
                 style: AppTextStyles.labelMedium(color: const Color(0xFF1A1A1A)).copyWith(
                   fontWeight: FontWeight.w500,
                   fontSize: 13.sp,
@@ -455,7 +466,7 @@ class OrderVendorSummaryCard extends StatelessWidget {
                 ),
               ),
               Text(
-                OrderFlowData.orderTotal,
+                orderTotal ?? OrderFlowData.orderTotal,
                 style: AppTextStyles.labelMedium(color: const Color(0xFF1A1A1A)).copyWith(
                   fontWeight: FontWeight.w700,
                   fontSize: 16.sp,
@@ -473,10 +484,14 @@ class OrderVendorSummaryCard extends StatelessWidget {
 class OrderChampCard extends StatelessWidget {
   const OrderChampCard({
     super.key,
+    this.subtitle,
+    this.meta,
     this.onCall,
     this.onChat,
   });
 
+  final String? subtitle;
+  final String? meta;
   final VoidCallback? onCall;
   final VoidCallback? onChat;
 
@@ -505,7 +520,7 @@ class OrderChampCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      OrderFlowData.driverSubtitle,
+                      subtitle ?? OrderFlowData.driverSubtitle,
                       style: AppTextStyles.labelMedium(color: const Color(0xFF1A1A1A)).copyWith(
                         fontWeight: FontWeight.w600,
                         fontSize: 14.sp,
@@ -514,7 +529,7 @@ class OrderChampCard extends StatelessWidget {
                     ),
                     SizedBox(height: 2.h),
                     Text(
-                      OrderFlowData.driverMeta,
+                      meta ?? OrderFlowData.driverMeta,
                       style: AppTextStyles.labelSmall(color: const Color(0xFF6B756E)).copyWith(
                         fontWeight: FontWeight.w400,
                         fontSize: 12.sp,
@@ -554,8 +569,13 @@ class OrderChampCard extends StatelessWidget {
 }
 
 class OrderPaymentRow extends StatelessWidget {
-  const OrderPaymentRow({super.key, this.onChange});
+  const OrderPaymentRow({
+    super.key,
+    this.paymentMethod,
+    this.onChange,
+  });
 
+  final String? paymentMethod;
   final VoidCallback? onChange;
 
   @override
@@ -583,7 +603,7 @@ class OrderPaymentRow extends StatelessWidget {
           SizedBox(width: 12.w),
           Expanded(
             child: Text(
-              OrderFlowData.paymentMethod,
+              paymentMethod ?? OrderFlowData.paymentMethod,
               style: AppTextStyles.labelMedium(color: const Color(0xFF1A1A1A)).copyWith(
                 fontWeight: FontWeight.w600,
                 fontSize: 14.sp,
@@ -667,10 +687,12 @@ class OrderStarRatingCard extends StatefulWidget {
     super.key,
     required this.title,
     this.initialRating = 4,
+    this.onChanged,
   });
 
   final String title;
   final int initialRating;
+  final ValueChanged<int>? onChanged;
 
   @override
   State<OrderStarRatingCard> createState() => _OrderStarRatingCardState();
@@ -707,7 +729,10 @@ class _OrderStarRatingCardState extends State<OrderStarRatingCard> {
             children: List.generate(5, (index) {
               final filled = index < _rating;
               return GestureDetector(
-                onTap: () => setState(() => _rating = index + 1),
+                onTap: () {
+                  setState(() => _rating = index + 1);
+                  widget.onChanged?.call(_rating);
+                },
                 child: Padding(
                   padding: EdgeInsets.only(right: index < 4 ? 6.w : 0),
                   child: Icon(
@@ -726,13 +751,38 @@ class _OrderStarRatingCardState extends State<OrderStarRatingCard> {
 }
 
 class OrderReceiptPaper extends StatelessWidget {
-  const OrderReceiptPaper({super.key});
+  const OrderReceiptPaper({
+    super.key,
+    this.badgeLabel,
+    this.vendorLocation,
+    this.vendorAddress,
+    this.orderNumber,
+    this.orderDate,
+    this.typeLabel,
+    this.deliverTo,
+    this.items,
+    this.billLines,
+    this.paymentMethod,
+  });
+
+  final String? badgeLabel;
+  final String? vendorLocation;
+  final String? vendorAddress;
+  final String? orderNumber;
+  final String? orderDate;
+  final String? typeLabel;
+  final String? deliverTo;
+  final List<OrderReceiptItem>? items;
+  final List<BillLine>? billLines;
+  final String? paymentMethod;
 
   static const Color _labelGrey = Color(0xFF6B756E);
   static const Color _dashColor = Color(0xFFC7CCC7);
 
   @override
   Widget build(BuildContext context) {
+    final receiptItems = items ?? OrderFlowData.receiptItems;
+    final lines = billLines ?? OrderFlowData.receiptBillLines;
     return OrderFlowCard(
       padding: EdgeInsets.all(18.w),
       child: Column(
@@ -747,7 +797,7 @@ class OrderReceiptPaper extends StatelessWidget {
                   borderRadius: BorderRadius.circular(20.r),
                 ),
                 child: Text(
-                  OrderFlowStrings.orderConfirmedBadge,
+                  badgeLabel ?? OrderFlowStrings.orderConfirmedBadge,
                   style: AppTextStyles.caption(color: const Color(0xFF127036)).copyWith(
                     fontWeight: FontWeight.w700,
                     fontSize: 11.sp,
@@ -757,7 +807,7 @@ class OrderReceiptPaper extends StatelessWidget {
               ),
               SizedBox(height: 4.h),
               Text(
-                OrderFlowData.vendorLocation,
+                vendorLocation ?? OrderFlowData.vendorLocation,
                 textAlign: TextAlign.center,
                 style: AppTextStyles.titleSmall(color: AppColors.textPrimary).copyWith(
                   fontWeight: FontWeight.w700,
@@ -767,7 +817,7 @@ class OrderReceiptPaper extends StatelessWidget {
               ),
               SizedBox(height: 4.h),
               Text(
-                OrderFlowData.vendorAddress,
+                vendorAddress ?? OrderFlowData.vendorAddress,
                 textAlign: TextAlign.center,
                 style: AppTextStyles.labelSmall(color: _labelGrey).copyWith(
                   fontWeight: FontWeight.w400,
@@ -780,34 +830,37 @@ class OrderReceiptPaper extends StatelessWidget {
           SizedBox(height: 12.h),
           const _ReceiptDashedDivider(color: _dashColor),
           SizedBox(height: 12.h),
-          _metaRow('Order #', OrderFlowData.orderId),
+          _metaRow('Order #', orderNumber ?? OrderFlowData.orderId),
           SizedBox(height: 8.h),
-          _metaRow('Date', OrderFlowData.orderDate),
+          _metaRow('Date', orderDate ?? OrderFlowData.orderDate),
           SizedBox(height: 8.h),
-          _metaRow('Type', OrderFlowStrings.typeDelivery),
+          _metaRow('Type', typeLabel ?? OrderFlowStrings.typeDelivery),
           SizedBox(height: 8.h),
-          _metaRow('Deliver to', OrderFlowData.deliveryAddress),
+          _metaRow('Deliver to', deliverTo ?? OrderFlowData.deliveryAddress),
           SizedBox(height: 12.h),
           const _ReceiptDashedDivider(color: _dashColor),
           SizedBox(height: 12.h),
           _columnHeader(OrderFlowStrings.itemColumn, OrderFlowStrings.priceColumn),
           SizedBox(height: 8.h),
-          for (var i = 0; i < OrderFlowData.receiptItems.length; i++) ...[
+          for (var i = 0; i < receiptItems.length; i++) ...[
             if (i > 0) SizedBox(height: 8.h),
             _itemRow(
-              OrderFlowData.receiptItems[i].name,
-              OrderFlowData.receiptItems[i].price,
+              receiptItems[i].name,
+              receiptItems[i].price,
             ),
           ],
           SizedBox(height: 12.h),
           const _ReceiptDashedDivider(color: _dashColor),
           SizedBox(height: 12.h),
-          for (var i = 0; i < OrderFlowData.receiptBillLines.length; i++) ...[
+          for (var i = 0; i < lines.length; i++) ...[
             if (i > 0) SizedBox(height: 8.h),
-            _billRow(OrderFlowData.receiptBillLines[i]),
+            _billRow(lines[i]),
           ],
           SizedBox(height: 8.h),
-          _metaRow(OrderFlowStrings.paid, OrderFlowData.paymentMethod),
+          _metaRow(
+            OrderFlowStrings.paid,
+            paymentMethod ?? OrderFlowData.paymentMethod,
+          ),
         ],
       ),
     );

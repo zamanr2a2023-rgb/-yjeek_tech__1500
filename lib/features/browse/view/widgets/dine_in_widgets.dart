@@ -310,6 +310,8 @@ class DineInSortBar extends StatelessWidget {
     this.onBookableChanged,
     this.offersOnly = false,
     this.onOffersChanged,
+    this.sort = 'rating',
+    this.onSortChanged,
   });
 
   final bool isGridView;
@@ -318,6 +320,21 @@ class DineInSortBar extends StatelessWidget {
   final ValueChanged<bool>? onBookableChanged;
   final bool offersOnly;
   final ValueChanged<bool>? onOffersChanged;
+  final String sort;
+  final ValueChanged<String>? onSortChanged;
+
+  static const _options = <(String value, String label)>[
+    ('rating', 'Top rated'),
+    ('popular', 'Most Popular'),
+    ('fastest', 'Fastest Delivery'),
+  ];
+
+  String get _sortLabel {
+    for (final option in _options) {
+      if (option.$1 == sort) return option.$2;
+    }
+    return 'Top rated';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -328,10 +345,35 @@ class DineInSortBar extends StatelessWidget {
             scrollDirection: Axis.horizontal,
             child: Row(
               children: [
-                _chip(
-                  icon: Icons.tune_rounded,
-                  label: 'Sort: Top rated',
-                  trailing: Icons.keyboard_arrow_down_rounded,
+                PopupMenuButton<String>(
+                  initialValue: sort,
+                  onSelected: onSortChanged,
+                  offset: Offset(0, 36.h),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(15.r),
+                  ),
+                  itemBuilder: (context) => [
+                    for (final option in _options)
+                      PopupMenuItem<String>(
+                        value: option.$1,
+                        child: Text(
+                          option.$2,
+                          style: AppTextStyles.labelSmall(
+                            color: option.$1 == sort
+                                ? AppColors.primary
+                                : AppColors.textPrimary,
+                          ).copyWith(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 11.5.sp,
+                          ),
+                        ),
+                      ),
+                  ],
+                  child: _chip(
+                    icon: Icons.tune_rounded,
+                    label: 'Sort: $_sortLabel',
+                    trailing: Icons.keyboard_arrow_down_rounded,
+                  ),
                 ),
                 SizedBox(width: 8.w),
                 GestureDetector(
@@ -656,12 +698,21 @@ class DineInMenuItemRow extends StatelessWidget {
 }
 
 class DineInOrderBar extends StatelessWidget {
-  const DineInOrderBar({super.key, this.onTap});
+  const DineInOrderBar({
+    super.key,
+    this.onTap,
+    this.itemCount,
+    this.totalLabel,
+  });
 
   final VoidCallback? onTap;
+  final int? itemCount;
+  final String? totalLabel;
 
   @override
   Widget build(BuildContext context) {
+    final count = itemCount ?? DineInData.cartItemCount;
+    final total = totalLabel ?? DineInData.cartTotal;
     return Container(
       color: AppColors.white,
       padding: EdgeInsets.fromLTRB(20.w, 14.h, 20.w, 26.h),
@@ -683,7 +734,7 @@ class DineInOrderBar extends StatelessWidget {
                   borderRadius: BorderRadius.circular(8.r),
                 ),
                 child: Text(
-                  '${DineInData.cartItemCount}',
+                  '$count',
                   style: AppTextStyles.labelSmall(color: AppColors.white).copyWith(
                     fontWeight: FontWeight.w700,
                     fontSize: 13.sp,
@@ -702,7 +753,7 @@ class DineInOrderBar extends StatelessWidget {
               ),
               const Spacer(),
               Text(
-                'BHD ${DineInData.cartTotal}',
+                'BHD $total',
                 style: AppTextStyles.labelMedium(color: AppColors.white).copyWith(
                   fontWeight: FontWeight.w700,
                   fontSize: 16.sp,

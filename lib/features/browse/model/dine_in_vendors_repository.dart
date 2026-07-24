@@ -2,22 +2,24 @@ import 'package:flutter/material.dart';
 import 'package:yjeek_app/core/network/api_client.dart';
 import 'package:yjeek_app/core/services/storage_service.dart';
 import 'package:yjeek_app/features/browse/model/browse_data.dart';
+import 'package:yjeek_app/features/browse/model/dine_in_data.dart';
+import 'package:yjeek_app/features/browse/model/food_vendors_repository.dart';
 import 'package:yjeek_app/features/home/model/home_ui_mapper.dart';
 
-class FoodVendorMenu {
-  const FoodVendorMenu({
+class DineInVendorMenu {
+  const DineInVendorMenu({
     required this.restaurant,
     required this.sections,
     required this.items,
   });
 
-  final BrowseRestaurant restaurant;
+  final DineInRestaurant restaurant;
   final List<String> sections;
   final List<BrowseMenuItem> items;
 }
 
-class FoodProductDetail {
-  const FoodProductDetail({
+class DineInProductDetail {
+  const DineInProductDetail({
     required this.item,
     required this.description,
     required this.options,
@@ -32,8 +34,8 @@ class FoodProductDetail {
   final String? imageUrl;
 }
 
-class FoodCartSummary {
-  const FoodCartSummary({
+class DineInCartSummary {
+  const DineInCartSummary({
     required this.itemCount,
     required this.totalLabel,
     this.vendorId,
@@ -43,25 +45,27 @@ class FoodCartSummary {
   final String totalLabel;
   final String? vendorId;
 
-  static const empty = FoodCartSummary(itemCount: 0, totalLabel: '0.000');
+  static const empty = DineInCartSummary(itemCount: 0, totalLabel: '0.000');
 }
 
-class FoodVendorsRepository {
-  const FoodVendorsRepository(this._apiClient, this._storage);
+class DineInVendorsRepository {
+  const DineInVendorsRepository(this._apiClient, this._storage);
 
   final ApiClient _apiClient;
   final StorageService _storage;
 
   String? get _token => _storage.token;
 
-  /// GET /vendors/cuisines?category=food
+  /// GET /vendors/cuisines?category=dine_in
   Future<List<String>> fetchCuisineFilters() async {
     final response = await _apiClient.getJson(
-      '/vendors/cuisines?category=food',
+      '/vendors/cuisines?category=dine_in',
     );
     final data = response?['data'];
     final list = data is Map<String, dynamic> ? data['cuisines'] : null;
-    if (list is! List || list.isEmpty) return BrowseData.cuisineFilters;
+    if (list is! List || list.isEmpty) {
+      return DineInData.cuisineFilters;
+    }
 
     final names = <String>['All'];
     for (final item in list) {
@@ -72,18 +76,20 @@ class FoodVendorsRepository {
         names.add(item);
       }
     }
-    return names.length > 1 ? names : BrowseData.cuisineFilters;
+    return names.length > 1 ? names : DineInData.cuisineFilters;
   }
 
-  /// GET /vendors?category=food&sort=&cuisine=&freeDelivery=&q=
-  Future<List<BrowseRestaurant>> fetchVendors({
+  /// GET /vendors?supportsDineIn=true&category=dine_in&sort=&cuisine=&isBookable=&hasOffers=&q=
+  Future<List<DineInRestaurant>> fetchVendors({
     String? cuisine,
-    bool freeDelivery = false,
+    bool bookableOnly = false,
+    bool offersOnly = false,
     String sort = 'rating',
     String? query,
   }) async {
     final params = <String, String>{
-      'category': 'food',
+      'supportsDineIn': 'true',
+      'category': 'dine_in',
       'sort': sort,
     };
     if (cuisine != null &&
@@ -91,7 +97,8 @@ class FoodVendorsRepository {
         cuisine.toLowerCase() != 'all') {
       params['cuisine'] = cuisine;
     }
-    if (freeDelivery) params['freeDelivery'] = 'true';
+    if (bookableOnly) params['isBookable'] = 'true';
+    if (offersOnly) params['hasOffers'] = 'true';
     if (query != null && query.trim().isNotEmpty) {
       params['q'] = query.trim();
     }
@@ -108,28 +115,28 @@ class FoodVendorsRepository {
     final data = response?['data'];
     if (data is! List) return const [];
 
-    final items = <BrowseRestaurant>[];
+    final items = <DineInRestaurant>[];
     for (final raw in data) {
       if (raw is! Map<String, dynamic>) continue;
-      final mapped = browseRestaurantFromVendorJson(raw);
+      final mapped = dineInRestaurantFromVendorJson(raw);
       if (mapped != null) items.add(mapped);
     }
     return items;
   }
 
   /// GET /vendors/:id
-  Future<BrowseRestaurant> fetchVendor(String vendorId) async {
+  Future<DineInRestaurant> fetchVendor(String vendorId) async {
     final response = await _apiClient.getJson('/vendors/$vendorId');
     final data = response?['data'];
     if (data is Map<String, dynamic>) {
-      final mapped = browseRestaurantFromVendorJson(data);
+      final mapped = dineInRestaurantFromVendorJson(data);
       if (mapped != null) return mapped;
     }
-    return BrowseData.restaurantById(vendorId);
+    return DineInData.restaurantById(vendorId);
   }
 
   /// GET /vendors/:id/menu?q=
-  Future<FoodVendorMenu> fetchVendorMenu(
+  Future<DineInVendorMenu> fetchVendorMenu(
     String vendorId, {
     String? query,
   }) async {
@@ -139,12 +146,16 @@ class FoodVendorsRepository {
     final response = await _apiClient.getJson('/vendors/$vendorId/menu$qs');
     final data = response?['data'];
     if (data is! Map<String, dynamic>) {
-      return _fallbackMenu(vendorId);
+      return DineInVendorMenu(
+        restaurant: await fetchVendor(vendorId),
+        sections: const [],
+        items: const [],
+      );
     }
 
     final vendorRaw = data['vendor'];
     final restaurant = vendorRaw is Map<String, dynamic>
-        ? (browseRestaurantFromVendorJson({
+        ? (dineInRestaurantFromVendorJson({
               ...vendorRaw,
               'id': vendorRaw['id'] ?? vendorId,
               'slug': vendorRaw['slug'] ?? vendorId,
@@ -174,18 +185,7 @@ class FoodVendorsRepository {
       }
     }
 
-    if (sections.isEmpty || items.isEmpty) {
-      if (query != null && query.trim().isNotEmpty) {
-        return FoodVendorMenu(
-          restaurant: restaurant,
-          sections: const [],
-          items: const [],
-        );
-      }
-      return _fallbackMenu(vendorId);
-    }
-
-    return FoodVendorMenu(
+    return DineInVendorMenu(
       restaurant: restaurant,
       sections: sections,
       items: items,
@@ -193,7 +193,7 @@ class FoodVendorsRepository {
   }
 
   /// GET /vendors/:id/products/:productId
-  Future<FoodProductDetail> fetchProductDetail({
+  Future<DineInProductDetail> fetchProductDetail({
     required String vendorId,
     required String itemId,
   }) async {
@@ -202,12 +202,12 @@ class FoodVendorsRepository {
     );
     final data = response?['data'];
     if (data is! Map<String, dynamic>) {
-      final fallback = BrowseData.menuItemById(itemId);
-      return FoodProductDetail(
+      final fallback = DineInData.menuItemById(itemId);
+      return DineInProductDetail(
         item: fallback,
-        description: BrowseData.mezzeLongDescription,
-        options: BrowseData.mezzeSizes,
-        addons: BrowseData.mezzeAddons,
+        description: DineInData.mezzeLongDescription,
+        options: DineInData.mezzeSizes,
+        addons: DineInData.mezzeAddons,
       );
     }
 
@@ -215,7 +215,7 @@ class FoodVendorsRepository {
           data,
           section: data['menuSectionName'] as String? ?? 'Menu',
         ) ??
-        BrowseData.menuItemById(itemId);
+        DineInData.menuItemById(itemId);
 
     final options = <BrowseSizeOption>[];
     final groups = data['optionGroups'];
@@ -263,25 +263,25 @@ class FoodVendorsRepository {
       }
     }
 
-    return FoodProductDetail(
+    return DineInProductDetail(
       item: item,
       description: (data['description'] as String?)?.trim().isNotEmpty == true
           ? data['description'] as String
           : item.description,
-      options: options.isNotEmpty ? options : BrowseData.mezzeSizes,
-      addons: addons.isNotEmpty ? addons : BrowseData.mezzeAddons,
+      options: options.isNotEmpty ? options : DineInData.mezzeSizes,
+      addons: addons.isNotEmpty ? addons : DineInData.mezzeAddons,
       imageUrl: (data['imageUrl'] as String?)?.trim(),
     );
   }
 
-  /// GET /cart?type=DELIVERY
-  Future<FoodCartSummary> fetchDeliveryCart() async {
+  /// GET /cart?type=DINE_IN
+  Future<DineInCartSummary> fetchDineInCart() async {
     final response = await _apiClient.getJson(
-      '/cart?type=DELIVERY',
+      '/cart?type=DINE_IN',
       bearerToken: _token,
     );
     final data = response?['data'];
-    if (data is! Map<String, dynamic>) return FoodCartSummary.empty;
+    if (data is! Map<String, dynamic>) return DineInCartSummary.empty;
 
     final items = data['items'];
     var count = (data['itemCount'] as num?)?.toInt();
@@ -303,15 +303,14 @@ class FoodVendorsRepository {
         ? vendor['id']?.toString()
         : data['vendorId']?.toString();
 
-    return FoodCartSummary(
+    return DineInCartSummary(
       itemCount: count ?? 0,
       totalLabel: totalNum.toStringAsFixed(3),
       vendorId: vendorId,
     );
   }
 
-  /// POST /cart/items?type=DELIVERY
-  /// Returns null on success, conflict message on vendor conflict, or error text.
+  /// POST /cart/items?type=DINE_IN
   Future<({bool ok, bool vendorConflict, String? message})> addToCart({
     required String productId,
     required int quantity,
@@ -320,7 +319,7 @@ class FoodVendorsRepository {
     bool replaceCart = false,
   }) async {
     final response = await _apiClient.postJson(
-      '/cart/items?type=DELIVERY',
+      '/cart/items?type=DINE_IN',
       {
         'productId': productId,
         'quantity': quantity,
@@ -359,8 +358,12 @@ class FoodVendorsRepository {
     final data = response?['data'];
     final list = data is List
         ? data
-        : (data is Map<String, dynamic> ? data['items'] ?? data['history'] : null);
-    if (list is! List || list.isEmpty) return BrowseData.recentSearches;
+        : (data is Map<String, dynamic>
+            ? data['items'] ?? data['history']
+            : null);
+    if (list is! List || list.isEmpty) {
+      return const ['VEERA', 'Lebanese', 'Sushi', 'Grill'];
+    }
 
     final queries = <String>[];
     for (final raw in list) {
@@ -371,59 +374,78 @@ class FoodVendorsRepository {
         queries.add(raw.trim());
       }
     }
-    return queries.isNotEmpty ? queries : BrowseData.recentSearches;
-  }
-
-  FoodVendorMenu _fallbackMenu(String vendorId) {
-    final restaurant = BrowseData.restaurantById(vendorId);
-    return FoodVendorMenu(
-      restaurant: restaurant,
-      sections: BrowseData.menuSections,
-      items: BrowseData.greenKitchenMenu,
-    );
+    return queries.isNotEmpty
+        ? queries
+        : const ['VEERA', 'Lebanese', 'Sushi', 'Grill'];
   }
 }
 
-BrowseRestaurant? browseRestaurantFromVendorJson(Map<String, dynamic> json) {
+DineInRestaurant? dineInRestaurantFromVendorJson(Map<String, dynamic> json) {
   final id = (json['id'] ?? json['slug'])?.toString();
   final name = json['name'] as String?;
   if (id == null || id.isEmpty || name == null || name.isEmpty) return null;
 
   final tags = json['cuisineTags'];
   final cuisine = tags is List && tags.isNotEmpty
+      ? tags.first.toString()
+      : (json['area'] as String? ?? 'Dine-in');
+
+  final subtitle = tags is List && tags.isNotEmpty
       ? tags.map((e) => e.toString()).where((e) => e.isNotEmpty).join(' · ')
-      : (json['area'] as String? ?? 'Food');
+      : null;
 
   final ratingRaw = json['rating'];
   final rating = ratingRaw is num
       ? ratingRaw.toDouble()
       : double.tryParse(ratingRaw?.toString() ?? '') ?? 0;
 
-  final deliveryMin = (json['deliveryTimeMin'] as num?)?.toInt() ?? 25;
-  final freeDelivery = json['freeDelivery'] == true;
-  final deliveryFeeRaw = json['deliveryFee'];
-  final deliveryFee = deliveryFeeRaw is num
-      ? deliveryFeeRaw.toStringAsFixed(1)
-      : (deliveryFeeRaw?.toString() ?? '0.8');
-  final minOrderRaw = json['minOrderAmount'];
-  final minOrder = minOrderRaw is num
-      ? minOrderRaw.toStringAsFixed(0)
-      : (minOrderRaw?.toString() ?? '5');
-  final distanceKm = json['distanceKm'];
-  final distance = distanceKm is num
-      ? '${distanceKm.toStringAsFixed(1)} km away'
-      : 'Nearby';
-
   final reviewCountRaw = json['reviewCount'];
   final reviewCount = reviewCountRaw is num
       ? _formatReviewCount(reviewCountRaw.toInt())
-      : '___';
+      : '0';
 
-  final badge = json['offerBadge'] as String?;
+  final distanceKm = json['distanceKm'];
+  final distance = distanceKm is num
+      ? '${distanceKm.toStringAsFixed(1)} km'
+      : (json['area'] as String? ?? 'Nearby');
+
+  final offerBadge = json['offerBadge'] as String?;
+  final isBookable = json['isBookable'] == true;
+  final openStatus = (json['openStatus'] as String?)?.toUpperCase();
+
+  final badge = (offerBadge != null && offerBadge.trim().isNotEmpty)
+      ? offerBadge.trim()
+      : (isBookable ? 'Bookable' : null);
+
+  // Open/closed from API; bookable is a badge/entry mode, not status override.
+  final status = openStatus == 'CLOSED'
+      ? DineInVenueStatus.closed
+      : DineInVenueStatus.open;
+
+  final statusLabel = (json['dineInStatusLabel'] as String?)?.trim().isNotEmpty ==
+          true
+      ? (json['dineInStatusLabel'] as String).trim()
+      : (status == DineInVenueStatus.closed ? 'Closed' : 'Open now');
+
+  final modeLabel =
+      (json['dineInModeLabel'] as String?)?.trim().isNotEmpty == true
+          ? (json['dineInModeLabel'] as String).trim()
+          : 'Dine-in';
+
+  final entryLabel =
+      (json['dineInEntryLabel'] as String?)?.trim().isNotEmpty == true
+          ? (json['dineInEntryLabel'] as String).trim()
+          : (isBookable ? 'Bookable' : 'Walk-in');
+
+  final tableMinRaw = json['dineInTableMin'] ?? json['tableMin'];
+  final tableMin = tableMinRaw is num
+      ? tableMinRaw.toInt()
+      : int.tryParse(tableMinRaw?.toString() ?? '') ?? 2;
+
   final imageUrl = (json['coverUrl'] as String?)?.trim();
   final colors = _gradientForName(name);
 
-  return BrowseRestaurant(
+  return DineInRestaurant(
     id: id,
     name: name,
     cuisine: cuisine,
@@ -431,36 +453,14 @@ BrowseRestaurant? browseRestaurantFromVendorJson(Map<String, dynamic> json) {
     gradientStart: colors.$1,
     gradientEnd: colors.$2,
     badge: badge,
-    deliveryMin: deliveryMin,
-    freeDelivery: freeDelivery,
-    deliveryFee: deliveryFee,
-    minOrder: minOrder,
     distance: distance,
-    imageUrl: (imageUrl != null && imageUrl.isNotEmpty) ? imageUrl : null,
+    status: status,
+    subtitle: subtitle,
     reviewCount: reviewCount,
-  );
-}
-
-BrowseMenuItem? browseMenuItemFromProductJson(
-  Map<String, dynamic> json, {
-  required String section,
-}) {
-  final id = json['id']?.toString();
-  final name = json['name'] as String?;
-  if (id == null || id.isEmpty || name == null || name.isEmpty) return null;
-  final price = json['price'];
-  final priceStr = price is num
-      ? price.toStringAsFixed(3)
-      : (price?.toString() ?? '0.000');
-  final description = (json['description'] as String?)?.trim() ?? '';
-  final imageUrl = (json['imageUrl'] as String?)?.trim();
-
-  return BrowseMenuItem(
-    id: id,
-    name: name,
-    description: description.isNotEmpty ? description : '___',
-    price: priceStr,
-    section: section,
+    tableMin: tableMin > 0 ? tableMin : 2,
+    statusLabel: statusLabel,
+    modeLabel: modeLabel,
+    entryLabel: entryLabel,
     imageUrl: (imageUrl != null && imageUrl.isNotEmpty) ? imageUrl : null,
   );
 }
@@ -468,13 +468,20 @@ BrowseMenuItem? browseMenuItemFromProductJson(
 String _formatReviewCount(int count) {
   if (count >= 1000) {
     final k = count / 1000;
-    final label = k >= 10 ? k.toStringAsFixed(0) : k.toStringAsFixed(1);
-    return '${label}k';
+    return k == k.roundToDouble()
+        ? '${k.toInt()}k'
+        : '${k.toStringAsFixed(1)}k';
   }
   return count.toString();
 }
 
 (Color, Color) _gradientForName(String name) {
+  for (final r in DineInData.restaurants) {
+    if (r.name.toLowerCase() == name.toLowerCase() ||
+        r.id.toLowerCase() == name.toLowerCase()) {
+      return (r.gradientStart, r.gradientEnd);
+    }
+  }
   final base = HomeBrandStyle.forName(name);
   return (base, const Color(0xFF15302B));
 }

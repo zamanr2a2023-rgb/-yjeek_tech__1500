@@ -97,7 +97,9 @@ class HomeScreen extends ConsumerWidget {
                     OrderStatusCard(
                       title: feed.activeOrder!.title,
                       subtitle: feed.activeOrder!.subtitle,
-                      onTrack: () => context.push(OrderFlowRoutes.status),
+                      onTrack: () => context.push(
+                        OrderFlowRoutes.statusFor(feed.activeOrder!.id),
+                      ),
                     ),
                     const SizedBox(height: 18),
                   ],

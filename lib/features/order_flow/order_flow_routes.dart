@@ -16,4 +16,9 @@ abstract final class OrderFlowRoutes {
     if (orderId == null || orderId.isEmpty) return receipt;
     return '$receipt?id=$orderId';
   }
+
+  static String deliveredFor(String? orderId) {
+    if (orderId == null || orderId.isEmpty) return delivered;
+    return '$delivered?id=$orderId';
+  }
 }

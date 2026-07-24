@@ -27,41 +27,41 @@ class ServicesCategoryScreen extends ConsumerStatefulWidget {
 class _ServicesCategoryScreenState
     extends ConsumerState<ServicesCategoryScreen> {
   bool _isGridView = true;
+  bool _offersOnly = false;
+  String _sort = 'popular';
   String _venueFilter = ServicesData.venueFilters.first;
+  ServiceCategoryItem _category = ServicesData.categories.first;
   List<ServiceProvider> _providers = const [];
   bool _loading = true;
-
-  ServiceCategoryItem get _category =>
-      ServicesData.categoryById(widget.categoryId);
 
   @override
   void initState() {
     super.initState();
+    _category = ServicesData.categoryById(widget.categoryId);
     WidgetsBinding.instance.addPostFrameCallback((_) => _load());
   }
 
   Future<void> _load() async {
     setState(() => _loading = true);
     try {
-      final providers = await ref
-          .read(servicesVendorsRepositoryProvider)
-          .fetchProviders(
-            categoryId: widget.categoryId,
-            venueFilter: _venueFilter,
-            sort: 'popular',
-          );
+      final repo = ref.read(servicesVendorsRepositoryProvider);
+      final category = await repo.fetchCategoryById(widget.categoryId);
+      final providers = await repo.fetchProviders(
+        subcategory: widget.categoryId,
+        venueFilter: _venueFilter,
+        sort: _sort,
+        offersOnly: _offersOnly,
+      );
       if (!mounted) return;
       setState(() {
+        _category = category;
         _providers = providers;
         _loading = false;
       });
     } catch (_) {
       if (!mounted) return;
       setState(() {
-        _providers = ServicesData.providersForCategory(
-          widget.categoryId,
-          venueFilter: _venueFilter,
-        );
+        _providers = const [];
         _loading = false;
       });
     }
@@ -81,9 +81,7 @@ class _ServicesCategoryScreenState
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  ServicesCategoryHeader(
-                    title: _category.name,
-                  ),
+                  ServicesCategoryHeader(title: _category.name),
                   Padding(
                     padding: EdgeInsets.fromLTRB(20.w, 12.h, 20.w, 0),
                     child: ServicesVenueFilterChips(
@@ -100,6 +98,16 @@ class _ServicesCategoryScreenState
                     child: ServicesToolbar(
                       isGridView: _isGridView,
                       onViewChanged: (v) => setState(() => _isGridView = v),
+                      sort: _sort,
+                      onSortChanged: (v) {
+                        setState(() => _sort = v);
+                        _load();
+                      },
+                      offersOnly: _offersOnly,
+                      onOffersChanged: (v) {
+                        setState(() => _offersOnly = v);
+                        _load();
+                      },
                     ),
                   ),
                 ],

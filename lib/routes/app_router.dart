@@ -11,6 +11,7 @@ import 'package:yjeek_app/features/browse/view/dine_in_browse_screen.dart';
 import 'package:yjeek_app/features/browse/view/dine_in_item_detail_screen.dart';
 import 'package:yjeek_app/features/browse/view/dine_in_menu_screen.dart';
 import 'package:yjeek_app/features/browse/view/dine_in_order_again_screen.dart';
+import 'package:yjeek_app/features/browse/view/dine_in_search_screen.dart';
 import 'package:yjeek_app/features/browse/view/services_browse_screen.dart';
 import 'package:yjeek_app/features/browse/view/services_category_screen.dart';
 import 'package:yjeek_app/features/browse/view/services_item_detail_screen.dart';
@@ -221,6 +222,17 @@ class AppRouter {
           },
         ),
         GoRoute(
+          path: RouteNames.dineInSearch,
+          builder: (_, state) {
+            final tab = int.tryParse(state.uri.queryParameters['tab'] ?? '') ?? 0;
+            final query = state.uri.queryParameters['q'] ?? '';
+            return DineInSearchScreen(
+              initialQuery: query,
+              bottomNavIndex: tab,
+            );
+          },
+        ),
+        GoRoute(
           path: RouteNames.dineInMenu,
           builder: (_, state) {
             final restaurantId =
@@ -261,9 +273,12 @@ class AppRouter {
         GoRoute(
           path: RouteNames.servicesSearch,
           builder: (_, state) {
-            final query = state.uri.queryParameters['q'] ?? '';
             final tab = int.tryParse(state.uri.queryParameters['tab'] ?? '') ?? 0;
-            return ServicesSearchScreen(initialQuery: query, bottomNavIndex: tab);
+            final query = state.uri.queryParameters['q'] ?? '';
+            return ServicesSearchScreen(
+              initialQuery: query,
+              bottomNavIndex: tab,
+            );
           },
         ),
         GoRoute(
@@ -613,7 +628,9 @@ class AppRouter {
         ),
         GoRoute(
           path: RouteNames.orderDelivered,
-          builder: (_, _) => const DeliveredRateScreen(),
+          builder: (_, state) => DeliveredRateScreen(
+            orderId: state.uri.queryParameters['id'],
+          ),
         ),
         GoRoute(
           path: RouteNames.orderReceipt,

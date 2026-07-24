@@ -64,8 +64,10 @@ class ElectronicsStorageOption {
   const ElectronicsStorageOption({
     required this.label,
     this.extraPrice = 0,
+    this.id,
   });
 
+  final String? id;
   final String label;
   final int extraPrice;
 }
@@ -74,8 +76,10 @@ class ElectronicsColorOption {
   const ElectronicsColorOption({
     required this.color,
     this.selectedBorder = false,
+    this.id,
   });
 
+  final String? id;
   final Color color;
   final bool selectedBorder;
 }

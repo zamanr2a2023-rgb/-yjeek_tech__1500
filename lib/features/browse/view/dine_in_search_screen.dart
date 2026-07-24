@@ -8,12 +8,13 @@ import 'package:yjeek_app/core/constants/app_text_styles.dart';
 import 'package:yjeek_app/core/providers/app_providers.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/features/browse/browse_routes.dart';
-import 'package:yjeek_app/features/browse/model/browse_data.dart';
+import 'package:yjeek_app/features/browse/model/dine_in_data.dart';
 import 'package:yjeek_app/features/browse/view/widgets/browse_widgets.dart';
+import 'package:yjeek_app/features/browse/view/widgets/dine_in_widgets.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/navigation_widgets.dart';
 
-class FoodSearchScreen extends ConsumerStatefulWidget {
-  const FoodSearchScreen({
+class DineInSearchScreen extends ConsumerStatefulWidget {
+  const DineInSearchScreen({
     super.key,
     this.initialQuery = '',
     this.bottomNavIndex = 0,
@@ -23,15 +24,18 @@ class FoodSearchScreen extends ConsumerStatefulWidget {
   final int bottomNavIndex;
 
   @override
-  ConsumerState<FoodSearchScreen> createState() => _FoodSearchScreenState();
+  ConsumerState<DineInSearchScreen> createState() => _DineInSearchScreenState();
 }
 
-class _FoodSearchScreenState extends ConsumerState<FoodSearchScreen> {
+class _DineInSearchScreenState extends ConsumerState<DineInSearchScreen> {
   late String _query;
-  List<BrowseRestaurant> _results = const [];
-  List<String> _recent = BrowseData.recentSearches;
+  List<DineInRestaurant> _results = const [];
+  List<String> _recent = const ['VEERA', 'Lebanese', 'Sushi', 'Grill'];
   Timer? _debounce;
   bool _loading = false;
+
+  /// Keep same sage backdrop as browse.
+  static const Color _screenBg = Color(0xFF8BAE9A);
 
   @override
   void initState() {
@@ -51,7 +55,7 @@ class _FoodSearchScreenState extends ConsumerState<FoodSearchScreen> {
 
   Future<void> _loadRecent() async {
     final recent =
-        await ref.read(foodVendorsRepositoryProvider).fetchRecentSearches();
+        await ref.read(dineInVendorsRepositoryProvider).fetchRecentSearches();
     if (!mounted) return;
     setState(() => _recent = recent);
   }
@@ -66,7 +70,7 @@ class _FoodSearchScreenState extends ConsumerState<FoodSearchScreen> {
 
   Future<void> _search(String value) async {
     setState(() => _loading = true);
-    final results = await ref.read(foodVendorsRepositoryProvider).fetchVendors(
+    final results = await ref.read(dineInVendorsRepositoryProvider).fetchVendors(
           query: value,
           sort: 'rating',
         );
@@ -80,7 +84,7 @@ class _FoodSearchScreenState extends ConsumerState<FoodSearchScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: _screenBg,
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -88,7 +92,7 @@ class _FoodSearchScreenState extends ConsumerState<FoodSearchScreen> {
             Padding(
               padding: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 0),
               child: BrowseSearchBar(
-                hint: 'Search in Food…',
+                hint: 'Search in Dine In…',
                 value: _query,
                 showCancel: true,
                 onChanged: _onQueryChanged,
@@ -159,29 +163,19 @@ class _FoodSearchScreenState extends ConsumerState<FoodSearchScreen> {
                         color: AppColors.primary,
                       ),
                     )
-                  : _results.isEmpty
-                      ? Center(
-                          child: Text(
-                            '___',
-                            style: AppTextStyles.bodyMedium(
-                              color: AppColors.textSecondary,
-                            ),
-                          ),
-                        )
-                      : ListView.separated(
-                          padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 24.h),
-                          itemCount: _results.length,
-                          separatorBuilder: (_, _) => SizedBox(height: 10.h),
-                          itemBuilder: (context, index) =>
-                              BrowseRestaurantListCard(
-                            restaurant: _results[index],
-                            onTap: () => context.push(
-                              BrowseRoutes.vendorMenu(
-                                vendorId: _results[index].id,
-                              ),
-                            ),
+                  : ListView.separated(
+                      padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 24.h),
+                      itemCount: _results.length,
+                      separatorBuilder: (_, _) => SizedBox(height: 10.h),
+                      itemBuilder: (context, index) => DineInRestaurantListCard(
+                        restaurant: _results[index],
+                        onTap: () => context.push(
+                          BrowseRoutes.dineInMenu(
+                            restaurantId: _results[index].id,
                           ),
                         ),
+                      ),
+                    ),
             ),
           ],
         ),

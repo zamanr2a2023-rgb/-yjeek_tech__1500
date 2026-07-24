@@ -96,6 +96,7 @@ class BrowseSearchBar extends StatelessWidget {
     this.onChanged,
     this.showCancel = false,
     this.onCancel,
+    this.autofocus,
   });
 
   final String hint;
@@ -104,6 +105,7 @@ class BrowseSearchBar extends StatelessWidget {
   final ValueChanged<String>? onChanged;
   final bool showCancel;
   final VoidCallback? onCancel;
+  final bool? autofocus;
 
   @override
   Widget build(BuildContext context) {
@@ -122,7 +124,7 @@ class BrowseSearchBar extends StatelessWidget {
           Expanded(
             child: onChanged != null
                 ? TextField(
-                    autofocus: true,
+                    autofocus: autofocus ?? true,
                     controller: value != null
                         ? TextEditingController(text: value)
                         : null,
@@ -702,14 +704,20 @@ class BrowseOrderAgainRow extends StatelessWidget {
     super.key,
     this.onSeeAll,
     this.brands,
+    this.onBrandTap,
   });
 
   final VoidCallback? onSeeAll;
-  final List<(String, Color)>? brands;
+  /// (name, color, vendorId?)
+  final List<(String, Color, String?)>? brands;
+  final void Function(String? vendorId, String name)? onBrandTap;
 
   @override
   Widget build(BuildContext context) {
-    final items = brands ?? BrowseData.orderAgainBrands;
+    final items = brands ??
+        BrowseData.orderAgainBrands
+            .map<(String, Color, String?)>((e) => (e.$1, e.$2, null))
+            .toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -752,52 +760,55 @@ class BrowseOrderAgainRow extends StatelessWidget {
                 itemCount: items.length,
                 separatorBuilder: (_, _) => SizedBox(width: 16.w),
                 itemBuilder: (context, index) {
-                  final (name, color) = items[index];
+                  final (name, color, vendorId) = items[index];
                   final initial = name.isNotEmpty ? name[0] : '';
-                  return SizedBox(
-                    width: circleSize,
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          width: circleSize,
-                          height: circleSize,
-                          decoration: BoxDecoration(
-                            color: color,
-                            shape: BoxShape.circle,
-                            border: Border.all(color: const Color(0xFFE2E8DD)),
+                  return GestureDetector(
+                    onTap: () => onBrandTap?.call(vendorId, name),
+                    child: SizedBox(
+                      width: circleSize,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: circleSize,
+                            height: circleSize,
+                            decoration: BoxDecoration(
+                              color: color,
+                              shape: BoxShape.circle,
+                              border: Border.all(color: const Color(0xFFE2E8DD)),
+                            ),
+                            alignment: Alignment.center,
+                            child: Text(
+                              initial,
+                              style:
+                                  AppTextStyles.labelMedium(
+                                    color: AppColors.white,
+                                  ).copyWith(
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 18.sp,
+                                  ),
+                            ),
                           ),
-                          alignment: Alignment.center,
-                          child: Text(
-                            initial,
-                            style:
-                                AppTextStyles.labelMedium(
-                                  color: AppColors.white,
-                                ).copyWith(
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 18.sp,
-                                ),
+                          SizedBox(height: gap),
+                          SizedBox(
+                            height: labelHeight,
+                            child: Text(
+                              name,
+                              textAlign: TextAlign.center,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style:
+                                  AppTextStyles.caption(
+                                    color: AppColors.textPrimary,
+                                  ).copyWith(
+                                    fontWeight: FontWeight.w500,
+                                    fontSize: 11.sp,
+                                    height: 1.0,
+                                  ),
+                            ),
                           ),
-                        ),
-                        SizedBox(height: gap),
-                        SizedBox(
-                          height: labelHeight,
-                          child: Text(
-                            name,
-                            textAlign: TextAlign.center,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style:
-                                AppTextStyles.caption(
-                                  color: AppColors.textPrimary,
-                                ).copyWith(
-                                  fontWeight: FontWeight.w500,
-                                  fontSize: 11.sp,
-                                  height: 1.0,
-                                ),
-                          ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   );
                 },
@@ -894,7 +905,7 @@ class BrowseVendorHero extends StatelessWidget {
                     ),
                     SizedBox(width: 4.w),
                     Text(
-                      '${restaurant.rating} (2.5k)',
+                      '${restaurant.rating} (${restaurant.reviewCount})',
                       style: AppTextStyles.labelSmall(color: AppColors.white)
                           .copyWith(
                             fontWeight: FontWeight.w700,
@@ -1014,12 +1025,23 @@ class BrowseMenuItemRow extends StatelessWidget {
 }
 
 class BrowseCartBar extends StatelessWidget {
-  const BrowseCartBar({super.key, this.onTap});
+  const BrowseCartBar({
+    super.key,
+    this.onTap,
+    this.itemCount,
+    this.totalLabel,
+  });
 
   final VoidCallback? onTap;
+  final int? itemCount;
+  final String? totalLabel;
 
   @override
   Widget build(BuildContext context) {
+    final count = itemCount ?? BrowseData.cartItemCount;
+    final total = totalLabel ?? BrowseData.cartTotal;
+    if (count <= 0) return const SizedBox.shrink();
+
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
@@ -1039,7 +1061,7 @@ class BrowseCartBar extends StatelessWidget {
                 borderRadius: BorderRadius.circular(8.r),
               ),
               child: Text(
-                '${BrowseData.cartItemCount}',
+                '$count',
                 style: AppTextStyles.labelSmall(color: AppColors.white)
                     .copyWith(
                       fontWeight: FontWeight.w700,
@@ -1059,7 +1081,7 @@ class BrowseCartBar extends StatelessWidget {
             ),
             const Spacer(),
             Text(
-              'BHD ${BrowseData.cartTotal}',
+              'BHD $total',
               style: AppTextStyles.labelMedium(color: AppColors.white).copyWith(
                 fontWeight: FontWeight.w700,
                 fontSize: 16.sp,

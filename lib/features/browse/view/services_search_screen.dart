@@ -30,23 +30,37 @@ class ServicesSearchScreen extends ConsumerStatefulWidget {
 
 class _ServicesSearchScreenState extends ConsumerState<ServicesSearchScreen> {
   late String _query;
-  List<ServiceProvider> _results = ServicesData.popularProviders;
+  List<ServiceProvider> _results = const [];
+  List<String> _recent = const [
+    'Glow Beauty',
+    'Spa',
+    'Haircut',
+    'Home cleaning',
+  ];
   Timer? _debounce;
   bool _loading = false;
-
-  static const _recent = ['Glow', 'Spa', 'Nails', 'Photoshoot'];
 
   @override
   void initState() {
     super.initState();
     _query = widget.initialQuery;
-    WidgetsBinding.instance.addPostFrameCallback((_) => _search(_query));
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await _loadRecent();
+      await _search(_query);
+    });
   }
 
   @override
   void dispose() {
     _debounce?.cancel();
     super.dispose();
+  }
+
+  Future<void> _loadRecent() async {
+    final recent =
+        await ref.read(servicesVendorsRepositoryProvider).fetchRecentSearches();
+    if (!mounted) return;
+    setState(() => _recent = recent);
   }
 
   void _onQueryChanged(String value) {
@@ -119,12 +133,13 @@ class _ServicesSearchScreenState extends ConsumerState<ServicesSearchScreen> {
                       ),
                       child: Text(
                         term,
-                        style: AppTextStyles.labelSmall(
-                          color: AppColors.textPrimary,
-                        ).copyWith(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 12.sp,
-                        ),
+                        style:
+                            AppTextStyles.labelSmall(
+                              color: AppColors.textPrimary,
+                            ).copyWith(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 12.sp,
+                            ),
                       ),
                     ),
                   );

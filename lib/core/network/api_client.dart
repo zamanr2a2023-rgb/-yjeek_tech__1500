@@ -44,8 +44,6 @@ class ApiClient {
 
   final http.Client _client;
 
-  // Dev setup: phone reaches the backend over USB via
-  // `adb reverse tcp:3000 tcp:3000` (see ApiConstants.baseUrl).
   Future<Map<String, dynamic>?> getJson(
     String path, {
     String? bearerToken,

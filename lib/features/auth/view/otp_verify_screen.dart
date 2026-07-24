@@ -53,15 +53,7 @@ class _OtpVerifyScreenState extends ConsumerState<OtpVerifyScreen> {
   void initState() {
     super.initState();
     _startResendTimer(widget.expiresInSeconds);
-    _otpController.addListener(() {
-      // Typing a new code clears the previous error state.
-      if (_state == OtpScreenState.wrongCode &&
-          _otpController.text.isNotEmpty) {
-        _state = OtpScreenState.normal;
-        _responseMessage = null;
-      }
-      setState(() {});
-    });
+    _otpController.addListener(() => setState(() {}));
   }
 
   @override
@@ -159,12 +151,9 @@ class _OtpVerifyScreenState extends ConsumerState<OtpVerifyScreen> {
       if (isTooManyAttempts) {
         _state = OtpScreenState.blocked;
         _startBlockTimer(blockSeconds);
-        _otpController.clear();
       } else {
         _attemptsLeft--;
         _state = OtpScreenState.wrongCode;
-        // Clear the boxes so the user can type a fresh code right away.
-        _otpController.clear();
       }
     });
   }
