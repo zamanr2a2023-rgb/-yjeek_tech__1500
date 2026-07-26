@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:yjeek_app/core/constants/app_colors.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
@@ -346,23 +347,31 @@ class ElectronicsStoreTopBar extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            GestureDetector(
-              onTap: onBack ?? () => Navigator.of(context).maybePop(),
-              child: Container(
-                width: 36.w,
-                height: 36.w,
-                decoration: BoxDecoration(
-                  color: AppColors.white,
-                  borderRadius: BorderRadius.circular(18.r),
-                ),
-                alignment: Alignment.center,
-                child: Text(
-                  '‹',
-                  style: GoogleFonts.inter(
-                    fontSize: 20.sp,
-                    fontWeight: FontWeight.w600,
-                    color: _kText,
-                    height: 24 / 20,
+            Material(
+              color: AppColors.white,
+              shape: const CircleBorder(),
+              clipBehavior: Clip.antiAlias,
+              child: InkWell(
+                customBorder: const CircleBorder(),
+                onTap: onBack ??
+                    () {
+                      if (context.canPop()) {
+                        context.pop();
+                      }
+                    },
+                child: SizedBox(
+                  width: 36.w,
+                  height: 36.w,
+                  child: Center(
+                    child: Text(
+                      '‹',
+                      style: GoogleFonts.inter(
+                        fontSize: 20.sp,
+                        fontWeight: FontWeight.w600,
+                        color: _kText,
+                        height: 24 / 20,
+                      ),
+                    ),
                   ),
                 ),
               ),

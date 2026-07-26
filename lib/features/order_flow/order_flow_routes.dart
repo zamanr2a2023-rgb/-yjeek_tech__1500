@@ -1,6 +1,8 @@
 import 'package:yjeek_app/routes/route_names.dart';
 
 abstract final class OrderFlowRoutes {
+  static const waiting = RouteNames.orderWaiting;
+  static const pay = RouteNames.orderPay;
   static const confirmed = RouteNames.orderConfirmed;
   static const status = RouteNames.orderStatus;
   static const delivered = RouteNames.orderDelivered;

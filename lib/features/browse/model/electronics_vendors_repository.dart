@@ -150,37 +150,38 @@ class ElectronicsVendorsRepository {
     );
   }
 
-  /// GET /cart?type=DELIVERY (electronics uses delivery/scheduled basket)
+  /// GET /cart/scheduled (electronics scheduled basket)
   Future<ElectronicsCartSummary> fetchCart() async {
+    if (!_storage.hasSession) return ElectronicsCartSummary.empty;
+
     final response = await _apiClient.getJson(
-      '/cart?type=DELIVERY',
+      '/cart/scheduled',
       bearerToken: _token,
     );
     final data = response?['data'];
     if (data is! Map<String, dynamic>) return ElectronicsCartSummary.empty;
 
-    final items = data['items'];
-    var count = (data['itemCount'] as num?)?.toInt();
-    if (count == null && items is List) {
-      count = 0;
-      for (final item in items) {
-        if (item is Map<String, dynamic>) {
-          count = count! + ((item['quantity'] as num?)?.toInt() ?? 1);
+    final itemCount = (data['itemCount'] as num?)?.toInt() ?? 0;
+    final summary = data['summary'];
+    final total = summary is Map<String, dynamic>
+        ? (summary['grandTotal'] ?? summary['totalAmount'])
+        : null;
+    final totalNum = total is num ? total.toDouble() : 0.0;
+    final groups = data['groups'];
+    String? vendorId;
+    if (groups is List && groups.isNotEmpty) {
+      final first = groups.first;
+      if (first is Map<String, dynamic>) {
+        vendorId = first['vendorId']?.toString();
+        final vendor = first['vendor'];
+        if (vendor is Map<String, dynamic>) {
+          vendorId = vendor['id']?.toString() ?? vendorId;
         }
       }
     }
-    final summary = data['summary'];
-    final total = summary is Map<String, dynamic>
-        ? summary['totalAmount']
-        : null;
-    final totalNum = total is num ? total.toDouble() : 0.0;
-    final vendor = data['vendor'];
-    final vendorId = vendor is Map<String, dynamic>
-        ? vendor['id']?.toString()
-        : data['vendorId']?.toString();
 
     return ElectronicsCartSummary(
-      itemCount: count ?? 0,
+      itemCount: itemCount,
       totalLabel: totalNum == totalNum.roundToDouble()
           ? totalNum.toStringAsFixed(0)
           : totalNum.toStringAsFixed(3),
@@ -196,11 +197,10 @@ class ElectronicsVendorsRepository {
     bool replaceCart = false,
   }) async {
     final response = await _apiClient.postJson(
-      '/cart/items?type=DELIVERY',
+      '/cart/scheduled/items',
       {
         'productId': productId,
         'quantity': quantity,
-        'replaceCart': replaceCart,
         'options': {
           if (optionIds.isNotEmpty) 'optionIds': optionIds,
         },

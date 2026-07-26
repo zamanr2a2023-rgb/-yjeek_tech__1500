@@ -111,8 +111,10 @@ import 'package:yjeek_app/features/dine_in_cart/model/dine_in_cart_data.dart';
 import 'package:yjeek_app/features/order_flow/view/delivered_rate_screen.dart';
 import 'package:yjeek_app/features/order_flow/view/driver_chat_screen.dart';
 import 'package:yjeek_app/features/order_flow/view/order_confirmed_screen.dart';
+import 'package:yjeek_app/features/order_flow/view/order_pay_screen.dart';
 import 'package:yjeek_app/features/order_flow/view/order_receipt_screen.dart';
 import 'package:yjeek_app/features/order_flow/view/order_status_screen.dart';
+import 'package:yjeek_app/features/order_flow/view/order_waiting_screen.dart';
 import 'package:yjeek_app/routes/route_names.dart';
 
 class AppRouter {
@@ -364,7 +366,11 @@ class AppRouter {
           path: RouteNames.pickupBrowse,
           builder: (_, state) {
             final tab = int.tryParse(state.uri.queryParameters['tab'] ?? '') ?? 0;
-            return PickupBrowseScreen(bottomNavIndex: tab);
+            final category = state.uri.queryParameters['category'];
+            return PickupBrowseScreen(
+              bottomNavIndex: tab,
+              categorySlug: category,
+            );
           },
         ),
         GoRoute(
@@ -617,6 +623,14 @@ class AppRouter {
           builder: (_, _) => const CartNewCartDialogScreen(),
         ),
         GoRoute(
+          path: RouteNames.orderWaiting,
+          builder: (_, _) => const OrderWaitingScreen(),
+        ),
+        GoRoute(
+          path: RouteNames.orderPay,
+          builder: (_, _) => const OrderPayScreen(),
+        ),
+        GoRoute(
           path: RouteNames.orderConfirmed,
           builder: (_, _) => const OrderConfirmedScreen(),
         ),
@@ -801,12 +815,15 @@ extension AppNavigation on BuildContext {
   }) {
     // Remember where we came from so Cart back can restore that screen.
     if (tab == 2) {
+      final notifier =
+          ProviderScope.containerOf(this).read(shellProvider.notifier);
       final current = GoRouterState.of(this).uri.toString();
       if (!current.startsWith(RouteNames.home)) {
-        ProviderScope.containerOf(this)
-            .read(shellProvider.notifier)
-            .setCartReturnPath(current);
+        notifier.setCartReturnPath(current);
       }
+      // Cart tab is kept alive by the shell's IndexedStack — force a refetch so
+      // a freshly added item shows up instead of the previously loaded cart.
+      notifier.markCartDirty();
     }
 
     final params = <String>['tab=$tab'];

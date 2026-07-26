@@ -276,6 +276,8 @@ class FoodVendorsRepository {
 
   /// GET /cart?type=DELIVERY
   Future<FoodCartSummary> fetchDeliveryCart() async {
+    if (!_storage.hasSession) return FoodCartSummary.empty;
+
     final response = await _apiClient.getJson(
       '/cart?type=DELIVERY',
       bearerToken: _token,

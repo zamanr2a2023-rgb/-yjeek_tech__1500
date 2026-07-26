@@ -116,6 +116,8 @@ class DineInPreferencesCard extends StatelessWidget {
     required this.onPartySizeChanged,
     required this.onSeatingChanged,
     required this.onSpecialOccasionChanged,
+    this.kitchenNoteHint,
+    this.onKitchenNoteTap,
   });
 
   final int partySize;
@@ -124,6 +126,8 @@ class DineInPreferencesCard extends StatelessWidget {
   final ValueChanged<int> onPartySizeChanged;
   final ValueChanged<DineInSeating> onSeatingChanged;
   final ValueChanged<bool> onSpecialOccasionChanged;
+  final String? kitchenNoteHint;
+  final VoidCallback? onKitchenNoteTap;
 
   @override
   Widget build(BuildContext context) {
@@ -265,44 +269,52 @@ class DineInPreferencesCard extends StatelessWidget {
             ],
           ),
           Divider(height: 20.h, color: const Color(0xFFE2E8DD)),
-          Row(
-            children: [
-              Icon(Icons.chat_bubble_outline, size: 22.sp, color: const Color(0xFF0F4D27)),
-              SizedBox(width: 12.w),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      DineInCartStrings.noteForKitchen,
-                      style: AppTextStyles.labelMedium(color: AppColors.textPrimary).copyWith(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 14.sp,
-                        height: 1.28,
+          InkWell(
+            onTap: onKitchenNoteTap,
+            borderRadius: BorderRadius.circular(8.r),
+            child: Row(
+              children: [
+                Icon(Icons.chat_bubble_outline, size: 22.sp, color: const Color(0xFF0F4D27)),
+                SizedBox(width: 12.w),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        DineInCartStrings.noteForKitchen,
+                        style: AppTextStyles.labelMedium(color: AppColors.textPrimary).copyWith(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 14.sp,
+                          height: 1.28,
+                        ),
                       ),
-                    ),
-                    SizedBox(height: 2.h),
-                    Text(
-                      DineInCartStrings.noteForKitchenHint,
-                      style: AppTextStyles.caption(color: const Color(0xFF6B7B6E)).copyWith(
-                        fontWeight: FontWeight.w500,
-                        fontSize: 12.sp,
-                        height: 1.28,
+                      SizedBox(height: 2.h),
+                      Text(
+                        (kitchenNoteHint?.trim().isNotEmpty ?? false)
+                            ? kitchenNoteHint!.trim()
+                            : DineInCartStrings.noteForKitchenHint,
+                        style: AppTextStyles.caption(color: const Color(0xFF6B7B6E)).copyWith(
+                          fontWeight: FontWeight.w500,
+                          fontSize: 12.sp,
+                          height: 1.28,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-              Text(
-                '›',
-                style: TextStyle(
-                  color: const Color(0xFF6B7B6E),
-                  fontSize: 18.sp,
-                  fontWeight: FontWeight.w700,
-                  height: 1.28,
+                Text(
+                  '›',
+                  style: TextStyle(
+                    color: const Color(0xFF6B7B6E),
+                    fontSize: 18.sp,
+                    fontWeight: FontWeight.w700,
+                    height: 1.28,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ],
       ),
@@ -405,7 +417,12 @@ class DineInPrepOptionCard extends StatelessWidget {
 }
 
 class DineInTableReadyCard extends StatelessWidget {
-  const DineInTableReadyCard({super.key});
+  const DineInTableReadyCard({
+    super.key,
+    this.readyLabel,
+  });
+
+  final String? readyLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -435,7 +452,7 @@ class DineInTableReadyCard extends StatelessWidget {
                 ),
                 SizedBox(height: 2.h),
                 Text(
-                  DineInCartStrings.tableReadyValue,
+                  readyLabel ?? DineInCartStrings.tableReadyValue,
                   style: AppTextStyles.labelMedium(color: AppColors.textPrimary).copyWith(
                     fontWeight: FontWeight.w700,
                     fontSize: 16.sp,

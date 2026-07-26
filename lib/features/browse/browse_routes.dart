@@ -190,9 +190,14 @@ abstract final class BrowseRoutes {
     return buffer.toString();
   }
 
-  static String pickupBrowse({int tab = 0}) {
-    if (tab == 0) return RouteNames.pickupBrowse;
-    return '${RouteNames.pickupBrowse}?tab=$tab';
+  static String pickupBrowse({int tab = 0, String? category}) {
+    final params = <String>[];
+    if (tab != 0) params.add('tab=$tab');
+    if (category != null && category.isNotEmpty) {
+      params.add('category=${Uri.encodeQueryComponent(category)}');
+    }
+    if (params.isEmpty) return RouteNames.pickupBrowse;
+    return '${RouteNames.pickupBrowse}?${params.join('&')}';
   }
 
   static String pickupCategories({int tab = 0}) {

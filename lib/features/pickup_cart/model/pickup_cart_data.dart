@@ -77,9 +77,9 @@ abstract final class PickupCartData {
   static const String readyIn = 'Ready in ~8 min';
   static const String pickupTime = 'Today · 19:30';
   static const String collectAt = 'Apartment · Seef';
-  static const String checkoutTotal = 'BHD 4.900';
-  static const String orderTotal = 'BHD 6.610';
-  static const String cashbackAmount = '+ BHD 0.198';
+  static const String checkoutTotal = 'BHD 4.290';
+  static const String orderTotal = 'BHD 4.290';
+  static const String cashbackAmount = '+ BHD 0.129';
   static const String walletBalance = 'Balance BHD 12.450';
   static const String pickupBadge = 'PICKUP';
 
@@ -102,30 +102,30 @@ abstract final class PickupCartData {
 
   static const List<PickupUpsellItem> upsellItems = [
     PickupUpsellItem(
-      name: 'Blue Razz',
-      price: 'BHD 6.500',
+      name: 'Flat White',
+      price: 'BHD 1.800',
       gradientStart: Color(0xFF6B4A2A),
       gradientEnd: Color(0xFF15302B),
     ),
     PickupUpsellItem(
-      name: 'Watermelon Ice',
-      price: 'BHD 6.500',
+      name: 'Blueberry Muffin',
+      price: 'BHD 1.400',
       gradientStart: Color(0xFF8A5B2A),
       gradientEnd: Color(0xFF15302B),
     ),
     PickupUpsellItem(
-      name: 'Mint Tobacco',
-      price: 'BHD 6.500',
+      name: 'Banana Bread',
+      price: 'BHD 1.500',
       gradientStart: Color(0xFF7A4A22),
       gradientEnd: Color(0xFF15302B),
     ),
   ];
 
   static const List<BillLine> cartBillLines = [
-    BillLine(label: 'Subtotal', value: 'BHD 6.500'),
-    BillLine(label: 'Discount', value: '− BHD 0.500', isDiscount: true),
-    BillLine(label: 'Delivery', value: 'BHD 0.500'),
-    BillLine(label: 'Service fee', value: 'BHD 0.110'),
+    BillLine(label: 'Subtotal', value: 'BHD 4.900'),
+    BillLine(label: 'Discount', value: '− BHD 0.735', isDiscount: true),
+    BillLine(label: 'Delivery', value: 'BHD 0.450'),
+    BillLine(label: 'Service fee', value: 'BHD 0.125'),
     BillLine(label: 'Order total', value: orderTotal, isBold: true),
   ];
 

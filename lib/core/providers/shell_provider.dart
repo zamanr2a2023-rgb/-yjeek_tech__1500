@@ -12,6 +12,7 @@ class ShellState {
     this.vapeHasItems = false,
     this.cartTab = CartTab.orders,
     this.cartReturnPath,
+    this.cartRevision = 0,
   });
 
   final int currentIndex;
@@ -24,6 +25,9 @@ class ShellState {
   final CartTab cartTab;
   final String? cartReturnPath;
 
+  /// Bumped whenever the cart may have changed, so the cart tab refetches.
+  final int cartRevision;
+
   ShellState copyWith({
     int? currentIndex,
     int? previousIndex,
@@ -35,6 +39,7 @@ class ShellState {
     CartTab? cartTab,
     String? cartReturnPath,
     bool clearCartReturnPath = false,
+    int? cartRevision,
   }) {
     return ShellState(
       currentIndex: currentIndex ?? this.currentIndex,
@@ -48,6 +53,7 @@ class ShellState {
       cartReturnPath: clearCartReturnPath
           ? null
           : (cartReturnPath ?? this.cartReturnPath),
+      cartRevision: cartRevision ?? this.cartRevision,
     );
   }
 }
@@ -55,12 +61,20 @@ class ShellState {
 class ShellNotifier extends StateNotifier<ShellState> {
   ShellNotifier([ShellState? initial]) : super(initial ?? const ShellState());
 
+  int get _nextRevision => state.cartRevision + 1;
+
+  /// Forces the cart tab to refetch from the API on its next build.
+  void markCartDirty() {
+    state = state.copyWith(cartRevision: _nextRevision);
+  }
+
   void setTab(int index) {
     if (index == state.currentIndex) return;
     state = state.copyWith(
       previousIndex: state.currentIndex,
       currentIndex: index,
       clearCartReturnPath: index != 2,
+      cartRevision: index == 2 ? _nextRevision : null,
     );
   }
 
@@ -79,6 +93,7 @@ class ShellNotifier extends StateNotifier<ShellState> {
       cartHasItems: true,
       currentIndex: 2,
       cartTab: CartTab.orders,
+      cartRevision: _nextRevision,
     );
   }
 
@@ -120,6 +135,7 @@ class ShellNotifier extends StateNotifier<ShellState> {
       cartHasItems: true,
       currentIndex: 2,
       cartTab: CartTab.orders,
+      cartRevision: _nextRevision,
     );
   }
 
@@ -135,6 +151,7 @@ class ShellNotifier extends StateNotifier<ShellState> {
       vapeHasItems: false,
       currentIndex: 2,
       cartTab: CartTab.orders,
+      cartRevision: _nextRevision,
     );
   }
 
@@ -146,6 +163,7 @@ class ShellNotifier extends StateNotifier<ShellState> {
       dineInHasItems: true,
       currentIndex: 2,
       cartTab: CartTab.dineIn,
+      cartRevision: _nextRevision,
     );
   }
 
@@ -157,6 +175,7 @@ class ShellNotifier extends StateNotifier<ShellState> {
       scheduledHasItems: true,
       currentIndex: 2,
       cartTab: CartTab.pickup,
+      cartRevision: _nextRevision,
     );
   }
 
@@ -168,6 +187,7 @@ class ShellNotifier extends StateNotifier<ShellState> {
       pickupHasItems: true,
       currentIndex: 2,
       cartTab: CartTab.pickup,
+      cartRevision: _nextRevision,
     );
   }
 
@@ -176,9 +196,30 @@ class ShellNotifier extends StateNotifier<ShellState> {
       previousIndex: state.currentIndex == 2
           ? state.previousIndex
           : state.currentIndex,
+      cartHasItems: true,
       vapeHasItems: true,
       currentIndex: 2,
-      cartTab: CartTab.services,
+      // Vape uses DELIVERY cart → Orders tab (Services tab = SERVICE bookings).
+      cartTab: CartTab.orders,
+      cartRevision: _nextRevision,
+    );
+  }
+
+  /// Sync tab badges from real API cart counts.
+  void syncCartFlags({
+    required bool delivery,
+    required bool dineIn,
+    required bool pickup,
+    required bool scheduled,
+    required bool service,
+    bool? vape,
+  }) {
+    state = state.copyWith(
+      cartHasItems: delivery,
+      dineInHasItems: dineIn,
+      pickupHasItems: pickup,
+      scheduledHasItems: scheduled,
+      vapeHasItems: vape ?? state.vapeHasItems,
     );
   }
 

@@ -119,10 +119,19 @@ class _OtpVerifyScreenState extends ConsumerState<OtpVerifyScreen> {
     setState(() => _verifying = false);
 
     if (result.success) {
+      final token = result.token?.trim();
+      if (token == null || token.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Login succeeded but no session token was returned.'),
+          ),
+        );
+        return;
+      }
       final storage = ref.read(storageServiceProvider);
-      await storage.setLoggedIn(true);
+      await storage.saveToken(token);
       await storage.savePhone(widget.phoneNumber);
-      if (result.token != null) await storage.saveToken(result.token!);
+      await storage.setLoggedIn(true);
       ref.invalidate(userMeProvider);
       ref.invalidate(homeFeedProvider);
       if (!mounted) return;

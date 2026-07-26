@@ -437,9 +437,13 @@ class ScheduledAddressCard extends StatelessWidget {
   const ScheduledAddressCard({
     super.key,
     required this.onChange,
+    this.address,
+    this.addressDetail,
   });
 
   final VoidCallback onChange;
+  final String? address;
+  final String? addressDetail;
 
   @override
   Widget build(BuildContext context) {
@@ -469,7 +473,7 @@ class ScheduledAddressCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  ScheduledCartData.selectedAddress,
+                  address ?? ScheduledCartData.selectedAddress,
                   style: AppTextStyles.labelMedium(
                     color: const Color(0xFF1A1A1A),
                   ).copyWith(
@@ -480,7 +484,7 @@ class ScheduledAddressCard extends StatelessWidget {
                 ),
                 SizedBox(height: 2.h),
                 Text(
-                  ScheduledCartData.selectedAddressDetail,
+                  addressDetail ?? ScheduledCartData.selectedAddressDetail,
                   style: AppTextStyles.caption(
                     color: const Color(0xFF6B756E),
                   ).copyWith(
@@ -710,7 +714,9 @@ class ScheduledPaymentNoteBanner extends StatelessWidget {
 }
 
 class ScheduledCashbackBanner extends StatelessWidget {
-  const ScheduledCashbackBanner({super.key});
+  const ScheduledCashbackBanner({super.key, this.amount});
+
+  final String? amount;
 
   @override
   Widget build(BuildContext context) {
@@ -735,7 +741,7 @@ class ScheduledCashbackBanner extends StatelessWidget {
             ),
           ),
           Text(
-            ScheduledCartData.cashbackAmount,
+            amount ?? ScheduledCartData.cashbackAmount,
             style: AppTextStyles.caption(color: const Color(0xFF7A5E12)).copyWith(
               fontWeight: FontWeight.w700,
               fontSize: 12.5.sp,

@@ -7,6 +7,11 @@ import 'package:yjeek_app/features/browse/model/electronics_vendors_repository.d
 import 'package:yjeek_app/features/browse/model/food_vendors_repository.dart';
 import 'package:yjeek_app/features/browse/model/dine_in_vendors_repository.dart';
 import 'package:yjeek_app/features/browse/model/services_vendors_repository.dart';
+import 'package:yjeek_app/features/browse/model/vape_vendors_repository.dart';
+import 'package:yjeek_app/features/browse/model/pickup_vendors_repository.dart';
+import 'package:yjeek_app/features/cart/model/addresses_repository.dart';
+import 'package:yjeek_app/features/cart/model/cart_repository.dart';
+import 'package:yjeek_app/features/cart/model/payment_methods_repository.dart';
 import 'package:yjeek_app/features/home/model/active_order_repository.dart';
 import 'package:yjeek_app/features/home/model/categories_repository.dart';
 import 'package:yjeek_app/features/home/model/category_item.dart';
@@ -94,6 +99,41 @@ final servicesVendorsRepositoryProvider = Provider<ServicesVendorsRepository>(
 final electronicsVendorsRepositoryProvider =
     Provider<ElectronicsVendorsRepository>(
   (ref) => ElectronicsVendorsRepository(
+    ref.watch(apiClientProvider),
+    ref.watch(storageServiceProvider),
+  ),
+);
+
+final vapeVendorsRepositoryProvider = Provider<VapeVendorsRepository>(
+  (ref) => VapeVendorsRepository(
+    ref.watch(apiClientProvider),
+    ref.watch(storageServiceProvider),
+  ),
+);
+
+final pickupVendorsRepositoryProvider = Provider<PickupVendorsRepository>(
+  (ref) => PickupVendorsRepository(
+    ref.watch(apiClientProvider),
+    ref.watch(storageServiceProvider),
+  ),
+);
+
+final cartRepositoryProvider = Provider<CartRepository>(
+  (ref) => CartRepository(
+    ref.watch(apiClientProvider),
+    ref.watch(storageServiceProvider),
+  ),
+);
+
+final addressesRepositoryProvider = Provider<AddressesRepository>(
+  (ref) => AddressesRepository(
+    ref.watch(apiClientProvider),
+    ref.watch(storageServiceProvider),
+  ),
+);
+
+final paymentMethodsRepositoryProvider = Provider<PaymentMethodsRepository>(
+  (ref) => PaymentMethodsRepository(
     ref.watch(apiClientProvider),
     ref.watch(storageServiceProvider),
   ),

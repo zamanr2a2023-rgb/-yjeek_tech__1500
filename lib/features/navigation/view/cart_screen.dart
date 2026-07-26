@@ -1,27 +1,23 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:yjeek_app/core/constants/app_colors.dart';
 import 'package:yjeek_app/core/constants/app_text_styles.dart';
 import 'package:yjeek_app/core/constants/navigation_strings.dart';
+import 'package:yjeek_app/core/providers/app_providers.dart';
+import 'package:yjeek_app/core/providers/shell_provider.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/features/browse/browse_routes.dart';
 import 'package:yjeek_app/features/cart/cart_routes.dart';
+import 'package:yjeek_app/features/cart/model/cart_repository.dart';
+import 'package:yjeek_app/features/cart/view/widgets/live_cart_body.dart';
 import 'package:yjeek_app/features/dine_in_cart/dine_in_cart_routes.dart';
-import 'package:yjeek_app/features/dine_in_cart/model/dine_in_cart_data.dart';
-import 'package:yjeek_app/features/dine_in_cart/view/widgets/dine_in_cart_widgets.dart';
-import 'package:yjeek_app/features/scheduled_cart/model/scheduled_cart_data.dart';
-import 'package:yjeek_app/features/scheduled_cart/scheduled_cart_routes.dart';
-import 'package:yjeek_app/features/scheduled_cart/view/widgets/scheduled_cart_widgets.dart';
-import 'package:yjeek_app/features/pickup_cart/model/pickup_cart_data.dart';
-import 'package:yjeek_app/features/pickup_cart/pickup_cart_routes.dart';
-import 'package:yjeek_app/features/pickup_cart/view/widgets/pickup_cart_widgets.dart';
-import 'package:yjeek_app/features/vape_cart/model/vape_cart_data.dart';
-import 'package:yjeek_app/features/vape_cart/vape_cart_routes.dart';
-import 'package:yjeek_app/features/vape_cart/view/widgets/vape_cart_widgets.dart';
 import 'package:yjeek_app/features/navigation/model/navigation_data.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/navigation_widgets.dart';
+import 'package:yjeek_app/features/pickup_cart/pickup_cart_routes.dart';
+import 'package:yjeek_app/features/scheduled_cart/scheduled_cart_routes.dart';
 
-class CartScreen extends StatefulWidget {
+class CartScreen extends ConsumerStatefulWidget {
   const CartScreen({
     super.key,
     required this.hasItems,
@@ -46,26 +42,36 @@ class CartScreen extends StatefulWidget {
   final ValueChanged<CartTab>? onCartTabChanged;
 
   @override
-  State<CartScreen> createState() => _CartScreenState();
+  ConsumerState<CartScreen> createState() => _CartScreenState();
 }
 
-class _CartScreenState extends State<CartScreen> {
+class _CartScreenState extends ConsumerState<CartScreen> {
   late final PageController _pageController;
   int _tabIndex = 0;
-  int _quantity = 1;
-  bool _includeCutlery = false;
+  bool _loading = true;
+  bool _fetching = false;
+  bool _reloadQueued = false;
+  int _loadedRevision = -1;
+
+  CartSnapshot _delivery = CartSnapshot.empty(CartOrderType.delivery);
+  CartSnapshot _dineIn = CartSnapshot.empty(CartOrderType.dineIn);
+  CartSnapshot _pickup = CartSnapshot.empty(CartOrderType.pickup);
+  CartSnapshot _service = CartSnapshot.empty(CartOrderType.service);
+  CartSnapshot? _scheduled;
 
   @override
   void initState() {
     super.initState();
     _tabIndex = widget.initialTab.index;
     _pageController = PageController(initialPage: _tabIndex);
+    // First fetch is driven by the cartRevision watch in build().
   }
 
   @override
   void didUpdateWidget(CartScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.initialTab != widget.initialTab && _tabIndex != widget.initialTab.index) {
+    if (oldWidget.initialTab != widget.initialTab &&
+        _tabIndex != widget.initialTab.index) {
       _tabIndex = widget.initialTab.index;
       _pageController.jumpToPage(_tabIndex);
     }
@@ -77,8 +83,60 @@ class _CartScreenState extends State<CartScreen> {
     super.dispose();
   }
 
+  Future<void> _loadAll({bool showSpinner = true}) async {
+    if (_fetching) {
+      _reloadQueued = true;
+      return;
+    }
+    _fetching = true;
+    if (showSpinner) setState(() => _loading = true);
+    final repo = ref.read(cartRepositoryProvider);
+    try {
+      final results = await Future.wait<Object?>([
+        repo.fetchCart(CartOrderType.delivery),
+        repo.fetchCart(CartOrderType.dineIn),
+        repo.fetchCart(CartOrderType.pickup),
+        repo.fetchCart(CartOrderType.service),
+        repo.fetchScheduledCart(),
+      ]);
+      if (!mounted) return;
+      setState(() {
+        _delivery = results[0]! as CartSnapshot;
+        _dineIn = results[1]! as CartSnapshot;
+        _pickup = results[2]! as CartSnapshot;
+        _service = results[3]! as CartSnapshot;
+        _scheduled = results[4] as CartSnapshot?;
+        _loading = false;
+      });
+      _syncShellFlags();
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _loading = false);
+    } finally {
+      _fetching = false;
+      if (_reloadQueued && mounted) {
+        _reloadQueued = false;
+        await _loadAll(showSpinner: false);
+      }
+    }
+  }
+
+  Future<void> _onRefresh() => _loadAll(showSpinner: false);
+
+  void _syncShellFlags() {
+    ref.read(shellProvider.notifier).syncCartFlags(
+          delivery: _delivery.hasItems,
+          dineIn: _dineIn.hasItems,
+          pickup: _pickup.hasItems,
+          scheduled: _scheduled?.hasItems == true,
+          service: _service.hasItems,
+          vape: _delivery.hasItems && _delivery.isVape,
+        );
+  }
+
   void _onTabChanged(int index) {
     if (index == _tabIndex) return;
+    FocusManager.instance.primaryFocus?.unfocus();
     setState(() => _tabIndex = index);
     widget.onCartTabChanged?.call(CartTab.values[index]);
     _pageController.animateToPage(
@@ -90,65 +148,311 @@ class _CartScreenState extends State<CartScreen> {
 
   void _onPageChanged(int index) {
     if (index != _tabIndex) {
+      FocusManager.instance.primaryFocus?.unfocus();
       setState(() => _tabIndex = index);
       widget.onCartTabChanged?.call(CartTab.values[index]);
     }
   }
 
-  bool get _showPopulatedHeader =>
-      (widget.hasItems && _tabIndex == CartTab.orders.index) ||
-      (widget.hasDineInItems && _tabIndex == CartTab.dineIn.index) ||
-      ((widget.hasPickupItems || widget.hasScheduledItems) &&
-          _tabIndex == CartTab.pickup.index) ||
-      (widget.hasVapeItems && _tabIndex == CartTab.services.index);
+  CartSnapshot _snapshotForTab(CartTab tab) {
+    switch (tab) {
+      case CartTab.orders:
+        // Vape/Food/Electronics-on-demand share DELIVERY; scheduled electronics
+        // prefers scheduled basket when present.
+        if (_scheduled?.hasItems == true && !_delivery.hasItems) {
+          return _scheduled!;
+        }
+        return _delivery;
+      case CartTab.dineIn:
+        return _dineIn;
+      case CartTab.pickup:
+        if (_pickup.hasItems) return _pickup;
+        if (_scheduled?.hasItems == true) return _scheduled!;
+        return _pickup;
+      case CartTab.services:
+        // Real services booking cart. (Vape uses DELIVERY → Orders tab.)
+        return _service;
+    }
+  }
+
+  CartOrderType _typeForTab(CartTab tab) {
+    switch (tab) {
+      case CartTab.orders:
+        return CartOrderType.delivery;
+      case CartTab.dineIn:
+        return CartOrderType.dineIn;
+      case CartTab.pickup:
+        return _pickup.hasItems
+            ? CartOrderType.pickup
+            : CartOrderType.delivery;
+      case CartTab.services:
+        return CartOrderType.service;
+    }
+  }
+
+  bool _tabHasItems(CartTab tab) => _snapshotForTab(tab).hasItems;
+
+  String _vendorTitle(CartTab tab) {
+    final snap = _snapshotForTab(tab);
+    if (snap.vendorName.isNotEmpty) return snap.vendorName;
+    return switch (tab) {
+      CartTab.orders => NavigationData.cartVendor,
+      CartTab.dineIn => 'Dine-in',
+      CartTab.pickup => 'Pickup',
+      CartTab.services => 'Services',
+    };
+  }
+
+  String _headerTitle(CartTab tab) {
+    return switch (tab) {
+      CartTab.dineIn => 'Dine-in basket',
+      CartTab.services => 'Booking',
+      _ => NavigationStrings.cart,
+    };
+  }
+
+  Future<void> _setCart(CartOrderType type, CartSnapshot snap) async {
+    setState(() {
+      switch (type) {
+        case CartOrderType.delivery:
+          _delivery = snap;
+        case CartOrderType.dineIn:
+          _dineIn = snap;
+        case CartOrderType.pickup:
+          _pickup = snap;
+        case CartOrderType.service:
+          _service = snap;
+      }
+    });
+    _syncShellFlags();
+  }
+
+  void _setScheduled(CartSnapshot? snap) {
+    setState(() => _scheduled = snap);
+    _syncShellFlags();
+  }
+
+  Widget _buildLiveBody(CartTab tab) {
+    final snap = _snapshotForTab(tab);
+    final type = _typeForTab(tab);
+    final repo = ref.read(cartRepositoryProvider);
+    final isScheduledOnly =
+        _scheduled != null && identical(snap, _scheduled);
+
+    return LiveCartBody(
+      cart: snap,
+      showCutlery: tab == CartTab.orders &&
+          !snap.isVape &&
+          !snap.isElectronics &&
+          !isScheduledOnly,
+      showVapeCart: tab == CartTab.orders && snap.isVape,
+      showDineInPreferences: tab == CartTab.dineIn,
+      showPickupHeader: tab == CartTab.pickup && snap.pickup != null,
+      showElectronicsCart: isScheduledOnly,
+      checkoutLabel: tab == CartTab.pickup && !isScheduledOnly
+          ? 'Go to checkout'
+          : null,
+      onQuantityChanged: (itemId, qty) async {
+        if (isScheduledOnly) {
+          _setScheduled(
+            await repo.updateScheduledItemQuantity(
+              itemId: itemId,
+              quantity: qty,
+            ),
+          );
+          return;
+        }
+        final next = await repo.updateItemQuantity(
+          type: type,
+          itemId: itemId,
+          quantity: qty,
+        );
+        await _setCart(type, next);
+      },
+      onRemoveItem: (itemId) async {
+        if (isScheduledOnly) {
+          _setScheduled(await repo.removeScheduledItem(itemId));
+          return;
+        }
+        final next = await repo.removeItem(type: type, itemId: itemId);
+        await _setCart(type, next);
+      },
+      onUpsellAdd: (productId) async {
+        if (isScheduledOnly) {
+          _setScheduled(
+            await repo.addScheduledProduct(productId: productId),
+          );
+          return;
+        }
+        final next = await repo.addProduct(type: type, productId: productId);
+        await _setCart(type, next);
+      },
+      onApplyPromo: (code) async {
+        if (isScheduledOnly) {
+          try {
+            _setScheduled(await repo.applyScheduledPromo(code));
+          } catch (_) {
+            if (!mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Invalid promo code')),
+            );
+          }
+          return;
+        }
+        final next = await repo.applyPromo(type: type, code: code);
+        await _setCart(type, next);
+      },
+      onCutleryChanged: (value) async {
+        if (isScheduledOnly) return;
+        final next = await repo.updatePreferences(
+          type: type,
+          includeCutlery: value,
+        );
+        await _setCart(type, next);
+      },
+      onKitchenNote: (note) async {
+        if (isScheduledOnly) return;
+        final next = await repo.updatePreferences(
+          type: type,
+          kitchenNote: note,
+        );
+        await _setCart(type, next);
+      },
+      onPartySizeChanged: (partySize) async {
+        final next = await repo.updatePreferences(
+          type: type,
+          partySize: partySize,
+        );
+        await _setCart(type, next);
+      },
+      onSeatingChanged: (seating) async {
+        final next = await repo.updatePreferences(
+          type: type,
+          seatingPreference: seating,
+        );
+        await _setCart(type, next);
+      },
+      onSpecialOccasionChanged: (enabled) async {
+        final next = await repo.updatePreferences(
+          type: type,
+          specialOccasionEnabled: enabled,
+        );
+        await _setCart(type, next);
+      },
+      onEditItem: (item) {
+        final vendorId = snap.vendorId;
+        if (vendorId == null || vendorId.isEmpty || item.productId.isEmpty) {
+          return;
+        }
+        if (tab == CartTab.dineIn) {
+          context.push(
+            BrowseRoutes.dineInItemDetail(
+              restaurantId: vendorId,
+              itemId: item.productId,
+            ),
+          );
+          return;
+        }
+        if (widget.hasVapeItems && tab == CartTab.orders) {
+          context.push(
+            BrowseRoutes.vapeProductDetail(
+              storeId: vendorId,
+              productId: item.productId,
+            ),
+          );
+          return;
+        }
+        context.push(
+          BrowseRoutes.itemDetail(
+            vendorId: vendorId,
+            itemId: item.productId,
+          ),
+        );
+      },
+      onAddMore: () {
+        final vendorId = snap.vendorId;
+        if (vendorId != null && vendorId.isNotEmpty) {
+          context.push(BrowseRoutes.vendorMenu(vendorId: vendorId));
+          return;
+        }
+        widget.onBrowseVendors();
+      },
+      onCheckout: () {
+        FocusManager.instance.primaryFocus?.unfocus();
+        switch (tab) {
+          case CartTab.dineIn:
+            context.push(DineInCartRoutes.checkout);
+          case CartTab.pickup:
+            if (_pickup.hasItems) {
+              context.push(PickupCartRoutes.checkout);
+            } else {
+              context.push(ScheduledCartRoutes.checkout);
+            }
+          case CartTab.services:
+            context.push(CartRoutes.checkout);
+          case CartTab.orders:
+            if (isScheduledOnly) {
+              context.push(ScheduledCartRoutes.checkout);
+            } else {
+              context.push(CartRoutes.checkout);
+            }
+        }
+      },
+    );
+  }
 
   Widget _buildTabBody(CartTab tab) {
-    if (widget.hasItems && tab == CartTab.orders) {
-      return _PopulatedCartBody(
-        quantity: _quantity,
-        includeCutlery: _includeCutlery,
-        onQuantityChanged: (value) => setState(() => _quantity = value),
-        onCutleryChanged: (value) => setState(() => _includeCutlery = value),
-        onAddMore: () => context.push(
-          BrowseRoutes.vendorMenu(vendorId: BrowseRoutes.defaultVendorId),
-        ),
-        onCheckout: () => context.push(CartRoutes.checkout),
+    if (_loading) {
+      return const Center(
+        child: CircularProgressIndicator(color: AppColors.primary),
       );
     }
-    if (widget.hasDineInItems && tab == CartTab.dineIn) {
-      return DineInBasketBody(
-        onCheckout: () => context.push(DineInCartRoutes.checkout),
-      );
-    }
-    if (widget.hasPickupItems && tab == CartTab.pickup) {
-      return PickupCartBody(
-        onCheckout: () => context.push(PickupCartRoutes.checkout),
-      );
-    }
-    if (widget.hasScheduledItems && tab == CartTab.pickup) {
-      return ScheduledCartBody(
-        onCheckout: () => context.push(ScheduledCartRoutes.checkout),
-      );
-    }
-    if (widget.hasVapeItems && tab == CartTab.services) {
-      return VapeCartBody(
-        onCheckout: () {
-          if (VapeCartData.isAgeVerified) {
-            context.push(VapeCartRoutes.checkout);
-          } else {
-            context.push(VapeCartRoutes.ageVerify);
-          }
-        },
-      );
-    }
-    return EmptyCartBody(onBrowse: widget.onBrowseVendors, tab: tab);
+    return RefreshIndicator(
+      color: AppColors.primary,
+      onRefresh: _onRefresh,
+      child: !_tabHasItems(tab)
+          ? LayoutBuilder(
+              builder: (context, constraints) {
+                return SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      minHeight: constraints.maxHeight,
+                    ),
+                    child: EmptyCartBody(
+                      onBrowse: widget.onBrowseVendors,
+                      tab: tab,
+                    ),
+                  ),
+                );
+              },
+            )
+          : _buildLiveBody(tab),
+    );
   }
+
+  bool get _showPopulatedHeader => _tabHasItems(CartTab.values[_tabIndex]);
 
   @override
   Widget build(BuildContext context) {
+    // The cart tab stays alive inside an IndexedStack, so refetch whenever the
+    // shell signals the cart changed (item added elsewhere, tab reopened).
+    final revision = ref.watch(shellProvider.select((s) => s.cartRevision));
+    if (revision != _loadedRevision) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        final latest = ref.read(shellProvider).cartRevision;
+        if (latest == _loadedRevision) return;
+        _loadedRevision = latest;
+        // `_loading` already starts true, so the first fetch shows the spinner
+        // and later refreshes keep the current content visible.
+        _loadAll(showSpinner: false);
+      });
+    }
+
     final isDineIn = _tabIndex == CartTab.dineIn.index;
-    /// Design: `rgba(44, 107, 71, 0.55)` over white → sage green.
     const dineInBg = Color(0xFF8BAE9A);
+    final tab = CartTab.values[_tabIndex];
 
     return Scaffold(
       backgroundColor: isDineIn ? dineInBg : AppColors.background,
@@ -163,40 +467,21 @@ class _CartScreenState extends State<CartScreen> {
                   ? Row(
                       children: [
                         NavCircleBackButton(
-                          onTap: widget.onBack,
-                          // Figma vape cart: #1A1A1A chevron (not brand green).
-                          iconColor: _tabIndex == CartTab.services.index
-                              ? const Color(0xFF1A1A1A)
-                              : AppColors.primary,
+                          onTap: widget.onBack ?? widget.onBrowseVendors,
+                          iconColor: AppColors.primary,
                         ),
                         SizedBox(width: 12.w),
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              _tabIndex == CartTab.dineIn.index
-                                  ? DineInCartStrings.basket
-                                  : _tabIndex == CartTab.pickup.index
-                                      ? (widget.hasPickupItems
-                                          ? PickupCartStrings.cart
-                                          : ScheduledCartStrings.cart)
-                                      : _tabIndex == CartTab.services.index
-                                          ? VapeCartStrings.cart
-                                          : NavigationStrings.cart,
+                              _headerTitle(tab),
                               style: AppTextStyles.titleSmall(
                                 color: AppColors.textPrimary,
                               ).copyWith(fontSize: 18.sp),
                             ),
                             Text(
-                              _tabIndex == CartTab.dineIn.index
-                                  ? DineInCartData.vendorSubtitle
-                                  : _tabIndex == CartTab.pickup.index
-                                      ? (widget.hasPickupItems
-                                          ? PickupCartData.vendor
-                                          : ScheduledCartData.vendor)
-                                      : _tabIndex == CartTab.services.index
-                                          ? VapeCartData.vendor
-                                          : NavigationData.cartVendor,
+                              _vendorTitle(tab),
                               style: AppTextStyles.labelSmall(
                                 color: AppColors.textSecondary,
                               ).copyWith(fontSize: 12.sp),
@@ -219,489 +504,13 @@ class _CartScreenState extends State<CartScreen> {
                     ),
             ),
           ),
-          CartCategoryTabs(
-            selectedIndex: _tabIndex,
-            onChanged: _onTabChanged,
-          ),
+          CartCategoryTabs(selectedIndex: _tabIndex, onChanged: _onTabChanged),
           Expanded(
             child: PageView(
               controller: _pageController,
               onPageChanged: _onPageChanged,
               children: CartTab.values.map(_buildTabBody).toList(),
             ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _PopulatedCartBody extends StatelessWidget {
-  const _PopulatedCartBody({
-    required this.quantity,
-    required this.includeCutlery,
-    required this.onQuantityChanged,
-    required this.onCutleryChanged,
-    required this.onAddMore,
-    required this.onCheckout,
-  });
-
-  final int quantity;
-  final bool includeCutlery;
-  final ValueChanged<int> onQuantityChanged;
-  final ValueChanged<bool> onCutleryChanged;
-  final VoidCallback onAddMore;
-  final VoidCallback onCheckout;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Expanded(
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
-            children: [
-              Text(
-                NavigationStrings.yourItems,
-                style: AppTextStyles.titleSmall().copyWith(fontSize: 16),
-              ),
-              const SizedBox(height: 10),
-              Container(
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: AppColors.white,
-                  borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: const Color(0xFFE2E8DD)),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                NavigationData.cartItemName,
-                                style: AppTextStyles.titleSmall().copyWith(
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 15,
-                                  height: 1.28,
-                                ),
-                              ),
-                              const SizedBox(height: 5),
-                              Text(
-                                NavigationData.cartItemSubtitle,
-                                style: AppTextStyles.labelSmall(
-                                  color: AppColors.textSecondary,
-                                ).copyWith(
-                                  fontWeight: FontWeight.w500,
-                                  fontSize: 12,
-                                  height: 1.28,
-                                ),
-                              ),
-                              const SizedBox(height: 7),
-                              GestureDetector(
-                                onTap: () {},
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    const Icon(
-                                      Icons.edit_outlined,
-                                      size: 14,
-                                      color: AppColors.primary,
-                                    ),
-                                    const SizedBox(width: 5),
-                                    Text(
-                                      NavigationStrings.edit,
-                                      style: AppTextStyles.labelSmall(
-                                        color: AppColors.primary,
-                                      ).copyWith(
-                                        fontWeight: FontWeight.w700,
-                                        fontSize: 13,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Column(
-                          children: [
-                            Container(
-                              width: 82,
-                              height: 82,
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(14),
-                                gradient: const LinearGradient(
-                                  begin: Alignment(-0.8, -0.6),
-                                  end: Alignment(0.8, 0.8),
-                                  colors: [
-                                    Color(0xFF7A4A22),
-                                    Color(0xFF15302B),
-                                  ],
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            _QuantitySelector(
-                              quantity: quantity,
-                              onChanged: onQuantityChanged,
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    Row(
-                      children: [
-                        Text(
-                          NavigationData.cartItemPrice,
-                          style: AppTextStyles.labelMedium(
-                            color: AppColors.primary,
-                          ).copyWith(
-                            fontWeight: FontWeight.w700,
-                            fontSize: 16,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          NavigationData.cartItemOriginalPrice,
-                          style: AppTextStyles.labelSmall(
-                            color: AppColors.textSecondary,
-                          ).copyWith(
-                            fontWeight: FontWeight.w500,
-                            fontSize: 13,
-                            decoration: TextDecoration.lineThrough,
-                            decorationColor: AppColors.textSecondary,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 18),
-              Text(
-                NavigationStrings.makeItCombo,
-                style: AppTextStyles.titleSmall().copyWith(fontSize: 16),
-              ),
-              const SizedBox(height: 10),
-              SizedBox(
-                height: 133,
-                child: ListView.separated(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: NavigationData.comboItems.length,
-                  separatorBuilder: (_, _) => const SizedBox(width: 12),
-                  itemBuilder: (context, index) {
-                    final item = NavigationData.comboItems[index];
-                    return SizedBox(
-                      width: 120,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Stack(
-                            children: [
-                              Container(
-                                width: 120,
-                                height: 90,
-                                decoration: BoxDecoration(
-                                  color: item.imageColor,
-                                  borderRadius: BorderRadius.circular(14),
-                                  gradient: LinearGradient(
-                                    begin: const Alignment(-0.8, -0.6),
-                                    end: const Alignment(0.8, 0.8),
-                                    colors: [
-                                      item.imageColor,
-                                      const Color(0xFF15302B),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                              Positioned(
-                                right: 6,
-                                bottom: 6,
-                                child: Container(
-                                  width: 28,
-                                  height: 28,
-                                  decoration: BoxDecoration(
-                                    color: AppColors.white,
-                                    shape: BoxShape.circle,
-                                    border: Border.all(
-                                      color: const Color(0xFFE2E8DD),
-                                    ),
-                                  ),
-                                  child: const Icon(
-                                    Icons.add,
-                                    color: AppColors.primary,
-                                    size: 16,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            item.name,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: AppTextStyles.caption(
-                              color: AppColors.textPrimary,
-                            ).copyWith(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 12,
-                              height: 1.2,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            item.price,
-                            style: AppTextStyles.caption(
-                              color: AppColors.textPrimary,
-                            ).copyWith(
-                              fontWeight: FontWeight.w700,
-                              fontSize: 12,
-                              height: 1.2,
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                ),
-              ),
-              const SizedBox(height: 18),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: AppColors.white,
-                  borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: const Color(0xFFE2E8DD)),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      NavigationStrings.orderPreferences,
-                      style: AppTextStyles.titleSmall().copyWith(fontSize: 16),
-                    ),
-                    const SizedBox(height: 14),
-                    Row(
-                      children: [
-                        const Icon(
-                          Icons.restaurant_outlined,
-                          size: 22,
-                          color: Color(0xFF0F4D27),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                NavigationStrings.includeCutlery,
-                                style: AppTextStyles.labelMedium().copyWith(
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 14,
-                                ),
-                              ),
-                              Text(
-                                NavigationStrings.includeCutlerySubtitle,
-                                style: AppTextStyles.caption(
-                                  color: AppColors.textSecondary,
-                                ).copyWith(fontSize: 12),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Switch(
-                          value: includeCutlery,
-                          activeTrackColor: AppColors.primary,
-                          activeThumbColor: AppColors.white,
-                          inactiveThumbColor: AppColors.white,
-                          inactiveTrackColor: const Color(0xFFD8DCD6),
-                          trackOutlineColor: const WidgetStatePropertyAll(
-                            Colors.transparent,
-                          ),
-                          materialTapTargetSize:
-                              MaterialTapTargetSize.shrinkWrap,
-                          onChanged: onCutleryChanged,
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 14),
-                    Row(
-                      children: [
-                        const Icon(
-                          Icons.chat_bubble_outline,
-                          size: 22,
-                          color: Color(0xFF0F4D27),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                NavigationStrings.noteForKitchen,
-                                style: AppTextStyles.labelMedium().copyWith(
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 14,
-                                ),
-                              ),
-                              Text(
-                                NavigationStrings.noteForKitchenSubtitle,
-                                style: AppTextStyles.caption(
-                                  color: AppColors.textSecondary,
-                                ).copyWith(fontSize: 12),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const Icon(
-                          Icons.chevron_right,
-                          color: AppColors.textSecondary,
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 12),
-              // Figma cart: Bill summary → promo → bill lines.
-              Text(
-                NavigationStrings.billSummary,
-                style: AppTextStyles.titleSmall().copyWith(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  color: const Color(0xFF1A1A1A),
-                ),
-              ),
-              const SizedBox(height: 10),
-              Text(
-                NavigationStrings.haveAPromoCode,
-                style: AppTextStyles.titleSmall().copyWith(fontSize: 16),
-              ),
-              const SizedBox(height: 10),
-              const PromoCodeField(),
-              const SizedBox(height: 10),
-              const BillSummaryCard(
-                lines: NavigationData.cartBillLines,
-                showCashback: true,
-              ),
-            ],
-          ),
-        ),
-        Container(
-          padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
-          decoration: BoxDecoration(
-            color: AppColors.white,
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.06),
-                blurRadius: 12,
-                offset: const Offset(0, -2),
-              ),
-            ],
-          ),
-          child: SafeArea(
-            top: false,
-            child: Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: onAddMore,
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.primary,
-                      side: const BorderSide(color: AppColors.primary),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(28),
-                      ),
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                    ),
-                    child: Text(
-                      NavigationStrings.addMore,
-                      style: AppTextStyles.labelMedium(
-                        color: AppColors.primary,
-                      ).copyWith(fontWeight: FontWeight.w700),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: onCheckout,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: AppColors.white,
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(28),
-                      ),
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                    ),
-                    child: Text(
-                      NavigationStrings.checkout,
-                      style: AppTextStyles.labelLarge(),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _QuantitySelector extends StatelessWidget {
-  const _QuantitySelector({
-    required this.quantity,
-    required this.onChanged,
-  });
-
-  final int quantity;
-  final ValueChanged<int> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        border: Border.all(color: const Color(0xFFE2E8DD)),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          GestureDetector(
-            onTap: quantity > 1 ? () => onChanged(quantity - 1) : () {},
-            child: Icon(
-              quantity > 1 ? Icons.remove : Icons.delete_outline,
-              size: 15,
-              color: quantity > 1 ? AppColors.textPrimary : const Color(0xFFC0392B),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 11),
-            child: Text(
-              '$quantity',
-              style: AppTextStyles.labelMedium().copyWith(
-                fontWeight: FontWeight.w700,
-                fontSize: 13,
-              ),
-            ),
-          ),
-          GestureDetector(
-            onTap: () => onChanged(quantity + 1),
-            child: const Icon(Icons.add, size: 15, color: AppColors.primary),
           ),
         ],
       ),

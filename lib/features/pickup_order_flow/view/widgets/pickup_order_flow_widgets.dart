@@ -29,10 +29,9 @@ class PickupWaitingTimer extends StatelessWidget {
           ),
           Text(
             '~3m',
-            style: AppTextStyles.titleMedium(color: AppColors.primary).copyWith(
-              fontWeight: FontWeight.w700,
-              fontSize: 28.sp,
-            ),
+            style: AppTextStyles.titleMedium(
+              color: AppColors.primary,
+            ).copyWith(fontWeight: FontWeight.w700, fontSize: 28.sp),
           ),
         ],
       ),
@@ -71,7 +70,9 @@ class _PickupWaitingDotsState extends State<PickupWaitingDots> {
           width: 8.w,
           height: 8.w,
           decoration: BoxDecoration(
-            color: index == _active ? AppColors.primary : const Color(0xFFC8E6D4),
+            color: index == _active
+                ? AppColors.primary
+                : const Color(0xFFC8E6D4),
             shape: BoxShape.circle,
           ),
         );
@@ -95,16 +96,21 @@ class PickupSecureBanner extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.shield_outlined, color: const Color(0xFF3D7BD9), size: 18.sp),
+          Icon(
+            Icons.shield_outlined,
+            color: const Color(0xFF3D7BD9),
+            size: 18.sp,
+          ),
           SizedBox(width: 10.w),
           Expanded(
             child: Text(
               PickupOrderFlowStrings.notChargedYet,
-              style: AppTextStyles.labelSmall(color: const Color(0xFF1F5B8F)).copyWith(
-                fontWeight: FontWeight.w600,
-                fontSize: 12.5.sp,
-                height: 1.35,
-              ),
+              style: AppTextStyles.labelSmall(color: const Color(0xFF1F5B8F))
+                  .copyWith(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 12.5.sp,
+                    height: 1.35,
+                  ),
             ),
           ),
         ],
@@ -124,9 +130,9 @@ class PickupOrderSummaryRow extends StatelessWidget {
           Expanded(
             child: Text(
               PickupOrderFlowData.waitingSummary,
-              style: AppTextStyles.labelSmall(color: AppColors.textSecondary).copyWith(
-                fontSize: 13.sp,
-              ),
+              style: AppTextStyles.labelSmall(
+                color: AppColors.textSecondary,
+              ).copyWith(fontSize: 13.sp),
             ),
           ),
           Text(
@@ -169,10 +175,9 @@ class PickupAcceptedBanner extends StatelessWidget {
           Expanded(
             child: Text(
               PickupOrderFlowStrings.vendorAccepted,
-              style: AppTextStyles.labelMedium(color: const Color(0xFF0F4D27)).copyWith(
-                fontWeight: FontWeight.w700,
-                fontSize: 13.5.sp,
-              ),
+              style: AppTextStyles.labelMedium(
+                color: const Color(0xFF0F4D27),
+              ).copyWith(fontWeight: FontWeight.w700, fontSize: 13.5.sp),
             ),
           ),
         ],
@@ -208,20 +213,18 @@ class PickupPayTimerCard extends StatelessWidget {
             alignment: Alignment.center,
             child: Text(
               timerLabel,
-              style: AppTextStyles.titleMedium(color: const Color(0xFFE6A700)).copyWith(
-                fontWeight: FontWeight.w800,
-                fontSize: 28.sp,
-              ),
+              style: AppTextStyles.titleMedium(
+                color: const Color(0xFFE6A700),
+              ).copyWith(fontWeight: FontWeight.w800, fontSize: 28.sp),
             ),
           ),
           SizedBox(height: 14.h),
           Text(
             PickupOrderFlowStrings.payWithinHint,
             textAlign: TextAlign.center,
-            style: AppTextStyles.bodySmall(color: AppColors.white).copyWith(
-              fontSize: 13.sp,
-              height: 1.4,
-            ),
+            style: AppTextStyles.bodySmall(
+              color: AppColors.white,
+            ).copyWith(fontSize: 13.sp, height: 1.4),
           ),
         ],
       ),
@@ -243,9 +246,9 @@ class PickupPayMethodCard extends StatelessWidget {
               children: [
                 Text(
                   PickupOrderFlowStrings.payWith,
-                  style: AppTextStyles.labelSmall(color: AppColors.textSecondary).copyWith(
-                    fontSize: 12.sp,
-                  ),
+                  style: AppTextStyles.labelSmall(
+                    color: AppColors.textSecondary,
+                  ).copyWith(fontSize: 12.sp),
                 ),
                 SizedBox(height: 8.h),
                 Row(
@@ -264,9 +267,9 @@ class PickupPayMethodCard extends StatelessWidget {
                         ),
                         Text(
                           PickupOrderFlowData.walletBalance,
-                          style: AppTextStyles.caption(color: AppColors.textSecondary).copyWith(
-                            fontSize: 12.sp,
-                          ),
+                          style: AppTextStyles.caption(
+                            color: AppColors.textSecondary,
+                          ).copyWith(fontSize: 12.sp),
                         ),
                       ],
                     ),
@@ -277,10 +280,9 @@ class PickupPayMethodCard extends StatelessWidget {
           ),
           Text(
             PickupOrderFlowStrings.change,
-            style: AppTextStyles.labelSmall(color: AppColors.primary).copyWith(
-              fontWeight: FontWeight.w700,
-              fontSize: 13.sp,
-            ),
+            style: AppTextStyles.labelSmall(
+              color: AppColors.primary,
+            ).copyWith(fontWeight: FontWeight.w700, fontSize: 13.sp),
           ),
         ],
       ),
@@ -296,7 +298,10 @@ class PickupPayBreakdownCard extends StatelessWidget {
     return OrderFlowCard(
       child: Column(
         children: [
-          _row(PickupOrderFlowStrings.subtotal, PickupOrderFlowData.paySubtotal),
+          _row(
+            PickupOrderFlowStrings.subtotal,
+            PickupOrderFlowData.paySubtotal,
+          ),
           SizedBox(height: 8.h),
           _row(
             PickupOrderFlowStrings.pickupDiscount,
@@ -319,27 +324,34 @@ class PickupPayBreakdownCard extends StatelessWidget {
     );
   }
 
-  Widget _row(String label, String value, {bool bold = false, bool isDiscount = false}) {
+  Widget _row(
+    String label,
+    String value, {
+    bool bold = false,
+    bool isDiscount = false,
+  }) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(
           label,
-          style: AppTextStyles.labelSmall(
-            color: bold ? AppColors.textPrimary : AppColors.textSecondary,
-          ).copyWith(
-            fontWeight: bold ? FontWeight.w700 : FontWeight.w500,
-            fontSize: bold ? 15.sp : 14.sp,
-          ),
+          style:
+              AppTextStyles.labelSmall(
+                color: bold ? AppColors.textPrimary : AppColors.textSecondary,
+              ).copyWith(
+                fontWeight: bold ? FontWeight.w700 : FontWeight.w500,
+                fontSize: bold ? 15.sp : 14.sp,
+              ),
         ),
         Text(
           value,
-          style: AppTextStyles.labelMedium(
-            color: isDiscount ? AppColors.error : null,
-          ).copyWith(
-            fontWeight: bold ? FontWeight.w800 : FontWeight.w600,
-            fontSize: bold ? 16.sp : 14.sp,
-          ),
+          style:
+              AppTextStyles.labelMedium(
+                color: isDiscount ? AppColors.error : null,
+              ).copyWith(
+                fontWeight: bold ? FontWeight.w800 : FontWeight.w600,
+                fontSize: bold ? 16.sp : 14.sp,
+              ),
         ),
       ],
     );
@@ -383,10 +395,9 @@ class PickupPayStickyFooter extends StatelessWidget {
               ),
               child: Text(
                 '${PickupOrderFlowStrings.payIn} $timerLabel',
-                style: AppTextStyles.caption(color: const Color(0xFF8A5A12)).copyWith(
-                  fontWeight: FontWeight.w800,
-                  fontSize: 11.sp,
-                ),
+                style: AppTextStyles.caption(
+                  color: const Color(0xFF8A5A12),
+                ).copyWith(fontWeight: FontWeight.w800, fontSize: 11.sp),
               ),
             ),
             SizedBox(width: 12.w),
@@ -402,10 +413,9 @@ class PickupPayStickyFooter extends StatelessWidget {
                   alignment: Alignment.center,
                   child: Text(
                     '${PickupOrderFlowStrings.pay} ${PickupOrderFlowData.payTotal}',
-                    style: AppTextStyles.labelMedium(color: AppColors.white).copyWith(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 15.sp,
-                    ),
+                    style: AppTextStyles.labelMedium(
+                      color: AppColors.white,
+                    ).copyWith(fontWeight: FontWeight.w700, fontSize: 15.sp),
                   ),
                 ),
               ),
@@ -443,9 +453,18 @@ class PickupOrderDetailsCard extends StatelessWidget {
       child: Column(
         children: [
           _row(PickupOrderFlowStrings.orderNumber, PickupOrderFlowData.orderId),
-          _row(PickupOrderFlowStrings.items, PickupOrderFlowData.confirmedItems),
-          _row(PickupOrderFlowStrings.pickup, PickupOrderFlowData.confirmedPickup),
-          _row(PickupOrderFlowStrings.payment, PickupOrderFlowData.confirmedPayment),
+          _row(
+            PickupOrderFlowStrings.items,
+            PickupOrderFlowData.confirmedItems,
+          ),
+          _row(
+            PickupOrderFlowStrings.pickup,
+            PickupOrderFlowData.confirmedPickup,
+          ),
+          _row(
+            PickupOrderFlowStrings.payment,
+            PickupOrderFlowData.confirmedPayment,
+          ),
           Divider(height: 20.h, color: AppColors.border),
           _row(
             PickupOrderFlowStrings.total,
@@ -465,9 +484,9 @@ class PickupOrderDetailsCard extends StatelessWidget {
           Expanded(
             child: Text(
               label,
-              style: AppTextStyles.labelSmall(color: AppColors.textSecondary).copyWith(
-                fontSize: 13.sp,
-              ),
+              style: AppTextStyles.labelSmall(
+                color: AppColors.textSecondary,
+              ).copyWith(fontSize: 13.sp),
             ),
           ),
           Text(
@@ -498,16 +517,21 @@ class PickupNotifyBanner extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.notifications_outlined, color: const Color(0xFF3D7BD9), size: 18.sp),
+          Icon(
+            Icons.notifications_outlined,
+            color: const Color(0xFF3D7BD9),
+            size: 18.sp,
+          ),
           SizedBox(width: 10.w),
           Expanded(
             child: Text(
               PickupOrderFlowStrings.notifyBanner,
-              style: AppTextStyles.labelSmall(color: const Color(0xFF1F5B8F)).copyWith(
-                fontWeight: FontWeight.w600,
-                fontSize: 12.5.sp,
-                height: 1.35,
-              ),
+              style: AppTextStyles.labelSmall(color: const Color(0xFF1F5B8F))
+                  .copyWith(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 12.5.sp,
+                    height: 1.35,
+                  ),
             ),
           ),
         ],
@@ -530,15 +554,18 @@ class PickupPreparingBanner extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(Icons.restaurant_outlined, size: 18.sp, color: AppColors.primary),
+          Icon(
+            Icons.restaurant_outlined,
+            size: 18.sp,
+            color: AppColors.primary,
+          ),
           SizedBox(width: 10.w),
           Expanded(
             child: Text(
               PickupOrderFlowStrings.preparingBanner,
-              style: AppTextStyles.labelMedium(color: AppColors.primary).copyWith(
-                fontWeight: FontWeight.w600,
-                fontSize: 13.sp,
-              ),
+              style: AppTextStyles.labelMedium(
+                color: AppColors.primary,
+              ).copyWith(fontWeight: FontWeight.w600, fontSize: 13.sp),
             ),
           ),
         ],
@@ -567,69 +594,75 @@ class PickupStatusTimeline extends StatelessWidget {
           ),
           SizedBox(height: 12.h),
           ...List.generate(steps.length, (index) {
-          final step = steps[index];
-          final isLast = index == steps.length - 1;
-          return Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Column(
-                children: [
-                  Container(
-                    width: 20.w,
-                    height: 20.w,
-                    decoration: BoxDecoration(
-                      color: step.completed ? AppColors.primary : AppColors.white,
-                      shape: BoxShape.circle,
-                      border: step.completed
-                          ? null
-                          : Border.all(color: AppColors.border, width: 1.5),
-                    ),
-                    child: step.completed
-                        ? Icon(Icons.check, color: AppColors.white, size: 11.sp)
-                        : null,
-                  ),
-                  if (!isLast)
+            final step = steps[index];
+            final isLast = index == steps.length - 1;
+            return Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Column(
+                  children: [
                     Container(
-                      width: 2,
-                      height: 18.h,
-                      color: step.completed
-                          ? AppColors.primary.withValues(alpha: 0.35)
-                          : AppColors.border,
-                    ),
-                ],
-              ),
-              SizedBox(width: 10.w),
-              Expanded(
-                child: Padding(
-                  padding: EdgeInsets.only(bottom: isLast ? 0 : 12.h),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          step.label,
-                          style: AppTextStyles.labelMedium().copyWith(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 13.sp,
-                            color: step.completed
-                                ? AppColors.textPrimary
-                                : AppColors.textSecondary,
-                          ),
-                        ),
+                      width: 20.w,
+                      height: 20.w,
+                      decoration: BoxDecoration(
+                        color: step.completed
+                            ? AppColors.primary
+                            : AppColors.white,
+                        shape: BoxShape.circle,
+                        border: step.completed
+                            ? null
+                            : Border.all(color: AppColors.border, width: 1.5),
                       ),
-                      if (step.time != null)
-                        Text(
-                          step.time!,
-                          style: AppTextStyles.caption(color: AppColors.textSecondary).copyWith(
-                            fontSize: 12.sp,
+                      child: step.completed
+                          ? Icon(
+                              Icons.check,
+                              color: AppColors.white,
+                              size: 11.sp,
+                            )
+                          : null,
+                    ),
+                    if (!isLast)
+                      Container(
+                        width: 2,
+                        height: 18.h,
+                        color: step.completed
+                            ? AppColors.primary.withValues(alpha: 0.35)
+                            : AppColors.border,
+                      ),
+                  ],
+                ),
+                SizedBox(width: 10.w),
+                Expanded(
+                  child: Padding(
+                    padding: EdgeInsets.only(bottom: isLast ? 0 : 12.h),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            step.label,
+                            style: AppTextStyles.labelMedium().copyWith(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 13.sp,
+                              color: step.completed
+                                  ? AppColors.textPrimary
+                                  : AppColors.textSecondary,
+                            ),
                           ),
                         ),
-                    ],
+                        if (step.time != null)
+                          Text(
+                            step.time!,
+                            style: AppTextStyles.caption(
+                              color: AppColors.textSecondary,
+                            ).copyWith(fontSize: 12.sp),
+                          ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            ],
-          );
-        }),
+              ],
+            );
+          }),
         ],
       ),
     );
@@ -665,9 +698,9 @@ class PickupStatusSummaryCard extends StatelessWidget {
         children: [
           Text(
             label,
-            style: AppTextStyles.labelSmall(color: AppColors.textSecondary).copyWith(
-              fontSize: 13.sp,
-            ),
+            style: AppTextStyles.labelSmall(
+              color: AppColors.textSecondary,
+            ).copyWith(fontSize: 13.sp),
           ),
           Text(
             value,
@@ -698,10 +731,9 @@ class PickupReceiptPaper extends StatelessWidget {
             ),
             child: Text(
               PickupOrderFlowStrings.paidBadge,
-              style: AppTextStyles.caption(color: AppColors.white).copyWith(
-                fontWeight: FontWeight.w800,
-                fontSize: 11.sp,
-              ),
+              style: AppTextStyles.caption(
+                color: AppColors.white,
+              ).copyWith(fontWeight: FontWeight.w800, fontSize: 11.sp),
             ),
           ),
           SizedBox(height: 12.h),
@@ -715,17 +747,13 @@ class PickupReceiptPaper extends StatelessWidget {
           SizedBox(height: 4.h),
           Text(
             PickupOrderFlowData.receiptDate,
-            style: AppTextStyles.caption(color: AppColors.textSecondary).copyWith(
-              fontSize: 12.sp,
-            ),
+            style: AppTextStyles.caption(
+              color: AppColors.textSecondary,
+            ).copyWith(fontSize: 12.sp),
           ),
           Padding(
             padding: EdgeInsets.symmetric(vertical: 14.h),
-            child: Divider(
-              color: AppColors.border,
-              height: 1,
-              thickness: 1,
-            ),
+            child: Divider(color: AppColors.border, height: 1, thickness: 1),
           ),
           ...PickupOrderFlowData.receiptItems.map(
             (item) => Padding(
@@ -735,9 +763,9 @@ class PickupReceiptPaper extends StatelessWidget {
                   Expanded(
                     child: Text(
                       item.name,
-                      style: AppTextStyles.labelSmall(color: AppColors.textSecondary).copyWith(
-                        fontSize: 13.sp,
-                      ),
+                      style: AppTextStyles.labelSmall(
+                        color: AppColors.textSecondary,
+                      ).copyWith(fontSize: 13.sp),
                     ),
                   ),
                   Text(
@@ -774,15 +802,18 @@ class PickupReceiptPaper extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(Icons.card_giftcard_outlined, size: 16.sp, color: AppColors.textSecondary),
+              Icon(
+                Icons.card_giftcard_outlined,
+                size: 16.sp,
+                color: AppColors.textSecondary,
+              ),
               SizedBox(width: 8.w),
               Expanded(
                 child: Text(
                   PickupOrderFlowStrings.collectNote,
-                  style: AppTextStyles.caption(color: AppColors.textSecondary).copyWith(
-                    fontSize: 12.sp,
-                    height: 1.35,
-                  ),
+                  style: AppTextStyles.caption(
+                    color: AppColors.textSecondary,
+                  ).copyWith(fontSize: 12.sp, height: 1.35),
                 ),
               ),
             ],

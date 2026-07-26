@@ -109,14 +109,14 @@ class _ServicesItemDetailScreenState
     }
     final addonIds = <String>[];
     for (final index in _selectedAddons) {
-      if (index >= 0 &&
-          index < _addons.length &&
-          _addons[index].id != null) {
+      if (index >= 0 && index < _addons.length && _addons[index].id != null) {
         addonIds.add(_addons[index].id!);
       }
     }
 
-    final result = await ref.read(servicesVendorsRepositoryProvider).addToCart(
+    final result = await ref
+        .read(servicesVendorsRepositoryProvider)
+        .addToCart(
           productId: widget.itemId,
           quantity: _quantity,
           optionIds: optionIds,
@@ -386,10 +386,8 @@ class _ServicesItemDetailScreenState
                         _adding
                             ? 'Adding…'
                             : 'Add to booking · BHD $_displayPrice',
-                        style:
-                            AppTextStyles.labelMedium(
-                              color: AppColors.white,
-                            ).copyWith(
+                        style: AppTextStyles.labelMedium(color: AppColors.white)
+                            .copyWith(
                               fontWeight: FontWeight.w700,
                               fontSize: 16.sp,
                               height: 19 / 16,

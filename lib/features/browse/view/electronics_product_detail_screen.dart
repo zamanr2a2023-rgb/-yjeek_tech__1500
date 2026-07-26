@@ -6,6 +6,7 @@ import 'package:yjeek_app/core/constants/app_colors.dart';
 import 'package:yjeek_app/core/providers/app_providers.dart';
 import 'package:yjeek_app/core/providers/shell_provider.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
+import 'package:yjeek_app/features/browse/browse_routes.dart';
 import 'package:yjeek_app/features/browse/model/electronics_data.dart';
 import 'package:yjeek_app/features/browse/view/widgets/electronics_widgets.dart';
 import 'package:yjeek_app/features/cart/view/widgets/cart_flow_widgets.dart';
@@ -147,38 +148,52 @@ class _ElectronicsProductDetailScreenState
                     fit: StackFit.expand,
                     children: [
                       const ColoredBox(color: ElectronicsTokens.mint),
-                      Positioned(
-                        top: top + 12.h,
-                        left: 16.w,
-                        child: GestureDetector(
-                          onTap: () => context.pop(),
-                          child: Container(
-                            width: 38.w,
-                            height: 38.w,
-                            decoration: const BoxDecoration(
-                              color: AppColors.white,
-                              shape: BoxShape.circle,
-                            ),
-                            alignment: Alignment.center,
-                            child: Text(
-                              '‹',
-                              style: GoogleFonts.inter(
-                                fontSize: 20.sp,
-                                fontWeight: FontWeight.w600,
-                                color: ElectronicsTokens.text,
-                                height: 1,
-                              ),
+                      Center(
+                        child: IgnorePointer(
+                          child: Text(
+                            '📱',
+                            style: TextStyle(
+                              fontSize: 64.sp,
+                              height: 1,
+                              color: ElectronicsTokens.deepGreen,
                             ),
                           ),
                         ),
                       ),
-                      Center(
-                        child: Text(
-                          '📱',
-                          style: TextStyle(
-                            fontSize: 64.sp,
-                            height: 1,
-                            color: ElectronicsTokens.deepGreen,
+                      // Keep last so it stays above the hero for hit-testing.
+                      Positioned(
+                        top: top + 12.h,
+                        left: 16.w,
+                        child: Material(
+                          color: AppColors.white,
+                          shape: const CircleBorder(),
+                          clipBehavior: Clip.antiAlias,
+                          child: InkWell(
+                            customBorder: const CircleBorder(),
+                            onTap: () {
+                              if (context.canPop()) {
+                                context.pop();
+                              } else {
+                                context.go(
+                                  BrowseRoutes.electronicsBrowse(),
+                                );
+                              }
+                            },
+                            child: SizedBox(
+                              width: 38.w,
+                              height: 38.w,
+                              child: Center(
+                                child: Text(
+                                  '‹',
+                                  style: GoogleFonts.inter(
+                                    fontSize: 20.sp,
+                                    fontWeight: FontWeight.w600,
+                                    color: ElectronicsTokens.text,
+                                    height: 1,
+                                  ),
+                                ),
+                              ),
+                            ),
                           ),
                         ),
                       ),

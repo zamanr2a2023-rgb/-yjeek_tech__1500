@@ -16,6 +16,8 @@ class OrdersRepository {
     String status = 'all',
     OrderCategoryFilter? category,
   }) async {
+    if (!_storage.hasSession) return const [];
+
     final params = <String, String>{'status': status};
     final orderType = _orderTypeForCategory(category);
     if (orderType != null) params['orderType'] = orderType;
@@ -86,11 +88,9 @@ class OrdersRepository {
 
   /// POST /orders/:id/cancel
   Future<bool> cancel(String orderId, {String? reason}) async {
-    final response = await _apiClient.postJson(
-      '/orders/$orderId/cancel',
-      {if (reason != null && reason.isNotEmpty) 'reason': reason},
-      bearerToken: _token,
-    );
+    final response = await _apiClient.postJson('/orders/$orderId/cancel', {
+      if (reason != null && reason.isNotEmpty) 'reason': reason,
+    }, bearerToken: _token);
     return response.ok;
   }
 
@@ -142,16 +142,12 @@ class OrdersRepository {
     String? orderId,
     String? issueType,
   }) async {
-    final response = await _apiClient.postJson(
-      '/support/tickets',
-      {
-        'subject': subject,
-        if (remark != null) 'remark': remark,
-        if (orderId != null) 'orderId': orderId,
-        if (issueType != null) 'issueType': issueType,
-      },
-      bearerToken: _token,
-    );
+    final response = await _apiClient.postJson('/support/tickets', {
+      'subject': subject,
+      if (remark != null) 'remark': remark,
+      if (orderId != null) 'orderId': orderId,
+      if (issueType != null) 'issueType': issueType,
+    }, bearerToken: _token);
     return response.ok;
   }
 }
@@ -218,7 +214,8 @@ OrderHistoryItem? orderHistoryItemFromJson(Map<String, dynamic> json) {
       ? '$typeLabel · $whenLabel · $itemCount ${itemCount == 1 ? 'Item' : 'items'}'
       : '$typeLabel · $whenLabel';
 
-  final etaMin = (json['estimatedArrivalMin'] as num?)?.toInt() ??
+  final etaMin =
+      (json['estimatedArrivalMin'] as num?)?.toInt() ??
       (json['estimatedReadyMin'] as num?)?.toInt();
   final arrivalText = isActive && etaMin != null && etaMin > 0
       ? 'Arriving in $etaMin min'

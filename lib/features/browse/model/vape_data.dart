@@ -34,6 +34,7 @@ class VapeProduct {
     required this.category,
     this.detailSpecs,
     this.nicotineOptions = const ['20mg', '35mg', '50mg'],
+    this.nicotineOptionIds = const [],
     this.ageWarningDetail =
         '18+ only. Your CPR will be checked & photographed on delivery to confirm age and name.',
   });
@@ -46,6 +47,8 @@ class VapeProduct {
   final String category;
   final String? detailSpecs;
   final List<String> nicotineOptions;
+  /// Parallel to [nicotineOptions] when loaded from API option groups.
+  final List<String> nicotineOptionIds;
   final String ageWarningDetail;
 }
 

@@ -34,9 +34,7 @@ class PickupConfirmedScreen extends StatelessWidget {
           Text(
             PickupOrderFlowStrings.preparedForPickup,
             textAlign: TextAlign.center,
-            style: AppTextStyles.bodySmall().copyWith(
-              fontSize: 13.sp,
-            ),
+            style: AppTextStyles.bodySmall().copyWith(fontSize: 13.sp),
           ),
           SizedBox(height: 20.h),
           const PickupOrderDetailsCard(),

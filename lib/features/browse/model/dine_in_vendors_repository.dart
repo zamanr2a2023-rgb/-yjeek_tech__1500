@@ -276,6 +276,8 @@ class DineInVendorsRepository {
 
   /// GET /cart?type=DINE_IN
   Future<DineInCartSummary> fetchDineInCart() async {
+    if (!_storage.hasSession) return DineInCartSummary.empty;
+
     final response = await _apiClient.getJson(
       '/cart?type=DINE_IN',
       bearerToken: _token,

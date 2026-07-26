@@ -101,7 +101,16 @@ class _ElectronicsStoreScreenState
       backgroundColor: const Color(0xFFF2F7F2),
       body: Column(
         children: [
-          ElectronicsStoreTopBar(store: _store),
+          ElectronicsStoreTopBar(
+            store: _store,
+            onBack: () {
+              if (context.canPop()) {
+                context.pop();
+              } else {
+                context.go(BrowseRoutes.electronicsBrowse());
+              }
+            },
+          ),
           Expanded(
             child: _loading
                 ? const Center(

@@ -32,7 +32,7 @@ class _ReviewConfirmScreenState extends State<ReviewConfirmScreen> {
       if (_secondsLeft <= 1) {
         _timer?.cancel();
         setState(() => _secondsLeft = 0);
-        context.pushReplacement(OrderFlowRoutes.confirmed);
+        context.pushReplacement(OrderFlowRoutes.waiting);
         return;
       }
       setState(() => _secondsLeft--);
@@ -47,7 +47,7 @@ class _ReviewConfirmScreenState extends State<ReviewConfirmScreen> {
 
   void _confirmNow() {
     _timer?.cancel();
-    context.pushReplacement(OrderFlowRoutes.confirmed);
+    context.pushReplacement(OrderFlowRoutes.waiting);
   }
 
   @override

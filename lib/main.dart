@@ -13,7 +13,7 @@ Future<void> main() async {
 
   final storage = await StorageService.init();
   Get.put<StorageService>(storage, permanent: true);
-  Get.put<ApiClient>(ApiClient(), permanent: true);
+  Get.put<ApiClient>(ApiClient(storage: storage), permanent: true);
 
   appLogger.i('Yjeek app starting');
 

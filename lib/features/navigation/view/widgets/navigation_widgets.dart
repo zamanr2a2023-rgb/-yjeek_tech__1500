@@ -885,15 +885,24 @@ class BillSummaryCard extends StatelessWidget {
                   ),
                   const SizedBox(width: 8),
                   Expanded(
-                    child: Text(
-                      NavigationStrings.cashbackBanner,
-                      style: AppTextStyles.labelSmall(
-                        color: const Color(0xFF7A5E12),
-                      ).copyWith(fontWeight: FontWeight.w600, fontSize: 12),
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        NavigationStrings.cashbackBanner,
+                        maxLines: 1,
+                        softWrap: false,
+                        style: AppTextStyles.labelSmall(
+                          color: const Color(0xFF7A5E12),
+                        ).copyWith(fontWeight: FontWeight.w600, fontSize: 12),
+                      ),
                     ),
                   ),
+                  const SizedBox(width: 8),
                   Text(
                     cashbackAmount ?? NavigationStrings.cashbackBannerAmount,
+                    maxLines: 1,
+                    softWrap: false,
                     style: AppTextStyles.labelSmall(
                       color: const Color(0xFF7A5E12),
                     ).copyWith(fontWeight: FontWeight.w700, fontSize: 12.5),

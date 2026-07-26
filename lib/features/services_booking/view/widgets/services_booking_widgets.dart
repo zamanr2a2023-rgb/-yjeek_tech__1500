@@ -293,7 +293,7 @@ class ServicesUpsellCard extends StatelessWidget {
                     ).copyWith(fontWeight: FontWeight.w600, fontSize: 15.sp),
                   ),
                   Text(
-                    '🕒 ${item.duration} · BHD ${item.price}',
+                    '🕒 ${item.duration} · ${item.price.startsWith('BHD') ? item.price : 'BHD ${item.price}'}',
                     style: AppTextStyles.caption(color: _labelMuted).copyWith(
                       fontSize: 12.5.sp,
                     ),
@@ -339,9 +339,18 @@ class ServicesUpsellCard extends StatelessWidget {
 }
 
 class ServicesPromoField extends StatelessWidget {
-  const ServicesPromoField({super.key, this.applied = true});
+  const ServicesPromoField({
+    super.key,
+    this.controller,
+    this.onApply,
+    this.applying = false,
+    this.appliedCode,
+  });
 
-  final bool applied;
+  final TextEditingController? controller;
+  final VoidCallback? onApply;
+  final bool applying;
+  final String? appliedCode;
 
   static const Color _chipBorder = Color(0xFFE0E6E0);
   static const Color _labelMuted = Color(0xFF6B756E);
@@ -363,37 +372,61 @@ class ServicesPromoField extends StatelessWidget {
                   border: Border.all(color: _chipBorder),
                 ),
                 alignment: Alignment.centerLeft,
-                child: Text(
-                  ServicesBookingStrings.enterPromoCode,
-                  style: AppTextStyles.bodySmall(color: _labelMuted).copyWith(
-                    fontSize: 14.sp,
+                child: TextField(
+                  controller: controller,
+                  onSubmitted: (_) => onApply?.call(),
+                  textCapitalization: TextCapitalization.characters,
+                  decoration: InputDecoration(
+                    isDense: true,
+                    border: InputBorder.none,
+                    hintText: ServicesBookingStrings.enterPromoCode,
+                    hintStyle:
+                        AppTextStyles.bodySmall(color: _labelMuted).copyWith(
+                      fontSize: 14.sp,
+                    ),
                   ),
+                  style: AppTextStyles.bodySmall(
+                    color: AppColors.textPrimary,
+                  ).copyWith(fontSize: 14.sp),
                 ),
               ),
             ),
             SizedBox(width: 10.w),
-            Container(
-              width: 84.w,
-              height: 48.h,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: AppColors.cartTabActive,
-                borderRadius: BorderRadius.circular(12.r),
-              ),
-              child: Text(
-                ServicesBookingStrings.apply,
-                style: AppTextStyles.labelSmall(color: AppColors.white).copyWith(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 15.sp,
+            GestureDetector(
+              onTap: applying ? null : onApply,
+              child: Container(
+                width: 84.w,
+                height: 48.h,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: AppColors.cartTabActive,
+                  borderRadius: BorderRadius.circular(12.r),
                 ),
+                child: applying
+                    ? SizedBox(
+                        width: 18.w,
+                        height: 18.w,
+                        child: const CircularProgressIndicator(
+                          color: AppColors.white,
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : Text(
+                        ServicesBookingStrings.apply,
+                        style: AppTextStyles.labelSmall(color: AppColors.white)
+                            .copyWith(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 15.sp,
+                        ),
+                      ),
               ),
             ),
           ],
         ),
-        if (applied) ...[
+        if (appliedCode != null && appliedCode!.isNotEmpty) ...[
           SizedBox(height: 8.h),
           Text(
-            ServicesBookingStrings.promoApplied,
+            '✓ $appliedCode applied',
             style: AppTextStyles.labelSmall(
               color: AppColors.cartTabActive,
             ).copyWith(fontWeight: FontWeight.w600, fontSize: 12.sp),
@@ -405,7 +438,16 @@ class ServicesPromoField extends StatelessWidget {
 }
 
 class ServicesServiceCard extends StatelessWidget {
-  const ServicesServiceCard({super.key});
+  const ServicesServiceCard({
+    super.key,
+    this.name = ServicesBookingData.mainService,
+    this.durationLabel = ServicesBookingData.mainServiceDuration,
+    this.priceLabel = ServicesBookingData.mainServicePrice,
+  });
+
+  final String name;
+  final String durationLabel;
+  final String priceLabel;
 
   static const Color _chipBorder = Color(0xFFE0E6E0);
   static const Color _labelMuted = Color(0xFF6B756E);
@@ -426,13 +468,13 @@ class ServicesServiceCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  ServicesBookingData.mainService,
+                  name,
                   style: AppTextStyles.labelMedium(
                     color: AppColors.textPrimary,
                   ).copyWith(fontWeight: FontWeight.w600, fontSize: 14.sp),
                 ),
                 Text(
-                  ServicesBookingData.mainServiceDuration,
+                  durationLabel,
                   style: AppTextStyles.caption(color: _labelMuted).copyWith(
                     fontSize: 12.sp,
                   ),
@@ -441,7 +483,7 @@ class ServicesServiceCard extends StatelessWidget {
             ),
           ),
           Text(
-            ServicesBookingData.mainServicePrice,
+            priceLabel,
             style: AppTextStyles.labelSmall(
               color: AppColors.offerBadgeGreenText,
             ).copyWith(fontWeight: FontWeight.w600, fontSize: 13.sp),
@@ -453,7 +495,14 @@ class ServicesServiceCard extends StatelessWidget {
 }
 
 class ServicesLocationCard extends StatelessWidget {
-  const ServicesLocationCard({super.key});
+  const ServicesLocationCard({
+    super.key,
+    this.locationLabel,
+    this.address,
+  });
+
+  final String? locationLabel;
+  final String? address;
 
   static const Color _chipBorder = Color(0xFFE0E6E0);
   static const Color _labelMuted = Color(0xFF6B756E);
@@ -485,13 +534,13 @@ class ServicesLocationCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  ServicesBookingStrings.venueLocationLabel,
+                  locationLabel ?? ServicesBookingStrings.venueLocationLabel,
                   style: AppTextStyles.labelMedium(
                     color: AppColors.textPrimary,
                   ).copyWith(fontWeight: FontWeight.w600, fontSize: 14.sp),
                 ),
                 Text(
-                  ServicesBookingStrings.venueAddress,
+                  address ?? ServicesBookingStrings.venueAddress,
                   style: AppTextStyles.caption(color: _labelMuted).copyWith(
                     fontSize: 12.sp,
                   ),
@@ -506,7 +555,18 @@ class ServicesLocationCard extends StatelessWidget {
 }
 
 class ServicesAppointmentCard extends StatelessWidget {
-  const ServicesAppointmentCard({super.key});
+  const ServicesAppointmentCard({
+    super.key,
+    this.serviceName,
+    this.whenLabel,
+    this.specialistName,
+    this.peopleLabel,
+  });
+
+  final String? serviceName;
+  final String? whenLabel;
+  final String? specialistName;
+  final String? peopleLabel;
 
   static const Color _chipBorder = Color(0xFFE0E6E0);
   static const Color _labelMuted = Color(0xFF6B756E);
@@ -522,10 +582,22 @@ class ServicesAppointmentCard extends StatelessWidget {
       ),
       child: Column(
         children: [
-          _row(ServicesBookingStrings.service, ServicesBookingData.mainService),
-          _row(ServicesBookingStrings.when, ServicesBookingData.appointmentWhen),
-          _row(ServicesBookingStrings.specialist, ServicesBookingData.specialistName),
-          _row(ServicesBookingStrings.people, ServicesBookingData.peopleCount),
+          _row(
+            ServicesBookingStrings.service,
+            serviceName ?? ServicesBookingData.mainService,
+          ),
+          _row(
+            ServicesBookingStrings.when,
+            whenLabel ?? ServicesBookingData.appointmentWhen,
+          ),
+          _row(
+            ServicesBookingStrings.specialist,
+            specialistName ?? ServicesBookingData.specialistName,
+          ),
+          _row(
+            ServicesBookingStrings.people,
+            peopleLabel ?? ServicesBookingData.peopleCount,
+          ),
         ],
       ),
     );

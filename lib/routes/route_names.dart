@@ -93,6 +93,8 @@ abstract final class RouteNames {
   static const String cartZoodWaitingList = '/cart/zood-waiting-list';
   static const String cartNewCartDialog = '/cart/new-cart-dialog';
   static const String orderConfirmed = '/order/confirmed';
+  static const String orderWaiting = '/order/waiting';
+  static const String orderPay = '/order/pay';
   static const String orderStatus = '/order/status';
   static const String orderDelivered = '/order/delivered';
   static const String orderReceipt = '/order/receipt';

@@ -669,7 +669,9 @@ class VapeDeliveryMethodCard extends StatelessWidget {
 }
 
 class VapeCashbackBanner extends StatelessWidget {
-  const VapeCashbackBanner({super.key});
+  const VapeCashbackBanner({super.key, this.amount});
+
+  final String? amount;
 
   @override
   Widget build(BuildContext context) {
@@ -694,7 +696,7 @@ class VapeCashbackBanner extends StatelessWidget {
             ),
           ),
           Text(
-            VapeCartData.cashbackAmount,
+            amount ?? VapeCartData.cashbackAmount,
             style: AppTextStyles.caption(color: const Color(0xFF7A5E12)).copyWith(
               fontWeight: FontWeight.w700,
               fontSize: 12.5.sp,

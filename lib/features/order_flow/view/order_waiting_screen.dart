@@ -5,20 +5,21 @@ import 'package:go_router/go_router.dart';
 import 'package:yjeek_app/core/constants/app_colors.dart';
 import 'package:yjeek_app/core/constants/app_text_styles.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
+import 'package:yjeek_app/features/order_flow/model/order_flow_data.dart';
+import 'package:yjeek_app/features/order_flow/order_flow_routes.dart';
 import 'package:yjeek_app/features/order_flow/view/widgets/order_flow_widgets.dart';
-import 'package:yjeek_app/features/pickup_order_flow/model/pickup_order_flow_data.dart';
-import 'package:yjeek_app/features/pickup_order_flow/pickup_order_flow_routes.dart';
 import 'package:yjeek_app/features/pickup_order_flow/view/widgets/pickup_order_flow_widgets.dart';
 import 'package:yjeek_app/routes/route_names.dart';
 
-class PickupWaitingScreen extends StatefulWidget {
-  const PickupWaitingScreen({super.key});
+/// Food delivery: wait for vendor accept (same chrome as Pickup/Vape waiting).
+class OrderWaitingScreen extends StatefulWidget {
+  const OrderWaitingScreen({super.key});
 
   @override
-  State<PickupWaitingScreen> createState() => _PickupWaitingScreenState();
+  State<OrderWaitingScreen> createState() => _OrderWaitingScreenState();
 }
 
-class _PickupWaitingScreenState extends State<PickupWaitingScreen> {
+class _OrderWaitingScreenState extends State<OrderWaitingScreen> {
   Timer? _acceptTimer;
 
   @override
@@ -26,7 +27,7 @@ class _PickupWaitingScreenState extends State<PickupWaitingScreen> {
     super.initState();
     _acceptTimer = Timer(const Duration(seconds: 4), () {
       if (!mounted) return;
-      context.pushReplacement(PickupOrderFlowRoutes.pay);
+      context.pushReplacement(OrderFlowRoutes.pay);
     });
   }
 
@@ -50,7 +51,7 @@ class _PickupWaitingScreenState extends State<PickupWaitingScreen> {
           const Center(child: PickupWaitingDots()),
           SizedBox(height: 16.h),
           Text(
-            PickupOrderFlowStrings.sentToVendor,
+            OrderFlowStrings.sentToVendor,
             textAlign: TextAlign.center,
             style: AppTextStyles.titleMedium().copyWith(
               fontWeight: FontWeight.w700,
@@ -59,7 +60,7 @@ class _PickupWaitingScreenState extends State<PickupWaitingScreen> {
           ),
           SizedBox(height: 8.h),
           Text(
-            PickupOrderFlowStrings.waitingSubtitle,
+            OrderFlowStrings.waitingSubtitle,
             textAlign: TextAlign.center,
             style: AppTextStyles.bodySmall(
               color: AppColors.textSecondary,
@@ -71,12 +72,15 @@ class _PickupWaitingScreenState extends State<PickupWaitingScreen> {
           const PickupOrderSummaryRow(),
           SizedBox(height: 24.h),
           OrderOutlineButton(
-            label: PickupOrderFlowStrings.cancelOrder,
-            onPressed: () => context.go('${RouteNames.home}?tab=1'),
+            label: OrderFlowStrings.cancelOrder,
+            onPressed: () {
+              _acceptTimer?.cancel();
+              context.go('${RouteNames.home}?tab=1');
+            },
           ),
           SizedBox(height: 10.h),
           Text(
-            PickupOrderFlowStrings.freeCancelHint,
+            OrderFlowStrings.freeCancelHint,
             textAlign: TextAlign.center,
             style: AppTextStyles.caption(
               color: AppColors.textSecondary,

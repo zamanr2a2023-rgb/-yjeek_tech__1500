@@ -427,13 +427,27 @@ class PickupCategoryList extends StatelessWidget {
 }
 
 class PickupSpotlightBanner extends StatelessWidget {
-  const PickupSpotlightBanner({super.key, this.onOrderNow});
+  const PickupSpotlightBanner({
+    super.key,
+    this.onOrderNow,
+    this.vendorTitle,
+    this.ctaLabel,
+  });
 
   final VoidCallback? onOrderNow;
+  final String? vendorTitle;
+  final String? ctaLabel;
 
   @override
   Widget build(BuildContext context) {
     // Figma: #0F4D27 copy panel + brown/forest image strip · radius 18.
+    final title = (vendorTitle != null && vendorTitle!.trim().isNotEmpty)
+        ? vendorTitle!.trim()
+        : PickupData.spotlightVendor;
+    final button = (ctaLabel != null && ctaLabel!.trim().isNotEmpty)
+        ? ctaLabel!.trim()
+        : PickupData.orderNow;
+
     return ClipRRect(
       borderRadius: BorderRadius.circular(18.r),
       child: SizedBox(
@@ -457,7 +471,7 @@ class PickupSpotlightBanner extends StatelessWidget {
                     ),
                     SizedBox(height: 8.h),
                     Text(
-                      PickupData.spotlightVendor,
+                      title,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: AppTextStyles.titleSmall(color: AppColors.white).copyWith(
@@ -476,7 +490,7 @@ class PickupSpotlightBanner extends StatelessWidget {
                           borderRadius: BorderRadius.circular(20.r),
                         ),
                         child: Text(
-                          PickupData.orderNow,
+                          button,
                           style: AppTextStyles.labelMedium(
                             color: const Color(0xFF0F4D27),
                           ).copyWith(

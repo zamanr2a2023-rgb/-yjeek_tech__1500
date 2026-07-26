@@ -32,6 +32,18 @@ abstract final class OrderFlowStrings {
   static const String messageAhmed = 'Message Ahmed…';
   static const String onlineChamp = '● Online · your champ';
   static const String yourChamp = 'your champ';
+  static const String sentToVendor = 'Sent to vendor';
+  static const String waitingSubtitle =
+      'Waiting for the vendor to accept your order…';
+  static const String notChargedYet =
+      "You won't be charged until the vendor accepts your order.";
+  static const String cancelOrder = 'Cancel order';
+  static const String freeCancelHint =
+      'Free cancellation before the vendor accepts';
+  static const String payWithinHint =
+      'Complete payment within 5 minutes. If payment is not completed in time, your order will be cancelled automatically.';
+  static const String pay = 'Pay';
+  static const String payIn = 'PAY IN';
 }
 
 class OrderTimelineStep {

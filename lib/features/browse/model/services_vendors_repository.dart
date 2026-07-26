@@ -337,6 +337,8 @@ class ServicesVendorsRepository {
 
   /// GET /cart?type=SERVICE
   Future<ServicesCartSummary> fetchServiceCart() async {
+    if (!_storage.hasSession) return ServicesCartSummary.empty;
+
     final response = await _apiClient.getJson(
       '/cart?type=SERVICE',
       bearerToken: _token,

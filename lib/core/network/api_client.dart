@@ -1,7 +1,9 @@
 import 'dart:convert';
 
+import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
 import 'package:yjeek_app/core/constants/api_constants.dart';
+import 'package:yjeek_app/core/services/storage_service.dart';
 import 'package:yjeek_app/core/utils/app_logger.dart';
 
 /// Raw HTTP response wrapper. `statusCode == 0` means the request never
@@ -40,23 +42,37 @@ class ApiResponse {
 }
 
 class ApiClient {
-  ApiClient({http.Client? client}) : _client = client ?? http.Client();
+  ApiClient({http.Client? client, StorageService? storage})
+      : _client = client ?? http.Client(),
+        _storage = storage;
 
   final http.Client _client;
+  final StorageService? _storage;
+
+  String? _resolveToken(String? bearerToken) {
+    if (bearerToken != null && bearerToken.isNotEmpty) return bearerToken;
+    final injected = _storage?.token;
+    if (injected != null && injected.isNotEmpty) return injected;
+    if (Get.isRegistered<StorageService>()) {
+      final stored = Get.find<StorageService>().token;
+      if (stored != null && stored.isNotEmpty) return stored;
+    }
+    return null;
+  }
 
   Future<Map<String, dynamic>?> getJson(
     String path, {
     String? bearerToken,
   }) async {
     try {
+      final token = _resolveToken(bearerToken);
       final uri = Uri.parse('${ApiConstants.baseUrl}$path');
       appLogger.d('GET $uri');
       final response = await _client.get(
         uri,
         headers: {
           'Accept': 'application/json',
-          if (bearerToken != null && bearerToken.isNotEmpty)
-            'Authorization': 'Bearer $bearerToken',
+          if (token != null) 'Authorization': 'Bearer $token',
         },
       );
       if (response.statusCode >= 200 && response.statusCode < 300) {
@@ -76,14 +92,14 @@ class ApiClient {
   }) async {
     final uri = Uri.parse('${ApiConstants.baseUrl}$path');
     try {
+      final token = _resolveToken(bearerToken);
       appLogger.d('POST $uri $body');
       final response = await _client.post(
         uri,
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
-          if (bearerToken != null && bearerToken.isNotEmpty)
-            'Authorization': 'Bearer $bearerToken',
+          if (token != null) 'Authorization': 'Bearer $token',
         },
         body: jsonEncode(body),
       );
@@ -98,6 +114,69 @@ class ApiClient {
       return ApiResponse(statusCode: response.statusCode, json: json);
     } catch (error, stack) {
       appLogger.e('POST $path error', error: error, stackTrace: stack);
+      return const ApiResponse(statusCode: 0);
+    }
+  }
+
+  Future<ApiResponse> patchJson(
+    String path,
+    Map<String, dynamic> body, {
+    String? bearerToken,
+  }) async {
+    final uri = Uri.parse('${ApiConstants.baseUrl}$path');
+    try {
+      final token = _resolveToken(bearerToken);
+      appLogger.d('PATCH $uri $body');
+      final response = await _client.patch(
+        uri,
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          if (token != null) 'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode(body),
+      );
+      Map<String, dynamic>? json;
+      try {
+        final decoded = jsonDecode(response.body);
+        if (decoded is Map<String, dynamic>) json = decoded;
+      } catch (_) {}
+      if (response.statusCode >= 300) {
+        appLogger.w('PATCH $path failed: ${response.statusCode} ${response.body}');
+      }
+      return ApiResponse(statusCode: response.statusCode, json: json);
+    } catch (error, stack) {
+      appLogger.e('PATCH $path error', error: error, stackTrace: stack);
+      return const ApiResponse(statusCode: 0);
+    }
+  }
+
+  Future<ApiResponse> deleteJson(
+    String path, {
+    String? bearerToken,
+  }) async {
+    final uri = Uri.parse('${ApiConstants.baseUrl}$path');
+    try {
+      final token = _resolveToken(bearerToken);
+      appLogger.d('DELETE $uri');
+      final response = await _client.delete(
+        uri,
+        headers: {
+          'Accept': 'application/json',
+          if (token != null) 'Authorization': 'Bearer $token',
+        },
+      );
+      Map<String, dynamic>? json;
+      try {
+        final decoded = jsonDecode(response.body);
+        if (decoded is Map<String, dynamic>) json = decoded;
+      } catch (_) {}
+      if (response.statusCode >= 300) {
+        appLogger.w('DELETE $path failed: ${response.statusCode} ${response.body}');
+      }
+      return ApiResponse(statusCode: response.statusCode, json: json);
+    } catch (error, stack) {
+      appLogger.e('DELETE $path error', error: error, stackTrace: stack);
       return const ApiResponse(statusCode: 0);
     }
   }
