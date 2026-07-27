@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:yjeek_app/core/constants/app_assets.dart';
 import 'package:yjeek_app/core/constants/app_colors.dart';
 import 'package:yjeek_app/core/constants/app_text_styles.dart';
 import 'package:yjeek_app/core/constants/navigation_strings.dart';
+import 'package:yjeek_app/core/providers/app_providers.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/features/navigation/model/wallet_data.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/navigation_widgets.dart';
@@ -403,22 +405,34 @@ class AccountFormField extends StatelessWidget {
   const AccountFormField({
     super.key,
     required this.label,
-    required this.value,
+    this.value,
+    this.controller,
     this.suffix,
     this.readOnly = true,
     this.valueColor,
     this.labelColor,
-  });
+    this.onTap,
+    this.keyboardType,
+    this.hintText,
+  }) : assert(value != null || controller != null);
 
   final String label;
-  final String value;
+  final String? value;
+  final TextEditingController? controller;
   final Widget? suffix;
   final bool readOnly;
   final Color? valueColor;
   final Color? labelColor;
+  final VoidCallback? onTap;
+  final TextInputType? keyboardType;
+  final String? hintText;
 
   @override
   Widget build(BuildContext context) {
+    final textStyle = AppTextStyles.bodyMedium(
+      color: valueColor ?? const Color(0xFF1A1A1A),
+    ).copyWith(fontSize: 13.5.sp, fontWeight: FontWeight.w600, height: 1.3);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -429,28 +443,44 @@ class AccountFormField extends StatelessWidget {
           ).copyWith(fontSize: 12.sp, fontWeight: FontWeight.w700, height: 1.3),
         ),
         SizedBox(height: 7.h),
-        Container(
-          width: double.infinity,
-          height: 44.h,
-          padding: EdgeInsets.symmetric(horizontal: 13.w),
-          decoration: BoxDecoration(
-            color: AppColors.white,
-            borderRadius: BorderRadius.circular(11.r),
-            border: Border.all(color: const Color(0xFFE6EBE3), width: 1.2),
-          ),
-          alignment: Alignment.centerLeft,
-          child: Row(
-            children: [
-              Expanded(
-                child: Text(
-                  value,
-                  style: AppTextStyles.bodyMedium(
-                    color: valueColor ?? const Color(0xFF1A1A1A),
-                  ).copyWith(fontSize: 13.5.sp, fontWeight: FontWeight.w600, height: 1.3),
+        GestureDetector(
+          onTap: onTap,
+          child: Container(
+            width: double.infinity,
+            height: 44.h,
+            padding: EdgeInsets.symmetric(horizontal: 13.w),
+            decoration: BoxDecoration(
+              color: AppColors.white,
+              borderRadius: BorderRadius.circular(11.r),
+              border: Border.all(color: const Color(0xFFE6EBE3), width: 1.2),
+            ),
+            alignment: Alignment.centerLeft,
+            child: Row(
+              children: [
+                Expanded(
+                  child: controller != null
+                      ? TextField(
+                          controller: controller,
+                          readOnly: readOnly || onTap != null,
+                          onTap: onTap,
+                          keyboardType: keyboardType,
+                          style: textStyle,
+                          decoration: InputDecoration(
+                            isDense: true,
+                            border: InputBorder.none,
+                            hintText: hintText,
+                            hintStyle: textStyle.copyWith(
+                              color: const Color(0xFF9AA39A),
+                              fontWeight: FontWeight.w500,
+                            ),
+                            contentPadding: EdgeInsets.zero,
+                          ),
+                        )
+                      : Text(value ?? '', style: textStyle),
                 ),
-              ),
-              if (suffix != null) suffix!,
-            ],
+                if (suffix != null) suffix!,
+              ],
+            ),
           ),
         ),
       ],
@@ -486,33 +516,53 @@ class StatusBadge extends StatelessWidget {
     super.key,
     required this.label,
     required this.verified,
+    this.pending = false,
   });
 
   final String label;
   final bool verified;
+  final bool pending;
 
   @override
   Widget build(BuildContext context) {
+    final Color bg;
+    final Color fg;
+    if (verified) {
+      bg = const Color(0xFFE6F5E8);
+      fg = const Color(0xFF2E7D33);
+    } else if (pending) {
+      bg = const Color(0xFFFFF2DB);
+      fg = const Color(0xFFC74D00);
+    } else {
+      bg = const Color(0xFFFDE8E8);
+      fg = const Color(0xFFB42318);
+    }
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 9.w, vertical: 4.h),
       decoration: BoxDecoration(
-        color: verified ? const Color(0xFFE6F5E8) : const Color(0xFFFFF2DB),
+        color: bg,
         borderRadius: BorderRadius.circular(8.r),
       ),
       child: Text(
         label,
-        style: AppTextStyles.caption(
-          color: verified ? const Color(0xFF2E7D33) : const Color(0xFFC74D00),
-        ).copyWith(fontWeight: FontWeight.w700, fontSize: 10.sp),
+        style: AppTextStyles.caption(color: fg).copyWith(
+          fontWeight: FontWeight.w700,
+          fontSize: 10.sp,
+        ),
       ),
     );
   }
 }
 
 class GenderChipRow extends StatelessWidget {
-  const GenderChipRow({super.key, required this.selected});
+  const GenderChipRow({
+    super.key,
+    required this.selected,
+    this.onSelected,
+  });
 
   final String selected;
+  final ValueChanged<String>? onSelected;
 
   @override
   Widget build(BuildContext context) {
@@ -522,23 +572,28 @@ class GenderChipRow extends StatelessWidget {
         final isSelected = option == selected;
         return Padding(
           padding: EdgeInsets.only(right: option != options.last ? 8.w : 0),
-          child: Container(
-            padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 9.h),
-            decoration: BoxDecoration(
-              color: isSelected ? AppColors.cartTabActive : AppColors.white,
-              borderRadius: BorderRadius.circular(20.r),
-              border: Border.all(
-                color: isSelected ? AppColors.cartTabActive : const Color(0xFFD6DED6),
-                width: 1.2,
+          child: GestureDetector(
+            onTap: onSelected == null ? null : () => onSelected!(option),
+            child: Container(
+              padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 9.h),
+              decoration: BoxDecoration(
+                color: isSelected ? AppColors.cartTabActive : AppColors.white,
+                borderRadius: BorderRadius.circular(20.r),
+                border: Border.all(
+                  color: isSelected
+                      ? AppColors.cartTabActive
+                      : const Color(0xFFD6DED6),
+                  width: 1.2,
+                ),
               ),
-            ),
-            child: Text(
-              option,
-              style: AppTextStyles.labelSmall(
-                color: isSelected ? AppColors.white : AppColors.textPrimary,
-              ).copyWith(
-                fontWeight: FontWeight.w600,
-                fontSize: 12.5.sp,
+              child: Text(
+                option,
+                style: AppTextStyles.labelSmall(
+                  color: isSelected ? AppColors.white : AppColors.textPrimary,
+                ).copyWith(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 12.5.sp,
+                ),
               ),
             ),
           ),
@@ -736,8 +791,38 @@ class PolicySectionCard extends StatelessWidget {
   }
 }
 
-class AboutPoliciesList extends StatelessWidget {
+class AboutPoliciesList extends ConsumerStatefulWidget {
   const AboutPoliciesList({super.key});
+
+  @override
+  ConsumerState<AboutPoliciesList> createState() => _AboutPoliciesListState();
+}
+
+class _AboutPoliciesListState extends ConsumerState<AboutPoliciesList> {
+  String _contactEmail = 'contact@yjeektech.com';
+  String _footer = NavigationStrings.aboutFooter;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _loadMeta());
+  }
+
+  Future<void> _loadMeta() async {
+    final repo = ref.read(contentRepositoryProvider);
+    final help = await repo.fetchHelp();
+    final about = await repo.fetchAbout();
+    if (!mounted) return;
+    setState(() {
+      if (help != null && help.supportEmail.isNotEmpty) {
+        _contactEmail = help.supportEmail;
+      }
+      final version = about?.version;
+      if (version != null && version.isNotEmpty) {
+        _footer = 'Yjeek · v$version · Kingdom of Bahrain';
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -761,7 +846,8 @@ class AboutPoliciesList extends StatelessWidget {
           iconAsset: AppAssets.policyPrivacy,
           title: NavigationStrings.privacyPolicy,
           subtitle: 'PDPL Decree 30 of 2018',
-          onTap: () => context.push('${RouteNames.policyDocument}?type=privacy'),
+          onTap: () =>
+              context.push('${RouteNames.policyDocument}?type=privacy'),
         ),
         SizedBox(height: 14.h),
         AboutPolicyMenuItem(
@@ -769,6 +855,22 @@ class AboutPoliciesList extends StatelessWidget {
           title: NavigationStrings.refundReturnPolicy,
           subtitle: 'Consumer Protection Law 35/2012',
           onTap: () => context.push('${RouteNames.policyDocument}?type=refund'),
+        ),
+        SizedBox(height: 14.h),
+        AboutPolicyMenuItem(
+          iconAsset: AppAssets.policyTerms,
+          title: 'Wallet Terms',
+          subtitle: 'Cashback · withdraw · fees',
+          onTap: () =>
+              context.push('${RouteNames.policyDocument}?type=wallet'),
+        ),
+        SizedBox(height: 14.h),
+        AboutPolicyMenuItem(
+          iconAsset: AppAssets.policyPrivacy,
+          title: 'Consumer Protection',
+          subtitle: 'Your rights in Bahrain',
+          onTap: () =>
+              context.push('${RouteNames.policyDocument}?type=consumer'),
         ),
         SizedBox(height: 14.h),
         AboutPolicyMenuItem(
@@ -781,12 +883,12 @@ class AboutPoliciesList extends StatelessWidget {
         AboutPolicyMenuItem(
           iconAsset: AppAssets.policyEmail,
           title: NavigationStrings.contactUs,
-          subtitle: 'contact@yjeektech.com',
+          subtitle: _contactEmail,
           onTap: () => context.push(RouteNames.helpChat),
         ),
         SizedBox(height: 20.h),
         Text(
-          NavigationStrings.aboutFooter,
+          _footer,
           textAlign: TextAlign.center,
           style: AppTextStyles.caption(
             color: const Color(0xFF6B756E),
@@ -1083,7 +1185,22 @@ class PrivacyFooterBanner extends StatelessWidget {
 }
 
 class PayoutSplitCard extends StatelessWidget {
-  const PayoutSplitCard({super.key});
+  const PayoutSplitCard({
+    super.key,
+    required this.withdrawLabel,
+    required this.receiveLabel,
+    required this.feeLabel,
+    this.title = '70 / 30 pay-out split',
+    this.receivePercent = 70,
+    this.feePercent = 30,
+  });
+
+  final String title;
+  final String withdrawLabel;
+  final String receiveLabel;
+  final String feeLabel;
+  final int receivePercent;
+  final int feePercent;
 
   @override
   Widget build(BuildContext context) {
@@ -1100,7 +1217,9 @@ class PayoutSplitCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
-            '70 / 30 pay-out split',
+            title.isNotEmpty
+                ? title
+                : '$receivePercent / $feePercent pay-out split',
             textAlign: TextAlign.left,
             style: AppTextStyles.labelMedium(color: const Color(0xFF1A1A1A)).copyWith(
               fontWeight: FontWeight.w700,
@@ -1111,21 +1230,21 @@ class PayoutSplitCard extends StatelessWidget {
           SizedBox(height: 12.h),
           _PayoutRow(
             label: 'You withdraw',
-            value: WalletData.withdrawableBalance,
+            value: withdrawLabel,
             valueColor: const Color(0xFF1A1A1A),
             valueWeight: FontWeight.w600,
           ),
           SizedBox(height: 8.h),
           _PayoutRow(
-            label: 'You receive (70%)',
-            value: WalletData.withdrawReceive,
+            label: 'You receive ($receivePercent%)',
+            value: receiveLabel,
             valueColor: const Color(0xFF0F4D27),
             valueWeight: FontWeight.w700,
           ),
           SizedBox(height: 8.h),
           _PayoutRow(
-            label: 'Processing fee (30%)',
-            value: WalletData.withdrawFee,
+            label: 'Processing fee ($feePercent%)',
+            value: feeLabel,
             valueColor: const Color(0xFF6B7B6E),
             valueWeight: FontWeight.w600,
           ),

@@ -67,6 +67,7 @@ abstract final class RouteNames {
   static const String editProfile = '/account/edit-profile';
   static const String personalInfo = '/account/personal-info';
   static const String editPersonalInfo = '/account/edit-personal-info';
+  static const String changePhone = '/account/change-phone';
   static const String savedAddresses = '/account/addresses';
   static const String addAddress = '/account/add-address';
   static const String language = '/account/language';

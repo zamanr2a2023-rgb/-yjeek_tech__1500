@@ -16,7 +16,9 @@ String formatPaymentMethod(String? raw) {
     'CASH_ON_DELIVERY' || 'COD' || 'CASH' => 'Cash on delivery',
     'CARD' || 'CREDIT_CARD' || 'DEBIT_CARD' => 'Card',
     'APPLE_PAY' => 'Apple Pay',
-    'BENEFIT' || 'BENEFITPAY' => 'BenefitPay',
+    'GOOGLE_PAY' => 'Google Pay',
+    'BENEFIT_PAY' || 'BENEFITPAY' => 'BenefitPay',
+    'BENEFIT' => 'Benefit',
     _ => raw.replaceAll('_', ' '),
   };
 }

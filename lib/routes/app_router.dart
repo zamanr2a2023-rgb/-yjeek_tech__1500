@@ -46,8 +46,6 @@ import 'package:yjeek_app/features/browse/view/food_search_screen.dart';
 import 'package:yjeek_app/features/browse/view/item_detail_screen.dart';
 import 'package:yjeek_app/features/browse/view/vendor_menu_screen.dart';
 import 'package:yjeek_app/features/browse/browse_routes.dart';
-import 'package:yjeek_app/features/cart/view/cart_add_address_screen.dart';
-import 'package:yjeek_app/features/cart/view/cart_edit_address_screen.dart';
 import 'package:yjeek_app/features/cart/view/cart_new_cart_dialog_screen.dart';
 import 'package:yjeek_app/features/cart/view/change_address_screen.dart';
 import 'package:yjeek_app/features/cart/view/checkout_screen.dart';
@@ -63,6 +61,7 @@ import 'package:yjeek_app/features/navigation/view/add_address_screen.dart';
 import 'package:yjeek_app/features/navigation/view/cashback_screen.dart';
 import 'package:yjeek_app/features/navigation/view/country_region_screen.dart';
 import 'package:yjeek_app/features/navigation/view/edit_personal_info_screen.dart';
+import 'package:yjeek_app/features/navigation/view/change_phone_screen.dart';
 import 'package:yjeek_app/features/navigation/view/edit_profile_screen.dart';
 import 'package:yjeek_app/features/navigation/view/exclusive_offers_screen.dart';
 import 'package:yjeek_app/features/navigation/view/id_verification_screen.dart';
@@ -468,10 +467,7 @@ class AppRouter {
         ),
         GoRoute(
           path: RouteNames.withdrawBank,
-          builder: (_, state) {
-            final verified = state.uri.queryParameters['verified'] == '1';
-            return WithdrawBankScreen(verified: verified);
-          },
+          builder: (_, _) => const WithdrawBankScreen(),
         ),
         GoRoute(
           path: RouteNames.editProfile,
@@ -486,12 +482,23 @@ class AppRouter {
           builder: (_, _) => const EditPersonalInfoScreen(),
         ),
         GoRoute(
+          path: RouteNames.changePhone,
+          builder: (_, _) => const ChangePhoneScreen(),
+        ),
+        GoRoute(
           path: RouteNames.savedAddresses,
           builder: (_, _) => const SavedAddressesScreen(),
         ),
         GoRoute(
           path: RouteNames.addAddress,
-          builder: (_, _) => const AddAddressScreen(),
+          builder: (_, state) {
+            final id = state.uri.queryParameters['id'];
+            final area = state.uri.queryParameters['area'];
+            return AddAddressScreen(
+              addressId: (id != null && id.isNotEmpty) ? id : null,
+              initialArea: area,
+            );
+          },
         ),
         GoRoute(
           path: RouteNames.language,
@@ -522,7 +529,12 @@ class AppRouter {
         ),
         GoRoute(
           path: RouteNames.helpSupport,
-          builder: (_, _) => const HelpSupportScreen(),
+          builder: (_, state) {
+            final orderId = state.uri.queryParameters['orderId'];
+            final tab =
+                int.tryParse(state.uri.queryParameters['tab'] ?? '') ?? 4;
+            return HelpSupportScreen(orderId: orderId, bottomNavIndex: tab);
+          },
         ),
         GoRoute(
           path: RouteNames.orderHelp,
@@ -553,7 +565,12 @@ class AppRouter {
             final variant =
                 HelpChatVariantX.fromQuery(state.uri.queryParameters['variant']);
             final tab = int.tryParse(state.uri.queryParameters['tab'] ?? '') ?? 0;
-            return HelpChatScreen(variant: variant, bottomNavIndex: tab);
+            final ticketId = state.uri.queryParameters['ticketId'];
+            return HelpChatScreen(
+              variant: variant,
+              ticketId: ticketId,
+              bottomNavIndex: tab,
+            );
           },
         ),
         GoRoute(
@@ -575,7 +592,12 @@ class AppRouter {
           builder: (_, state) {
             final flow = HelpFlowTypeX.fromQuery(state.uri.queryParameters['flow']);
             final tab = int.tryParse(state.uri.queryParameters['tab'] ?? '') ?? 0;
-            return HelpFlowScreen(flow: flow, bottomNavIndex: tab);
+            final orderId = state.uri.queryParameters['orderId'];
+            return HelpFlowScreen(
+              flow: flow,
+              orderId: orderId,
+              bottomNavIndex: tab,
+            );
           },
         ),
         GoRoute(
@@ -602,12 +624,16 @@ class AppRouter {
         ),
         GoRoute(
           path: RouteNames.cartAddAddress,
-          builder: (_, _) => const CartAddAddressScreen(),
+          builder: (_, state) => AddAddressScreen(
+            addressId: state.uri.queryParameters['id'],
+            initialArea: state.uri.queryParameters['area'],
+          ),
         ),
         GoRoute(
           path: RouteNames.cartEditAddress,
-          builder: (_, state) => CartEditAddressScreen(
+          builder: (_, state) => AddAddressScreen(
             addressId: state.uri.queryParameters['id'],
+            initialArea: state.uri.queryParameters['area'],
           ),
         ),
         GoRoute(
@@ -624,15 +650,21 @@ class AppRouter {
         ),
         GoRoute(
           path: RouteNames.orderWaiting,
-          builder: (_, _) => const OrderWaitingScreen(),
+          builder: (_, state) => OrderWaitingScreen(
+            orderId: state.uri.queryParameters['id'],
+          ),
         ),
         GoRoute(
           path: RouteNames.orderPay,
-          builder: (_, _) => const OrderPayScreen(),
+          builder: (_, state) => OrderPayScreen(
+            orderId: state.uri.queryParameters['id'],
+          ),
         ),
         GoRoute(
           path: RouteNames.orderConfirmed,
-          builder: (_, _) => const OrderConfirmedScreen(),
+          builder: (_, state) => OrderConfirmedScreen(
+            orderId: state.uri.queryParameters['id'],
+          ),
         ),
         GoRoute(
           path: RouteNames.orderStatus,
@@ -654,7 +686,9 @@ class AppRouter {
         ),
         GoRoute(
           path: RouteNames.orderChat,
-          builder: (_, _) => const DriverChatScreen(),
+          builder: (_, state) => DriverChatScreen(
+            orderId: state.uri.queryParameters['id'],
+          ),
         ),
         GoRoute(
           path: RouteNames.dineInCartCheckout,

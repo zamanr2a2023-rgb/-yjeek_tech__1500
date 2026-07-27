@@ -24,7 +24,8 @@ class OrderHelpScreen extends ConsumerStatefulWidget {
 }
 
 class _OrderHelpScreenState extends ConsumerState<OrderHelpScreen> {
-  late HelpOrderContext _contextData = HelpData.contextForOrderId(widget.orderId);
+  late HelpOrderContext _contextData =
+      HelpData.contextForOrderId(widget.orderId);
 
   @override
   void initState() {
@@ -33,7 +34,8 @@ class _OrderHelpScreenState extends ConsumerState<OrderHelpScreen> {
   }
 
   Future<void> _hydrate() async {
-    final order = await ref.read(ordersRepositoryProvider).getOrder(widget.orderId);
+    final order =
+        await ref.read(ordersRepositoryProvider).getOrder(widget.orderId);
     if (!mounted || order == null) return;
     final vendor = order['vendor'];
     final vendorName = vendor is Map<String, dynamic>
@@ -44,6 +46,10 @@ class _OrderHelpScreenState extends ConsumerState<OrderHelpScreen> {
     final total = order['totalAmount'];
     final totalStr = total is num ? total.toStringAsFixed(3) : '0.000';
     final orderNumber = order['orderNumber']?.toString() ?? widget.orderId;
+    final statusRaw = order['status']?.toString() ?? '';
+    final statusLabel = statusRaw.isEmpty
+        ? _contextData.order.statusLabel
+        : statusRaw.replaceAll('_', ' ');
     setState(() {
       _contextData = HelpOrderContext(
         category: _contextData.category,
@@ -51,63 +57,32 @@ class _OrderHelpScreenState extends ConsumerState<OrderHelpScreen> {
         order: HelpOrder(
           vendorName: vendorName,
           orderId: widget.orderId,
-          shortId: orderNumber,
-          statusLabel: (order['status'] as String?)?.replaceAll('_', ' ') ??
-              _contextData.order.statusLabel,
+          shortId: orderNumber.startsWith('#') ? orderNumber : '#$orderNumber',
+          statusLabel: statusLabel,
           itemCount: itemCount,
           totalBhd: totalStr,
           deliveredAt: _contextData.order.deliveredAt,
-          compactSubtitle:
-              '$orderNumber · $itemCount items · BHD $totalStr',
+          compactSubtitle: '$orderNumber · $itemCount items · BHD $totalStr',
         ),
       );
     });
   }
 
-  Future<void> _openIssue(HelpIssueType type) async {
+  void _openIssue(HelpIssueType type) {
     if (type == HelpIssueType.trackOrder) {
       context.push(OrderFlowRoutes.statusFor(widget.orderId));
       return;
     }
 
-    final issueType = switch (type) {
-      HelpIssueType.orderLate => 'order_late',
-      HelpIssueType.missingItems => 'missing_items',
-      HelpIssueType.wrongOrder => 'wrong_items',
-      HelpIssueType.notReceived => 'order_never_arrived',
-      HelpIssueType.foodQuality => 'food_quality',
-      HelpIssueType.damagedSpilled => 'damaged_items',
-      HelpIssueType.paymentIssue => 'payment_issue',
-      HelpIssueType.champComplaint => 'driver_behaviour',
-      HelpIssueType.cancelOrder => 'other',
-      _ => 'other',
-    };
-
-    await ref.read(ordersRepositoryProvider).createSupportTicket(
-          subject: 'Help · ${_contextData.order.shortId} · ${type.name}',
-          remark: 'Customer opened help for ${type.name}',
-          orderId: widget.orderId,
-          issueType: issueType,
-        );
-
-    if (!mounted) return;
-
     if (type == HelpIssueType.cancelOrder && _contextData.isScheduled) {
       context.push(
         HelpRoutes.helpFlow(
           flow: HelpFlowType.scheduledCancelFree,
+          orderId: widget.orderId,
           tab: widget.bottomNavIndex,
         ),
       );
       return;
-    }
-
-    if (type == HelpIssueType.cancelOrder) {
-      await ref.read(ordersRepositoryProvider).cancel(
-            widget.orderId,
-            reason: 'Customer requested cancel via help',
-          );
-      if (!mounted) return;
     }
 
     context.push(

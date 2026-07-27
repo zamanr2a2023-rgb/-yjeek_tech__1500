@@ -83,7 +83,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     setState(() => _placing = true);
     try {
       final dropOff = dropOffApiValue(_dropOffIndex);
-      await ref.read(cartRepositoryProvider).checkout(
+      final order = await ref.read(cartRepositoryProvider).checkout(
             type: CartOrderType.delivery,
             paymentMethod: paymentMethodApiValue(_paymentId),
             tipAmount: _tipAmount,
@@ -92,7 +92,8 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
             saveDropOffPreferences: _saveDropOff,
           );
       if (!mounted) return;
-      context.pushReplacement(OrderFlowRoutes.waiting);
+      final orderId = order?['id']?.toString();
+      context.pushReplacement(OrderFlowRoutes.waitingFor(orderId));
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -133,7 +134,10 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                   addressDetail: _address?.subtitle,
                   phone: _phone,
                   arrivesLabel: formatArrivesLabel(cart?.deliveryEta),
-                  onChange: () => context.push(CartRoutes.changeAddress),
+                  onChange: () async {
+                    await context.push(CartRoutes.changeAddress);
+                    if (mounted) await _load();
+                  },
                 ),
                 SizedBox(height: 18.h),
                 CartDropOffGrid(

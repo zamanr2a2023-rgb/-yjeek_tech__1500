@@ -100,7 +100,7 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
       return;
     }
     if (action == NavigationStrings.getHelp) {
-      context.push(HelpRoutes.orderHelp(orderId: order.id, tab: 1));
+      context.push(HelpRoutes.helpSupport(orderId: order.id, tab: 1));
     }
   }
 

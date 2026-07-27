@@ -11,16 +11,22 @@ import 'package:yjeek_app/features/browse/model/vape_vendors_repository.dart';
 import 'package:yjeek_app/features/browse/model/pickup_vendors_repository.dart';
 import 'package:yjeek_app/features/cart/model/addresses_repository.dart';
 import 'package:yjeek_app/features/cart/model/cart_repository.dart';
+import 'package:yjeek_app/features/cart/model/locations_repository.dart';
 import 'package:yjeek_app/features/cart/model/payment_methods_repository.dart';
+import 'package:yjeek_app/features/cart/model/zood_repository.dart';
 import 'package:yjeek_app/features/home/model/active_order_repository.dart';
 import 'package:yjeek_app/features/home/model/categories_repository.dart';
 import 'package:yjeek_app/features/home/model/category_item.dart';
 import 'package:yjeek_app/features/home/model/home_feed.dart';
 import 'package:yjeek_app/features/home/model/home_repository.dart';
+import 'package:yjeek_app/features/navigation/model/content_repository.dart';
+import 'package:yjeek_app/features/navigation/model/offers_repository.dart';
 import 'package:yjeek_app/features/navigation/model/orders_repository.dart';
 import 'package:yjeek_app/features/navigation/model/user_me.dart';
 import 'package:yjeek_app/features/navigation/model/user_repository.dart';
 import 'package:yjeek_app/features/navigation/model/wallet_repository.dart';
+import 'package:yjeek_app/features/help/model/support_repository.dart';
+import 'package:yjeek_app/features/order_flow/model/order_chat_repository.dart';
 
 final storageServiceProvider = Provider<StorageService>(
   (ref) => Get.find<StorageService>(),
@@ -41,6 +47,13 @@ final activeOrderRepositoryProvider = Provider<ActiveOrderRepository>(
 
 final ordersRepositoryProvider = Provider<OrdersRepository>(
   (ref) => OrdersRepository(
+    ref.watch(apiClientProvider),
+    ref.watch(storageServiceProvider),
+  ),
+);
+
+final supportRepositoryProvider = Provider<SupportRepository>(
+  (ref) => SupportRepository(
     ref.watch(apiClientProvider),
     ref.watch(storageServiceProvider),
   ),
@@ -132,8 +145,36 @@ final addressesRepositoryProvider = Provider<AddressesRepository>(
   ),
 );
 
+final locationsRepositoryProvider = Provider<LocationsRepository>(
+  (ref) => LocationsRepository(
+    ref.watch(apiClientProvider),
+    ref.watch(storageServiceProvider),
+  ),
+);
+
+final zoodRepositoryProvider = Provider<ZoodRepository>(
+  (ref) => ZoodRepository(
+    ref.watch(apiClientProvider),
+    ref.watch(storageServiceProvider),
+  ),
+);
+
+final orderChatRepositoryProvider = Provider<OrderChatRepository>(
+  (ref) => OrderChatRepository(
+    ref.watch(apiClientProvider),
+    ref.watch(storageServiceProvider),
+  ),
+);
+
 final paymentMethodsRepositoryProvider = Provider<PaymentMethodsRepository>(
   (ref) => PaymentMethodsRepository(
+    ref.watch(apiClientProvider),
+    ref.watch(storageServiceProvider),
+  ),
+);
+
+final offersRepositoryProvider = Provider<OffersRepository>(
+  (ref) => OffersRepository(
     ref.watch(apiClientProvider),
     ref.watch(storageServiceProvider),
   ),
@@ -158,3 +199,7 @@ final userMeProvider = FutureProvider<UserMe?>((ref) {
   if (!storage.hasSession) return Future.value(null);
   return ref.watch(userRepositoryProvider).fetchMe();
 });
+
+final contentRepositoryProvider = Provider<ContentRepository>(
+  (ref) => ContentRepository(ref.watch(apiClientProvider)),
+);

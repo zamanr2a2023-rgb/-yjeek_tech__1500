@@ -12,6 +12,10 @@ class WalletSnapshot {
     this.cashback,
     this.refundBalance,
     this.currency = 'BHD',
+    this.withdrawalEligible = false,
+    this.withdrawalMinimum = 10,
+    this.payoutRate = 0.7,
+    this.kycVerified = false,
   });
 
   final String balanceLabel;
@@ -21,12 +25,48 @@ class WalletSnapshot {
   final num? cashback;
   final num? refundBalance;
   final String currency;
+  final bool withdrawalEligible;
+  final num withdrawalMinimum;
+  final num payoutRate;
+  final bool kycVerified;
 
   static const empty = WalletSnapshot(
     balanceLabel: '___',
     cashbackLabel: '___',
     refundsLabel: '___',
   );
+}
+
+class WithdrawalQuote {
+  const WithdrawalQuote({
+    required this.amountRequested,
+    required this.amountPayable,
+    required this.feeAmount,
+    required this.payoutRate,
+    required this.balance,
+    required this.eligible,
+    required this.reasons,
+    required this.currency,
+    required this.processingSla,
+  });
+
+  final num amountRequested;
+  final num amountPayable;
+  final num feeAmount;
+  final num payoutRate;
+  final num balance;
+  final bool eligible;
+  final List<String> reasons;
+  final String currency;
+  final String processingSla;
+
+  String money(num value) =>
+      '$currency ${value.toDouble().toStringAsFixed(3)}';
+
+  int get receivePercent => (payoutRate * 100).round();
+  int get feePercent => 100 - receivePercent;
+
+  String get splitTitle => '$receivePercent / $feePercent pay-out split';
 }
 
 class WalletRepository {
@@ -47,6 +87,9 @@ class WalletRepository {
     if (data is! Map<String, dynamic>) return WalletSnapshot.empty;
 
     final currency = data['currency'] as String? ?? 'BHD';
+    final withdrawal = data['withdrawal'];
+    final w = withdrawal is Map<String, dynamic> ? withdrawal : null;
+
     return WalletSnapshot(
       balance: data['balance'] as num?,
       cashback: data['cashback'] as num?,
@@ -55,6 +98,59 @@ class WalletRepository {
       balanceLabel: _moneyLabel(data['balance'], currency),
       cashbackLabel: _moneyLabel(data['cashback'], currency),
       refundsLabel: _moneyLabel(data['refundBalance'], currency),
+      withdrawalEligible: w?['eligible'] == true,
+      withdrawalMinimum: (w?['minimumAmount'] as num?) ?? 10,
+      payoutRate: (w?['payoutRate'] as num?) ?? 0.7,
+      kycVerified: w?['kycVerified'] == true,
+    );
+  }
+
+  /// GET /wallet/withdrawals/quote?amount=
+  Future<WithdrawalQuote?> fetchWithdrawalQuote(num amount) async {
+    final response = await _apiClient.getJson(
+      '/wallet/withdrawals/quote?amount=${amount.toString()}',
+      bearerToken: _token,
+    );
+    final data = response?['data'];
+    if (data is! Map<String, dynamic>) return null;
+
+    final reasonsRaw = data['reasons'];
+    final reasons = <String>[];
+    if (reasonsRaw is List) {
+      for (final r in reasonsRaw) {
+        if (r is String && r.isNotEmpty) reasons.add(r);
+      }
+    }
+
+    return WithdrawalQuote(
+      amountRequested: (data['amountRequested'] as num?) ?? amount,
+      amountPayable: (data['amountPayable'] as num?) ?? 0,
+      feeAmount: (data['feeAmount'] as num?) ?? 0,
+      payoutRate: (data['payoutRate'] as num?) ?? 0.7,
+      balance: (data['balance'] as num?) ?? 0,
+      eligible: data['eligible'] == true,
+      reasons: reasons,
+      currency: data['currency'] as String? ?? 'BHD',
+      processingSla: data['processingSla'] as String? ??
+          'Review ≤ 2 working days · bank transfer 3–7 working days after approval',
+    );
+  }
+
+  /// POST /wallet/withdrawals
+  Future<ApiResponse> requestWithdrawal({
+    required num amount,
+    String? iban,
+    String? accountName,
+  }) {
+    return _apiClient.postJson(
+      '/wallet/withdrawals',
+      {
+        'amount': amount,
+        if (iban != null && iban.isNotEmpty) 'iban': iban,
+        if (accountName != null && accountName.isNotEmpty)
+          'accountName': accountName,
+      },
+      bearerToken: _token,
     );
   }
 

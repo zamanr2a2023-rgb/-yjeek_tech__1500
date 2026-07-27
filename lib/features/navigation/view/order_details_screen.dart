@@ -6,6 +6,7 @@ import 'package:yjeek_app/core/constants/app_text_styles.dart';
 import 'package:yjeek_app/core/constants/navigation_strings.dart';
 import 'package:yjeek_app/core/providers/app_providers.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
+import 'package:yjeek_app/core/widgets/app_network_image.dart';
 import 'package:yjeek_app/features/help/help_routes.dart';
 import 'package:yjeek_app/features/help/model/help_data.dart';
 import 'package:yjeek_app/features/home/view/widgets/home_widgets.dart';
@@ -26,32 +27,51 @@ class OrderDetailsScreen extends ConsumerStatefulWidget {
 
 class _OrderDetailsScreenState extends ConsumerState<OrderDetailsScreen> {
   bool _loading = true;
-  late String _statusBanner = NavigationStrings.deliveredToday;
-  late String _vendorName = 'The Green Kitchen';
-  late String _fulfillment = NavigationStrings.onDemandDelivery;
-  late String _displayId = NavigationData.orderId;
-  late List<OrderItemLine> _items = NavigationData.orderDetailItems;
-  late List<BillLine> _bill = NavigationData.orderDetailBillSummary;
-  late String _deliveredTo = NavigationStrings.apartmentSeef;
-  late String _champ = NavigationStrings.ahmedVerified;
-  late String _payment = NavigationStrings.yjeekWalletPayment;
+  String _statusBanner = '';
+  String _statusRaw = '';
+  String _vendorName = '';
+  String? _vendorLogoUrl;
+  String _fulfillment = '';
+  String _displayId = '';
+  List<OrderItemLine> _items = const [];
+  List<BillLine> _bill = const [];
+  String _deliveredTo = '';
+  String _champ = '';
+  bool _hasChamp = false;
+  String _payment = '';
 
   @override
   void initState() {
     super.initState();
-    final hasId = widget.orderId != null && widget.orderId!.isNotEmpty;
-    if (hasId) {
-      _statusBanner = '';
-      _vendorName = '';
-      _fulfillment = '';
-      _displayId = '';
-      _items = const [];
-      _bill = const [];
-      _deliveredTo = '';
-      _champ = '';
-      _payment = '';
-    }
     WidgetsBinding.instance.addPostFrameCallback((_) => _load());
+  }
+
+  Color get _statusBannerBg {
+    final s = _statusRaw.toUpperCase();
+    if (s.contains('DELIVER') ||
+        s == 'COLLECTED' ||
+        s == 'COMPLETED' ||
+        s == 'CONFIRMED') {
+      return const Color(0xFFE3F2EB);
+    }
+    if (s.contains('CANCEL') || s.contains('FAIL') || s.contains('REJECT')) {
+      return const Color(0xFFFDE8E8);
+    }
+    return const Color(0xFFFFF4DF);
+  }
+
+  Color get _statusBannerFg {
+    final s = _statusRaw.toUpperCase();
+    if (s.contains('DELIVER') ||
+        s == 'COLLECTED' ||
+        s == 'COMPLETED' ||
+        s == 'CONFIRMED') {
+      return AppColors.successText;
+    }
+    if (s.contains('CANCEL') || s.contains('FAIL') || s.contains('REJECT')) {
+      return const Color(0xFFB42318);
+    }
+    return const Color(0xFFB54708);
   }
 
   Future<void> _load() async {
@@ -69,9 +89,9 @@ class _OrderDetailsScreenState extends ConsumerState<OrderDetailsScreen> {
         return;
       }
       final vendor = data['vendor'];
-      final vendorName = vendor is Map<String, dynamic>
-          ? (vendor['name'] as String? ?? 'Vendor')
-          : 'Vendor';
+      final vendorMap = vendor is Map<String, dynamic> ? vendor : null;
+      final vendorName = vendorMap?['name'] as String? ?? 'Vendor';
+      final vendorLogo = vendorMap?['logoUrl'] as String?;
       final status = (data['status'] as String?) ?? '';
       final orderType = (data['orderType'] as String?) ?? 'DELIVERY';
       final fulfillment = (data['fulfillmentType'] as String?) ?? 'ON_DEMAND';
@@ -97,6 +117,7 @@ class _OrderDetailsScreenState extends ConsumerState<OrderDetailsScreen> {
       }
 
       final deliveryFee = data['deliveryFee'];
+      final tipAmount = (data['tipAmount'] as num?)?.toDouble() ?? 0;
       final money = <BillLine>[
         BillLine(
           label: 'Subtotal',
@@ -119,6 +140,8 @@ class _OrderDetailsScreenState extends ConsumerState<OrderDetailsScreen> {
           label: 'Service fee',
           value: formatBhd(data['serviceFee']),
         ),
+        if (tipAmount > 0)
+          BillLine(label: 'Tip', value: formatBhd(tipAmount)),
         if ((data['vatAmount'] as num?) != null &&
             (data['vatAmount'] as num) > 0)
           BillLine(label: 'VAT', value: formatBhd(data['vatAmount'])),
@@ -141,18 +164,22 @@ class _OrderDetailsScreenState extends ConsumerState<OrderDetailsScreen> {
       final driver = data['driver'];
       final driverMap = driver is Map<String, dynamic> ? driver : null;
       final champName = driverDisplayName(driverMap);
-      final champ = champName.isEmpty
-          ? '___'
+      final hasChamp = champName.isNotEmpty;
+      final champ = !hasChamp
+          ? 'Not assigned yet'
           : driverMap?['isIdVerified'] == true
               ? '$champName · ID-verified'
               : champName;
 
-      final createdAt = formatOrderDate(data['createdAt'] ?? data['deliveredAt']);
+      final createdAt =
+          formatOrderDate(data['createdAt'] ?? data['deliveredAt']);
       final statusLabel = formatStatusLabel(status);
 
       setState(() {
         _displayId = data['orderNumber']?.toString() ?? id;
         _vendorName = vendorName;
+        _vendorLogoUrl = vendorLogo;
+        _statusRaw = status;
         _statusBanner = status.toUpperCase().contains('DELIVER') ||
                 status == 'COLLECTED' ||
                 status == 'COMPLETED'
@@ -162,13 +189,16 @@ class _OrderDetailsScreenState extends ConsumerState<OrderDetailsScreen> {
             ? 'Pickup'
             : orderType == 'DINE_IN'
                 ? 'Dine-in'
-                : fulfillment == 'SCHEDULED'
-                    ? 'Scheduled delivery'
-                    : NavigationStrings.onDemandDelivery;
+                : orderType == 'SERVICE'
+                    ? 'Service'
+                    : fulfillment == 'SCHEDULED'
+                        ? 'Scheduled delivery'
+                        : NavigationStrings.onDemandDelivery;
         _items = items;
         _bill = money;
         _deliveredTo = addressLabel.isNotEmpty ? addressLabel : '—';
         _champ = champ;
+        _hasChamp = hasChamp;
         _payment = formatPaymentMethod(data['paymentMethod'] as String?);
         _loading = false;
       });
@@ -200,38 +230,57 @@ class _OrderDetailsScreenState extends ConsumerState<OrderDetailsScreen> {
               children: [
                 NavBackHeader(
                   title: NavigationStrings.orderDetails,
-                  subtitle: _displayId,
+                  subtitle: _displayId.isEmpty ? null : _displayId,
                   backIconColor: AppColors.textPrimary,
                 ),
-                SizedBox(height: 8.h),
-                Container(
-                  width: double.infinity,
-                  padding:
-                      EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFE3F2EB),
-                    borderRadius: BorderRadius.circular(12.r),
+                if (_statusBanner.isNotEmpty) ...[
+                  SizedBox(height: 8.h),
+                  Container(
+                    width: double.infinity,
+                    padding:
+                        EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+                    decoration: BoxDecoration(
+                      color: _statusBannerBg,
+                      borderRadius: BorderRadius.circular(12.r),
+                    ),
+                    child: Text(
+                      _statusBanner,
+                      style: AppTextStyles.labelMedium(
+                        color: _statusBannerFg,
+                      ).copyWith(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13.5.sp,
+                      ),
+                    ),
                   ),
-                  child: Text(
-                    _statusBanner,
-                    style: AppTextStyles.labelMedium(
-                      color: AppColors.successText,
-                    ).copyWith(fontWeight: FontWeight.w600, fontSize: 13.5.sp),
-                  ),
-                ),
+                ],
                 SizedBox(height: 14.h),
                 _OrderDetailCard(
                   child: Row(
                     children: [
-                      Container(
-                        width: 46.w,
-                        height: 46.w,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFDBE8DE),
-                          borderRadius: BorderRadius.circular(12.r),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(12.r),
+                        child: SizedBox(
+                          width: 46.w,
+                          height: 46.w,
+                          child: (_vendorLogoUrl != null &&
+                                  _vendorLogoUrl!.isNotEmpty)
+                              ? AppNetworkImage(
+                                  url: _vendorLogoUrl!,
+                                  width: 46.w,
+                                  height: 46.w,
+                                  fit: BoxFit.cover,
+                                )
+                              : Container(
+                                  color: const Color(0xFFDBE8DE),
+                                  alignment: Alignment.center,
+                                  child: Icon(
+                                    Icons.storefront_outlined,
+                                    size: 22.sp,
+                                    color: AppColors.primary,
+                                  ),
+                                ),
                         ),
-                        alignment: Alignment.center,
-                        child: Text('🍽️', style: TextStyle(fontSize: 20.sp)),
                       ),
                       SizedBox(width: 12.w),
                       Expanded(
@@ -239,22 +288,24 @@ class _OrderDetailsScreenState extends ConsumerState<OrderDetailsScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              _vendorName,
+                              _vendorName.isEmpty ? 'Vendor' : _vendorName,
                               style: AppTextStyles.titleSmall().copyWith(
                                 fontSize: 15.sp,
                                 fontWeight: FontWeight.w700,
                               ),
                             ),
-                            SizedBox(height: 2.h),
-                            Text(
-                              _fulfillment,
-                              style: AppTextStyles.labelSmall(
-                                color: const Color(0xFF6B756E),
-                              ).copyWith(
-                                fontSize: 12.sp,
-                                fontWeight: FontWeight.w400,
+                            if (_fulfillment.isNotEmpty) ...[
+                              SizedBox(height: 2.h),
+                              Text(
+                                _fulfillment,
+                                style: AppTextStyles.labelSmall(
+                                  color: const Color(0xFF6B756E),
+                                ).copyWith(
+                                  fontSize: 12.sp,
+                                  fontWeight: FontWeight.w400,
+                                ),
                               ),
-                            ),
+                            ],
                           ],
                         ),
                       ),
@@ -265,35 +316,55 @@ class _OrderDetailsScreenState extends ConsumerState<OrderDetailsScreen> {
                 _SectionTitle(NavigationStrings.items),
                 SizedBox(height: 10.h),
                 _OrderDetailCard(
-                  child: Column(
-                    children: [
-                      for (var i = 0; i < _items.length; i++) ...[
-                        if (i > 0) SizedBox(height: 10.h),
-                        _DetailRow(label: _items[i].name, value: _items[i].price),
-                      ],
-                    ],
-                  ),
+                  child: _items.isEmpty
+                      ? Text(
+                          'No items',
+                          style: AppTextStyles.labelSmall(
+                            color: const Color(0xFF6B756E),
+                          ),
+                        )
+                      : Column(
+                          children: [
+                            for (var i = 0; i < _items.length; i++) ...[
+                              if (i > 0) SizedBox(height: 10.h),
+                              _DetailRow(
+                                label: _items[i].name,
+                                value: _items[i].price,
+                              ),
+                            ],
+                          ],
+                        ),
                 ),
                 SizedBox(height: 14.h),
                 _SectionTitle(NavigationStrings.billSummary),
                 SizedBox(height: 10.h),
                 _OrderDetailCard(
-                  child: Column(
-                    children: [
-                      for (var i = 0; i < _bill.length; i++) ...[
-                        if (_bill[i].isBold && i > 0)
-                          Divider(color: AppColors.cartTabBorder, height: 20.h),
-                        _DetailRow(
-                          label: _bill[i].label,
-                          value: _bill[i].value,
-                          isDiscount: _bill[i].isDiscount,
-                          isBold: _bill[i].isBold,
+                  child: _bill.isEmpty
+                      ? Text(
+                          'No bill data',
+                          style: AppTextStyles.labelSmall(
+                            color: const Color(0xFF6B756E),
+                          ),
+                        )
+                      : Column(
+                          children: [
+                            for (var i = 0; i < _bill.length; i++) ...[
+                              if (_bill[i].isBold && i > 0)
+                                Divider(
+                                  color: AppColors.cartTabBorder,
+                                  height: 20.h,
+                                ),
+                              _DetailRow(
+                                label: _bill[i].label,
+                                value: _bill[i].value,
+                                isDiscount: _bill[i].isDiscount,
+                                isBold: _bill[i].isBold,
+                              ),
+                              if (i < _bill.length - 1 && !_bill[i].isBold)
+                                SizedBox(height: 10.h),
+                            ],
+                          ],
                         ),
-                        if (i < _bill.length - 1 && !_bill[i].isBold)
-                          SizedBox(height: 10.h),
-                      ],
-                    ],
-                  ),
                 ),
                 SizedBox(height: 14.h),
                 _OrderDetailCard(
@@ -301,17 +372,18 @@ class _OrderDetailsScreenState extends ConsumerState<OrderDetailsScreen> {
                     children: [
                       _DetailRow(
                         label: NavigationStrings.deliveredTo,
-                        value: _deliveredTo,
+                        value: _deliveredTo.isEmpty ? '—' : _deliveredTo,
                       ),
                       SizedBox(height: 10.h),
                       _DetailRow(
                         label: NavigationStrings.champ,
-                        value: _champ,
+                        value: _champ.isEmpty ? 'Not assigned yet' : _champ,
+                        muted: !_hasChamp,
                       ),
                       SizedBox(height: 10.h),
                       _DetailRow(
                         label: NavigationStrings.payment,
-                        value: _payment,
+                        value: _payment.isEmpty ? '—' : _payment,
                       ),
                     ],
                   ),
@@ -361,7 +433,7 @@ class _OrderDetailsScreenState extends ConsumerState<OrderDetailsScreen> {
                       child: _OutlineActionButton(
                         label: NavigationStrings.getHelp,
                         onTap: () => context.push(
-                          HelpRoutes.orderHelp(
+                          HelpRoutes.helpSupport(
                             orderId: orderId ?? HelpData.defaultOrderId,
                             tab: 1,
                           ),
@@ -429,19 +501,26 @@ class _DetailRow extends StatelessWidget {
     required this.value,
     this.isDiscount = false,
     this.isBold = false,
+    this.muted = false,
   });
 
   final String label;
   final String value;
   final bool isDiscount;
   final bool isBold;
+  final bool muted;
 
   @override
   Widget build(BuildContext context) {
+    final color = isDiscount
+        ? AppColors.successText
+        : muted
+            ? const Color(0xFF6B756E)
+            : AppColors.textPrimary;
     final style = AppTextStyles.labelMedium().copyWith(
       fontSize: isBold ? 14.sp : 13.sp,
       fontWeight: isBold ? FontWeight.w700 : FontWeight.w500,
-      color: isDiscount ? AppColors.successText : AppColors.textPrimary,
+      color: color,
     );
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -466,15 +545,20 @@ class _OutlineActionButton extends StatelessWidget {
       child: OutlinedButton(
         onPressed: onTap,
         style: OutlinedButton.styleFrom(
+          backgroundColor: AppColors.white,
           foregroundColor: AppColors.textPrimary,
-          side: const BorderSide(color: AppColors.cartTabBorder),
+          disabledBackgroundColor: AppColors.white,
+          side: const BorderSide(color: Color(0xFFE0E6E0)),
+          elevation: 0,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(22.r),
           ),
         ),
         child: Text(
           label,
-          style: AppTextStyles.labelSmall().copyWith(
+          style: AppTextStyles.labelSmall(
+            color: AppColors.textPrimary,
+          ).copyWith(
             fontWeight: FontWeight.w600,
             fontSize: 12.sp,
           ),

@@ -1,14 +1,64 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:yjeek_app/core/constants/app_colors.dart';
 import 'package:yjeek_app/core/constants/app_text_styles.dart';
+import 'package:yjeek_app/core/providers/app_providers.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/features/cart/model/cart_flow_data.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/account_widgets.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/navigation_widgets.dart';
 
-class ZoodWaitingListScreen extends StatelessWidget {
+class ZoodWaitingListScreen extends ConsumerStatefulWidget {
   const ZoodWaitingListScreen({super.key});
+
+  @override
+  ConsumerState<ZoodWaitingListScreen> createState() =>
+      _ZoodWaitingListScreenState();
+}
+
+class _ZoodWaitingListScreenState extends ConsumerState<ZoodWaitingListScreen> {
+  bool _busy = false;
+  bool _alreadyJoined = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _hydrate());
+  }
+
+  Future<void> _hydrate() async {
+    final status = await ref.read(zoodRepositoryProvider).fetchStatus();
+    if (!mounted || status == null) return;
+    setState(() => _alreadyJoined = status.joined);
+  }
+
+  Future<void> _join() async {
+    if (_busy) return;
+    setState(() => _busy = true);
+    final ok = await ref.read(zoodRepositoryProvider).joinWaitlist();
+    if (!mounted) return;
+    setState(() => _busy = false);
+    if (!ok) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not join waitlist')),
+      );
+      return;
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("You're on the Zood waitlist")),
+    );
+    context.pop(true);
+  }
+
+  Future<void> _dismiss() async {
+    if (_busy) return;
+    setState(() => _busy = true);
+    await ref.read(zoodRepositoryProvider).dismissWaitlist();
+    if (!mounted) return;
+    setState(() => _busy = false);
+    context.pop(false);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -56,7 +106,9 @@ class ZoodWaitingListScreen extends StatelessWidget {
                   Text(
                     CartFlowStrings.zoodTitle,
                     textAlign: TextAlign.center,
-                    style: AppTextStyles.titleMedium(color: AppColors.textPrimary).copyWith(
+                    style: AppTextStyles.titleMedium(
+                      color: AppColors.textPrimary,
+                    ).copyWith(
                       fontWeight: FontWeight.w700,
                       fontSize: 22.sp,
                       height: 27 / 22,
@@ -64,9 +116,13 @@ class ZoodWaitingListScreen extends StatelessWidget {
                   ),
                   SizedBox(height: 16.h),
                   Text(
-                    CartFlowStrings.zoodSubtitle,
+                    _alreadyJoined
+                        ? "You're already on the waitlist — we'll notify you."
+                        : CartFlowStrings.zoodSubtitle,
                     textAlign: TextAlign.center,
-                    style: AppTextStyles.bodySmall(color: AppColors.textSecondary).copyWith(
+                    style: AppTextStyles.bodySmall(
+                      color: AppColors.textSecondary,
+                    ).copyWith(
                       fontWeight: FontWeight.w400,
                       fontSize: 13.5.sp,
                       height: 16 / 13.5,
@@ -83,7 +139,9 @@ class ZoodWaitingListScreen extends StatelessWidget {
                     ),
                     child: Column(
                       children: [
-                        for (var i = 0; i < CartFlowData.zoodBenefits.length; i++) ...[
+                        for (var i = 0;
+                            i < CartFlowData.zoodBenefits.length;
+                            i++) ...[
                           if (i > 0) SizedBox(height: 10.h),
                           Row(
                             children: [
@@ -111,21 +169,31 @@ class ZoodWaitingListScreen extends StatelessWidget {
                   ),
                   SizedBox(height: 16.h),
                   PrimaryGreenButton(
-                    label: CartFlowStrings.zoodJoin,
+                    label: _busy
+                        ? 'Please wait…'
+                        : _alreadyJoined
+                            ? 'Done'
+                            : CartFlowStrings.zoodJoin,
                     backgroundColor: CartFlowData.zoodRed,
                     height: 52,
-                    onPressed: () => context.pop(),
+                    enabled: !_busy,
+                    onPressed: _alreadyJoined
+                        ? () => context.pop(true)
+                        : _join,
                   ),
                   SizedBox(height: 10.h),
                   SizedBox(
                     width: double.infinity,
                     height: 52.h,
                     child: OutlinedButton(
-                      onPressed: () => context.pop(),
+                      onPressed: _busy ? null : _dismiss,
                       style: OutlinedButton.styleFrom(
                         foregroundColor: AppColors.textPrimary,
                         backgroundColor: AppColors.white,
-                        side: const BorderSide(color: Color(0xFFE0E6E0), width: 1.5),
+                        side: const BorderSide(
+                          color: Color(0xFFE0E6E0),
+                          width: 1.5,
+                        ),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(28.r),
                         ),
@@ -133,7 +201,9 @@ class ZoodWaitingListScreen extends StatelessWidget {
                       ),
                       child: Text(
                         CartFlowStrings.zoodNotNow,
-                        style: AppTextStyles.labelMedium(color: AppColors.textPrimary).copyWith(
+                        style: AppTextStyles.labelMedium(
+                          color: AppColors.textPrimary,
+                        ).copyWith(
                           fontWeight: FontWeight.w600,
                           fontSize: 16.sp,
                         ),

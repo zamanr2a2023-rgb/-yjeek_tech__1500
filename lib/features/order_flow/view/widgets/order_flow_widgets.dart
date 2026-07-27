@@ -179,7 +179,18 @@ class OrderSuccessIcon extends StatelessWidget {
 }
 
 class OrderSummaryCard extends StatelessWidget {
-  const OrderSummaryCard({super.key});
+  const OrderSummaryCard({
+    super.key,
+    this.items,
+    this.deliverTo,
+    this.arrivesIn,
+    this.orderTotal,
+  });
+
+  final String? items;
+  final String? deliverTo;
+  final String? arrivesIn;
+  final String? orderTotal;
 
   @override
   Widget build(BuildContext context) {
@@ -187,17 +198,23 @@ class OrderSummaryCard extends StatelessWidget {
       padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
       child: Column(
         children: [
-          _row(OrderFlowStrings.items, OrderFlowData.itemCount),
+          _row(OrderFlowStrings.items, items ?? OrderFlowData.itemCount),
           SizedBox(height: 10.h),
-          _row(OrderFlowStrings.deliverTo, OrderFlowData.deliveryAddress),
+          _row(
+            OrderFlowStrings.deliverTo,
+            deliverTo ?? OrderFlowData.deliveryAddress,
+          ),
           SizedBox(height: 10.h),
-          _row(OrderFlowStrings.arrivesIn, OrderFlowData.arrivalWindow),
+          _row(
+            OrderFlowStrings.arrivesIn,
+            arrivesIn ?? OrderFlowData.arrivalWindow,
+          ),
           SizedBox(height: 10.h),
           const Divider(height: 1, thickness: 1, color: Color(0xFFE0E6E0)),
           SizedBox(height: 10.h),
           _row(
             OrderFlowStrings.orderTotal,
-            OrderFlowData.orderTotal,
+            orderTotal ?? OrderFlowData.orderTotal,
             isTotal: true,
           ),
         ],
@@ -1051,9 +1068,14 @@ class DriverChatBubble extends StatelessWidget {
 }
 
 class DriverChatQuickReplies extends StatelessWidget {
-  const DriverChatQuickReplies({super.key, required this.replies});
+  const DriverChatQuickReplies({
+    super.key,
+    required this.replies,
+    this.onSelected,
+  });
 
   final List<String> replies;
+  final ValueChanged<String>? onSelected;
 
   @override
   Widget build(BuildContext context) {
@@ -1062,18 +1084,23 @@ class DriverChatQuickReplies extends StatelessWidget {
       runSpacing: 8.h,
       children: replies
           .map(
-            (reply) => Container(
-              padding: EdgeInsets.symmetric(horizontal: 13.w, vertical: 8.h),
-              decoration: BoxDecoration(
-                color: AppColors.white,
-                borderRadius: BorderRadius.circular(18.r),
-                border: Border.all(color: const Color(0xFFE0E6E0), width: 1.2),
-              ),
-              child: Text(
-                reply,
-                style: AppTextStyles.labelSmall(color: const Color(0xFF127036)).copyWith(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 12.5.sp,
+            (reply) => GestureDetector(
+              onTap: onSelected == null ? null : () => onSelected!(reply),
+              child: Container(
+                padding: EdgeInsets.symmetric(horizontal: 13.w, vertical: 8.h),
+                decoration: BoxDecoration(
+                  color: AppColors.white,
+                  borderRadius: BorderRadius.circular(18.r),
+                  border: Border.all(color: const Color(0xFFE0E6E0), width: 1.2),
+                ),
+                child: Text(
+                  reply,
+                  style: AppTextStyles.labelSmall(
+                    color: const Color(0xFF127036),
+                  ).copyWith(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 12.5.sp,
+                  ),
                 ),
               ),
             ),
@@ -1084,7 +1111,18 @@ class DriverChatQuickReplies extends StatelessWidget {
 }
 
 class DriverChatInputBar extends StatelessWidget {
-  const DriverChatInputBar({super.key});
+  const DriverChatInputBar({
+    super.key,
+    this.controller,
+    this.onSend,
+    this.enabled = true,
+    this.hint,
+  });
+
+  final TextEditingController? controller;
+  final VoidCallback? onSend;
+  final bool enabled;
+  final String? hint;
 
   @override
   Widget build(BuildContext context) {
@@ -1114,23 +1152,40 @@ class DriverChatInputBar extends StatelessWidget {
                   border: Border.all(color: AppColors.border),
                 ),
                 alignment: Alignment.centerLeft,
-                child: Text(
-                  OrderFlowStrings.messageAhmed,
-                  style: AppTextStyles.bodySmall(color: AppColors.textSecondary).copyWith(
-                    fontSize: 14.sp,
+                child: TextField(
+                  controller: controller,
+                  enabled: enabled,
+                  decoration: InputDecoration(
+                    isDense: true,
+                    border: InputBorder.none,
+                    hintText: hint ?? OrderFlowStrings.messageAhmed,
+                    hintStyle: AppTextStyles.bodySmall(
+                      color: AppColors.textSecondary,
+                    ).copyWith(fontSize: 14.sp),
                   ),
+                  style: AppTextStyles.bodySmall(
+                    color: AppColors.textPrimary,
+                  ).copyWith(fontSize: 14.sp),
+                  onSubmitted: (_) => onSend?.call(),
                 ),
               ),
             ),
             SizedBox(width: 10.w),
-            Container(
-              width: 44.w,
-              height: 44.w,
-              decoration: const BoxDecoration(
-                color: AppColors.cartTabActive,
-                shape: BoxShape.circle,
+            GestureDetector(
+              onTap: enabled ? onSend : null,
+              child: Container(
+                width: 44.w,
+                height: 44.w,
+                decoration: const BoxDecoration(
+                  color: AppColors.cartTabActive,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.send_rounded,
+                  color: AppColors.white,
+                  size: 20.sp,
+                ),
               ),
-              child: Icon(Icons.send_rounded, color: AppColors.white, size: 20.sp),
             ),
           ],
         ),

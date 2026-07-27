@@ -154,17 +154,20 @@ class ApiClient {
   Future<ApiResponse> deleteJson(
     String path, {
     String? bearerToken,
+    Map<String, dynamic>? body,
   }) async {
     final uri = Uri.parse('${ApiConstants.baseUrl}$path');
     try {
       final token = _resolveToken(bearerToken);
-      appLogger.d('DELETE $uri');
+      appLogger.d('DELETE $uri ${body ?? ''}');
       final response = await _client.delete(
         uri,
         headers: {
           'Accept': 'application/json',
+          if (body != null) 'Content-Type': 'application/json',
           if (token != null) 'Authorization': 'Bearer $token',
         },
+        body: body == null ? null : jsonEncode(body),
       );
       Map<String, dynamic>? json;
       try {
@@ -177,6 +180,47 @@ class ApiClient {
       return ApiResponse(statusCode: response.statusCode, json: json);
     } catch (error, stack) {
       appLogger.e('DELETE $path error', error: error, stackTrace: stack);
+      return const ApiResponse(statusCode: 0);
+    }
+  }
+
+  /// POST multipart `/uploads` — field name `file`.
+  Future<ApiResponse> postMultipartFile(
+    String path, {
+    required String filePath,
+    String fieldName = 'file',
+    String? filename,
+    String? bearerToken,
+  }) async {
+    final uri = Uri.parse('${ApiConstants.baseUrl}$path');
+    try {
+      final token = _resolveToken(bearerToken);
+      appLogger.d('POST multipart $uri');
+      final request = http.MultipartRequest('POST', uri);
+      request.headers['Accept'] = 'application/json';
+      if (token != null) request.headers['Authorization'] = 'Bearer $token';
+      request.files.add(
+        await http.MultipartFile.fromPath(
+          fieldName,
+          filePath,
+          filename: filename,
+        ),
+      );
+      final streamed = await _client.send(request);
+      final response = await http.Response.fromStream(streamed);
+      Map<String, dynamic>? json;
+      try {
+        final decoded = jsonDecode(response.body);
+        if (decoded is Map<String, dynamic>) json = decoded;
+      } catch (_) {}
+      if (response.statusCode >= 300) {
+        appLogger.w(
+          'POST multipart $path failed: ${response.statusCode} ${response.body}',
+        );
+      }
+      return ApiResponse(statusCode: response.statusCode, json: json);
+    } catch (error, stack) {
+      appLogger.e('POST multipart $path error', error: error, stackTrace: stack);
       return const ApiResponse(statusCode: 0);
     }
   }

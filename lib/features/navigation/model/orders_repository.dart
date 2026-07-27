@@ -94,6 +94,46 @@ class OrdersRepository {
     return response.ok;
   }
 
+  /// PATCH /orders/:id/payment-method
+  Future<bool> changePaymentMethod(String orderId, String paymentMethod) async {
+    final response = await _apiClient.patchJson(
+      '/orders/$orderId/payment-method',
+      {'paymentMethod': paymentMethod},
+      bearerToken: _token,
+    );
+    return response.ok;
+  }
+
+  /// POST /orders/:orderId/payments/initiate
+  Future<Map<String, dynamic>?> initiatePayment(String orderId) async {
+    final response = await _apiClient.postJson(
+      '/orders/$orderId/payments/initiate',
+      const {},
+      bearerToken: _token,
+    );
+    if (!response.ok) return null;
+    return response.data;
+  }
+
+  /// POST /orders/:orderId/payments/confirm
+  Future<bool> confirmPayment(
+    String orderId, {
+    String status = 'PAID',
+    String? gatewayRef,
+    String? paymentMethod,
+  }) async {
+    final response = await _apiClient.postJson(
+      '/orders/$orderId/payments/confirm',
+      {
+        'status': status,
+        if (gatewayRef != null) 'gatewayRef': gatewayRef,
+        if (paymentMethod != null) 'paymentMethod': paymentMethod,
+      },
+      bearerToken: _token,
+    );
+    return response.ok;
+  }
+
   /// POST /orders/:orderId/reviews
   Future<bool> submitReview(
     String orderId, {
@@ -136,19 +176,28 @@ class OrdersRepository {
   }
 
   /// POST /support/tickets
-  Future<bool> createSupportTicket({
+  Future<Map<String, dynamic>?> createSupportTicket({
     required String subject,
     String? remark,
     String? orderId,
     String? issueType,
+    List<Map<String, dynamic>>? items,
+    List<String>? evidenceUrls,
+    double? disputedAmount,
   }) async {
     final response = await _apiClient.postJson('/support/tickets', {
       'subject': subject,
-      if (remark != null) 'remark': remark,
-      if (orderId != null) 'orderId': orderId,
-      if (issueType != null) 'issueType': issueType,
+      if (remark != null && remark.isNotEmpty) 'remark': remark,
+      if (orderId != null && orderId.isNotEmpty) 'orderId': orderId,
+      if (issueType != null && issueType.isNotEmpty) 'issueType': issueType,
+      if (items != null && items.isNotEmpty) 'items': items,
+      if (evidenceUrls != null && evidenceUrls.isNotEmpty)
+        'evidenceUrls': evidenceUrls,
+      if (disputedAmount != null) 'disputedAmount': disputedAmount,
     }, bearerToken: _token);
-    return response.ok;
+    if (!response.ok) return null;
+    final data = response.data;
+    return data is Map<String, dynamic> ? data : <String, dynamic>{};
   }
 }
 

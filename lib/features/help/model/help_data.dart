@@ -60,6 +60,43 @@ enum HelpIssueType {
   cashOut,
 }
 
+extension HelpIssueTypeApiX on HelpIssueType {
+  /// Backend `ISSUE_TYPES` value for ticket create.
+  String get apiIssueType => switch (this) {
+        HelpIssueType.orderLate => 'order_late',
+        HelpIssueType.missingItems => 'missing_items',
+        HelpIssueType.wrongOrder => 'wrong_items',
+        HelpIssueType.notReceived => 'order_never_arrived',
+        HelpIssueType.foodQuality => 'food_quality',
+        HelpIssueType.damagedSpilled => 'damaged_items',
+        HelpIssueType.paymentIssue => 'payment_issue',
+        HelpIssueType.champComplaint => 'driver_behaviour',
+        HelpIssueType.cancelOrder => 'other',
+        HelpIssueType.serviceNoShow => 'service_no_show',
+        HelpIssueType.serviceQualityDispute => 'service_quality',
+        HelpIssueType.propertyDamage => 'property_damage',
+        HelpIssueType.dineInReservation => 'dine_in_reservation',
+        HelpIssueType.dineInBillQuality => 'dine_in_bill',
+        HelpIssueType.pickUpNotReady => 'pickup_not_ready',
+        HelpIssueType.cashbackNotCredited => 'cashback_not_credited',
+        HelpIssueType.cashOut => 'cash_out',
+        HelpIssueType.modifyRequest => 'modify_request',
+        _ => 'other',
+      };
+
+  bool get opensCareChatAfterSubmit => switch (this) {
+        HelpIssueType.paymentIssue ||
+        HelpIssueType.serviceNoShow ||
+        HelpIssueType.dineInReservation ||
+        HelpIssueType.dineInBillQuality ||
+        HelpIssueType.pickUpNotReady ||
+        HelpIssueType.cashOut ||
+        HelpIssueType.champComplaint =>
+          true,
+        _ => false,
+      };
+}
+
 extension HelpIssueTypeX on HelpIssueType {
   static HelpIssueType fromQuery(String? value) => switch (value) {
         'order_late' => HelpIssueType.orderLate,

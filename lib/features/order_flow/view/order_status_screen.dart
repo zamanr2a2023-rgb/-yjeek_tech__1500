@@ -126,6 +126,44 @@ class _OrderStatusScreenState extends ConsumerState<OrderStatusScreen> {
     );
   }
 
+  Future<void> _changePayment() async {
+    final orderId = widget.orderId;
+    if (orderId == null || orderId.isEmpty) return;
+    const options = <(String, String)>[
+      ('CASH', 'Cash on delivery'),
+      ('CARD', 'Card'),
+      ('BENEFIT_PAY', 'BenefitPay'),
+      ('YJEEK_WALLET', 'Yjeek Wallet'),
+    ];
+    final selected = await showModalBottomSheet<String>(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (final opt in options)
+              ListTile(
+                title: Text(opt.$2),
+                onTap: () => Navigator.pop(ctx, opt.$1),
+              ),
+          ],
+        ),
+      ),
+    );
+    if (selected == null || !mounted) return;
+    final ok = await ref
+        .read(ordersRepositoryProvider)
+        .changePaymentMethod(orderId, selected);
+    if (!mounted) return;
+    if (!ok) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not change payment method')),
+      );
+      return;
+    }
+    setState(() => _payment = formatPaymentMethod(selected));
+  }
+
   @override
   Widget build(BuildContext context) {
     final orderId = widget.orderId;
@@ -164,15 +202,18 @@ class _OrderStatusScreenState extends ConsumerState<OrderStatusScreen> {
                   meta: _champMeta,
                   onCall: _hasChamp ? _onCall : null,
                   onChat: _hasChamp
-                      ? () => context.push(OrderFlowRoutes.chat)
+                      ? () => context.push(OrderFlowRoutes.chatFor(orderId))
                       : null,
                 ),
                 SizedBox(height: 16.h),
-                OrderPaymentRow(paymentMethod: _payment),
+                OrderPaymentRow(
+                  paymentMethod: _payment,
+                  onChange: _changePayment,
+                ),
                 SizedBox(height: 16.h),
                 OrderContactSupportButton(
                   onTap: () => context.push(
-                    HelpRoutes.orderHelp(orderId: orderId, tab: 1),
+                    HelpRoutes.helpSupport(orderId: orderId, tab: 1),
                   ),
                 ),
               ],

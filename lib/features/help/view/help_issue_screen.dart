@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:yjeek_app/core/constants/app_colors.dart';
 import 'package:yjeek_app/core/constants/app_text_styles.dart';
+import 'package:yjeek_app/core/providers/app_providers.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/features/help/help_routes.dart';
 import 'package:yjeek_app/features/help/model/help_data.dart';
@@ -9,7 +12,23 @@ import 'package:yjeek_app/features/help/model/help_phase2_data.dart';
 import 'package:yjeek_app/features/help/view/help_phase2_issue_body.dart';
 import 'package:yjeek_app/features/help/view/widgets/help_widgets.dart';
 
-class HelpIssueScreen extends StatefulWidget {
+class _OrderLineItem {
+  const _OrderLineItem({
+    required this.id,
+    required this.label,
+    required this.price,
+    required this.quantity,
+    required this.unitPrice,
+  });
+
+  final String id;
+  final String label;
+  final String price;
+  final int quantity;
+  final double unitPrice;
+}
+
+class HelpIssueScreen extends ConsumerStatefulWidget {
   const HelpIssueScreen({
     super.key,
     required this.type,
@@ -22,29 +41,123 @@ class HelpIssueScreen extends StatefulWidget {
   final int bottomNavIndex;
 
   @override
-  State<HelpIssueScreen> createState() => _HelpIssueScreenState();
+  ConsumerState<HelpIssueScreen> createState() => _HelpIssueScreenState();
 }
 
-class _HelpIssueScreenState extends State<HelpIssueScreen> {
-  late List<bool> _itemChecks;
+class _HelpIssueScreenState extends ConsumerState<HelpIssueScreen> {
+  List<_OrderLineItem> _items = const [];
+  List<bool> _itemChecks = const [];
   String? _selectedChip;
   String? _selectedCancelReason;
   bool _confirmNotReceived = true;
   bool _feltUnwell = false;
+  bool _loading = true;
+  bool _submitting = false;
+  bool _uploadingPhoto = false;
+  bool _canCancel = true;
+  bool _isFreeWindow = true;
+  double _feePercentMax = 0;
+  String _orderTotalBhd = '0.000';
+  String _shortId = '';
+  String? _photoUrl;
+  String? _statusLabel;
+  String? _statusRaw;
+  String? _phase2Remark;
+  Map<String, dynamic>? _cancelQuote;
   final _noteController = TextEditingController();
+  final _picker = ImagePicker();
 
   @override
   void initState() {
     super.initState();
-    _itemChecks = HelpData.orderItems.map((item) => item.selected).toList();
     _selectedChip = HelpData.foodQualityOptions.first;
     _selectedCancelReason = HelpData.cancelReasons.first;
+    WidgetsBinding.instance.addPostFrameCallback((_) => _hydrate());
   }
 
   @override
   void dispose() {
     _noteController.dispose();
     super.dispose();
+  }
+
+  Future<void> _hydrate() async {
+    setState(() => _loading = true);
+    final order =
+        await ref.read(ordersRepositoryProvider).getOrder(widget.orderId);
+    if (!mounted) return;
+
+    final fallback = HelpData.contextForOrderId(widget.orderId).order;
+    final parsed = <_OrderLineItem>[];
+    if (order != null) {
+      final rawItems = order['items'];
+      if (rawItems is List) {
+        for (final row in rawItems) {
+          if (row is! Map) continue;
+          final id = row['id']?.toString() ?? '';
+          if (id.isEmpty) continue;
+          final name = row['name']?.toString() ?? 'Item';
+          final qty = (row['quantity'] as num?)?.toInt() ?? 1;
+          final unit = (row['unitPrice'] as num?)?.toDouble() ?? 0;
+          parsed.add(
+            _OrderLineItem(
+              id: id,
+              label: '$qty× $name',
+              price: 'BHD ${(unit * qty).toStringAsFixed(3)}',
+              quantity: qty,
+              unitPrice: unit,
+            ),
+          );
+        }
+      }
+      final total = order['totalAmount'];
+      _orderTotalBhd =
+          total is num ? total.toStringAsFixed(3) : fallback.totalBhd;
+      final orderNumber = order['orderNumber']?.toString();
+      _shortId = orderNumber != null && orderNumber.isNotEmpty
+          ? (orderNumber.startsWith('#') ? orderNumber : '#$orderNumber')
+          : fallback.shortId;
+      _canCancel = order['canCancel'] == true ||
+          (order['cancelQuote'] is Map &&
+              (order['cancelQuote'] as Map)['canCancel'] == true);
+      _statusRaw = order['status']?.toString();
+      _statusLabel = _statusRaw?.replaceAll('_', ' ');
+      final quote = order['cancelQuote'];
+      if (quote is Map<String, dynamic>) {
+        _cancelQuote = quote;
+        _isFreeWindow = quote['isFreeWindow'] == true;
+        _feePercentMax = (quote['feePercentMax'] as num?)?.toDouble() ?? 0;
+        final ot = quote['orderTotal'];
+        if (ot is num) _orderTotalBhd = ot.toStringAsFixed(3);
+      }
+    } else {
+      _orderTotalBhd = fallback.totalBhd;
+      _shortId = fallback.shortId;
+      _items = HelpData.orderItems
+          .map(
+            (e) => _OrderLineItem(
+              id: e.label,
+              label: e.label,
+              price: e.price,
+              quantity: 1,
+              unitPrice: 0,
+            ),
+          )
+          .toList();
+      _itemChecks = HelpData.orderItems.map((e) => e.selected).toList();
+      setState(() => _loading = false);
+      return;
+    }
+
+    setState(() {
+      _items = parsed;
+      _itemChecks = List<bool>.filled(parsed.length, false);
+      if (parsed.length >= 2) {
+        _itemChecks[parsed.length - 1] = true;
+        if (parsed.length >= 3) _itemChecks[parsed.length - 2] = true;
+      }
+      _loading = false;
+    });
   }
 
   String get _title => switch (widget.type) {
@@ -85,28 +198,280 @@ class _HelpIssueScreenState extends State<HelpIssueScreen> {
         _ => false,
       };
 
-  bool get _phase2HasExternalBottom =>
-      widget.type == HelpIssueType.modifyRequest ||
-      widget.type == HelpIssueType.paymentIssue;
+  bool get _phase2HasExternalBottom => false;
 
   bool get _showReportBanner =>
       widget.type == HelpIssueType.missingItems ||
       widget.type == HelpIssueType.wrongOrder;
 
+  bool get _needsItems =>
+      widget.type == HelpIssueType.missingItems ||
+      widget.type == HelpIssueType.wrongOrder;
+
+  bool get _photoRequired => widget.type == HelpIssueType.damagedSpilled;
+
+  Future<void> _pickPhoto() async {
+    final source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.photo_library_outlined),
+              title: const Text('Choose from gallery'),
+              onTap: () => Navigator.pop(ctx, ImageSource.gallery),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_camera_outlined),
+              title: const Text('Take photo'),
+              onTap: () => Navigator.pop(ctx, ImageSource.camera),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (source == null || !mounted) return;
+
+    final file = await _picker.pickImage(
+      source: source,
+      imageQuality: 85,
+      maxWidth: 2000,
+    );
+    if (file == null || !mounted) return;
+
+    setState(() => _uploadingPhoto = true);
+    final url = await ref.read(userRepositoryProvider).uploadFile(
+          file.path,
+          filename: file.name,
+        );
+    if (!mounted) return;
+    setState(() => _uploadingPhoto = false);
+    if (url == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Upload failed'),
+          backgroundColor: Color(0xFFB42318),
+        ),
+      );
+      return;
+    }
+    setState(() => _photoUrl = url);
+  }
+
+  List<Map<String, dynamic>> _selectedTicketItems() {
+    final out = <Map<String, dynamic>>[];
+    for (var i = 0; i < _items.length; i++) {
+      if (i >= _itemChecks.length || !_itemChecks[i]) continue;
+      // Skip mock fallback ids that aren't real order item cuids.
+      if (_items[i].id.length < 10) continue;
+      out.add({
+        'orderItemId': _items[i].id,
+        'quantity': _items[i].quantity,
+      });
+    }
+    return out;
+  }
+
+  double? _disputedAmount() {
+    var sum = 0.0;
+    for (var i = 0; i < _items.length; i++) {
+      if (i >= _itemChecks.length || !_itemChecks[i]) continue;
+      sum += _items[i].unitPrice * _items[i].quantity;
+    }
+    return sum > 0 ? sum : null;
+  }
+
+  String _buildRemark() {
+    if (_phase2Remark != null && _phase2Remark!.isNotEmpty) {
+      return _phase2Remark!;
+    }
+    final parts = <String>[];
+    final note = _noteController.text.trim();
+    if (note.isNotEmpty) parts.add(note);
+    if (_selectedChip != null && widget.type == HelpIssueType.foodQuality) {
+      parts.add('Quality: $_selectedChip');
+    }
+    if (_feltUnwell) parts.add('Felt unwell after eating');
+    if (_selectedCancelReason != null &&
+        widget.type == HelpIssueType.cancelOrder) {
+      parts.add('Cancel reason: $_selectedCancelReason');
+    }
+    if (_confirmNotReceived && widget.type == HelpIssueType.notReceived) {
+      parts.add('Customer confirmed order not received');
+    }
+    return parts.isEmpty ? 'Customer submitted $_title' : parts.join(' · ');
+  }
+
+  HelpChatVariant _chatVariantForType() => switch (widget.type) {
+        HelpIssueType.paymentIssue => HelpChatVariant.payment,
+        HelpIssueType.serviceNoShow => HelpChatVariant.serviceNoShow,
+        _ => HelpChatVariant.support,
+      };
+
+  Future<void> _submit([String? phase2Remark]) async {
+    if (_submitting) return;
+    if (phase2Remark != null) _phase2Remark = phase2Remark;
+
+    if (_needsItems && !_itemChecks.any((v) => v)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Select at least one item')),
+      );
+      return;
+    }
+    if (_photoRequired && (_photoUrl == null || _photoUrl!.isEmpty)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please add a photo of the damage')),
+      );
+      return;
+    }
+    if (widget.type == HelpIssueType.notReceived && !_confirmNotReceived) {
+      return;
+    }
+
+    setState(() => _submitting = true);
+
+    if (widget.type == HelpIssueType.cancelOrder) {
+      if (!_canCancel) {
+        setState(() => _submitting = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('This order can no longer be cancelled'),
+            backgroundColor: Color(0xFFB42318),
+          ),
+        );
+        return;
+      }
+      final ok = await ref.read(ordersRepositoryProvider).cancel(
+            widget.orderId,
+            reason: _selectedCancelReason ?? 'Customer cancelled via help',
+          );
+      if (!mounted) return;
+      setState(() => _submitting = false);
+      if (!ok) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Could not cancel this order'),
+            backgroundColor: Color(0xFFB42318),
+          ),
+        );
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Order cancelled')),
+      );
+      context.pop();
+      return;
+    }
+
+    if (widget.type == HelpIssueType.modifyRequest) {
+      final ticket = await ref.read(supportRepositoryProvider).createTicket(
+            subject: '$_title · $_shortId',
+            remark: _buildRemark(),
+            orderId: widget.orderId,
+            issueType: widget.type.apiIssueType,
+          );
+      if (!mounted) return;
+      setState(() => _submitting = false);
+      if (ticket == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Could not submit your request'),
+            backgroundColor: Color(0xFFB42318),
+          ),
+        );
+        return;
+      }
+      context.push(
+        HelpRoutes.helpFlow(
+          flow: HelpFlowType.modifyAwaiting,
+          orderId: widget.orderId,
+          tab: widget.bottomNavIndex,
+        ),
+      );
+      return;
+    }
+
+    final ticket = await ref.read(supportRepositoryProvider).createTicket(
+          subject: '$_title · $_shortId',
+          remark: _buildRemark(),
+          orderId: widget.orderId,
+          issueType: widget.type.apiIssueType,
+          items: _needsItems ? _selectedTicketItems() : null,
+          evidenceUrls: _photoUrl != null ? [_photoUrl!] : null,
+          disputedAmount: _needsItems ? _disputedAmount() : null,
+        );
+
+    if (!mounted) return;
+    setState(() => _submitting = false);
+
+    if (ticket == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Could not submit your request'),
+          backgroundColor: Color(0xFFB42318),
+        ),
+      );
+      return;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          ticket.displayCode.isNotEmpty
+              ? 'Submitted · ${ticket.displayCode}'
+              : 'Your request has been submitted',
+        ),
+      ),
+    );
+
+    if (widget.type.opensCareChatAfterSubmit) {
+      context.push(
+        HelpRoutes.helpChat(
+          variant: _chatVariantForType(),
+          ticketId: ticket.id,
+          tab: widget.bottomNavIndex,
+        ),
+      );
+      return;
+    }
+
+    context.pop();
+  }
+
   @override
   Widget build(BuildContext context) {
     final orderContext = HelpData.contextForOrderId(widget.orderId);
+    final hydratedContext = HelpOrderContext(
+      category: orderContext.category,
+      isScheduled: orderContext.isScheduled,
+      order: HelpOrder(
+        vendorName: orderContext.order.vendorName,
+        orderId: widget.orderId,
+        shortId: _shortId.isNotEmpty ? _shortId : orderContext.order.shortId,
+        statusLabel: _statusLabel ?? orderContext.order.statusLabel,
+        itemCount: _items.isNotEmpty
+            ? _items.fold<int>(0, (s, e) => s + e.quantity)
+            : orderContext.order.itemCount,
+        totalBhd: _orderTotalBhd,
+        deliveredAt: orderContext.order.deliveredAt,
+        compactSubtitle: orderContext.order.compactSubtitle,
+      ),
+    );
 
     return HelpScreenScaffold(
       title: _title,
       bottomNavIndex: widget.bottomNavIndex,
       showBottomNav: false,
-      // Figma H4–H9: white title + back on green header.
       darkTitle: false,
       banner: _showReportBanner
           ? const HelpInfoBanner(message: HelpData.reportWindowBanner)
           : null,
-      body: _buildIssueBody(orderContext),
+      body: _loading
+          ? const Center(
+              child: CircularProgressIndicator(color: AppColors.primary),
+            )
+          : _buildIssueBody(hydratedContext),
       bottom: _isPhase2Issue && _phase2HasExternalBottom
           ? _buildPhase2Bottom()
           : null,
@@ -116,7 +481,16 @@ class _HelpIssueScreenState extends State<HelpIssueScreen> {
   Widget _buildScrollForm(List<Widget> children) {
     return ListView(
       padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 16.h),
-      children: children,
+      children: [
+        ...children,
+        if (_submitting)
+          Padding(
+            padding: EdgeInsets.only(top: 12.h),
+            child: const Center(
+              child: CircularProgressIndicator(color: AppColors.primary),
+            ),
+          ),
+      ],
     );
   }
 
@@ -128,7 +502,7 @@ class _HelpIssueScreenState extends State<HelpIssueScreen> {
             label: 'Submit',
             showCheck: true,
             inline: true,
-            onTap: () => _submit(context),
+            onTap: _submitting ? null : _submit,
           ),
         ]),
       HelpIssueType.wrongOrder => _buildScrollForm([
@@ -137,7 +511,7 @@ class _HelpIssueScreenState extends State<HelpIssueScreen> {
             label: 'Submit',
             showCheck: true,
             inline: true,
-            onTap: () => _submit(context),
+            onTap: _submitting ? null : _submit,
           ),
         ]),
       HelpIssueType.damagedSpilled => _buildScrollForm([
@@ -145,7 +519,7 @@ class _HelpIssueScreenState extends State<HelpIssueScreen> {
           HelpPrimaryButton(
             label: 'Submit & get refund',
             inline: true,
-            onTap: () => _submit(context),
+            onTap: _submitting ? null : _submit,
           ),
         ]),
       HelpIssueType.notReceived => _buildScrollForm([
@@ -162,7 +536,7 @@ class _HelpIssueScreenState extends State<HelpIssueScreen> {
             label: 'Report not received',
             showCheck: true,
             inline: true,
-            onTap: _confirmNotReceived ? () => _submit(context) : null,
+            onTap: (!_confirmNotReceived || _submitting) ? null : _submit,
           ),
         ]),
       HelpIssueType.foodQuality => _buildScrollForm([
@@ -171,39 +545,84 @@ class _HelpIssueScreenState extends State<HelpIssueScreen> {
             label: 'Submit complaint',
             showCheck: true,
             inline: true,
-            onTap: () => _submit(context),
+            onTap: _submitting ? null : _submit,
           ),
         ]),
       HelpIssueType.cancelOrder => _buildScrollForm([
-          const HelpWarningBanner(
-            title: 'Vendor is preparing your order',
-            subtitle: 'Cancelling now may incur a fee',
+          HelpWarningBanner(
+            title: !_canCancel
+                ? 'Cancellation unavailable'
+                : (_statusRaw == 'PREPARING' || _statusRaw == 'CONFIRMED'
+                    ? 'Vendor is preparing your order'
+                    : (_isFreeWindow
+                        ? 'Free cancellation available'
+                        : 'Outside free window')),
+            subtitle: _cancelQuote?['policyNote']?.toString() ??
+                (_canCancel
+                    ? 'Cancelling now may incur a fee'
+                    : 'This order can no longer be cancelled from the app'),
           ),
           SizedBox(height: 14.h),
-          const HelpFormHeading(title: 'Why are you cancelling?'),
-          SizedBox(height: 10.h),
-          HelpChipSelector(
-            options: HelpData.cancelReasons,
-            selected: _selectedCancelReason,
-            onSelected: (value) => setState(() => _selectedCancelReason = value),
+          if (_canCancel) ...[
+            const HelpFormHeading(title: 'Why are you cancelling?'),
+            SizedBox(height: 10.h),
+            HelpChipSelector(
+              options: HelpData.cancelReasons,
+              selected: _selectedCancelReason,
+              onSelected: (value) =>
+                  setState(() => _selectedCancelReason = value),
+            ),
+            SizedBox(height: 14.h),
+          ],
+          HelpRefundSummaryCard(
+            orderTotalBhd: _orderTotalBhd,
+            canCancel: _canCancel,
+            showFeeEstimate: _canCancel && _feePercentMax > 0,
           ),
-          SizedBox(height: 14.h),
-          const HelpRefundSummaryCard(),
           Padding(
             padding: EdgeInsets.only(top: 16.h),
             child: Column(
               children: [
-                HelpDestructiveButton(
-                  label: 'Cancel order',
-                  onTap: () => _submit(context),
-                ),
+                if (_canCancel)
+                  HelpDestructiveButton(
+                    label: 'Cancel order',
+                    onTap: _submitting ? null : () => _submit(),
+                  )
+                else
+                  HelpPrimaryButton(
+                    label: 'Contact support',
+                    showCheck: true,
+                    inline: true,
+                    onTap: _submitting
+                        ? null
+                        : () => context.push(
+                              HelpRoutes.helpChat(
+                                tab: widget.bottomNavIndex,
+                              ),
+                            ),
+                  ),
                 SizedBox(height: 10.h),
                 HelpOutlineButton(
-                  label: 'Keep my order',
+                  label: _canCancel ? 'Keep my order' : 'Go back',
                   onTap: () => context.pop(),
                 ),
               ],
             ),
+          ),
+        ]),
+      HelpIssueType.orderLate => _buildScrollForm([
+          const HelpFormHeading(
+            title: 'Order late +15?',
+            subtitle:
+                'When your order is 15 minutes past ETA, an instant wallet credit is '
+                'applied and you’ll get a notification.',
+          ),
+          SizedBox(height: 16.h),
+          HelpPrimaryButton(
+            label: 'Report late order',
+            showCheck: true,
+            inline: true,
+            onTap: _submitting ? null : () => _submit(),
           ),
         ]),
       _ => ListView(
@@ -214,10 +633,8 @@ class _HelpIssueScreenState extends State<HelpIssueScreen> {
                 type: widget.type,
                 orderContext: orderContext,
                 externalSubmit: _phase2HasExternalBottom,
-                onSubmit: () => _submit(context),
+                onSubmit: (remark) => _submit(remark),
               )
-            else if (widget.type.hasDedicatedForm)
-              ..._buildDedicatedForm(orderContext)
             else
               ..._buildGenericForm(),
           ],
@@ -226,17 +643,32 @@ class _HelpIssueScreenState extends State<HelpIssueScreen> {
   }
 
   List<Widget> _buildOrderItemCheckboxCard() {
+    if (_items.isEmpty) {
+      return [
+        HelpCard(
+          child: Padding(
+            padding: EdgeInsets.all(14.w),
+            child: Text(
+              'No items found on this order',
+              style: AppTextStyles.labelSmall(color: const Color(0xFF6B7B6E)),
+            ),
+          ),
+        ),
+      ];
+    }
     return [
       HelpCard(
         child: Column(
           children: [
-            for (var i = 0; i < HelpData.orderItems.length; i++) ...[
+            for (var i = 0; i < _items.length; i++) ...[
               if (i > 0) SizedBox(height: 12.h),
               HelpItemCheckboxRow(
-                label: HelpData.orderItems[i].label,
-                price: HelpData.orderItems[i].price,
-                checked: _itemChecks[i],
-                onChanged: (value) => setState(() => _itemChecks[i] = value),
+                label: _items[i].label,
+                price: _items[i].price,
+                checked: i < _itemChecks.length && _itemChecks[i],
+                onChanged: (value) => setState(() {
+                  if (i < _itemChecks.length) _itemChecks[i] = value;
+                }),
               ),
             ],
           ],
@@ -251,7 +683,11 @@ class _HelpIssueScreenState extends State<HelpIssueScreen> {
       SizedBox(height: 12.h),
       ..._buildOrderItemCheckboxCard(),
       SizedBox(height: 14.h),
-      const HelpPhotoUploadBox(),
+      HelpPhotoUploadBox(
+        onTap: _pickPhoto,
+        imageUrl: _photoUrl,
+        uploading: _uploadingPhoto,
+      ),
     ];
   }
 
@@ -264,7 +700,11 @@ class _HelpIssueScreenState extends State<HelpIssueScreen> {
       SizedBox(height: 12.h),
       ..._buildOrderItemCheckboxCard(),
       SizedBox(height: 14.h),
-      const HelpPhotoUploadBox(),
+      HelpPhotoUploadBox(
+        onTap: _pickPhoto,
+        imageUrl: _photoUrl,
+        uploading: _uploadingPhoto,
+      ),
     ];
   }
 
@@ -275,7 +715,11 @@ class _HelpIssueScreenState extends State<HelpIssueScreen> {
         subtitle: 'A clear photo lets us refund you automatically.',
       ),
       SizedBox(height: 14.h),
-      const HelpPhotoUploadBox(),
+      HelpPhotoUploadBox(
+        onTap: _pickPhoto,
+        imageUrl: _photoUrl,
+        uploading: _uploadingPhoto,
+      ),
       SizedBox(height: 14.h),
       HelpNoteField(
         label: 'Add a note (optional)',
@@ -301,26 +745,44 @@ class _HelpIssueScreenState extends State<HelpIssueScreen> {
         controller: _noteController,
       ),
       SizedBox(height: 14.h),
-      Container(
-        width: double.infinity,
-        padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
-        decoration: BoxDecoration(
-          color: AppColors.white,
-          borderRadius: BorderRadius.circular(12.r),
-          border: Border.all(color: const Color(0xFFE6EBE3)),
-        ),
-        child: Row(
-          children: [
-            Icon(Icons.photo_camera_outlined, size: 20.sp, color: const Color(0xFF6B7B6E)),
-            SizedBox(width: 10.w),
-            Text(
-              'Add a photo (optional)',
-              style: AppTextStyles.labelMedium(color: AppColors.textPrimary).copyWith(
-                fontWeight: FontWeight.w600,
-                fontSize: 13.sp,
+      GestureDetector(
+        onTap: _pickPhoto,
+        child: Container(
+          width: double.infinity,
+          padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
+          decoration: BoxDecoration(
+            color: AppColors.white,
+            borderRadius: BorderRadius.circular(12.r),
+            border: Border.all(color: const Color(0xFFE6EBE3)),
+          ),
+          child: Row(
+            children: [
+              Icon(
+                Icons.photo_camera_outlined,
+                size: 20.sp,
+                color: const Color(0xFF6B7B6E),
               ),
-            ),
-          ],
+              SizedBox(width: 10.w),
+              Expanded(
+                child: Text(
+                  _photoUrl != null
+                      ? 'Photo attached · tap to change'
+                      : 'Add a photo (optional)',
+                  style: AppTextStyles.labelMedium(color: AppColors.textPrimary)
+                      .copyWith(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13.sp,
+                  ),
+                ),
+              ),
+              if (_uploadingPhoto)
+                SizedBox(
+                  width: 16.w,
+                  height: 16.w,
+                  child: const CircularProgressIndicator(strokeWidth: 2),
+                ),
+            ],
+          ),
         ),
       ),
       SizedBox(height: 14.h),
@@ -360,7 +822,8 @@ class _HelpIssueScreenState extends State<HelpIssueScreen> {
           Expanded(
             child: Text(
               'I or someone felt unwell after eating',
-              style: AppTextStyles.labelSmall(color: const Color(0xFFC0392B)).copyWith(
+              style: AppTextStyles.labelSmall(color: const Color(0xFFC0392B))
+                  .copyWith(
                 fontWeight: FontWeight.w600,
                 fontSize: 12.5.sp,
                 height: 1.35,
@@ -421,7 +884,8 @@ class _HelpIssueScreenState extends State<HelpIssueScreen> {
             Expanded(
               child: Text(
                 'I confirm I did not receive this order',
-                style: AppTextStyles.labelMedium(color: AppColors.textPrimary).copyWith(
+                style: AppTextStyles.labelMedium(color: AppColors.textPrimary)
+                    .copyWith(
                   fontWeight: FontWeight.w700,
                   fontSize: 13.sp,
                 ),
@@ -433,49 +897,12 @@ class _HelpIssueScreenState extends State<HelpIssueScreen> {
     );
   }
 
-  List<Widget> _buildDedicatedForm(HelpOrderContext orderContext) {
-    return switch (widget.type) {
-      HelpIssueType.orderLate => [
-          const HelpFormHeading(
-            title: 'Order late +15?',
-            subtitle:
-                'When your order is 15 minutes past ETA, an instant wallet credit is '
-                'applied and you’ll get a notification.',
-          ),
-        ],
-      _ => [],
-    };
-  }
-
   List<Widget> _buildGenericForm() {
-    final body = switch (widget.type) {
-      HelpIssueType.champComplaint =>
-        'Tell us what happened with your champ. Our support team will review the report '
-            'and follow up within 24 hours.',
-      HelpIssueType.paymentIssue =>
-        'Describe the payment problem you experienced. Include the payment method and time '
-            'of the transaction if possible.',
-      HelpIssueType.serviceNoShow =>
-        'Let us know when your service provider was scheduled and did not arrive.',
-      HelpIssueType.serviceQualityDispute =>
-        'Describe the quality issue with the service you received.',
-      HelpIssueType.propertyDamage =>
-        'Describe any property damage that occurred during the service visit.',
-      HelpIssueType.dineInReservation =>
-        'Tell us about your dine-in reservation that was not honored.',
-      HelpIssueType.dineInBillQuality =>
-        'Describe the issue with your dine-in bill or food quality.',
-      HelpIssueType.pickUpNotReady =>
-        'Let us know when you arrived for pick-up and the order was not ready.',
-      HelpIssueType.cashbackNotCredited =>
-        'Tell us which order should have earned cashback and we will investigate.',
-      HelpIssueType.modifyRequest =>
-        'Describe the changes you need to make to your scheduled order.',
-      _ => 'Contact our support team for help with this issue.',
-    };
-
     return [
-      HelpFormHeading(title: 'How can we help?', subtitle: body),
+      const HelpFormHeading(
+        title: 'How can we help?',
+        subtitle: 'Describe the issue and our team will follow up.',
+      ),
       SizedBox(height: 14.h),
       HelpNoteField(
         label: 'Your message',
@@ -487,32 +914,10 @@ class _HelpIssueScreenState extends State<HelpIssueScreen> {
         label: 'Submit',
         showCheck: true,
         inline: true,
-        onTap: () => _submit(context),
+        onTap: _submitting ? null : _submit,
       ),
     ];
   }
 
-  Widget? _buildPhase2Bottom() {
-    if (widget.type == HelpIssueType.paymentIssue) {
-      return Padding(
-        padding: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 16.h),
-        child: HelpPrimaryButton(
-          label: 'Submit and continue to chat',
-          showCheck: true,
-          inline: true,
-          onTap: () => context.push(
-            HelpRoutes.helpChat(variant: HelpChatVariant.payment),
-          ),
-        ),
-      );
-    }
-    return null;
-  }
-
-  void _submit(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Your request has been submitted')),
-    );
-    context.pop();
-  }
+  Widget? _buildPhase2Bottom() => null;
 }

@@ -309,11 +309,25 @@ class ExclusiveOfferListCard extends StatelessWidget {
       ),
       child: Row(
         children: [
-          AppPlaceholderImage(
-            color: offer.imageColor,
-            width: 76.w,
-            height: 76.w,
-            icon: Icons.fastfood_outlined,
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12.r),
+            child: SizedBox(
+              width: 76.w,
+              height: 76.w,
+              child: (offer.imageUrl != null && offer.imageUrl!.isNotEmpty)
+                  ? AppNetworkImage(
+                      url: offer.imageUrl!,
+                      width: 76.w,
+                      height: 76.w,
+                      fit: BoxFit.cover,
+                    )
+                  : AppPlaceholderImage(
+                      color: offer.imageColor,
+                      width: 76.w,
+                      height: 76.w,
+                      icon: Icons.fastfood_outlined,
+                    ),
+            ),
           ),
           SizedBox(width: 12.w),
           Expanded(
@@ -528,71 +542,65 @@ class EmptyCartBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        SizedBox(
-          height: 567.h,
-          width: double.infinity,
-          child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 30.w),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  width: 100.w,
-                  height: 100.w,
-                  decoration: const BoxDecoration(
-                    color: AppColors.iconBackground,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    tab.emptyIcon,
-                    color: AppColors.primary,
-                    size: 44.sp,
-                  ),
-                ),
-                SizedBox(height: 16.h),
-                Text(
-                  _title,
-                  textAlign: TextAlign.center,
-                  style: AppTextStyles.displayMedium().copyWith(fontSize: 23.sp),
-                ),
-                SizedBox(height: 16.h),
-                Text(
-                  _subtitle,
-                  textAlign: TextAlign.center,
-                  style: AppTextStyles.bodyMedium().copyWith(fontSize: 14.sp),
-                ),
-                SizedBox(height: 16.h),
-                SizedBox(
-                  width: double.infinity,
-                  height: 55.h,
-                  child: ElevatedButton(
-                    onPressed: onBrowse,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: AppColors.white,
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(28.r),
-                      ),
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 24.w,
-                        vertical: 17.h,
-                      ),
-                    ),
-                    child: Text(
-                      NavigationStrings.browseVendors,
-                      style: AppTextStyles.labelLarge(),
-                    ),
-                  ),
-                ),
-              ],
+    return Center(
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: 30.w, vertical: 24.h),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 100.w,
+              height: 100.w,
+              decoration: const BoxDecoration(
+                color: AppColors.iconBackground,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                tab.emptyIcon,
+                color: AppColors.primary,
+                size: 44.sp,
+              ),
             ),
-          ),
+            SizedBox(height: 16.h),
+            Text(
+              _title,
+              textAlign: TextAlign.center,
+              style: AppTextStyles.displayMedium().copyWith(fontSize: 23.sp),
+            ),
+            SizedBox(height: 16.h),
+            Text(
+              _subtitle,
+              textAlign: TextAlign.center,
+              style: AppTextStyles.bodyMedium().copyWith(fontSize: 14.sp),
+            ),
+            SizedBox(height: 16.h),
+            SizedBox(
+              width: double.infinity,
+              height: 55.h,
+              child: ElevatedButton(
+                onPressed: onBrowse,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: AppColors.white,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(28.r),
+                  ),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 24.w,
+                    vertical: 17.h,
+                  ),
+                ),
+                child: Text(
+                  NavigationStrings.browseVendors,
+                  style: AppTextStyles.labelLarge(),
+                ),
+              ),
+            ),
+          ],
         ),
-        const Spacer(),
-      ],
+      ),
     );
   }
 }

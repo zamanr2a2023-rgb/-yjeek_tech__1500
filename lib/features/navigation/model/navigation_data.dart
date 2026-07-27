@@ -41,6 +41,9 @@ class BrowseOffer {
     required this.category,
     this.originalPrice,
     this.badge,
+    this.productId,
+    this.vendorId,
+    this.imageUrl,
   });
 
   final String name;
@@ -50,6 +53,11 @@ class BrowseOffer {
   final String? badge;
   final Color imageColor;
   final OfferCategory category;
+
+  /// Present when loaded from GET /offers.
+  final String? productId;
+  final String? vendorId;
+  final String? imageUrl;
 }
 
 class ComboItem {
