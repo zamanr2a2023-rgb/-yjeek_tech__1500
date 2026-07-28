@@ -12,4 +12,8 @@ abstract final class CartRoutes {
   static const newCartDialog = RouteNames.cartNewCartDialog;
 
   static String editAddressFor(String id) => '$editAddress?id=$id';
+  static String reviewFor(String? orderId) {
+    if (orderId == null || orderId.isEmpty) return review;
+    return '$review?id=$orderId';
+  }
 }

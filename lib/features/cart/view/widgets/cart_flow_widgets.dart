@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:yjeek_app/core/constants/app_assets.dart';
 import 'package:yjeek_app/core/constants/app_colors.dart';
 import 'package:yjeek_app/core/constants/app_text_styles.dart';
+import 'package:yjeek_app/core/constants/maps_config.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
+import 'package:yjeek_app/core/widgets/app_google_map.dart';
 import 'package:yjeek_app/features/cart/model/cart_flow_data.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/account_widgets.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/navigation_widgets.dart';
@@ -226,16 +228,23 @@ class CartDeliveryDetailsCard extends StatelessWidget {
     this.addressDetail,
     this.phone,
     this.arrivesLabel,
+    this.latitude,
+    this.longitude,
   });
 
   final String address;
   final String? addressDetail;
   final String? phone;
   final String? arrivesLabel;
+  final double? latitude;
+  final double? longitude;
   final VoidCallback onChange;
 
   @override
   Widget build(BuildContext context) {
+    final lat = latitude ?? MapsConfig.defaultLat;
+    final lng = longitude ?? MapsConfig.defaultLng;
+
     return Container(
       width: double.infinity,
       clipBehavior: Clip.antiAlias,
@@ -250,34 +259,13 @@ class CartDeliveryDetailsCard extends StatelessWidget {
           SizedBox(
             height: 120.h,
             width: double.infinity,
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                const DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment(-0.8, -0.6),
-                      end: Alignment(0.8, 0.8),
-                      colors: [Color(0xFFCFD9D0), Color(0xFFAEBFAE)],
-                    ),
-                  ),
-                ),
-                Center(
-                  child: Container(
-                    width: 28.w,
-                    height: 28.w,
-                    decoration: const BoxDecoration(
-                      color: AppColors.primary,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      Icons.location_on,
-                      color: AppColors.white,
-                      size: 16.sp,
-                    ),
-                  ),
-                ),
-              ],
+            child: AppMapPreview(
+              key: ValueKey(
+                '${lat.toStringAsFixed(5)},${lng.toStringAsFixed(5)}',
+              ),
+              latitude: lat,
+              longitude: lng,
+              height: 120.h,
             ),
           ),
           Padding(
@@ -1525,52 +1513,81 @@ class CartReviewStatusCard extends StatelessWidget {
 }
 
 class CartReviewSummaryCard extends StatelessWidget {
-  const CartReviewSummaryCard({super.key, this.onEditAddress});
+  const CartReviewSummaryCard({
+    super.key,
+    this.onEditAddress,
+    this.vendorName,
+    this.items = const [],
+    this.deliverTo,
+    this.arrivesIn,
+    this.paymentMethod,
+    this.orderTotal,
+  });
 
   final VoidCallback? onEditAddress;
+  final String? vendorName;
+  final List<({String qty, String name, String price})> items;
+  final String? deliverTo;
+  final String? arrivesIn;
+  final String? paymentMethod;
+  final String? orderTotal;
 
   static const Color _detailIcon = Color(0xFF0F4D27);
 
   @override
   Widget build(BuildContext context) {
+    final lines = items.isEmpty
+        ? [
+            (
+              qty: '1×',
+              name: CartFlowData.itemName,
+              price: CartFlowData.itemPrice,
+            ),
+            (
+              qty: '1×',
+              name: CartFlowData.addonItemName,
+              price: CartFlowData.addonItemPrice,
+            ),
+          ]
+        : items;
+
     return CartFlowCard(
       padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            CartFlowData.vendor.toUpperCase(),
-            style: AppTextStyles.labelSmall(color: AppColors.textSecondary).copyWith(
+            (vendorName ?? CartFlowData.vendor).toUpperCase(),
+            style: AppTextStyles.labelSmall(color: AppColors.textSecondary)
+                .copyWith(
               fontWeight: FontWeight.w600,
               fontSize: 11.sp,
             ),
           ),
           SizedBox(height: 8.h),
-          _itemRow(
-            qty: '1×',
-            name: CartFlowData.itemName,
-            price: CartFlowData.itemPrice,
-          ),
-          SizedBox(height: 8.h),
-          _itemRow(
-            qty: '1×',
-            name: CartFlowData.addonItemName,
-            price: CartFlowData.addonItemPrice,
-          ),
+          for (var i = 0; i < lines.length; i++) ...[
+            if (i > 0) SizedBox(height: 8.h),
+            _itemRow(
+              qty: lines[i].qty,
+              name: lines[i].name,
+              price: lines[i].price,
+            ),
+          ],
           SizedBox(height: 8.h),
           Divider(height: 1, thickness: 1, color: AppColors.border),
           SizedBox(height: 2.h),
           _detailRow(
             icon: Icons.location_on_outlined,
             label: CartFlowStrings.deliverToLabel,
-            value: CartFlowData.reviewAddressLine,
+            value: deliverTo ?? CartFlowData.reviewAddressLine,
             trailing: onEditAddress == null
                 ? null
                 : GestureDetector(
                     onTap: onEditAddress,
                     child: Text(
                       CartFlowStrings.edit,
-                      style: AppTextStyles.labelMedium(color: AppColors.primary).copyWith(
+                      style: AppTextStyles.labelMedium(color: AppColors.primary)
+                          .copyWith(
                         fontWeight: FontWeight.w700,
                         fontSize: 13.sp,
                       ),
@@ -1580,12 +1597,12 @@ class CartReviewSummaryCard extends StatelessWidget {
           _detailRow(
             icon: Icons.access_time,
             label: CartFlowStrings.arrivesInLabel,
-            value: CartFlowStrings.standardDelivery,
+            value: arrivesIn ?? CartFlowStrings.standardDelivery,
           ),
           _detailRow(
             icon: Icons.payments_outlined,
             label: CartFlowStrings.paymentLabel,
-            value: CartFlowStrings.cashOnDelivery,
+            value: paymentMethod ?? CartFlowStrings.cashOnDelivery,
           ),
           SizedBox(height: 4.h),
           Row(
@@ -1593,15 +1610,17 @@ class CartReviewSummaryCard extends StatelessWidget {
               Expanded(
                 child: Text(
                   CartFlowStrings.orderTotalLabel,
-                  style: AppTextStyles.labelMedium(color: AppColors.textPrimary).copyWith(
+                  style: AppTextStyles.labelMedium(color: AppColors.textPrimary)
+                      .copyWith(
                     fontWeight: FontWeight.w700,
                     fontSize: 16.sp,
                   ),
                 ),
               ),
               Text(
-                CartFlowData.orderTotal,
-                style: AppTextStyles.labelMedium(color: AppColors.textPrimary).copyWith(
+                orderTotal ?? CartFlowData.orderTotal,
+                style: AppTextStyles.labelMedium(color: AppColors.textPrimary)
+                    .copyWith(
                   fontWeight: FontWeight.w700,
                   fontSize: 18.sp,
                 ),

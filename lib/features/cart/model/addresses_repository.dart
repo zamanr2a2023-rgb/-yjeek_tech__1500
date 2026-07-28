@@ -12,6 +12,8 @@ class DeliveryAddressSnapshot {
     this.isDefault = false,
     this.area,
     this.city,
+    this.latitude,
+    this.longitude,
     this.dropOffPreferences = const [],
   });
 
@@ -22,6 +24,8 @@ class DeliveryAddressSnapshot {
   final bool isDefault;
   final String? area;
   final String? city;
+  final double? latitude;
+  final double? longitude;
   final List<String> dropOffPreferences;
 
   CartDeliveryAddress toCartAddress({bool selected = false}) {
@@ -187,13 +191,25 @@ class AddressesRepository {
                 ? '${a.displayLabel} · ${a.area}'
                 : a.displayLabel,
             subtitle: a.formattedLine,
-            phone: a.phone,
+            phone: _formatPhone(a.phone),
             isDefault: a.isDefault,
             area: a.area,
             city: a.city,
+            latitude: a.latitude,
+            longitude: a.longitude,
           ),
         )
         .toList();
+  }
+
+  static String? _formatPhone(String? phone) {
+    if (phone == null) return null;
+    final trimmed = phone.trim();
+    if (trimmed.isEmpty) return null;
+    if (trimmed.startsWith('+')) return trimmed;
+    if (trimmed.startsWith('973')) return '+$trimmed';
+    if (RegExp(r'^\d{8}$').hasMatch(trimmed)) return '+973 $trimmed';
+    return trimmed;
   }
 
   Future<DeliveryAddressSnapshot?> defaultAddress() async {

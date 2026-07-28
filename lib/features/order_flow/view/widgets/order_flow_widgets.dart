@@ -562,19 +562,68 @@ class OrderChampCard extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: _ActionButton(
-                  label: OrderFlowStrings.call,
-                  icon: Icons.phone_outlined,
-                  outlined: true,
-                  onTap: onCall,
+                child: SizedBox(
+                  height: 52.h,
+                  child: OutlinedButton.icon(
+                    onPressed: onCall,
+                    icon: Icon(
+                      Icons.phone_outlined,
+                      size: 18.sp,
+                      color: const Color(0xFF1A1A1A),
+                    ),
+                    label: Text(
+                      OrderFlowStrings.call,
+                      style: AppTextStyles.labelMedium(
+                        color: const Color(0xFF1A1A1A),
+                      ).copyWith(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 15.sp,
+                      ),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      backgroundColor: AppColors.white,
+                      side: const BorderSide(color: Color(0xFFE0E6E0), width: 1.5),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(28.r),
+                      ),
+                    ),
+                  ),
                 ),
               ),
               SizedBox(width: 10.w),
               Expanded(
-                child: _ActionButton(
-                  label: OrderFlowStrings.chat,
-                  iconAsset: AppAssets.orderChat,
-                  onTap: onChat,
+                child: SizedBox(
+                  height: 52.h,
+                  child: ElevatedButton.icon(
+                    onPressed: onChat,
+                    icon: Image.asset(
+                      AppAssets.orderChat,
+                      width: 18.w,
+                      height: 18.w,
+                      fit: BoxFit.contain,
+                      errorBuilder: (_, _, _) => Icon(
+                        Icons.chat_bubble_outline,
+                        size: 18.sp,
+                        color: AppColors.white,
+                      ),
+                    ),
+                    label: Text(
+                      OrderFlowStrings.chat,
+                      style: AppTextStyles.labelMedium(color: AppColors.white)
+                          .copyWith(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 16.sp,
+                      ),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF2E9E4D),
+                      foregroundColor: AppColors.white,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(28.r),
+                      ),
+                    ),
+                  ),
                 ),
               ),
             ],
@@ -628,22 +677,40 @@ class OrderPaymentRow extends StatelessWidget {
               ),
             ),
           ),
-          GestureDetector(
-            onTap: onChange,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  OrderFlowStrings.change,
-                  style: AppTextStyles.labelSmall(color: const Color(0xFF2E9E4D)).copyWith(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 13.sp,
-                    height: 1.23,
-                  ),
-                ),
-                SizedBox(width: 2.w),
-                Icon(Icons.chevron_right, color: const Color(0xFF6B756E), size: 18.sp),
-              ],
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: onChange,
+              borderRadius: BorderRadius.circular(8.r),
+              child: onChange == null
+                  ? const SizedBox.shrink()
+                  : Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 4.w,
+                        vertical: 6.h,
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            OrderFlowStrings.change,
+                            style: AppTextStyles.labelSmall(
+                              color: const Color(0xFF2E9E4D),
+                            ).copyWith(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 13.sp,
+                              height: 1.23,
+                            ),
+                          ),
+                          SizedBox(width: 2.w),
+                          Icon(
+                            Icons.chevron_right,
+                            color: const Color(0xFF6B756E),
+                            size: 18.sp,
+                          ),
+                        ],
+                      ),
+                    ),
             ),
           ),
         ],
@@ -798,8 +865,9 @@ class OrderReceiptPaper extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final receiptItems = items ?? OrderFlowData.receiptItems;
-    final lines = billLines ?? OrderFlowData.receiptBillLines;
+    final receiptItems = items ?? const <OrderReceiptItem>[];
+    final lines = billLines ?? const <BillLine>[];
+    const empty = '—';
     return OrderFlowCard(
       padding: EdgeInsets.all(18.w),
       child: Column(
@@ -824,7 +892,7 @@ class OrderReceiptPaper extends StatelessWidget {
               ),
               SizedBox(height: 4.h),
               Text(
-                vendorLocation ?? OrderFlowData.vendorLocation,
+                vendorLocation ?? empty,
                 textAlign: TextAlign.center,
                 style: AppTextStyles.titleSmall(color: AppColors.textPrimary).copyWith(
                   fontWeight: FontWeight.w700,
@@ -834,7 +902,7 @@ class OrderReceiptPaper extends StatelessWidget {
               ),
               SizedBox(height: 4.h),
               Text(
-                vendorAddress ?? OrderFlowData.vendorAddress,
+                vendorAddress ?? empty,
                 textAlign: TextAlign.center,
                 style: AppTextStyles.labelSmall(color: _labelGrey).copyWith(
                   fontWeight: FontWeight.w400,
@@ -847,25 +915,31 @@ class OrderReceiptPaper extends StatelessWidget {
           SizedBox(height: 12.h),
           const _ReceiptDashedDivider(color: _dashColor),
           SizedBox(height: 12.h),
-          _metaRow('Order #', orderNumber ?? OrderFlowData.orderId),
+          _metaRow('Order #', orderNumber ?? empty),
           SizedBox(height: 8.h),
-          _metaRow('Date', orderDate ?? OrderFlowData.orderDate),
+          _metaRow('Date', orderDate ?? empty),
           SizedBox(height: 8.h),
           _metaRow('Type', typeLabel ?? OrderFlowStrings.typeDelivery),
           SizedBox(height: 8.h),
-          _metaRow('Deliver to', deliverTo ?? OrderFlowData.deliveryAddress),
+          _metaRow('Deliver to', deliverTo ?? empty),
           SizedBox(height: 12.h),
           const _ReceiptDashedDivider(color: _dashColor),
           SizedBox(height: 12.h),
           _columnHeader(OrderFlowStrings.itemColumn, OrderFlowStrings.priceColumn),
           SizedBox(height: 8.h),
-          for (var i = 0; i < receiptItems.length; i++) ...[
-            if (i > 0) SizedBox(height: 8.h),
-            _itemRow(
-              receiptItems[i].name,
-              receiptItems[i].price,
-            ),
-          ],
+          if (receiptItems.isEmpty)
+            Text(
+              'No items',
+              style: AppTextStyles.labelSmall(color: _labelGrey),
+            )
+          else
+            for (var i = 0; i < receiptItems.length; i++) ...[
+              if (i > 0) SizedBox(height: 8.h),
+              _itemRow(
+                receiptItems[i].name,
+                receiptItems[i].price,
+              ),
+            ],
           SizedBox(height: 12.h),
           const _ReceiptDashedDivider(color: _dashColor),
           SizedBox(height: 12.h),
@@ -876,7 +950,7 @@ class OrderReceiptPaper extends StatelessWidget {
           SizedBox(height: 8.h),
           _metaRow(
             OrderFlowStrings.paid,
-            paymentMethod ?? OrderFlowData.paymentMethod,
+            paymentMethod ?? empty,
           ),
         ],
       ),
@@ -1185,59 +1259,6 @@ class DriverChatInputBar extends StatelessWidget {
                   color: AppColors.white,
                   size: 20.sp,
                 ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _ActionButton extends StatelessWidget {
-  const _ActionButton({
-    required this.label,
-    this.icon,
-    this.iconAsset,
-    this.outlined = false,
-    this.onTap,
-  });
-
-  final String label;
-  final IconData? icon;
-  final String? iconAsset;
-  final bool outlined;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final color = outlined ? const Color(0xFF1A1A1A) : AppColors.white;
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        height: 52.h,
-        decoration: BoxDecoration(
-          color: outlined ? AppColors.white : const Color(0xFF2E9E4D),
-          borderRadius: BorderRadius.circular(28.r),
-          border: outlined
-              ? Border.all(color: const Color(0xFFE0E6E0), width: 1.5)
-              : null,
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            if (iconAsset != null) ...[
-              Image.asset(iconAsset!, width: 18.w, height: 18.w, fit: BoxFit.contain),
-              SizedBox(width: 8.w),
-            ] else if (icon != null) ...[
-              Icon(icon, size: 18.sp, color: color),
-              SizedBox(width: 8.w),
-            ],
-            Text(
-              label,
-              style: AppTextStyles.labelMedium(color: color).copyWith(
-                fontWeight: FontWeight.w600,
-                fontSize: outlined ? 15.sp : 16.sp,
               ),
             ),
           ],

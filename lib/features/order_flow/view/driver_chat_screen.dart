@@ -5,8 +5,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yjeek_app/core/constants/app_colors.dart';
 import 'package:yjeek_app/core/constants/app_text_styles.dart';
 import 'package:yjeek_app/core/providers/app_providers.dart';
+import 'package:yjeek_app/core/utils/phone_call.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/navigation_widgets.dart';
+import 'package:yjeek_app/features/order_flow/model/order_api_mappers.dart';
 import 'package:yjeek_app/features/order_flow/model/order_flow_data.dart';
 import 'package:yjeek_app/features/order_flow/view/widgets/order_flow_widgets.dart';
 
@@ -25,18 +27,17 @@ class _DriverChatScreenState extends ConsumerState<DriverChatScreen> {
   Timer? _pollTimer;
   bool _loading = true;
   bool _sending = false;
-  String _headerName = OrderFlowData.driverName;
+  String _headerName = 'Champ';
   String _orderBadge = 'Order';
+  String? _champPhone;
+  String? _error;
   List<DriverChatMessage> _messages = const [];
-  List<String> _quickReplies = OrderFlowData.chatQuickReplies;
+  List<String> _quickReplies = const [];
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _load();
-      _pollTimer = Timer.periodic(const Duration(seconds: 4), (_) => _refresh());
-    });
+    WidgetsBinding.instance.addPostFrameCallback((_) => _load());
   }
 
   @override
@@ -51,7 +52,8 @@ class _DriverChatScreenState extends ConsumerState<DriverChatScreen> {
     final orderId = widget.orderId;
     if (orderId == null || orderId.isEmpty) {
       setState(() {
-        _messages = OrderFlowData.driverMessages;
+        _messages = const [];
+        _error = 'Order not found';
         _loading = false;
       });
       return;
@@ -61,28 +63,51 @@ class _DriverChatScreenState extends ConsumerState<DriverChatScreen> {
     final chat = await repo.openOrderChat(orderId);
     final replies = await repo.quickReplies();
     if (!mounted) return;
-    final champ = order?['champ'] ?? order?['driver'];
-    final champName = champ is Map
-        ? champ['name']?.toString()
-        : null;
+
+    final champ = order?['champ'];
+    final driver = order?['driver'];
+    final person = champ is Map
+        ? Map<String, dynamic>.from(champ)
+        : driver is Map
+            ? Map<String, dynamic>.from(driver)
+            : null;
+    final champName = driverDisplayName(person);
+    final phone = person?['phone']?.toString() ??
+        order?['champPhone']?.toString();
     final orderNumber = order?['orderNumber']?.toString();
     final vendor = order?['vendor'];
-    final vendorName =
-        vendor is Map ? vendor['name']?.toString() : OrderFlowData.vendor;
+    final vendorName = vendor is Map ? vendor['name']?.toString() : null;
+
     setState(() {
-      _headerName = (champName == null || champName.isEmpty)
-          ? OrderFlowData.driverName
-          : champName;
+      _headerName = champName.isNotEmpty ? champName : 'Champ';
+      _champPhone = phone;
       _orderBadge =
-          '🛍 Order ${orderNumber == null || orderNumber.isEmpty ? '' : '#$orderNumber'} · $vendorName';
+          'Order ${orderNumber == null || orderNumber.isEmpty ? '' : '#$orderNumber'}${vendorName == null || vendorName.isEmpty ? '' : ' · $vendorName'}';
       _messages = chat.messages
           .map(
             (m) => DriverChatMessage(text: m.body, isUser: m.isMine),
           )
           .toList();
-      if (replies.isNotEmpty) _quickReplies = replies;
+      _quickReplies =
+          replies.isNotEmpty ? replies : OrderFlowData.chatQuickReplies;
+      _error = chat.ok ? null : chat.error;
       _loading = false;
     });
+
+    if (!chat.ok) {
+      _pollTimer?.cancel();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            chat.error ?? 'Champ not assigned yet — chat unavailable',
+          ),
+        ),
+      );
+      return;
+    }
+
+    _pollTimer?.cancel();
+    _pollTimer = Timer.periodic(const Duration(seconds: 4), (_) => _refresh());
   }
 
   Future<void> _refresh() async {
@@ -91,6 +116,10 @@ class _DriverChatScreenState extends ConsumerState<DriverChatScreen> {
     final chat =
         await ref.read(orderChatRepositoryProvider).openOrderChat(orderId);
     if (!mounted) return;
+    if (!chat.ok) {
+      _pollTimer?.cancel();
+      return;
+    }
     setState(() {
       _messages = chat.messages
           .map((m) => DriverChatMessage(text: m.body, isUser: m.isMine))
@@ -98,21 +127,30 @@ class _DriverChatScreenState extends ConsumerState<DriverChatScreen> {
     });
   }
 
+  Future<void> _onCall() async {
+    if (_champPhone == null || _champPhone!.trim().isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Champ phone unavailable yet'),
+        ),
+      );
+      return;
+    }
+    final ok = await launchPhoneCall(_champPhone);
+    if (!ok && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not open phone dialer')),
+      );
+    }
+  }
+
   Future<void> _send([String? preset]) async {
     if (_sending) return;
     final orderId = widget.orderId;
     final body = (preset ?? _controller.text).trim();
     if (body.isEmpty) return;
-    if (orderId == null || orderId.isEmpty) {
-      setState(() {
-        _messages = [
-          ..._messages,
-          DriverChatMessage(text: body, isUser: true),
-        ];
-        _controller.clear();
-      });
-      return;
-    }
+    if (orderId == null || orderId.isEmpty) return;
     setState(() => _sending = true);
     final sent =
         await ref.read(orderChatRepositoryProvider).sendMessage(orderId, body);
@@ -140,73 +178,88 @@ class _DriverChatScreenState extends ConsumerState<DriverChatScreen> {
       backgroundColor: AppColors.background,
       body: Column(
         children: [
-          _DriverChatHeader(name: _headerName),
+          _DriverChatHeader(name: _headerName, onCall: _onCall),
           Expanded(
             child: _loading
                 ? const Center(
                     child: CircularProgressIndicator(color: AppColors.primary),
                   )
                 : ListView(
-                    controller: _scrollController,
-                    padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 8.h),
-                    children: [
-                      Center(
-                        child: Container(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 10.w,
-                            vertical: 3.h,
-                          ),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFD9E0D9),
-                            borderRadius: BorderRadius.circular(10.r),
-                          ),
-                          child: Text(
-                            'Today',
-                            style: AppTextStyles.labelSmall(
-                              color: AppColors.textSecondary,
-                            ).copyWith(
-                              fontWeight: FontWeight.w500,
-                              fontSize: 11.sp,
+                        controller: _scrollController,
+                        padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 8.h),
+                        children: [
+                          Center(
+                            child: Container(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 10.w,
+                                vertical: 3.h,
+                              ),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFD9E0D9),
+                                borderRadius: BorderRadius.circular(10.r),
+                              ),
+                              child: Text(
+                                'Today',
+                                style: AppTextStyles.labelSmall(
+                                  color: AppColors.textSecondary,
+                                ).copyWith(
+                                  fontWeight: FontWeight.w500,
+                                  fontSize: 11.sp,
+                                ),
+                              ),
                             ),
                           ),
-                        ),
-                      ),
-                      SizedBox(height: 10.h),
-                      Center(
-                        child: Container(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 10.w,
-                            vertical: 4.h,
-                          ),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFE3F2EB),
-                            borderRadius: BorderRadius.circular(10.r),
-                          ),
-                          child: Text(
-                            _orderBadge,
-                            style: AppTextStyles.labelSmall(
-                              color: const Color(0xFF127036),
-                            ).copyWith(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 11.sp,
+                          SizedBox(height: 10.h),
+                          Center(
+                            child: Container(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 10.w,
+                                vertical: 4.h,
+                              ),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFE3F2EB),
+                                borderRadius: BorderRadius.circular(10.r),
+                              ),
+                              child: Text(
+                                _orderBadge,
+                                style: AppTextStyles.labelSmall(
+                                  color: const Color(0xFF127036),
+                                ).copyWith(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 11.sp,
+                                ),
+                              ),
                             ),
                           ),
-                        ),
+                          SizedBox(height: 10.h),
+                          if (_messages.isEmpty)
+                            Padding(
+                              padding: EdgeInsets.symmetric(vertical: 24.h),
+                              child: Text(
+                                _error ??
+                                    (_headerName == 'Champ'
+                                        ? 'Champ will be assigned soon. Chat opens when your driver is on the way.'
+                                        : 'No messages yet. Say hi to your champ.'),
+                                textAlign: TextAlign.center,
+                                style: AppTextStyles.bodySmall(
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
+                            )
+                          else
+                            for (final message in _messages)
+                              DriverChatBubble(message: message),
+                          SizedBox(height: 8.h),
+                          DriverChatQuickReplies(
+                            replies: _quickReplies,
+                            onSelected: _send,
+                          ),
+                        ],
                       ),
-                      SizedBox(height: 10.h),
-                      for (final message in _messages)
-                        DriverChatBubble(message: message),
-                      SizedBox(height: 8.h),
-                      DriverChatQuickReplies(
-                        replies: _quickReplies,
-                        onSelected: _send,
-                      ),
-                    ],
-                  ),
           ),
           DriverChatInputBar(
             controller: _controller,
-            enabled: !_sending,
+            enabled: !_sending && widget.orderId != null && _error == null,
             onSend: _send,
           ),
         ],
@@ -217,9 +270,10 @@ class _DriverChatScreenState extends ConsumerState<DriverChatScreen> {
 }
 
 class _DriverChatHeader extends StatelessWidget {
-  const _DriverChatHeader({required this.name});
+  const _DriverChatHeader({required this.name, this.onCall});
 
   final String name;
+  final VoidCallback? onCall;
 
   @override
   Widget build(BuildContext context) {
@@ -276,18 +330,21 @@ class _DriverChatHeader extends StatelessWidget {
                 ],
               ),
             ),
-            Container(
-              width: 38.w,
-              height: 38.w,
-              decoration: const BoxDecoration(
-                color: Color(0xFFE3F2EB),
-                shape: BoxShape.circle,
-              ),
-              alignment: Alignment.center,
-              child: Icon(
-                Icons.phone_outlined,
-                color: const Color(0xFF127036),
-                size: 18.sp,
+            GestureDetector(
+              onTap: onCall,
+              child: Container(
+                width: 38.w,
+                height: 38.w,
+                decoration: const BoxDecoration(
+                  color: Color(0xFFE3F2EB),
+                  shape: BoxShape.circle,
+                ),
+                alignment: Alignment.center,
+                child: Icon(
+                  Icons.phone_outlined,
+                  color: const Color(0xFF127036),
+                  size: 18.sp,
+                ),
               ),
             ),
           ],

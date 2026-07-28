@@ -22,6 +22,7 @@ class ChangeAddressScreen extends ConsumerStatefulWidget {
 }
 
 class _ChangeAddressScreenState extends ConsumerState<ChangeAddressScreen> {
+  List<DeliveryAddressSnapshot> _snapshots = const [];
   List<CartDeliveryAddress> _addresses = const [];
   String? _selectedId;
   String? _vendorId;
@@ -55,6 +56,7 @@ class _ChangeAddressScreenState extends ConsumerState<ChangeAddressScreen> {
         .map((a) => a.toCartAddress(selected: a.id == selectedId))
         .toList();
     setState(() {
+      _snapshots = addresses;
       _addresses = mapped;
       _selectedId = selectedId;
       _vendorId = cart.vendorId;
@@ -77,7 +79,25 @@ class _ChangeAddressScreenState extends ConsumerState<ChangeAddressScreen> {
       if (!mounted) return;
       setState(() => _submitting = false);
       if (!inRange) {
-        context.push(CartRoutes.outOfDelivery);
+        DeliveryAddressSnapshot? snap;
+        for (final a in _snapshots) {
+          if (a.id == selectedId) {
+            snap = a;
+            break;
+          }
+        }
+        final params = <String, String>{
+          'id': selectedId,
+          if (snap?.latitude != null) 'lat': '${snap!.latitude}',
+          if (snap?.longitude != null) 'lng': '${snap!.longitude}',
+        };
+        final q = params.entries
+            .map(
+              (e) =>
+                  '${Uri.encodeQueryComponent(e.key)}=${Uri.encodeQueryComponent(e.value)}',
+            )
+            .join('&');
+        context.push('${CartRoutes.outOfDelivery}?$q');
         return;
       }
     } else if (mounted) {

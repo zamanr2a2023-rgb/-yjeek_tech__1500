@@ -140,17 +140,34 @@ class OrdersRepository {
     int? orderRating,
     int? driverRating,
     int? foodRating,
+    int? experienceRating,
     String? comment,
+    double? tipAmount,
+    double? staffTipAmount,
   }) async {
     final body = <String, dynamic>{
       if (orderRating != null) 'orderRating': orderRating,
       if (driverRating != null) 'driverRating': driverRating,
       if (foodRating != null) 'foodRating': foodRating,
+      if (experienceRating != null) 'experienceRating': experienceRating,
       if (comment != null && comment.isNotEmpty) 'comment': comment,
+      if (tipAmount != null && tipAmount > 0) 'tipAmount': tipAmount,
+      if (staffTipAmount != null && staffTipAmount > 0)
+        'staffTipAmount': staffTipAmount,
     };
     final response = await _apiClient.postJson(
       '/orders/$orderId/reviews',
       body,
+      bearerToken: _token,
+    );
+    return response.ok;
+  }
+
+  /// POST /orders/:id/arrived — dine-in / pickup customer arrival.
+  Future<bool> markArrived(String orderId) async {
+    final response = await _apiClient.postJson(
+      '/orders/$orderId/arrived',
+      const {},
       bearerToken: _token,
     );
     return response.ok;

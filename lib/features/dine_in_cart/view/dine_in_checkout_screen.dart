@@ -197,12 +197,13 @@ class _DineInCheckoutScreenState extends ConsumerState<DineInCheckoutScreen> {
             scheduledDineInAt: isArrival ? _cart?.scheduledDineInAt : null,
             clearScheduledDineInAt: !isArrival,
           );
-      await ref.read(cartRepositoryProvider).checkout(
+      final order = await ref.read(cartRepositoryProvider).checkout(
             type: CartOrderType.dineIn,
             paymentMethod: paymentMethodApiValue(_paymentId),
           );
       if (!mounted) return;
-      context.pushReplacement(DineInOrderFlowRoutes.waiting);
+      final orderId = order?['id']?.toString();
+      context.pushReplacement(DineInOrderFlowRoutes.waitingFor(orderId));
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

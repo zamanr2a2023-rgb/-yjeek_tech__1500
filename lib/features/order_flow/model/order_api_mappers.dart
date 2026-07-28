@@ -10,7 +10,7 @@ String formatBhd(dynamic value) {
 }
 
 String formatPaymentMethod(String? raw) {
-  if (raw == null || raw.isEmpty) return OrderFlowData.paymentMethod;
+  if (raw == null || raw.isEmpty) return '—';
   return switch (raw.toUpperCase()) {
     'YJEEK_WALLET' || 'WALLET' => 'Yjeek Wallet',
     'CASH_ON_DELIVERY' || 'COD' || 'CASH' => 'Cash on delivery',
@@ -25,18 +25,42 @@ String formatPaymentMethod(String? raw) {
 
 String formatStatusLabel(String? raw) {
   if (raw == null || raw.isEmpty) return OrderFlowStrings.preparingOrder;
-  return raw
-      .replaceAll('_', ' ')
-      .toLowerCase()
-      .split(' ')
-      .where((w) => w.isNotEmpty)
-      .map((w) => '${w[0].toUpperCase()}${w.substring(1)}')
-      .join(' ');
+  final key = raw.toUpperCase();
+  // Figma track badge copy for active kitchen / delivery stages.
+  return switch (key) {
+    'PLACED' ||
+    'PENDING_VENDOR_ACCEPT' ||
+    'PENDING_CONFIRMATION' ||
+    'AWAITING_PAYMENT' =>
+      'Sent to vendor',
+    'CONFIRMED' || 'VENDOR_ACCEPTED' => 'Vendor accepted',
+    'PREPARING' ||
+    'SEARCHING_DRIVER' ||
+    'AWAITING_DRIVER_CONFIRM' ||
+    'DRIVER_ASSIGNED' ||
+    'ARRIVED_AT_PICKUP' ||
+    'READY_FOR_PICKUP' ||
+    'READY_FOR_YOU' ||
+    'READY' =>
+      OrderFlowStrings.preparingOrder,
+    'PICKED_UP' => 'Picked up',
+    'IN_TRANSIT' || 'ON_THE_WAY' => 'On the way',
+    'ARRIVED_AT_CUSTOMER' => 'Champ has arrived',
+    'DELIVERED' || 'COLLECTED' || 'COMPLETED' => 'Delivered',
+    'CANCELLED' || 'REJECTED' => 'Cancelled',
+    _ => raw
+        .replaceAll('_', ' ')
+        .toLowerCase()
+        .split(' ')
+        .where((w) => w.isNotEmpty)
+        .map((w) => '${w[0].toUpperCase()}${w.substring(1)}')
+        .join(' '),
+  };
 }
 
 String formatOrderDate(dynamic value) {
   final dt = DateTime.tryParse(value?.toString() ?? '')?.toLocal();
-  if (dt == null) return OrderFlowData.orderDate;
+  if (dt == null) return '—';
   const months = [
     'Jan',
     'Feb',
@@ -73,10 +97,34 @@ String formatOrderType(String? orderType) {
 
 String driverDisplayName(Map<String, dynamic>? driver) {
   if (driver == null) return '';
+  final full = driver['name']?.toString().trim();
+  if (full != null && full.isNotEmpty) return full;
   return [
     driver['firstName'],
     driver['lastName'],
   ].whereType<String>().where((s) => s.isNotEmpty).join(' ');
+}
+
+/// Lat/lng from track payload: champ live location → delivery address → venue.
+({double lat, double lng})? trackMapCoords(Map<String, dynamic> data) {
+  double? asDouble(dynamic v) {
+    if (v is num) return v.toDouble();
+    if (v is String) return double.tryParse(v);
+    return null;
+  }
+
+  ({double lat, double lng})? fromMap(dynamic raw) {
+    if (raw is! Map) return null;
+    final lat = asDouble(raw['latitude'] ?? raw['lat']);
+    final lng = asDouble(raw['longitude'] ?? raw['lng']);
+    if (lat == null || lng == null) return null;
+    return (lat: lat, lng: lng);
+  }
+
+  return fromMap(data['champ']) ??
+      fromMap(data['address']) ??
+      fromMap(data['deliveryAddress']) ??
+      fromMap(data['venue']);
 }
 
 String champMetaFromTrack(Map<String, dynamic>? champ) {
@@ -100,13 +148,13 @@ String champMetaFromTrack(Map<String, dynamic>? champ) {
     if (plate != null && plate.isNotEmpty) plate,
     if (champ['isIdVerified'] == true) 'ID-verified',
   ];
-  return parts.isNotEmpty ? parts.join(' · ') : '___';
+  return parts.isNotEmpty ? parts.join(' · ') : '—';
 }
 
 String displayOrDash(String? value) {
-  if (value == null) return '___';
+  if (value == null) return '—';
   final trimmed = value.trim();
-  return trimmed.isEmpty ? '___' : trimmed;
+  return trimmed.isEmpty ? '—' : trimmed;
 }
 
 /// Canonical delivery timeline filled from API `timeline` / statusHistory.
@@ -201,19 +249,13 @@ List<OrderTimelineStep> timelineFromTrack({
 }
 
 List<OrderReceiptItem> receiptItemsFromApi(List<dynamic>? items) {
-  if (items == null || items.isEmpty) return OrderFlowData.receiptItems;
+  if (items == null || items.isEmpty) return const [];
   final out = <OrderReceiptItem>[];
   for (final raw in items) {
     if (raw is! Map) continue;
     final qty = (raw['quantity'] as num?)?.toInt() ?? 1;
     final name = raw['name'] as String? ?? 'Item';
-    final lineTotal = raw['lineTotal'];
-    final unitPrice = raw['unitPrice'];
-    final priceValue = lineTotal is num
-        ? lineTotal.toDouble()
-        : unitPrice is num
-            ? unitPrice.toDouble() * qty
-            : 0.0;
+    final priceValue = linePriceFromApiItem(raw);
     out.add(
       OrderReceiptItem(
         name: qty > 1 ? '$qty× $name' : '1× $name',
@@ -221,11 +263,77 @@ List<OrderReceiptItem> receiptItemsFromApi(List<dynamic>? items) {
       ),
     );
   }
-  return out.isNotEmpty ? out : OrderFlowData.receiptItems;
+  return out;
+}
+
+/// Line price for an order item: prefers lineTotal, else unitPrice × qty.
+double linePriceFromApiItem(Map raw) {
+  final qty = (raw['quantity'] as num?)?.toInt() ?? 1;
+  final lineTotal = raw['lineTotal'] ?? raw['totalPrice'] ?? raw['total'];
+  if (lineTotal is num) return lineTotal.toDouble();
+  if (lineTotal is String) {
+    final parsed = num.tryParse(lineTotal);
+    if (parsed != null) return parsed.toDouble();
+  }
+  final unitPrice = raw['unitPrice'] ?? raw['price'];
+  if (unitPrice is num) return unitPrice.toDouble() * qty;
+  if (unitPrice is String) {
+    final parsed = num.tryParse(unitPrice);
+    if (parsed != null) return parsed.toDouble() * qty;
+  }
+  return 0;
+}
+
+String? deliverToFromOrderApi(Map<String, dynamic> order) {
+  final label = order['deliverToLabel']?.toString();
+  if (label != null && label.trim().isNotEmpty) return label.trim();
+
+  final address = order['deliveryAddress'] ?? order['address'];
+  if (address is! Map) return null;
+
+  final parts = <String>[
+    if ((address['label']?.toString() ?? '').isNotEmpty)
+      address['label'].toString(),
+    if ((address['area']?.toString() ?? '').isNotEmpty)
+      address['area'].toString(),
+    if ((address['road']?.toString() ?? '').isNotEmpty)
+      'Road ${address['road']}',
+    if ((address['building']?.toString() ?? '').isNotEmpty)
+      'Bldg ${address['building']}',
+    if ((address['block']?.toString() ?? '').isNotEmpty)
+      'Block ${address['block']}',
+  ];
+  if (parts.isNotEmpty) return parts.join(' · ');
+
+  final formatted = address['formatted']?.toString() ??
+      address['line1']?.toString() ??
+      address['formattedLine']?.toString();
+  if (formatted != null && formatted.trim().isNotEmpty) return formatted.trim();
+  return null;
+}
+
+List<({String qty, String name, String price})> reviewLinesFromApi(
+  List<dynamic>? items,
+) {
+  if (items == null || items.isEmpty) return const [];
+  final out = <({String qty, String name, String price})>[];
+  for (final raw in items) {
+    if (raw is! Map) continue;
+    final qty = (raw['quantity'] as num?)?.toInt() ?? 1;
+    final name = raw['name']?.toString() ??
+        raw['productName']?.toString() ??
+        'Item';
+    out.add((
+      qty: '$qty×',
+      name: name,
+      price: formatBhd(linePriceFromApiItem(raw)),
+    ));
+  }
+  return out;
 }
 
 List<BillLine> receiptBillFromTotals(Map<String, dynamic>? totals) {
-  if (totals == null) return OrderFlowData.receiptBillLines;
+  if (totals == null) return const [];
   final delivery = totals['deliveryFee'];
   final deliveryLabel = totals['deliveryLabel'] as String?;
   final deliveryValue = delivery is num && delivery == 0

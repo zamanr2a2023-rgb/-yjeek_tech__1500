@@ -12,6 +12,7 @@ import 'package:yjeek_app/features/help/model/help_data.dart';
 import 'package:yjeek_app/features/home/view/widgets/home_widgets.dart';
 import 'package:yjeek_app/features/navigation/model/navigation_data.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/navigation_widgets.dart';
+import 'package:yjeek_app/features/dine_in_order_flow/dine_in_order_flow_routes.dart';
 import 'package:yjeek_app/features/order_flow/model/order_api_mappers.dart';
 import 'package:yjeek_app/features/order_flow/order_flow_routes.dart';
 import 'package:yjeek_app/routes/app_router.dart';
@@ -39,6 +40,7 @@ class _OrderDetailsScreenState extends ConsumerState<OrderDetailsScreen> {
   String _champ = '';
   bool _hasChamp = false;
   String _payment = '';
+  String _orderType = 'DELIVERY';
 
   @override
   void initState() {
@@ -200,6 +202,7 @@ class _OrderDetailsScreenState extends ConsumerState<OrderDetailsScreen> {
         _champ = champ;
         _hasChamp = hasChamp;
         _payment = formatPaymentMethod(data['paymentMethod'] as String?);
+        _orderType = orderType;
         _loading = false;
       });
     } catch (_) {
@@ -415,8 +418,11 @@ class _OrderDetailsScreenState extends ConsumerState<OrderDetailsScreen> {
                     Expanded(
                       child: _OutlineActionButton(
                         label: NavigationStrings.receipt,
-                        onTap: () =>
-                            context.push(OrderFlowRoutes.receiptFor(orderId)),
+                        onTap: () => context.push(
+                          _orderType == 'DINE_IN'
+                              ? DineInOrderFlowRoutes.receiptFor(orderId)
+                              : OrderFlowRoutes.receiptFor(orderId),
+                        ),
                       ),
                     ),
                     SizedBox(width: 10.w),
@@ -424,7 +430,9 @@ class _OrderDetailsScreenState extends ConsumerState<OrderDetailsScreen> {
                       child: _OutlineActionButton(
                         label: NavigationStrings.rate,
                         onTap: () => context.push(
-                          OrderFlowRoutes.deliveredFor(orderId),
+                          _orderType == 'DINE_IN'
+                              ? DineInOrderFlowRoutes.completeFor(orderId)
+                              : OrderFlowRoutes.deliveredFor(orderId),
                         ),
                       ),
                     ),

@@ -8,6 +8,7 @@ import 'package:yjeek_app/core/providers/app_providers.dart';
 import 'package:yjeek_app/features/help/help_routes.dart';
 import 'package:yjeek_app/features/navigation/model/navigation_data.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/navigation_widgets.dart';
+import 'package:yjeek_app/features/dine_in_order_flow/dine_in_order_flow_routes.dart';
 import 'package:yjeek_app/features/order_flow/order_flow_routes.dart';
 import 'package:yjeek_app/routes/app_router.dart';
 import 'package:yjeek_app/routes/route_names.dart';
@@ -88,15 +89,27 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
       return;
     }
     if (action == NavigationStrings.trackOrder) {
-      context.push(OrderFlowRoutes.statusFor(order.id));
+      if (order.category == OrderCategoryFilter.dineIn) {
+        context.push(DineInOrderFlowRoutes.statusFor(order.id));
+      } else {
+        context.push(OrderFlowRoutes.statusFor(order.id));
+      }
       return;
     }
     if (action == NavigationStrings.receipt) {
-      context.push(OrderFlowRoutes.receiptFor(order.id));
+      if (order.category == OrderCategoryFilter.dineIn) {
+        context.push(DineInOrderFlowRoutes.receiptFor(order.id));
+      } else {
+        context.push(OrderFlowRoutes.receiptFor(order.id));
+      }
       return;
     }
     if (action == NavigationStrings.rate) {
-      context.push(OrderFlowRoutes.deliveredFor(order.id));
+      if (order.category == OrderCategoryFilter.dineIn) {
+        context.push(DineInOrderFlowRoutes.completeFor(order.id));
+      } else {
+        context.push(OrderFlowRoutes.deliveredFor(order.id));
+      }
       return;
     }
     if (action == NavigationStrings.getHelp) {

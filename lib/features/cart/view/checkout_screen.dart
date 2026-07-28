@@ -13,7 +13,6 @@ import 'package:yjeek_app/features/cart/view/widgets/cart_flow_widgets.dart';
 import 'package:yjeek_app/features/navigation/model/user_me.dart';
 import 'package:yjeek_app/features/navigation/model/navigation_data.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/navigation_widgets.dart';
-import 'package:yjeek_app/features/order_flow/order_flow_routes.dart';
 
 class CheckoutScreen extends ConsumerStatefulWidget {
   const CheckoutScreen({super.key});
@@ -93,7 +92,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
           );
       if (!mounted) return;
       final orderId = order?['id']?.toString();
-      context.pushReplacement(OrderFlowRoutes.waitingFor(orderId));
+      context.pushReplacement(CartRoutes.reviewFor(orderId));
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -134,6 +133,8 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                   addressDetail: _address?.subtitle,
                   phone: _phone,
                   arrivesLabel: formatArrivesLabel(cart?.deliveryEta),
+                  latitude: _address?.latitude,
+                  longitude: _address?.longitude,
                   onChange: () async {
                     await context.push(CartRoutes.changeAddress);
                     if (mounted) await _load();

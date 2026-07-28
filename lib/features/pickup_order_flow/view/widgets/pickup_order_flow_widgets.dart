@@ -7,10 +7,19 @@ import 'package:yjeek_app/features/order_flow/view/widgets/order_flow_widgets.da
 import 'package:yjeek_app/features/pickup_order_flow/model/pickup_order_flow_data.dart';
 
 class PickupWaitingTimer extends StatelessWidget {
-  const PickupWaitingTimer({super.key});
+  const PickupWaitingTimer({
+    super.key,
+    this.progress = 0.72,
+    this.label = '~3m',
+  });
+
+  /// Remaining fraction of the accept window (1 = full, 0 = expired).
+  final double progress;
+  final String label;
 
   @override
   Widget build(BuildContext context) {
+    final clamped = progress.clamp(0.0, 1.0);
     return SizedBox(
       width: 108.w,
       height: 108.w,
@@ -21,14 +30,14 @@ class PickupWaitingTimer extends StatelessWidget {
             width: 108.w,
             height: 108.w,
             child: CircularProgressIndicator(
-              value: 0.72,
+              value: clamped,
               strokeWidth: 5,
               backgroundColor: const Color(0xFFE3F2EB),
               valueColor: const AlwaysStoppedAnimation(AppColors.primary),
             ),
           ),
           Text(
-            '~3m',
+            label,
             style: AppTextStyles.titleMedium(
               color: AppColors.primary,
             ).copyWith(fontWeight: FontWeight.w700, fontSize: 28.sp),
@@ -120,7 +129,14 @@ class PickupSecureBanner extends StatelessWidget {
 }
 
 class PickupOrderSummaryRow extends StatelessWidget {
-  const PickupOrderSummaryRow({super.key});
+  const PickupOrderSummaryRow({
+    super.key,
+    this.summary,
+    this.total,
+  });
+
+  final String? summary;
+  final String? total;
 
   @override
   Widget build(BuildContext context) {
@@ -129,14 +145,14 @@ class PickupOrderSummaryRow extends StatelessWidget {
         children: [
           Expanded(
             child: Text(
-              PickupOrderFlowData.waitingSummary,
+              summary ?? PickupOrderFlowData.waitingSummary,
               style: AppTextStyles.labelSmall(
                 color: AppColors.textSecondary,
               ).copyWith(fontSize: 13.sp),
             ),
           ),
           Text(
-            PickupOrderFlowData.payTotal,
+            total ?? PickupOrderFlowData.payTotal,
             style: AppTextStyles.labelMedium().copyWith(
               fontWeight: FontWeight.w700,
               fontSize: 14.sp,

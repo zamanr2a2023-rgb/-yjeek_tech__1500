@@ -49,6 +49,20 @@ class ServicesCartSummary {
   static const empty = ServicesCartSummary(itemCount: 0, totalLabel: '0.000');
 }
 
+class ServiceBookingSlot {
+  const ServiceBookingSlot({
+    required this.id,
+    required this.startAt,
+    required this.label,
+    required this.available,
+  });
+
+  final String id;
+  final DateTime startAt;
+  final String label;
+  final bool available;
+}
+
 class ServicesVendorsRepository {
   const ServicesVendorsRepository(this._apiClient, this._storage);
 
@@ -371,6 +385,55 @@ class ServicesVendorsRepository {
       totalLabel: totalNum.toStringAsFixed(3),
       vendorId: vendorId,
     );
+  }
+
+  /// GET /vendors/:id/booking-slots?date=YYYY-MM-DD
+  Future<List<ServiceBookingSlot>> fetchBookingSlots({
+    required String vendorId,
+    required DateTime date,
+    String? staffId,
+  }) async {
+    final y = date.year.toString().padLeft(4, '0');
+    final m = date.month.toString().padLeft(2, '0');
+    final d = date.day.toString().padLeft(2, '0');
+    final qs = StringBuffer('date=$y-$m-$d');
+    if (staffId != null && staffId.isNotEmpty) {
+      qs.write('&staffId=$staffId');
+    }
+    final response = await _apiClient.getJson(
+      '/vendors/$vendorId/booking-slots?$qs',
+    );
+    final data = response?['data'];
+    if (data is! Map<String, dynamic>) return const [];
+    final raw = data['slots'];
+    if (raw is! List) return const [];
+    final out = <ServiceBookingSlot>[];
+    for (final item in raw) {
+      if (item is! Map) continue;
+      final startAt = DateTime.tryParse(item['startAt']?.toString() ?? '');
+      if (startAt == null) continue;
+      final label = item['label']?.toString();
+      out.add(
+        ServiceBookingSlot(
+          id: item['id']?.toString() ?? startAt.toIso8601String(),
+          startAt: startAt.toLocal(),
+          label: (label != null && label.isNotEmpty)
+              ? label
+              : _formatSlotLabel(startAt.toLocal()),
+          available: item['available'] == true,
+        ),
+      );
+    }
+    return out;
+  }
+
+  static String _formatSlotLabel(DateTime start) {
+    final h = start.hour;
+    final min = start.minute;
+    final mm = min.toString().padLeft(2, '0');
+    if (h < 12) return '$h:$mm';
+    if (h == 12) return min == 0 ? '12:00 PM' : '12:$mm PM';
+    return min == 0 ? '${h - 12}:00 PM' : '${h - 12}:$mm PM';
   }
 
   /// POST /cart/items?type=SERVICE

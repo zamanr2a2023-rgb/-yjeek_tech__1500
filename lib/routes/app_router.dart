@@ -494,9 +494,17 @@ class AppRouter {
           builder: (_, state) {
             final id = state.uri.queryParameters['id'];
             final area = state.uri.queryParameters['area'];
+            final block = state.uri.queryParameters['block'];
+            final road = state.uri.queryParameters['road'];
+            final lat = double.tryParse(state.uri.queryParameters['lat'] ?? '');
+            final lng = double.tryParse(state.uri.queryParameters['lng'] ?? '');
             return AddAddressScreen(
               addressId: (id != null && id.isNotEmpty) ? id : null,
               initialArea: area,
+              initialBlock: block,
+              initialRoad: road,
+              initialLatitude: lat,
+              initialLongitude: lng,
             );
           },
         ),
@@ -612,7 +620,9 @@ class AppRouter {
         ),
         GoRoute(
           path: RouteNames.cartReview,
-          builder: (_, _) => const ReviewConfirmScreen(),
+          builder: (_, state) => ReviewConfirmScreen(
+            orderId: state.uri.queryParameters['id'],
+          ),
         ),
         GoRoute(
           path: RouteNames.cartChangeAddress,
@@ -627,6 +637,12 @@ class AppRouter {
           builder: (_, state) => AddAddressScreen(
             addressId: state.uri.queryParameters['id'],
             initialArea: state.uri.queryParameters['area'],
+            initialBlock: state.uri.queryParameters['block'],
+            initialRoad: state.uri.queryParameters['road'],
+            initialLatitude:
+                double.tryParse(state.uri.queryParameters['lat'] ?? ''),
+            initialLongitude:
+                double.tryParse(state.uri.queryParameters['lng'] ?? ''),
           ),
         ),
         GoRoute(
@@ -634,11 +650,23 @@ class AppRouter {
           builder: (_, state) => AddAddressScreen(
             addressId: state.uri.queryParameters['id'],
             initialArea: state.uri.queryParameters['area'],
+            initialBlock: state.uri.queryParameters['block'],
+            initialRoad: state.uri.queryParameters['road'],
+            initialLatitude:
+                double.tryParse(state.uri.queryParameters['lat'] ?? ''),
+            initialLongitude:
+                double.tryParse(state.uri.queryParameters['lng'] ?? ''),
           ),
         ),
         GoRoute(
           path: RouteNames.cartOutOfDelivery,
-          builder: (_, _) => const OutOfDeliveryScreen(),
+          builder: (_, state) => OutOfDeliveryScreen(
+            addressId: state.uri.queryParameters['id'],
+            latitude:
+                double.tryParse(state.uri.queryParameters['lat'] ?? ''),
+            longitude:
+                double.tryParse(state.uri.queryParameters['lng'] ?? ''),
+          ),
         ),
         GoRoute(
           path: RouteNames.cartZoodWaitingList,
@@ -810,27 +838,39 @@ class AppRouter {
         ),
         GoRoute(
           path: RouteNames.dineInOrderWaiting,
-          builder: (_, _) => const DineInWaitingScreen(),
+          builder: (_, state) => DineInWaitingScreen(
+            orderId: state.uri.queryParameters['id'],
+          ),
         ),
         GoRoute(
           path: RouteNames.dineInOrderPay,
-          builder: (_, _) => const DineInPayScreen(),
+          builder: (_, state) => DineInPayScreen(
+            orderId: state.uri.queryParameters['id'],
+          ),
         ),
         GoRoute(
           path: RouteNames.dineInOrderConfirmed,
-          builder: (_, _) => const DineInConfirmedScreen(),
+          builder: (_, state) => DineInConfirmedScreen(
+            orderId: state.uri.queryParameters['id'],
+          ),
         ),
         GoRoute(
           path: RouteNames.dineInOrderStatus,
-          builder: (_, _) => const DineInStatusScreen(),
+          builder: (_, state) => DineInStatusScreen(
+            orderId: state.uri.queryParameters['id'],
+          ),
         ),
         GoRoute(
           path: RouteNames.dineInOrderComplete,
-          builder: (_, _) => const DineInCompleteScreen(),
+          builder: (_, state) => DineInCompleteScreen(
+            orderId: state.uri.queryParameters['id'],
+          ),
         ),
         GoRoute(
           path: RouteNames.dineInOrderReceipt,
-          builder: (_, _) => const DineInReceiptScreen(),
+          builder: (_, state) => DineInReceiptScreen(
+            orderId: state.uri.queryParameters['id'],
+          ),
         ),
       ],
     );

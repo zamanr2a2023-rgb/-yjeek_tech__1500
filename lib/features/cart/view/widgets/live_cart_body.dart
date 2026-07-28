@@ -77,42 +77,13 @@ class _LiveCartBodyState extends State<LiveCartBody> {
   Future<void> _openKitchenNote() async {
     final onNote = widget.onKitchenNote;
     if (onNote == null) return;
-    final controller = TextEditingController(text: cart.kitchenNote ?? '');
-    final focusNode = FocusNode();
     final result = await showDialog<String>(
       context: context,
-      builder: (ctx) {
-        return AlertDialog(
-          title: const Text(NavigationStrings.noteForKitchen),
-          content: TextField(
-            controller: controller,
-            focusNode: focusNode,
-            autofocus: true,
-            maxLines: 4,
-            maxLength: 500,
-            decoration: const InputDecoration(
-              hintText: NavigationStrings.noteForKitchenSubtitle,
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop(controller.text.trim()),
-              child: const Text('Save'),
-            ),
-          ],
-        );
-      },
+      builder: (ctx) => _KitchenNoteDialog(
+        initialText: cart.kitchenNote ?? '',
+      ),
     );
-    // Unfocus before disposing — avoids FocusNode notifying a disposed controller.
-    focusNode.unfocus();
-    await Future<void>.delayed(Duration.zero);
-    focusNode.dispose();
-    controller.dispose();
-    if (result == null) return;
+    if (!mounted || result == null) return;
     await _run(() => onNote(result));
   }
 
@@ -1636,6 +1607,65 @@ class _PromoApplyRow extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _KitchenNoteDialog extends StatefulWidget {
+  const _KitchenNoteDialog({required this.initialText});
+
+  final String initialText;
+
+  @override
+  State<_KitchenNoteDialog> createState() => _KitchenNoteDialogState();
+}
+
+class _KitchenNoteDialogState extends State<_KitchenNoteDialog> {
+  late final TextEditingController _controller;
+  late final FocusNode _focusNode;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.initialText);
+    _focusNode = FocusNode();
+  }
+
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text(NavigationStrings.noteForKitchen),
+      content: TextField(
+        controller: _controller,
+        focusNode: _focusNode,
+        autofocus: true,
+        maxLines: 4,
+        maxLength: 500,
+        decoration: const InputDecoration(
+          hintText: NavigationStrings.noteForKitchenSubtitle,
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
+        ),
+        TextButton(
+          onPressed: () {
+            final text = _controller.text.trim();
+            _focusNode.unfocus();
+            Navigator.of(context).pop(text);
+          },
+          child: const Text('Save'),
+        ),
+      ],
     );
   }
 }

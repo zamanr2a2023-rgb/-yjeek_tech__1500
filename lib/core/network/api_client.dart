@@ -64,6 +64,15 @@ class ApiClient {
     String path, {
     String? bearerToken,
   }) async {
+    final response = await getApiResponse(path, bearerToken: bearerToken);
+    return response.ok ? response.json : null;
+  }
+
+  /// GET that always returns status + body (for error messages like 400 chat).
+  Future<ApiResponse> getApiResponse(
+    String path, {
+    String? bearerToken,
+  }) async {
     try {
       final token = _resolveToken(bearerToken);
       final uri = Uri.parse('${ApiConstants.baseUrl}$path');
@@ -75,14 +84,19 @@ class ApiClient {
           if (token != null) 'Authorization': 'Bearer $token',
         },
       );
-      if (response.statusCode >= 200 && response.statusCode < 300) {
-        return jsonDecode(response.body) as Map<String, dynamic>;
+      Map<String, dynamic>? json;
+      try {
+        final decoded = jsonDecode(response.body);
+        if (decoded is Map<String, dynamic>) json = decoded;
+      } catch (_) {}
+      if (response.statusCode >= 300) {
+        appLogger.w('GET $path failed: ${response.statusCode}');
       }
-      appLogger.w('GET $path failed: ${response.statusCode}');
+      return ApiResponse(statusCode: response.statusCode, json: json);
     } catch (error, stack) {
       appLogger.e('GET $path error', error: error, stackTrace: stack);
+      return const ApiResponse(statusCode: 0);
     }
-    return null;
   }
 
   Future<ApiResponse> postJson(

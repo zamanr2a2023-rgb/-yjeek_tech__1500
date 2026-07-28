@@ -3,18 +3,32 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:yjeek_app/core/constants/app_colors.dart';
 import 'package:yjeek_app/core/constants/app_text_styles.dart';
+import 'package:yjeek_app/core/constants/maps_config.dart';
 import 'package:yjeek_app/core/constants/navigation_strings.dart';
 import 'package:yjeek_app/core/providers/app_providers.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
+import 'package:yjeek_app/core/widgets/app_google_map.dart';
 import 'package:yjeek_app/features/cart/model/addresses_repository.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/account_widgets.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/navigation_widgets.dart';
 
 class AddAddressScreen extends ConsumerStatefulWidget {
-  const AddAddressScreen({super.key, this.addressId, this.initialArea});
+  const AddAddressScreen({
+    super.key,
+    this.addressId,
+    this.initialArea,
+    this.initialBlock,
+    this.initialRoad,
+    this.initialLatitude,
+    this.initialLongitude,
+  });
 
   final String? addressId;
   final String? initialArea;
+  final String? initialBlock;
+  final String? initialRoad;
+  final double? initialLatitude;
+  final double? initialLongitude;
 
   @override
   ConsumerState<AddAddressScreen> createState() => _AddAddressScreenState();
@@ -25,6 +39,8 @@ class _AddAddressScreenState extends ConsumerState<AddAddressScreen> {
   bool _setDefault = true;
   bool _loading = false;
   bool _saving = false;
+  late double _latitude;
+  late double _longitude;
 
   final _areaController = TextEditingController();
   final _blockController = TextEditingController();
@@ -45,9 +61,19 @@ class _AddAddressScreenState extends ConsumerState<AddAddressScreen> {
   @override
   void initState() {
     super.initState();
+    _latitude = widget.initialLatitude ?? MapsConfig.defaultLat;
+    _longitude = widget.initialLongitude ?? MapsConfig.defaultLng;
     final area = widget.initialArea?.trim();
     if (area != null && area.isNotEmpty) {
       _areaController.text = area;
+    }
+    final block = widget.initialBlock?.trim();
+    if (block != null && block.isNotEmpty) {
+      _blockController.text = block;
+    }
+    final road = widget.initialRoad?.trim();
+    if (road != null && road.isNotEmpty) {
+      _roadController.text = road;
     }
     if (_isEdit) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _loadExisting());
@@ -87,6 +113,8 @@ class _AddAddressScreenState extends ConsumerState<AddAddressScreen> {
         _buildingController.text = address.building ?? '';
         _flatController.text = address.flat ?? '';
         _noteController.text = address.additionalDirections ?? '';
+        if (address.latitude != null) _latitude = address.latitude!;
+        if (address.longitude != null) _longitude = address.longitude!;
         _loading = false;
       });
     } catch (_) {
@@ -122,6 +150,8 @@ class _AddAddressScreenState extends ConsumerState<AddAddressScreen> {
       'road': road,
       'city': 'Manama',
       'isDefault': _setDefault,
+      'latitude': _latitude,
+      'longitude': _longitude,
       if (building.isNotEmpty) 'building': building,
       if (flat.isNotEmpty) 'flat': flat,
       if (note.isNotEmpty) 'additionalDirections': note,
@@ -177,7 +207,14 @@ class _AddAddressScreenState extends ConsumerState<AddAddressScreen> {
                 : ListView(
                     padding: EdgeInsets.zero,
                     children: [
-                      const _AddressMapPreview(),
+                      AppMapPreview(
+                        key: ValueKey(
+                          '${_latitude.toStringAsFixed(5)},${_longitude.toStringAsFixed(5)}',
+                        ),
+                        latitude: _latitude,
+                        longitude: _longitude,
+                        height: 180.h,
+                      ),
                       Padding(
                         padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 24.h),
                         child: Column(
@@ -326,6 +363,35 @@ class _AddAddressScreenState extends ConsumerState<AddAddressScreen> {
                               enabled: !_saving,
                               onPressed: _saving ? null : _save,
                             ),
+                            if (_isEdit) ...[
+                              SizedBox(height: 12.h),
+                              SizedBox(
+                                width: double.infinity,
+                                height: 49.h,
+                                child: OutlinedButton.icon(
+                                  onPressed: _saving ? null : _delete,
+                                  icon: const Icon(
+                                    Icons.delete_outline,
+                                    color: Color(0xFFB42318),
+                                  ),
+                                  label: Text(
+                                    'Delete address',
+                                    style: AppTextStyles.labelMedium(
+                                      color: const Color(0xFFB42318),
+                                    ).copyWith(fontWeight: FontWeight.w700),
+                                  ),
+                                  style: OutlinedButton.styleFrom(
+                                    side: const BorderSide(
+                                      color: Color(0xFFB42318),
+                                      width: 1.4,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(13.r),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ],
                         ),
                       ),
@@ -337,26 +403,45 @@ class _AddAddressScreenState extends ConsumerState<AddAddressScreen> {
       bottomNavigationBar: const ShellBottomNavBar(currentIndex: 4),
     );
   }
-}
 
-class _AddressMapPreview extends StatelessWidget {
-  const _AddressMapPreview();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      height: 180.h,
-      color: const Color(0xFFE4EAE0),
-      alignment: Alignment.center,
-      child: Container(
-        width: 38.w,
-        height: 38.w,
-        decoration: const BoxDecoration(
-          color: Color(0xFF4CAF50),
-          shape: BoxShape.circle,
+  Future<void> _delete() async {
+    final id = widget.addressId;
+    if (id == null || id.isEmpty) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete this address?'),
+        content: Text(
+          "Are you sure you want to delete '$_selectedLabel'? This action can't be undone.",
         ),
-        child: Icon(Icons.location_on, size: 22.sp, color: AppColors.white),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: const Color(0xFFB42318)),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    setState(() => _saving = true);
+    final response =
+        await ref.read(addressesRepositoryProvider).deleteAddress(id);
+    if (!mounted) return;
+    setState(() => _saving = false);
+    if (response.ok) {
+      ref.invalidate(userMeProvider);
+      if (context.canPop()) context.pop();
+      return;
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(response.message ?? 'Could not delete address'),
+        backgroundColor: const Color(0xFFB42318),
       ),
     );
   }

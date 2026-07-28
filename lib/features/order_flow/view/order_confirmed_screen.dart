@@ -54,25 +54,17 @@ class _OrderConfirmedScreenState extends ConsumerState<OrderConfirmedScreen> {
         ? vendor['name']?.toString() ?? 'vendor'
         : 'vendor';
     final items = order['items'];
-    final itemCount = items is List
-        ? items.length
-        : (order['itemCount'] as num?)?.toInt();
-    final address = order['deliveryAddress'] ?? order['address'];
-    String deliverTo = OrderFlowData.deliveryAddress;
-    if (address is Map) {
-      final label = address['label']?.toString();
-      final area = address['area']?.toString();
-      final line = address['formatted']?.toString() ??
-          address['line1']?.toString() ??
-          [
-            if (area != null && area.isNotEmpty) area,
-            if (address['road'] != null) 'Road ${address['road']}',
-          ].whereType<String>().join(' · ');
-      deliverTo = [
-        if (label != null && label.isNotEmpty) label,
-        if (line.isNotEmpty) line,
-      ].join(' · ');
-    }
+    final itemCount = (order['itemCount'] as num?)?.toInt() ??
+        (items is List
+            ? items.fold<int>(0, (sum, row) {
+                if (row is Map) {
+                  return sum + ((row['quantity'] as num?)?.toInt() ?? 1);
+                }
+                return sum + 1;
+              })
+            : null);
+    final addressLabel = deliverToFromOrderApi(order);
+    String deliverTo = addressLabel ?? OrderFlowData.deliveryAddress;
     final etaMin = order['estimatedArrivalMin'] ?? order['etaMin'];
     final etaMax = order['estimatedArrivalMax'] ?? order['etaMax'];
     final etaLabel = order['etaLabel']?.toString();
@@ -90,6 +82,11 @@ class _OrderConfirmedScreenState extends ConsumerState<OrderConfirmedScreen> {
       _total = formatBhd(order['totalAmount']);
       _loading = false;
     });
+  }
+
+  void _track() {
+    // Figma: Order confirmed → Track order → Order status screen.
+    context.push(OrderFlowRoutes.statusFor(widget.orderId));
   }
 
   @override
@@ -146,9 +143,7 @@ class _OrderConfirmedScreenState extends ConsumerState<OrderConfirmedScreen> {
                   label: OrderFlowStrings.trackOrder,
                   backgroundColor: AppColors.cartTabActive,
                   height: 52,
-                  onPressed: () => context.push(
-                    OrderFlowRoutes.statusFor(orderId),
-                  ),
+                  onPressed: _track,
                 ),
                 SizedBox(height: 14.h),
                 OrderOutlineButton(

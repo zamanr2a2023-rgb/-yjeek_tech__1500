@@ -39,16 +39,34 @@ class OrderChatRepository {
   String? get _token => _storage.token;
 
   /// GET /chat/orders/:orderId — returns conversation + messages when present.
-  Future<({String? conversationId, List<OrderChatMessage> messages})> openOrderChat(
-    String orderId,
-  ) async {
-    final response = await _apiClient.getJson(
+  Future<
+      ({
+        bool ok,
+        String? conversationId,
+        List<OrderChatMessage> messages,
+        String? error,
+      })> openOrderChat(String orderId) async {
+    final response = await _apiClient.getApiResponse(
       '/chat/orders/$orderId',
       bearerToken: _token,
     );
-    final data = response?['data'];
-    if (data is! Map<String, dynamic>) {
-      return (conversationId: null, messages: const <OrderChatMessage>[]);
+    if (!response.ok) {
+      return (
+        ok: false,
+        conversationId: null,
+        messages: const <OrderChatMessage>[],
+        error: response.message ??
+            'Champ not assigned yet — chat unavailable',
+      );
+    }
+    final data = response.data;
+    if (data == null) {
+      return (
+        ok: false,
+        conversationId: null,
+        messages: const <OrderChatMessage>[],
+        error: response.message ?? 'Chat unavailable',
+      );
     }
     final conversationId =
         data['conversationId']?.toString() ?? data['id']?.toString();
@@ -61,7 +79,12 @@ class OrderChatRepository {
         }
       }
     }
-    return (conversationId: conversationId, messages: messages);
+    return (
+      ok: true,
+      conversationId: conversationId,
+      messages: messages,
+      error: null,
+    );
   }
 
   /// GET /chat/:conversationId/messages
@@ -92,7 +115,7 @@ class OrderChatRepository {
     return OrderChatMessage.fromJson(data);
   }
 
-  /// GET /chat/quick-replies
+  /// GET /chat/quick-replies — prefers full `body` text over short `label`.
   Future<List<String>> quickReplies() async {
     final response = await _apiClient.getJson(
       '/chat/quick-replies',
@@ -104,7 +127,11 @@ class OrderChatRepository {
     return rows
         .map((e) {
           if (e is String) return e;
-          if (e is Map) return e['text']?.toString() ?? e['label']?.toString() ?? '';
+          if (e is Map) {
+            final body = e['body']?.toString().trim();
+            if (body != null && body.isNotEmpty) return body;
+            return e['text']?.toString() ?? e['label']?.toString() ?? '';
+          }
           return '';
         })
         .where((e) => e.isNotEmpty)

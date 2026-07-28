@@ -3,19 +3,18 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:yjeek_app/core/constants/app_colors.dart';
 import 'package:yjeek_app/core/constants/app_text_styles.dart';
+import 'package:yjeek_app/core/constants/maps_config.dart';
 import 'package:yjeek_app/core/providers/app_providers.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
+import 'package:yjeek_app/core/widgets/app_google_map.dart';
 import 'package:yjeek_app/features/cart/model/cart_flow_data.dart';
 import 'package:yjeek_app/features/cart/model/locations_repository.dart';
 import 'package:yjeek_app/features/cart/view/widgets/cart_flow_widgets.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/account_widgets.dart';
 import 'package:yjeek_app/routes/route_names.dart';
-
-/// Default pin near Manama / Seef when device GPS is unavailable.
-const _defaultLat = 26.2361;
-const _defaultLng = 50.5358;
 
 class SetLocationScreen extends ConsumerStatefulWidget {
   const SetLocationScreen({super.key});
@@ -31,8 +30,8 @@ class _SetLocationScreenState extends ConsumerState<SetLocationScreen> {
   List<LocationSuggestion> _suggestions = const [];
   bool _loading = true;
   bool _searching = false;
-  double _lat = _defaultLat;
-  double _lng = _defaultLng;
+  double _lat = MapsConfig.defaultLat;
+  double _lng = MapsConfig.defaultLng;
 
   @override
   void initState() {
@@ -58,6 +57,16 @@ class _SetLocationScreenState extends ConsumerState<SetLocationScreen> {
       _location = result;
       _loading = false;
     });
+  }
+
+  void _onCameraIdle(LatLng target) {
+    final moved =
+        (target.latitude - _lat).abs() > 0.00005 ||
+        (target.longitude - _lng).abs() > 0.00005;
+    if (!moved) return;
+    _lat = target.latitude;
+    _lng = target.longitude;
+    _reverse();
   }
 
   void _onSearchChanged(String value) {
@@ -106,18 +115,29 @@ class _SetLocationScreenState extends ConsumerState<SetLocationScreen> {
           );
       _suggestions = const [];
       _searchController.text = suggestion.title;
+      _loading = false;
     });
   }
 
   Future<void> _confirm() async {
     final loc = _location;
-    if (loc == null) {
-      context.pop();
-      return;
-    }
-    // Open add-address with detected area prefilled via query when possible.
-    final area = Uri.encodeQueryComponent(loc.area ?? loc.label);
-    await context.push('${RouteNames.addAddress}?area=$area');
+    final params = <String, String>{
+      'lat': _lat.toStringAsFixed(6),
+      'lng': _lng.toStringAsFixed(6),
+      if (loc?.area != null && loc!.area!.isNotEmpty)
+        'area': loc.area!
+      else if (loc?.label != null && loc!.label.isNotEmpty)
+        'area': loc.label,
+      if (loc?.road != null && loc!.road!.isNotEmpty) 'road': loc.road!,
+      if (loc?.block != null && loc!.block!.isNotEmpty) 'block': loc.block!,
+    };
+    final query = params.entries
+        .map(
+          (e) =>
+              '${Uri.encodeQueryComponent(e.key)}=${Uri.encodeQueryComponent(e.value)}',
+        )
+        .join('&');
+    await context.push('${RouteNames.addAddress}?$query');
     if (mounted) context.pop(true);
   }
 
@@ -214,34 +234,10 @@ class _SetLocationScreenState extends ConsumerState<SetLocationScreen> {
             ],
             SizedBox(height: 14.h),
             Expanded(
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  Container(
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFD1E0D4),
-                      borderRadius: BorderRadius.circular(16.r),
-                    ),
-                  ),
-                  if (_loading)
-                    const CircularProgressIndicator(color: AppColors.primary)
-                  else
-                    Container(
-                      width: 40.w,
-                      height: 40.w,
-                      decoration: const BoxDecoration(
-                        color: AppColors.cartTabActive,
-                        shape: BoxShape.circle,
-                      ),
-                      alignment: Alignment.center,
-                      child: Icon(
-                        Icons.location_on,
-                        color: const Color(0xFFE53935),
-                        size: 22.sp,
-                      ),
-                    ),
-                ],
+              child: AppMapPicker(
+                latitude: _lat,
+                longitude: _lng,
+                onCameraIdle: _onCameraIdle,
               ),
             ),
             SizedBox(height: 14.h),
@@ -289,7 +285,7 @@ class _SetLocationScreenState extends ConsumerState<SetLocationScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              title,
+                              _loading ? 'Updating…' : title,
                               style: AppTextStyles.labelMedium(
                                 color: AppColors.textPrimary,
                               ).copyWith(

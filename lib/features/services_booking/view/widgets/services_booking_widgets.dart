@@ -139,11 +139,14 @@ class ServicesTimeGrid extends StatelessWidget {
     required this.slots,
     required this.selectedIndex,
     required this.onSelected,
+    this.available,
   });
 
   final List<String> slots;
   final int selectedIndex;
   final ValueChanged<int> onSelected;
+  /// Parallel to [slots]; when false the chip is muted and not tappable.
+  final List<bool>? available;
 
   static const Color _chipBorder = Color(0xFFE0E6E0);
 
@@ -156,28 +159,37 @@ class ServicesTimeGrid extends StatelessWidget {
       runSpacing: 8.h,
       children: List.generate(slots.length, (index) {
         final selected = index == selectedIndex;
+        final isAvailable = available == null ||
+            (index < available!.length && available![index]);
         return GestureDetector(
-          onTap: () => onSelected(index),
-          child: Container(
-            height: 29.h,
-            padding: EdgeInsets.symmetric(horizontal: 13.w),
-            decoration: BoxDecoration(
-              color: selected ? AppColors.offerBadgeGreenBg : AppColors.white,
-              borderRadius: BorderRadius.circular(20.r),
-              border: Border.all(
-                color: selected ? AppColors.cartTabActive : _chipBorder,
-                width: selected ? 1.5 : 1.2,
+          onTap: isAvailable ? () => onSelected(index) : null,
+          child: Opacity(
+            opacity: isAvailable ? 1 : 0.4,
+            child: Container(
+              height: 29.h,
+              padding: EdgeInsets.symmetric(horizontal: 13.w),
+              decoration: BoxDecoration(
+                color: selected ? AppColors.offerBadgeGreenBg : AppColors.white,
+                borderRadius: BorderRadius.circular(20.r),
+                border: Border.all(
+                  color: selected ? AppColors.cartTabActive : _chipBorder,
+                  width: selected ? 1.5 : 1.2,
+                ),
               ),
-            ),
-            // Center(widthFactor: 1) keeps chip intrinsic width so Wrap
-            // lays out compact chips in a grid (not full-width rows).
-            child: Center(
-              widthFactor: 1,
-              child: Text(
-                slots[index],
-                style: AppTextStyles.labelSmall(
-                  color: selected ? AppColors.offerBadgeGreenText : _labelMuted,
-                ).copyWith(fontWeight: FontWeight.w600, fontSize: 12.5.sp),
+              child: Center(
+                widthFactor: 1,
+                child: Text(
+                  slots[index],
+                  style: AppTextStyles.labelSmall(
+                    color: selected
+                        ? AppColors.offerBadgeGreenText
+                        : _labelMuted,
+                  ).copyWith(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 12.sp,
+                    height: 1.2,
+                  ),
+                ),
               ),
             ),
           ),

@@ -24,7 +24,8 @@ class _DeliveredRateScreenState extends ConsumerState<DeliveredRateScreen> {
   int _orderRating = 4;
   int _driverRating = 4;
   bool _submitting = false;
-  String _driverName = OrderFlowData.driverName;
+  bool _alreadyRated = false;
+  String _driverName = 'your champ';
   String _subtitle = OrderFlowStrings.deliveredSubtitle;
 
   @override
@@ -39,18 +40,23 @@ class _DeliveredRateScreenState extends ConsumerState<DeliveredRateScreen> {
     final order = await ref.read(ordersRepositoryProvider).getOrder(id);
     if (!mounted || order == null) return;
     final vendor = order['vendor'];
-    final vendorName = vendor is Map<String, dynamic>
-        ? vendor['name'] as String?
-        : null;
+    final vendorName =
+        vendor is Map ? vendor['name']?.toString() : null;
+    final champ = order['champ'];
     final driver = order['driver'];
-    final driverName = driverDisplayName(
-      driver is Map<String, dynamic> ? driver : null,
-    );
+    final champMap = champ is Map
+        ? Map<String, dynamic>.from(champ)
+        : driver is Map
+            ? Map<String, dynamic>.from(driver)
+            : null;
+    final driverName = driverDisplayName(champMap);
+    final review = order['review'];
     setState(() {
       if (vendorName != null && vendorName.isNotEmpty) {
         _subtitle = 'Hope you enjoyed your order from $vendorName.';
       }
       if (driverName.isNotEmpty) _driverName = driverName;
+      _alreadyRated = review != null;
     });
   }
 
@@ -60,21 +66,39 @@ class _DeliveredRateScreenState extends ConsumerState<DeliveredRateScreen> {
       context.goHome(tab: 1);
       return;
     }
+    if (_alreadyRated) {
+      context.goHome(tab: 1);
+      return;
+    }
     setState(() => _submitting = true);
-    await ref.read(ordersRepositoryProvider).submitReview(
+    final ok = await ref.read(ordersRepositoryProvider).submitReview(
           id,
           orderRating: _orderRating,
           driverRating: _driverRating,
+          foodRating: _orderRating,
         );
     if (!mounted) return;
     setState(() => _submitting = false);
+    if (!ok) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not submit rating. Try again.')),
+      );
+      return;
+    }
     context.goHome(tab: 1);
   }
 
   Future<void> _reorder() async {
     final id = widget.orderId;
     if (id != null && id.isNotEmpty) {
-      await ref.read(ordersRepositoryProvider).reorder(id);
+      final ok = await ref.read(ordersRepositoryProvider).reorder(id);
+      if (!mounted) return;
+      if (!ok) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not reorder')),
+        );
+        return;
+      }
     }
     if (!mounted) return;
     context.goHome(tab: 2, cartHasItems: true);
@@ -112,19 +136,29 @@ class _DeliveredRateScreenState extends ConsumerState<DeliveredRateScreen> {
                   height: 16 / 13,
                 ),
           ),
-          SizedBox(height: 14.h),
-          OrderStarRatingCard(
-            title: OrderFlowStrings.rateYourOrder,
-            onChanged: (v) => _orderRating = v,
-          ),
-          SizedBox(height: 14.h),
-          OrderStarRatingCard(
-            title: '${OrderFlowStrings.rateYourChamp} · $_driverName',
-            onChanged: (v) => _driverRating = v,
-          ),
+          if (!_alreadyRated) ...[
+            SizedBox(height: 14.h),
+            OrderStarRatingCard(
+              title: OrderFlowStrings.rateYourOrder,
+              onChanged: (v) => _orderRating = v,
+            ),
+            SizedBox(height: 14.h),
+            OrderStarRatingCard(
+              title: '${OrderFlowStrings.rateYourChamp} · $_driverName',
+              onChanged: (v) => _driverRating = v,
+            ),
+          ] else ...[
+            SizedBox(height: 14.h),
+            Text(
+              'Thanks — you already rated this order.',
+              style: AppTextStyles.bodySmall(color: AppColors.textSecondary),
+            ),
+          ],
           SizedBox(height: 14.h),
           PrimaryGreenButton(
-            label: OrderFlowStrings.submitAndDone,
+            label: _alreadyRated
+                ? 'Done'
+                : OrderFlowStrings.submitAndDone,
             backgroundColor: AppColors.cartTabActive,
             height: 52,
             onPressed: _submitting ? null : _submit,
