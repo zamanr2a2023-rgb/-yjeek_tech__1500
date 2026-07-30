@@ -12,8 +12,8 @@ import 'package:yjeek_app/features/cart/view/widgets/cart_flow_widgets.dart';
 import 'package:yjeek_app/features/navigation/model/navigation_data.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/navigation_widgets.dart';
 import 'package:yjeek_app/features/scheduled_cart/model/scheduled_cart_data.dart';
+import 'package:yjeek_app/features/scheduled_cart/scheduled_cart_routes.dart';
 import 'package:yjeek_app/features/scheduled_cart/view/widgets/scheduled_cart_widgets.dart';
-import 'package:yjeek_app/features/scheduled_order_flow/scheduled_order_flow_routes.dart';
 
 class ScheduledCheckoutScreen extends ConsumerStatefulWidget {
   const ScheduledCheckoutScreen({
@@ -38,28 +38,44 @@ class _ScheduledCheckoutScreenState
   DeliveryAddressSnapshot? _address;
   CheckoutPaymentMethods _payments =
       CheckoutPaymentMethods.fallback(defaultId: 'cod');
+  List<ScheduledDeliveryMethod> _deliveryMethods =
+      ScheduledCartData.deliveryMethods;
+  List<Map<String, dynamic>> _deliveryOptions = const [];
   bool _loading = true;
   bool _placing = false;
 
   double get _tipAmount =>
       tipAmountFrom(ScheduledCartData.tipOptions, _tipIndex);
 
-  List<ScheduledDeliveryMethod> get _deliveryMethods {
-    final fee = _cart != null
-        ? (deliveryFeeFromBillLines(_cart!.billLines) ?? 1.0)
-        : 1.0;
-    final price = 'BHD ${fee.toStringAsFixed(3)}';
-    return ScheduledCartData.deliveryMethods
-        .map(
-          (m) => ScheduledDeliveryMethod(
-            id: m.id,
-            label: m.label,
-            subtitle: m.subtitle,
-            price: price,
-            priceValue: fee,
-          ),
-        )
-        .toList();
+  ScheduledDeliveryMethod get _selectedMethod {
+    for (final m in _deliveryMethods) {
+      if (m.id == _deliveryId) return m;
+    }
+    return _deliveryMethods.isNotEmpty
+        ? _deliveryMethods.first
+        : ScheduledCartData.deliveryMethods.first;
+  }
+
+  List<BillLine> get _billLines {
+    final cart = _cart;
+    if (cart == null) return const [];
+    final base = billLinesWithTip(cart, _tipAmount);
+    final fee = _selectedMethod.priceValue;
+    return [
+      for (final line in base)
+        if (line.label.toLowerCase().contains('delivery'))
+          BillLine(label: line.label, value: formatBhdMoney(fee))
+        else
+          line,
+    ];
+  }
+
+  String get _totalLabel {
+    final cart = _cart;
+    if (cart == null) return 'BHD 0.000';
+    final baseFee = deliveryFeeFromBillLines(cart.billLines) ?? 0;
+    final adjusted = cart.totalAmount - baseFee + _selectedMethod.priceValue;
+    return formatBhdMoney(adjusted + _tipAmount);
   }
 
   @override
@@ -69,10 +85,47 @@ class _ScheduledCheckoutScreenState
     WidgetsBinding.instance.addPostFrameCallback((_) => _load());
   }
 
+  String formatBhdMoney(num value) =>
+      'BHD ${value.toDouble().toStringAsFixed(3)}';
+
+  List<ScheduledDeliveryMethod> _mapOptions(List<Map<String, dynamic>> raw) {
+    if (raw.isEmpty) return ScheduledCartData.deliveryMethods;
+    return [
+      for (final o in raw)
+        ScheduledDeliveryMethod(
+          id: deliveryUiIdFromApi(o['id']?.toString()),
+          label: o['label']?.toString() ?? 'Delivery',
+          subtitle: o['windowLabel']?.toString() ??
+              o['subtitle']?.toString() ??
+              o['note']?.toString(),
+          priceValue: (o['fee'] as num?)?.toDouble() ?? 0,
+          price:
+              'BHD ${((o['fee'] as num?)?.toDouble() ?? 0).toStringAsFixed(3)}',
+          available: o['available'] != false,
+          unavailableNote: o['note']?.toString() ??
+              (o['unavailableReason'] == 'CUTOFF_PASSED'
+                  ? 'Available until 12 PM only'
+                  : null),
+        ),
+    ];
+  }
+
+  DateTime _windowForSelected() {
+    final speed = deliverySpeedApiValue(_deliveryId);
+    for (final o in _deliveryOptions) {
+      if ((o['id']?.toString() ?? '').toUpperCase() != speed) continue;
+      final raw = o['earliestWindowStartAt']?.toString();
+      final parsed = DateTime.tryParse(raw ?? '');
+      if (parsed != null) return parsed.toUtc();
+    }
+    return windowStartForDelivery(_deliveryId);
+  }
+
   Future<void> _load() async {
     setState(() => _loading = true);
     try {
-      final cart = await ref.read(cartRepositoryProvider).fetchScheduledCart();
+      final detailed =
+          await ref.read(cartRepositoryProvider).fetchScheduledCartDetailed();
       final address =
           await ref.read(addressesRepositoryProvider).defaultAddress();
       final payments = await ref
@@ -81,11 +134,21 @@ class _ScheduledCheckoutScreenState
             preferredDefaultId: 'cod',
           );
       if (!mounted) return;
+      final methods = _mapOptions(detailed.deliveryOptions);
+      var deliveryId = _deliveryId;
+      final selected = methods.where((m) => m.id == deliveryId);
+      if (selected.isEmpty || !selected.first.available) {
+        final firstAvail = methods.where((m) => m.available);
+        if (firstAvail.isNotEmpty) deliveryId = firstAvail.first.id;
+      }
       setState(() {
-        _cart = cart;
+        _cart = detailed.cart;
         _address = address;
         _payments = payments;
         _paymentId = payments.defaultId;
+        _deliveryMethods = methods;
+        _deliveryOptions = detailed.deliveryOptions;
+        _deliveryId = deliveryId;
         _dropOffIndex = dropOffIndexFromPrefs(address?.dropOffPreferences);
         _loading = false;
       });
@@ -104,11 +167,17 @@ class _ScheduledCheckoutScreenState
       );
       return;
     }
+    if (!_selectedMethod.available) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Selected delivery method unavailable')),
+      );
+      return;
+    }
     setState(() => _placing = true);
     try {
       final dropOff = dropOffApiValue(_dropOffIndex);
-      final windowStart = windowStartForDelivery(_deliveryId);
-      await ref.read(cartRepositoryProvider).checkoutScheduled(
+      final windowStart = _windowForSelected();
+      final result = await ref.read(cartRepositoryProvider).checkoutScheduled(
             addressId: addressId,
             paymentMethod: paymentMethodApiValue(_paymentId),
             windowStartAt: windowStart,
@@ -117,7 +186,19 @@ class _ScheduledCheckoutScreenState
             tipAmount: _tipAmount,
           );
       if (!mounted) return;
-      context.pushReplacement(ScheduledOrderFlowRoutes.waiting);
+      final orders = result?['orders'];
+      final ids = <String>[];
+      if (orders is List) {
+        for (final o in orders) {
+          if (o is Map && o['id'] != null) ids.add(o['id'].toString());
+        }
+      }
+      context.pushReplacement(
+        ScheduledCartRoutes.reviewFor(
+          orderIds: ids,
+          deliveryId: _deliveryId,
+        ),
+      );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -134,12 +215,6 @@ class _ScheduledCheckoutScreenState
     final vendor = cart?.vendorName.isNotEmpty == true
         ? cart!.vendorName
         : 'Scheduled cart';
-    final billLines = cart != null
-        ? billLinesWithTip(cart, _tipAmount)
-        : const <BillLine>[];
-    final total = cart != null
-        ? formatCheckoutTotal(cart, _tipAmount)
-        : 'BHD 0.000';
 
     return CartFlowScaffold(
       title: ScheduledCartStrings.checkout,
@@ -196,13 +271,13 @@ class _ScheduledCheckoutScreenState
                 ),
                 SizedBox(height: 14.h),
                 const CartSectionTitle(ScheduledCartStrings.billSummary),
-                BillSummaryCard(lines: billLines),
+                BillSummaryCard(lines: _billLines),
                 SizedBox(height: 10.h),
                 ScheduledCashbackBanner(amount: cart?.cashbackLabel),
               ],
             ),
       bottom: CartStickyFooter(
-        total: total,
+        total: _totalLabel,
         buttonLabel: _placing ? '…' : ScheduledCartStrings.placeOrder,
         onPressed: _placing || _loading ? () {} : _placeOrder,
       ),

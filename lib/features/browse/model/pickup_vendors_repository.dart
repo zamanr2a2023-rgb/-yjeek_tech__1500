@@ -8,32 +8,18 @@ import 'package:yjeek_app/features/home/model/home_feed.dart';
 const double kPickupDefaultLat = 26.2285;
 const double kPickupDefaultLng = 50.586;
 
-/// Categories shown in PK1 horizontal row (Figma order / labels).
+/// Phase-1 pickup: hot food only (grocery/pharmacy/etc disabled).
 const _featuredSlugOrder = [
   'food',
-  'grocery',
-  'pharmacy',
-  'cosmetics',
-  'gifts',
 ];
 
-/// Full PK6 grid order matching Figma.
+/// Phase-1 pickup category grid — food only.
 const _allPickupSlugOrder = [
   'food',
-  'grocery',
-  'pharmacy',
-  'sports',
-  'cosmetics',
-  'gifts',
-  'fashion',
-  'electronics',
-  'jewelry',
-  'stationery',
-  'baby-kids',
 ];
 
-/// "Ready near you" prefers these retail categories (excludes services/vape noise).
-const _nearYouCategorySlugs = {'food', 'grocery', 'pharmacy'};
+/// "Ready near you" — food only in phase 1.
+const _nearYouCategorySlugs = {'food'};
 
 class PickupSpotlight {
   const PickupSpotlight({

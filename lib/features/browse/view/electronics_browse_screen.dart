@@ -15,9 +15,14 @@ import 'package:yjeek_app/features/navigation/view/widgets/navigation_widgets.da
 import 'package:yjeek_app/routes/app_router.dart';
 
 class ElectronicsBrowseScreen extends ConsumerStatefulWidget {
-  const ElectronicsBrowseScreen({super.key, this.bottomNavIndex = 0});
+  const ElectronicsBrowseScreen({
+    super.key,
+    this.bottomNavIndex = 0,
+    this.category = 'electronics',
+  });
 
   final int bottomNavIndex;
+  final String category;
 
   @override
   ConsumerState<ElectronicsBrowseScreen> createState() =>
@@ -50,6 +55,7 @@ class _ElectronicsBrowseScreenState
     setState(() => _loading = true);
     try {
       final stores = await ref.read(electronicsVendorsRepositoryProvider).fetchStores(
+            category: widget.category,
             sort: _sort,
             freeDelivery: _freeDeliveryOnly,
             query: _query,
@@ -89,13 +95,15 @@ class _ElectronicsBrowseScreenState
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   BrowseTopBar(
-                    title: ElectronicsData.homeTitle,
-                    onCart: () => context.goHome(tab: 2),
+                    title: ElectronicsData.titleForCategory(widget.category),
+                    onCart: () => context.goHome(tab: 2, scheduledCart: true),
                   ),
                   Padding(
                     padding: EdgeInsets.fromLTRB(20.w, 8.h, 20.w, 0),
                     child: BrowseSearchBar(
-                      hint: ElectronicsData.searchHint,
+                      hint: ElectronicsData.searchHintForCategory(
+                        widget.category,
+                      ),
                       value: _query,
                       autofocus: false,
                       onChanged: _onQueryChanged,

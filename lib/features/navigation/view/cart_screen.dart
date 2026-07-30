@@ -16,6 +16,8 @@ import 'package:yjeek_app/features/navigation/model/navigation_data.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/navigation_widgets.dart';
 import 'package:yjeek_app/features/pickup_cart/pickup_cart_routes.dart';
 import 'package:yjeek_app/features/scheduled_cart/scheduled_cart_routes.dart';
+import 'package:yjeek_app/features/services_booking/services_booking_routes.dart';
+import 'package:yjeek_app/features/vape_cart/vape_cart_routes.dart';
 
 class CartScreen extends ConsumerStatefulWidget {
   const CartScreen({
@@ -155,19 +157,20 @@ class _CartScreenState extends ConsumerState<CartScreen> {
   }
 
   CartSnapshot _snapshotForTab(CartTab tab) {
+    final focusScheduled = ref.read(shellProvider).focusScheduledCart;
     switch (tab) {
       case CartTab.orders:
-        // Vape/Food/Electronics-on-demand share DELIVERY; scheduled electronics
-        // prefers scheduled basket when present.
-        if (_scheduled?.hasItems == true && !_delivery.hasItems) {
+        // Scheduled grocery/fashion/electronics share the Orders tab with food
+        // delivery. Prefer scheduled after a scheduled add, or when delivery
+        // is empty.
+        if (_scheduled?.hasItems == true &&
+            (focusScheduled || !_delivery.hasItems)) {
           return _scheduled!;
         }
         return _delivery;
       case CartTab.dineIn:
         return _dineIn;
       case CartTab.pickup:
-        if (_pickup.hasItems) return _pickup;
-        if (_scheduled?.hasItems == true) return _scheduled!;
         return _pickup;
       case CartTab.services:
         // Real services booking cart. (Vape uses DELIVERY → Orders tab.)
@@ -182,9 +185,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
       case CartTab.dineIn:
         return CartOrderType.dineIn;
       case CartTab.pickup:
-        return _pickup.hasItems
-            ? CartOrderType.pickup
-            : CartOrderType.delivery;
+        return CartOrderType.pickup;
       case CartTab.services:
         return CartOrderType.service;
     }
@@ -372,6 +373,10 @@ class _CartScreenState extends ConsumerState<CartScreen> {
       onAddMore: () {
         final vendorId = snap.vendorId;
         if (vendorId != null && vendorId.isNotEmpty) {
+          if (tab == CartTab.services) {
+            context.push(BrowseRoutes.servicesProvider(providerId: vendorId));
+            return;
+          }
           context.push(BrowseRoutes.vendorMenu(vendorId: vendorId));
           return;
         }
@@ -383,16 +388,14 @@ class _CartScreenState extends ConsumerState<CartScreen> {
           case CartTab.dineIn:
             context.push(DineInCartRoutes.checkout);
           case CartTab.pickup:
-            if (_pickup.hasItems) {
-              context.push(PickupCartRoutes.checkout);
-            } else {
-              context.push(ScheduledCartRoutes.checkout);
-            }
+            context.push(PickupCartRoutes.checkout);
           case CartTab.services:
-            context.push(CartRoutes.checkout);
+            context.push(ServicesBookingRoutes.checkout);
           case CartTab.orders:
             if (isScheduledOnly) {
               context.push(ScheduledCartRoutes.checkout);
+            } else if (snap.isVape) {
+              context.push(VapeCartRoutes.checkout);
             } else {
               context.push(CartRoutes.checkout);
             }
@@ -438,6 +441,8 @@ class _CartScreenState extends ConsumerState<CartScreen> {
     // The cart tab stays alive inside an IndexedStack, so refetch whenever the
     // shell signals the cart changed (item added elsewhere, tab reopened).
     final revision = ref.watch(shellProvider.select((s) => s.cartRevision));
+    // Rebuild Orders body when focus switches between food vs scheduled basket.
+    ref.watch(shellProvider.select((s) => s.focusScheduledCart));
     if (revision != _loadedRevision) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;

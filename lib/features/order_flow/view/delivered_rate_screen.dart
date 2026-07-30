@@ -21,6 +21,7 @@ class DeliveredRateScreen extends ConsumerStatefulWidget {
 }
 
 class _DeliveredRateScreenState extends ConsumerState<DeliveredRateScreen> {
+  final _reviewController = TextEditingController();
   int _orderRating = 4;
   int _driverRating = 4;
   bool _submitting = false;
@@ -32,6 +33,12 @@ class _DeliveredRateScreenState extends ConsumerState<DeliveredRateScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) => _hydrate());
+  }
+
+  @override
+  void dispose() {
+    _reviewController.dispose();
+    super.dispose();
   }
 
   Future<void> _hydrate() async {
@@ -57,6 +64,12 @@ class _DeliveredRateScreenState extends ConsumerState<DeliveredRateScreen> {
       }
       if (driverName.isNotEmpty) _driverName = driverName;
       _alreadyRated = review != null;
+      if (review is Map) {
+        final comment = review['comment']?.toString();
+        if (comment != null && comment.isNotEmpty) {
+          _reviewController.text = comment;
+        }
+      }
     });
   }
 
@@ -71,11 +84,13 @@ class _DeliveredRateScreenState extends ConsumerState<DeliveredRateScreen> {
       return;
     }
     setState(() => _submitting = true);
+    final comment = _reviewController.text.trim();
     final ok = await ref.read(ordersRepositoryProvider).submitReview(
           id,
           orderRating: _orderRating,
           driverRating: _driverRating,
           foodRating: _orderRating,
+          comment: comment.isEmpty ? null : comment,
         );
     if (!mounted) return;
     setState(() => _submitting = false);
@@ -147,6 +162,8 @@ class _DeliveredRateScreenState extends ConsumerState<DeliveredRateScreen> {
               title: '${OrderFlowStrings.rateYourChamp} · $_driverName',
               onChanged: (v) => _driverRating = v,
             ),
+            SizedBox(height: 14.h),
+            OrderReviewField(controller: _reviewController),
           ] else ...[
             SizedBox(height: 14.h),
             Text(

@@ -36,14 +36,15 @@ class ElectronicsVendorsRepository {
 
   String? get _token => _storage.token;
 
-  /// GET /vendors?category=electronics&sort=&freeDelivery=&q=
+  /// GET /vendors?category=&sort=&freeDelivery=&q=
   Future<List<ElectronicsStore>> fetchStores({
+    String category = 'electronics',
     String sort = 'rating',
     bool freeDelivery = false,
     String? query,
   }) async {
     final params = <String, String>{
-      'category': 'electronics',
+      'category': category,
       'sort': sort,
     };
     if (freeDelivery) params['freeDelivery'] = 'true';
@@ -66,7 +67,10 @@ class ElectronicsVendorsRepository {
     final items = <ElectronicsStore>[];
     for (final raw in data) {
       if (raw is! Map<String, dynamic>) continue;
-      final mapped = electronicsStoreFromVendorJson(raw);
+      final mapped = electronicsStoreFromVendorJson(
+        raw,
+        categoryFallback: ElectronicsData.categoryFallbackLabel(category),
+      );
       if (mapped != null) items.add(mapped);
     }
     return items;
@@ -189,7 +193,7 @@ class ElectronicsVendorsRepository {
     );
   }
 
-  /// POST /cart/items?type=DELIVERY
+  /// POST /cart/scheduled/items
   Future<({bool ok, bool vendorConflict, String? message})> addToCart({
     required String productId,
     required int quantity,
@@ -201,6 +205,7 @@ class ElectronicsVendorsRepository {
       {
         'productId': productId,
         'quantity': quantity,
+        'replaceCart': replaceCart,
         'options': {
           if (optionIds.isNotEmpty) 'optionIds': optionIds,
         },
@@ -214,19 +219,26 @@ class ElectronicsVendorsRepository {
     final details = error is Map ? error['details'] : null;
     final detailCode = details is Map ? details['code']?.toString() : null;
     final code = error is Map ? error['code']?.toString() : null;
+    final message = response.message ?? 'Could not add to cart';
     final conflict = response.statusCode == 409 ||
         code == 'VENDOR_CART_CONFLICT' ||
         detailCode == 'VENDOR_CART_CONFLICT' ||
-        code == 'CONFLICT';
+        detailCode == 'SCHEDULED_VENDOR_LIMIT' ||
+        code == 'SCHEDULED_VENDOR_LIMIT' ||
+        code == 'CONFLICT' ||
+        message.toLowerCase().contains('up to 3 vendors');
     return (
       ok: false,
       vendorConflict: conflict,
-      message: response.message ?? 'Could not add to cart',
+      message: message,
     );
   }
 }
 
-ElectronicsStore? electronicsStoreFromVendorJson(Map<String, dynamic> json) {
+ElectronicsStore? electronicsStoreFromVendorJson(
+  Map<String, dynamic> json, {
+  String categoryFallback = 'Electronics',
+}) {
   final id = (json['id'] ?? json['slug'])?.toString();
   final name = json['name'] as String?;
   if (id == null || id.isEmpty || name == null || name.isEmpty) return null;
@@ -246,10 +258,41 @@ ElectronicsStore? electronicsStoreFromVendorJson(Map<String, dynamic> json) {
       ? '${distanceKm.toStringAsFixed(1)} km'
       : (json['area'] as String? ?? 'Nearby');
 
+  final storeType = json['storeType'];
+  final storeTypeName = storeType is Map
+      ? storeType['name']?.toString()
+      : null;
+  final storeTypeSlug = storeType is Map
+      ? storeType['slug']?.toString().toLowerCase()
+      : null;
+  final linked = json['categories'];
+  String? linkedLabel;
+  if (linked is List) {
+    for (final raw in linked) {
+      if (raw is! Map) continue;
+      final slug = raw['slug']?.toString().toLowerCase();
+      final name = raw['name']?.toString();
+      if (name == null || name.isEmpty) continue;
+      if (slug == categoryFallback.toLowerCase() ||
+          name.toLowerCase() == categoryFallback.toLowerCase()) {
+        linkedLabel = name;
+        break;
+      }
+      linkedLabel ??= name;
+    }
+  }
   final tags = json['cuisineTags'];
-  final categories = tags is List && tags.isNotEmpty
+  final fromTags = tags is List && tags.isNotEmpty
       ? tags.map((e) => e.toString()).where((e) => e.isNotEmpty).join(' · ')
-      : 'Electronics';
+      : null;
+  final fallbackSlug = categoryFallback.toLowerCase();
+  final storeTypeMatches = storeTypeSlug != null &&
+      (storeTypeSlug == fallbackSlug ||
+          storeTypeName?.toLowerCase() == fallbackSlug);
+  final categories = linkedLabel ??
+      (storeTypeMatches ? storeTypeName : null) ??
+      (fromTags != null && fromTags.isNotEmpty ? fromTags : null) ??
+      categoryFallback;
 
   final productCount = (json['productCount'] as num?)?.toInt() ?? 0;
   final colors = _gradientForName(name);

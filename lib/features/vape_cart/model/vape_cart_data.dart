@@ -39,6 +39,8 @@ class VapeDeliveryMethod {
     required this.price,
     required this.priceValue,
     this.subtitle,
+    this.available = true,
+    this.unavailableNote,
   });
 
   final String id;
@@ -46,6 +48,8 @@ class VapeDeliveryMethod {
   final String price;
   final double priceValue;
   final String? subtitle;
+  final bool available;
+  final String? unavailableNote;
 }
 
 abstract final class VapeCartStrings {
@@ -82,7 +86,7 @@ abstract final class VapeCartStrings {
   static const String verified = 'VERIFIED ✓';
   static const String verifiedNote =
       'Your CPR is verified by Yjeek. The champ still checks your ID (18+) on delivery.';
-  static const String arrivesIn = 'Arrives in 30–45 mins';
+  static const String arrivesIn = 'Scheduled delivery';
   static const String phone = '+973 3558 0000';
   static const String paymentNote =
       "You won't be charged now. Once the vendor accepts, you'll have 5 minutes to pay";
@@ -157,14 +161,14 @@ abstract final class VapeCartData {
     VapeDeliveryMethod(
       id: 'standard',
       label: 'Standard',
-      subtitle: '1–2 days',
+      subtitle: '1–3 days',
       price: 'BHD 1.000',
       priceValue: 1.0,
     ),
     VapeDeliveryMethod(
       id: 'economy',
       label: 'Economy',
-      subtitle: '3–7 days',
+      subtitle: '5–7 days',
       price: 'BHD 0.500',
       priceValue: 0.5,
     ),

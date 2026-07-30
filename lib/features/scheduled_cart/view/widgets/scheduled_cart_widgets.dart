@@ -473,7 +473,7 @@ class ScheduledAddressCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  address ?? ScheduledCartData.selectedAddress,
+                  address ?? 'Add delivery address',
                   style: AppTextStyles.labelMedium(
                     color: const Color(0xFF1A1A1A),
                   ).copyWith(
@@ -484,7 +484,7 @@ class ScheduledAddressCard extends StatelessWidget {
                 ),
                 SizedBox(height: 2.h),
                 Text(
-                  addressDetail ?? ScheduledCartData.selectedAddressDetail,
+                  addressDetail ?? 'Tap Change to select an address',
                   style: AppTextStyles.caption(
                     color: const Color(0xFF6B756E),
                   ).copyWith(
@@ -576,8 +576,10 @@ class ScheduledDeliveryMethodCard extends StatelessWidget {
     // Figma: icon left · label · price · radio right.
     // Selected: bg #E4F1E9, border 2px #4CAF50.
     return GestureDetector(
-      onTap: onTap,
-      child: Container(
+      onTap: method.available ? onTap : null,
+      child: Opacity(
+        opacity: method.available ? 1 : 0.55,
+        child: Container(
         margin: EdgeInsets.only(bottom: 10.h),
         padding: EdgeInsets.all(14.w),
         decoration: BoxDecoration(
@@ -617,10 +619,13 @@ class ScheduledDeliveryMethodCard extends StatelessWidget {
                       height: 1.28,
                     ),
                   ),
-                  if (method.subtitle != null) ...[
+                  if (method.subtitle != null ||
+                      (!method.available && method.unavailableNote != null)) ...[
                     SizedBox(height: 2.h),
                     Text(
-                      method.subtitle!,
+                      !method.available && method.unavailableNote != null
+                          ? method.unavailableNote!
+                          : method.subtitle!,
                       style: AppTextStyles.caption(
                         color: const Color(0xFF6B756E),
                       ).copyWith(
@@ -675,6 +680,7 @@ class ScheduledDeliveryMethodCard extends StatelessWidget {
           ],
         ),
       ),
+      ),
     );
   }
 }
@@ -720,6 +726,8 @@ class ScheduledCashbackBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final label = amount?.trim();
+    if (label == null || label.isEmpty) return const SizedBox.shrink();
     return Container(
       width: double.infinity,
       padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
@@ -741,7 +749,7 @@ class ScheduledCashbackBanner extends StatelessWidget {
             ),
           ),
           Text(
-            amount ?? ScheduledCartData.cashbackAmount,
+            label,
             style: AppTextStyles.caption(color: const Color(0xFF7A5E12)).copyWith(
               fontWeight: FontWeight.w700,
               fontSize: 12.5.sp,
@@ -841,10 +849,16 @@ class ScheduledReviewSummaryCard extends StatelessWidget {
     super.key,
     required this.deliveryLabel,
     required this.total,
+    this.vendorLabel,
+    this.addressLabel,
+    this.paymentLabel,
   });
 
   final String deliveryLabel;
   final String total;
+  final String? vendorLabel;
+  final String? addressLabel;
+  final String? paymentLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -867,7 +881,7 @@ class ScheduledReviewSummaryCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                ScheduledCartStrings.orderType,
+                vendorLabel ?? ScheduledCartStrings.orderType,
                 style: AppTextStyles.caption(color: const Color(0xFF6B7B6E)).copyWith(
                   fontWeight: FontWeight.w600,
                   fontSize: 11.sp,
@@ -878,11 +892,11 @@ class ScheduledReviewSummaryCard extends StatelessWidget {
               _summaryRow(ScheduledCartStrings.method, deliveryLabel),
               _summaryRow(
                 ScheduledCartStrings.deliverTo,
-                ScheduledCartData.selectedAddress,
+                addressLabel ?? '—',
               ),
               _summaryRow(
                 ScheduledCartStrings.payment,
-                ScheduledCartStrings.cashOnDelivery,
+                paymentLabel ?? '—',
               ),
               Divider(height: 16.h, thickness: 1, color: const Color(0xFFE2E8DD)),
               Row(

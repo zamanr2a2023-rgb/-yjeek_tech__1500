@@ -33,7 +33,7 @@ class _ServicesBookingScreenState extends ConsumerState<ServicesBookingScreen> {
   bool _applyingPromo = false;
   final Set<String> _busyProducts = {};
 
-  late final List<DateTime> _dates = List.generate(5, (i) {
+  List<DateTime> _dates = List.generate(5, (i) {
     final now = DateTime.now();
     return DateTime(now.year, now.month, now.day).add(Duration(days: i));
   });
@@ -47,6 +47,8 @@ class _ServicesBookingScreenState extends ConsumerState<ServicesBookingScreen> {
     'Sat',
     'Sun',
   ];
+  static const int _dateChipCount = 5;
+  static const int _dateProbeDays = 14;
 
   @override
   void initState() {
@@ -68,8 +70,8 @@ class _ServicesBookingScreenState extends ConsumerState<ServicesBookingScreen> {
       setState(() {
         _cart = cart;
         _loading = false;
-        _syncScheduleFromCart(cart);
       });
+      await _loadAvailableDates();
       await _loadSlots();
     } catch (_) {
       if (!mounted) return;
@@ -77,19 +79,77 @@ class _ServicesBookingScreenState extends ConsumerState<ServicesBookingScreen> {
     }
   }
 
+  DateTime _dayOnly(DateTime d) => DateTime(d.year, d.month, d.day);
+
+  bool _sameDay(DateTime a, DateTime b) =>
+      a.year == b.year && a.month == b.month && a.day == b.day;
+
   void _syncScheduleFromCart(CartSnapshot cart) {
     final at = cart.serviceScheduledAt;
     if (at == null) return;
     final local = at.toLocal();
     for (var i = 0; i < _dates.length; i++) {
-      final d = _dates[i];
-      if (d.year == local.year &&
-          d.month == local.month &&
-          d.day == local.day) {
+      if (_sameDay(_dates[i], local)) {
         _selectedDate = i;
-        break;
+        return;
       }
     }
+  }
+
+  /// Probe upcoming days via booking-slots; keep chips that have availability.
+  Future<void> _loadAvailableDates() async {
+    final vendorId = _cart.vendorId;
+    final today = _dayOnly(DateTime.now());
+    final fallback = List.generate(
+      _dateChipCount,
+      (i) => today.add(Duration(days: i)),
+    );
+    if (vendorId == null || vendorId.isEmpty) {
+      setState(() {
+        _dates = fallback;
+        _selectedDate = 0;
+        _syncScheduleFromCart(_cart);
+      });
+      return;
+    }
+
+    final repo = ref.read(servicesVendorsRepositoryProvider);
+    final candidates = List.generate(
+      _dateProbeDays,
+      (i) => today.add(Duration(days: i)),
+    );
+    final probed = await Future.wait(
+      candidates.map((day) async {
+        try {
+          final slots = await repo.fetchBookingSlots(
+            vendorId: vendorId,
+            date: day,
+          );
+          if (slots.any((s) => s.available)) return day;
+        } catch (_) {}
+        return null;
+      }),
+    );
+    final available = probed.whereType<DateTime>().toList()
+      ..sort((a, b) => a.compareTo(b));
+
+    final dates = available.take(_dateChipCount).toList();
+    if (dates.isEmpty) {
+      dates.addAll(fallback);
+    } else if (dates.length < _dateChipCount) {
+      for (final day in candidates) {
+        if (dates.length >= _dateChipCount) break;
+        if (!dates.any((d) => _sameDay(d, day))) dates.add(day);
+      }
+    }
+
+    if (!mounted) return;
+    setState(() {
+      _dates = dates;
+      _selectedDate = 0;
+      _syncScheduleFromCart(_cart);
+      if (_selectedDate >= _dates.length) _selectedDate = 0;
+    });
   }
 
   Future<void> _loadSlots() async {

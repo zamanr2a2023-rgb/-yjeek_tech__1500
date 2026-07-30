@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:yjeek_app/core/constants/app_colors.dart';
 import 'package:yjeek_app/core/constants/app_text_styles.dart';
 import 'package:yjeek_app/core/providers/app_providers.dart';
+import 'package:yjeek_app/core/services/location_service.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/features/browse/browse_routes.dart';
 import 'package:yjeek_app/features/browse/model/browse_data.dart';
@@ -32,12 +33,14 @@ class _FoodSearchScreenState extends ConsumerState<FoodSearchScreen> {
   List<String> _recent = BrowseData.recentSearches;
   Timer? _debounce;
   bool _loading = false;
+  ({double lat, double lng})? _position;
 
   @override
   void initState() {
     super.initState();
     _query = widget.initialQuery;
     WidgetsBinding.instance.addPostFrameCallback((_) async {
+      _position = await const LocationService().currentPosition();
       await _loadRecent();
       await _search(_query);
     });
@@ -66,9 +69,13 @@ class _FoodSearchScreenState extends ConsumerState<FoodSearchScreen> {
 
   Future<void> _search(String value) async {
     setState(() => _loading = true);
+    final pos = _position;
     final results = await ref.read(foodVendorsRepositoryProvider).fetchVendors(
           query: value,
-          sort: 'rating',
+          sort: pos != null ? 'distance' : 'rating',
+          latitude: pos?.lat,
+          longitude: pos?.lng,
+          withinDeliveryRadius: pos != null,
         );
     if (!mounted) return;
     setState(() {

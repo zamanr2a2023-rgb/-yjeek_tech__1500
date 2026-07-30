@@ -177,6 +177,150 @@ class _AppMapPickerState extends State<AppMapPicker> {
   }
 }
 
+/// Interactive live tracking map (driver + optional drop-off).
+class AppLiveTrackingMap extends StatefulWidget {
+  const AppLiveTrackingMap({
+    super.key,
+    required this.driverLatitude,
+    required this.driverLongitude,
+    this.dropoffLatitude,
+    this.dropoffLongitude,
+    this.height,
+    this.borderRadius,
+  });
+
+  final double driverLatitude;
+  final double driverLongitude;
+  final double? dropoffLatitude;
+  final double? dropoffLongitude;
+  final double? height;
+  final BorderRadius? borderRadius;
+
+  @override
+  State<AppLiveTrackingMap> createState() => _AppLiveTrackingMapState();
+}
+
+class _AppLiveTrackingMapState extends State<AppLiveTrackingMap> {
+  GoogleMapController? _controller;
+  bool _ready = false;
+  bool _failed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    Future<void>.delayed(const Duration(seconds: 4), () {
+      if (!mounted || _ready || _failed) return;
+      setState(() {
+        _failed = true;
+        _ready = true;
+      });
+    });
+  }
+
+  @override
+  void didUpdateWidget(covariant AppLiveTrackingMap oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final moved =
+        (oldWidget.driverLatitude - widget.driverLatitude).abs() > 0.00005 ||
+            (oldWidget.driverLongitude - widget.driverLongitude).abs() > 0.00005;
+    if (moved) {
+      _controller?.animateCamera(
+        CameraUpdate.newLatLng(
+          LatLng(widget.driverLatitude, widget.driverLongitude),
+        ),
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller?.dispose();
+    super.dispose();
+  }
+
+  Set<Marker> get _markers {
+    final markers = <Marker>{
+      Marker(
+        markerId: const MarkerId('driver'),
+        position: LatLng(widget.driverLatitude, widget.driverLongitude),
+        infoWindow: const InfoWindow(title: 'Champ'),
+        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
+      ),
+    };
+    final dLat = widget.dropoffLatitude;
+    final dLng = widget.dropoffLongitude;
+    if (dLat != null && dLng != null) {
+      markers.add(
+        Marker(
+          markerId: const MarkerId('dropoff'),
+          position: LatLng(dLat, dLng),
+          infoWindow: const InfoWindow(title: 'Delivery'),
+          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
+        ),
+      );
+    }
+    return markers;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final h = heightOrDefault;
+    final radius = widget.borderRadius ?? BorderRadius.circular(16.r);
+    return ClipRRect(
+      borderRadius: radius,
+      child: SizedBox(
+        height: h,
+        width: double.infinity,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            if (_failed)
+              AppStaticMapImage(
+                latitude: widget.driverLatitude,
+                longitude: widget.driverLongitude,
+                height: h,
+              )
+            else
+              GoogleMap(
+                initialCameraPosition: CameraPosition(
+                  target: LatLng(
+                    widget.driverLatitude,
+                    widget.driverLongitude,
+                  ),
+                  zoom: MapsConfig.defaultZoom,
+                ),
+                markers: _markers,
+                onMapCreated: (controller) {
+                  _controller = controller;
+                  if (mounted) setState(() => _ready = true);
+                },
+                gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>{
+                  Factory<OneSequenceGestureRecognizer>(
+                    () => EagerGestureRecognizer(),
+                  ),
+                },
+                myLocationButtonEnabled: false,
+                zoomControlsEnabled: false,
+                compassEnabled: false,
+                mapToolbarEnabled: false,
+                liteModeEnabled: false,
+              ),
+            if (!_ready && !_failed)
+              const ColoredBox(
+                color: Color(0xFFD1E0D4),
+                child: Center(
+                  child: CircularProgressIndicator(color: AppColors.primary),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  double get heightOrDefault => widget.height ?? 196.h;
+}
+
 /// Non-interactive map preview — uses Static Maps (reliable inside ListViews).
 class AppMapPreview extends StatelessWidget {
   const AppMapPreview({

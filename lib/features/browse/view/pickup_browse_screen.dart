@@ -65,7 +65,7 @@ class _PickupBrowseScreenState extends ConsumerState<PickupBrowseScreen> {
       final categories = await repo.fetchFeaturedCategories();
       final spots = await repo.fetchNearbySpots(
         query: _query,
-        categorySlug: _categorySlug,
+        categorySlug: _categorySlug ?? 'food',
       );
       if (!mounted) return;
       setState(() {
@@ -100,7 +100,9 @@ class _PickupBrowseScreenState extends ConsumerState<PickupBrowseScreen> {
 
   void _openVendor(PickupSpot spot) {
     if (spot.id.isEmpty) return;
-    context.push(BrowseRoutes.vendorMenu(vendorId: spot.id));
+    context.push(
+      BrowseRoutes.vendorMenu(vendorId: spot.id, cartType: 'pickup'),
+    );
   }
 
   @override

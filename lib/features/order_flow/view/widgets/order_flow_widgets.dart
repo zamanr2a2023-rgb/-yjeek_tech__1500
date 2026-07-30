@@ -834,6 +834,48 @@ class _OrderStarRatingCardState extends State<OrderStarRatingCard> {
   }
 }
 
+class OrderReviewField extends StatelessWidget {
+  const OrderReviewField({super.key, this.controller});
+
+  final TextEditingController? controller;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      constraints: BoxConstraints(minHeight: 88.h),
+      padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 4.h),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(12.r),
+        border: Border.all(color: const Color(0xFFE0E6E0)),
+      ),
+      child: TextField(
+        controller: controller,
+        maxLines: 4,
+        minLines: 3,
+        decoration: InputDecoration(
+          border: InputBorder.none,
+          hintText: OrderFlowStrings.reviewHint,
+          hintStyle: AppTextStyles.bodySmall(color: const Color(0xFF6B756E))
+              .copyWith(
+                fontWeight: FontWeight.w400,
+                fontSize: 13.sp,
+                height: 1.23,
+              ),
+          isDense: true,
+          contentPadding: EdgeInsets.symmetric(vertical: 10.h),
+        ),
+        style: AppTextStyles.bodySmall(color: AppColors.textPrimary).copyWith(
+          fontWeight: FontWeight.w400,
+          fontSize: 13.sp,
+          height: 1.23,
+        ),
+      ),
+    );
+  }
+}
+
 class OrderReceiptPaper extends StatelessWidget {
   const OrderReceiptPaper({
     super.key,

@@ -12,8 +12,8 @@ import 'package:yjeek_app/features/cart/view/widgets/cart_flow_widgets.dart';
 import 'package:yjeek_app/features/navigation/model/navigation_data.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/navigation_widgets.dart';
 import 'package:yjeek_app/features/services_booking/model/services_booking_data.dart';
+import 'package:yjeek_app/features/services_booking/services_booking_routes.dart';
 import 'package:yjeek_app/features/services_booking/view/widgets/services_booking_widgets.dart';
-import 'package:yjeek_app/features/services_order_flow/services_order_flow_routes.dart';
 
 class ServicesCheckoutScreen extends ConsumerStatefulWidget {
   const ServicesCheckoutScreen({super.key});
@@ -103,18 +103,23 @@ class _ServicesCheckoutScreenState
       final duration = cart?.items
           .map((i) => int.tryParse(i.durationLabel?.replaceAll(RegExp(r'\D'), '') ?? '') ?? 0)
           .fold<int>(0, (a, b) => a + b);
-      await ref.read(cartRepositoryProvider).checkout(
+      final result = await ref.read(cartRepositoryProvider).checkout(
             type: CartOrderType.service,
             paymentMethod: paymentMethodApiValue(_paymentId),
             tipAmount: _tipAmount,
             serviceFulfillmentMode: cart?.serviceMode ?? 'IN_SALON',
             serviceStaffId: _specialistId,
-            servicePeopleCount: 1,
+            servicePeopleCount: cart?.partySize ?? 1,
             serviceDurationMin:
                 (duration != null && duration >= 15) ? duration : 45,
           );
       if (!mounted) return;
-      context.pushReplacement(ServicesOrderFlowRoutes.waiting);
+      final orderId = result?['id']?.toString() ??
+          result?['orderId']?.toString() ??
+          (result?['order'] is Map
+              ? (result!['order'] as Map)['id']?.toString()
+              : null);
+      context.pushReplacement(ServicesBookingRoutes.reviewFor(orderId));
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -158,13 +163,19 @@ class _ServicesCheckoutScreenState
               padding: EdgeInsets.fromLTRB(20.w, 12.h, 20.w, 16.h),
               children: [
                 const CartSectionTitle(ServicesBookingStrings.serviceLocation),
-                ServicesLocationCard(locationLabel: locationLabel),
+                ServicesLocationCard(
+                  locationLabel: locationLabel,
+                  address: cart?.pickup?.address,
+                ),
                 SizedBox(height: 14.h),
                 const CartSectionTitle(ServicesBookingStrings.appointment),
                 ServicesAppointmentCard(
                   serviceName: serviceName,
                   whenLabel: when,
                   specialistName: _specialistName ?? 'Any available',
+                  peopleLabel: (cart?.partySize ?? 1) == 1
+                      ? '1 person'
+                      : '${cart!.partySize} people',
                 ),
                 SizedBox(height: 14.h),
                 const CartSectionTitle(ServicesBookingStrings.tipSpecialist),

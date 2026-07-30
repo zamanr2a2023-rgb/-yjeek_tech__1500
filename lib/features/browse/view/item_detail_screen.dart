@@ -17,11 +17,14 @@ class ItemDetailScreen extends ConsumerStatefulWidget {
     required this.vendorId,
     required this.itemId,
     this.bottomNavIndex = 0,
+    this.cartType,
   });
 
   final String vendorId;
   final String itemId;
   final int bottomNavIndex;
+  /// `pickup` → POST /cart/items?type=PICKUP; otherwise DELIVERY.
+  final String? cartType;
 
   @override
   ConsumerState<ItemDetailScreen> createState() => _ItemDetailScreenState();
@@ -107,19 +110,25 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
       }
     }
 
+    final isPickup = (widget.cartType ?? '').toLowerCase() == 'pickup';
     final result = await ref.read(foodVendorsRepositoryProvider).addToCart(
           productId: widget.itemId,
           quantity: _quantity,
           optionIds: optionIds,
           addonIds: addonIds,
           replaceCart: replaceCart,
+          cartType: isPickup ? 'PICKUP' : 'DELIVERY',
         );
 
     if (!mounted) return;
     setState(() => _adding = false);
 
     if (result.ok) {
-      context.goHome(tab: 2, cartHasItems: true);
+      context.goHome(
+        tab: 2,
+        cartHasItems: !isPickup,
+        pickupCart: isPickup,
+      );
       return;
     }
 

@@ -584,84 +584,90 @@ class VapeDeliveryMethodCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Same card chrome as Electronics scheduled checkout.
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        margin: EdgeInsets.only(bottom: 10.h),
-        padding: EdgeInsets.all(14.w),
-        decoration: BoxDecoration(
-          color: selected ? const Color(0xFFE4F1E9) : AppColors.white,
-          borderRadius: BorderRadius.circular(16.r),
-          border: Border.all(
-            color: selected ? const Color(0xFF4CAF50) : const Color(0xFFE2E8DD),
-            width: selected ? 2 : 1,
-          ),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 40.w,
-              height: 40.w,
-              decoration: BoxDecoration(
-                color: selected ? const Color(0xFF4CAF50) : const Color(0xFFDBE6D4),
-                borderRadius: BorderRadius.circular(11.r),
-              ),
-              alignment: Alignment.center,
-              child: _methodIcon(selected: selected),
+    return Opacity(
+      opacity: method.available ? 1 : 0.55,
+      child: GestureDetector(
+        onTap: method.available ? onTap : null,
+        child: Container(
+          margin: EdgeInsets.only(bottom: 10.h),
+          padding: EdgeInsets.all(14.w),
+          decoration: BoxDecoration(
+            color: selected ? const Color(0xFFE4F1E9) : AppColors.white,
+            borderRadius: BorderRadius.circular(16.r),
+            border: Border.all(
+              color: selected ? const Color(0xFF4CAF50) : const Color(0xFFE2E8DD),
+              width: selected ? 2 : 1,
             ),
-            SizedBox(width: 12.w),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 40.w,
+                height: 40.w,
+                decoration: BoxDecoration(
+                  color: selected ? const Color(0xFF4CAF50) : const Color(0xFFDBE6D4),
+                  borderRadius: BorderRadius.circular(11.r),
+                ),
+                alignment: Alignment.center,
+                child: _methodIcon(selected: selected),
+              ),
+              SizedBox(width: 12.w),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      method.label,
+                      style: AppTextStyles.labelMedium(color: const Color(0xFF1A1A1A)).copyWith(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 15.sp,
+                        height: 1.28,
+                      ),
+                    ),
+                    if ((method.subtitle != null && method.subtitle!.isNotEmpty) ||
+                        (!method.available && method.unavailableNote != null)) ...[
+                      SizedBox(height: 2.h),
+                      Text(
+                        !method.available && method.unavailableNote != null
+                            ? method.unavailableNote!
+                            : method.subtitle!,
+                        style: AppTextStyles.caption(color: const Color(0xFF6B756E)).copyWith(
+                          fontWeight: FontWeight.w400,
+                          fontSize: 12.sp,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
-                    method.label,
+                    method.price,
                     style: AppTextStyles.labelMedium(color: const Color(0xFF1A1A1A)).copyWith(
                       fontWeight: FontWeight.w700,
-                      fontSize: 15.sp,
+                      fontSize: 13.sp,
                       height: 1.28,
                     ),
                   ),
-                  if (method.subtitle != null) ...[
-                    SizedBox(height: 2.h),
-                    Text(
-                      method.subtitle!,
-                      style: AppTextStyles.caption(color: const Color(0xFF6B756E)).copyWith(
-                        fontWeight: FontWeight.w400,
-                        fontSize: 12.sp,
+                  SizedBox(height: 6.h),
+                  Container(
+                    width: 22.w,
+                    height: 22.w,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: AppColors.white,
+                      border: Border.all(
+                        color: selected ? const Color(0xFF4CAF50) : const Color(0xFFE0E6E0),
+                        width: selected ? 6.5 : 1.5,
                       ),
                     ),
-                  ],
+                  ),
                 ],
               ),
-            ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  method.price,
-                  style: AppTextStyles.labelMedium(color: const Color(0xFF1A1A1A)).copyWith(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 13.sp,
-                    height: 1.28,
-                  ),
-                ),
-                SizedBox(height: 6.h),
-                Container(
-                  width: 22.w,
-                  height: 22.w,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: AppColors.white,
-                    border: Border.all(
-                      color: selected ? const Color(0xFF4CAF50) : const Color(0xFFE0E6E0),
-                      width: selected ? 6.5 : 1.5,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -796,10 +802,16 @@ class VapeReviewSummaryCard extends StatelessWidget {
     super.key,
     required this.deliveryLabel,
     required this.total,
+    this.vendorLabel,
+    this.addressLabel,
+    this.paymentLabel,
   });
 
   final String deliveryLabel;
   final String total;
+  final String? vendorLabel;
+  final String? addressLabel;
+  final String? paymentLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -821,7 +833,7 @@ class VapeReviewSummaryCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                VapeCartStrings.orderType,
+                vendorLabel ?? VapeCartStrings.orderType,
                 style: AppTextStyles.caption(color: const Color(0xFF6B7B6E)).copyWith(
                   fontWeight: FontWeight.w600,
                   fontSize: 11.sp,
@@ -830,8 +842,14 @@ class VapeReviewSummaryCard extends StatelessWidget {
               ),
               SizedBox(height: 8.h),
               _summaryRow(VapeCartStrings.method, deliveryLabel),
-              _summaryRow(VapeCartStrings.deliverTo, VapeCartData.selectedAddress),
-              _summaryRow(VapeCartStrings.payment, VapeCartStrings.cashOnDelivery),
+              _summaryRow(
+                VapeCartStrings.deliverTo,
+                addressLabel ?? VapeCartData.selectedAddress,
+              ),
+              _summaryRow(
+                VapeCartStrings.payment,
+                paymentLabel ?? VapeCartStrings.cashOnDelivery,
+              ),
               Divider(height: 16.h, thickness: 1, color: const Color(0xFFE2E8DD)),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,

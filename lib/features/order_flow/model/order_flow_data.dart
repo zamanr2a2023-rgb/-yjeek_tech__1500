@@ -20,6 +20,7 @@ abstract final class OrderFlowStrings {
       'Hope you enjoyed your order from The Green Kitchen.';
   static const String rateYourOrder = 'Rate your order';
   static const String rateYourChamp = 'Rate your champ';
+  static const String reviewHint = 'Write a short review (optional)';
   static const String submitAndDone = 'Submit & done';
   static const String receipt = 'Receipt';
   static const String receiptSubtitle = 'Order #YJK-3920';

@@ -9,6 +9,7 @@ abstract final class HomeCategoryStyle {
     'gifts': (Icons.card_giftcard_outlined, Color(0xFFFCE8E4)),
     'fashion': (Icons.checkroom_outlined, Color(0xFFE8E4F8)),
     'electronics': (Icons.devices_outlined, Color(0xFFE2EEFB)),
+    'prosthetics': (Icons.accessibility_new_outlined, Color(0xFFE8EEF2)),
     'food': (Icons.restaurant_outlined, Color(0xFFFFF0D9)),
     'dine_in': (Icons.local_dining_outlined, Color(0xFFE3F2EB)),
     'dine-in': (Icons.local_dining_outlined, Color(0xFFE3F2EB)),
@@ -115,6 +116,8 @@ OfferItem offerItemFromApi({
   required num offerPrice,
   String? imageUrl,
   String? badgeLabel,
+  String? productId,
+  String? categorySlug,
 }) {
   return OfferItem(
     name: name,
@@ -122,5 +125,7 @@ OfferItem offerItemFromApi({
     imageColor: HomeOfferStyle.forName(name),
     imageUrl: imageUrl,
     badgeLabel: badgeLabel,
+    productId: productId,
+    categorySlug: categorySlug,
   );
 }

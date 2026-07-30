@@ -446,72 +446,86 @@ class BrandAvatar extends StatelessWidget {
 }
 
 class OfferProductCard extends StatelessWidget {
-  const OfferProductCard({super.key, required this.offer});
+  const OfferProductCard({
+    super.key,
+    required this.offer,
+    this.onTap,
+  });
 
   final OfferItem offer;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final imageUrl = offer.imageUrl;
 
-    return Container(
-      width: 150,
-      decoration: BoxDecoration(
-        color: AppColors.white,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          ClipRRect(
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-            child: SizedBox(
-              height: 96,
-              width: double.infinity,
-              child: imageUrl != null && imageUrl.isNotEmpty
-                  ? AppNetworkImage(
-                      url: imageUrl,
-                      height: 96,
-                      width: double.infinity,
-                      fit: BoxFit.cover,
-                    )
-                  : ColoredBox(
-                      color: offer.imageColor,
-                      child: Center(
-                        child: Icon(
-                          Icons.image_outlined,
-                          size: 40,
-                          color: AppColors.textSecondary.withValues(alpha: 0.5),
+        child: Container(
+          width: 150,
+          decoration: BoxDecoration(
+            color: AppColors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppColors.border),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              ClipRRect(
+                borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(16)),
+                child: SizedBox(
+                  height: 96,
+                  width: double.infinity,
+                  child: imageUrl != null && imageUrl.isNotEmpty
+                      ? AppNetworkImage(
+                          url: imageUrl,
+                          height: 96,
+                          width: double.infinity,
+                          fit: BoxFit.cover,
+                        )
+                      : ColoredBox(
+                          color: offer.imageColor,
+                          child: Center(
+                            child: Icon(
+                              Icons.image_outlined,
+                              size: 40,
+                              color: AppColors.textSecondary
+                                  .withValues(alpha: 0.5),
+                            ),
+                          ),
                         ),
-                      ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      offer.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTextStyles.labelSmall(
+                        color: AppColors.textPrimary,
+                      ).copyWith(fontWeight: FontWeight.w700, fontSize: 13),
                     ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  offer.name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTextStyles.labelSmall(
-                    color: AppColors.textPrimary,
-                  ).copyWith(fontWeight: FontWeight.w700, fontSize: 13),
+                    const SizedBox(height: 3),
+                    Text(
+                      offer.price,
+                      style: AppTextStyles.labelSmall(
+                        color: AppColors.primary,
+                      ).copyWith(fontWeight: FontWeight.w700, fontSize: 13),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 3),
-                Text(
-                  offer.price,
-                  style: AppTextStyles.labelSmall(
-                    color: AppColors.primary,
-                  ).copyWith(fontWeight: FontWeight.w700, fontSize: 13),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

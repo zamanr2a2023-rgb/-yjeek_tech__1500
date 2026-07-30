@@ -116,6 +116,16 @@ import 'package:yjeek_app/features/order_flow/view/order_status_screen.dart';
 import 'package:yjeek_app/features/order_flow/view/order_waiting_screen.dart';
 import 'package:yjeek_app/routes/route_names.dart';
 
+List<String> _scheduledOrderIds(GoRouterState state) {
+  final idsParam = state.uri.queryParameters['ids'];
+  final id = state.uri.queryParameters['id'];
+  if (idsParam != null && idsParam.isNotEmpty) {
+    return idsParam.split(',').where((e) => e.isNotEmpty).toList();
+  }
+  if (id != null && id.isNotEmpty) return [id];
+  return const [];
+}
+
 class AppRouter {
   static GoRouter create() {
     return GoRouter(
@@ -197,7 +207,12 @@ class AppRouter {
             final vendorId =
                 state.uri.queryParameters['id'] ?? BrowseRoutes.defaultVendorId;
             final tab = int.tryParse(state.uri.queryParameters['tab'] ?? '') ?? 0;
-            return VendorMenuScreen(vendorId: vendorId, bottomNavIndex: tab);
+            final cartType = state.uri.queryParameters['cart'];
+            return VendorMenuScreen(
+              vendorId: vendorId,
+              bottomNavIndex: tab,
+              cartType: cartType,
+            );
           },
         ),
         GoRoute(
@@ -208,10 +223,12 @@ class AppRouter {
             final itemId =
                 state.uri.queryParameters['item'] ?? BrowseRoutes.defaultItemId;
             final tab = int.tryParse(state.uri.queryParameters['tab'] ?? '') ?? 0;
+            final cartType = state.uri.queryParameters['cart'];
             return ItemDetailScreen(
               vendorId: vendorId,
               itemId: itemId,
               bottomNavIndex: tab,
+              cartType: cartType,
             );
           },
         ),
@@ -324,7 +341,12 @@ class AppRouter {
           path: RouteNames.electronicsBrowse,
           builder: (_, state) {
             final tab = int.tryParse(state.uri.queryParameters['tab'] ?? '') ?? 0;
-            return ElectronicsBrowseScreen(bottomNavIndex: tab);
+            final category =
+                state.uri.queryParameters['category'] ?? 'electronics';
+            return ElectronicsBrowseScreen(
+              bottomNavIndex: tab,
+              category: category,
+            );
           },
         ),
         GoRoute(
@@ -416,31 +438,45 @@ class AppRouter {
         ),
         GoRoute(
           path: RouteNames.servicesBookingReview,
-          builder: (_, _) => const ServicesReviewScreen(),
+          builder: (_, state) => ServicesReviewScreen(
+            orderId: state.uri.queryParameters['id'],
+          ),
         ),
         GoRoute(
           path: RouteNames.servicesOrderWaiting,
-          builder: (_, _) => const ServicesWaitingScreen(),
+          builder: (_, state) => ServicesWaitingScreen(
+            orderId: state.uri.queryParameters['id'],
+          ),
         ),
         GoRoute(
           path: RouteNames.servicesOrderPay,
-          builder: (_, _) => const ServicesPayScreen(),
+          builder: (_, state) => ServicesPayScreen(
+            orderId: state.uri.queryParameters['id'],
+          ),
         ),
         GoRoute(
           path: RouteNames.servicesOrderConfirmed,
-          builder: (_, _) => const ServicesConfirmedScreen(),
+          builder: (_, state) => ServicesConfirmedScreen(
+            orderId: state.uri.queryParameters['id'],
+          ),
         ),
         GoRoute(
           path: RouteNames.servicesOrderStatus,
-          builder: (_, _) => const ServicesStatusScreen(),
+          builder: (_, state) => ServicesStatusScreen(
+            orderId: state.uri.queryParameters['id'],
+          ),
         ),
         GoRoute(
           path: RouteNames.servicesOrderComplete,
-          builder: (_, _) => const ServicesCompleteScreen(),
+          builder: (_, state) => ServicesCompleteScreen(
+            orderId: state.uri.queryParameters['id'],
+          ),
         ),
         GoRoute(
           path: RouteNames.servicesOrderReceipt,
-          builder: (_, _) => const ServicesReceiptScreen(),
+          builder: (_, state) => ServicesReceiptScreen(
+            orderId: state.uri.queryParameters['id'],
+          ),
         ),
         GoRoute(
           path: RouteNames.exclusiveOffers,
@@ -746,8 +782,20 @@ class AppRouter {
         GoRoute(
           path: RouteNames.scheduledCartReview,
           builder: (_, state) {
-            final deliveryId = state.uri.queryParameters['delivery'] ?? 'same-day';
-            return ScheduledReviewScreen(deliveryId: deliveryId);
+            final deliveryId =
+                state.uri.queryParameters['delivery'] ?? 'same-day';
+            final idsParam = state.uri.queryParameters['ids'];
+            final id = state.uri.queryParameters['id'];
+            final orderIds = <String>[
+              if (idsParam != null && idsParam.isNotEmpty)
+                ...idsParam.split(',').where((e) => e.isNotEmpty)
+              else if (id != null && id.isNotEmpty)
+                id,
+            ];
+            return ScheduledReviewScreen(
+              deliveryId: deliveryId,
+              orderIds: orderIds,
+            );
           },
         ),
         GoRoute(
@@ -756,27 +804,53 @@ class AppRouter {
         ),
         GoRoute(
           path: RouteNames.pickupCartReview,
-          builder: (_, _) => const PickupReviewScreen(),
+          builder: (_, state) {
+            final paymentId =
+                state.uri.queryParameters['payment'] ?? 'benefitpay';
+            final tip = double.tryParse(
+                  state.uri.queryParameters['tip'] ?? '',
+                ) ??
+                0;
+            return PickupReviewScreen(
+              paymentId: paymentId,
+              tipAmount: tip,
+            );
+          },
         ),
         GoRoute(
           path: RouteNames.pickupOrderWaiting,
-          builder: (_, _) => const PickupWaitingScreen(),
+          builder: (_, state) {
+            final orderId = state.uri.queryParameters['id'];
+            return PickupWaitingScreen(orderId: orderId);
+          },
         ),
         GoRoute(
           path: RouteNames.pickupOrderPay,
-          builder: (_, _) => const PickupPayScreen(),
+          builder: (_, state) {
+            final orderId = state.uri.queryParameters['id'];
+            return PickupPayScreen(orderId: orderId);
+          },
         ),
         GoRoute(
           path: RouteNames.pickupOrderConfirmed,
-          builder: (_, _) => const PickupConfirmedScreen(),
+          builder: (_, state) {
+            final orderId = state.uri.queryParameters['id'];
+            return PickupConfirmedScreen(orderId: orderId);
+          },
         ),
         GoRoute(
           path: RouteNames.pickupOrderStatus,
-          builder: (_, _) => const PickupStatusScreen(),
+          builder: (_, state) {
+            final orderId = state.uri.queryParameters['id'];
+            return PickupStatusScreen(orderId: orderId);
+          },
         ),
         GoRoute(
           path: RouteNames.pickupOrderReceipt,
-          builder: (_, _) => const PickupReceiptScreen(),
+          builder: (_, state) {
+            final orderId = state.uri.queryParameters['id'];
+            return PickupReceiptScreen(orderId: orderId);
+          },
         ),
         GoRoute(
           path: RouteNames.vapeCartCheckout,
@@ -788,8 +862,13 @@ class AppRouter {
         GoRoute(
           path: RouteNames.vapeCartReview,
           builder: (_, state) {
-            final deliveryId = state.uri.queryParameters['delivery'] ?? 'same-day';
-            return VapeReviewScreen(deliveryId: deliveryId);
+            final deliveryId =
+                state.uri.queryParameters['delivery'] ?? 'same-day';
+            final orderIds = _scheduledOrderIds(state);
+            return VapeReviewScreen(
+              deliveryId: deliveryId,
+              orderIds: orderIds,
+            );
           },
         ),
         GoRoute(
@@ -798,43 +877,73 @@ class AppRouter {
         ),
         GoRoute(
           path: RouteNames.vapeOrderWaiting,
-          builder: (_, _) => const VapeWaitingScreen(),
+          builder: (_, state) {
+            final orderIds = _scheduledOrderIds(state);
+            return VapeWaitingScreen(orderIds: orderIds);
+          },
         ),
         GoRoute(
           path: RouteNames.vapeOrderPay,
-          builder: (_, _) => const VapePayScreen(),
+          builder: (_, state) {
+            final orderIds = _scheduledOrderIds(state);
+            return VapePayScreen(orderIds: orderIds);
+          },
         ),
         GoRoute(
           path: RouteNames.vapeOrderConfirmed,
-          builder: (_, _) => const VapeConfirmedScreen(),
+          builder: (_, state) {
+            final orderIds = _scheduledOrderIds(state);
+            return VapeConfirmedScreen(orderIds: orderIds);
+          },
         ),
         GoRoute(
           path: RouteNames.vapeOrderStatus,
-          builder: (_, _) => const VapeStatusScreen(),
+          builder: (_, state) {
+            final orderIds = _scheduledOrderIds(state);
+            return VapeStatusScreen(orderIds: orderIds);
+          },
         ),
         GoRoute(
           path: RouteNames.vapeOrderReceipt,
-          builder: (_, _) => const VapeReceiptScreen(),
+          builder: (_, state) {
+            final orderIds = _scheduledOrderIds(state);
+            return VapeReceiptScreen(orderIds: orderIds);
+          },
         ),
         GoRoute(
           path: RouteNames.scheduledOrderWaiting,
-          builder: (_, _) => const ScheduledWaitingScreen(),
+          builder: (_, state) {
+            final orderIds = _scheduledOrderIds(state);
+            return ScheduledWaitingScreen(orderIds: orderIds);
+          },
         ),
         GoRoute(
           path: RouteNames.scheduledOrderPay,
-          builder: (_, _) => const ScheduledPayScreen(),
+          builder: (_, state) {
+            final orderIds = _scheduledOrderIds(state);
+            return ScheduledPayScreen(orderIds: orderIds);
+          },
         ),
         GoRoute(
           path: RouteNames.scheduledOrderConfirmed,
-          builder: (_, _) => const ScheduledConfirmedScreen(),
+          builder: (_, state) {
+            final orderIds = _scheduledOrderIds(state);
+            return ScheduledConfirmedScreen(orderIds: orderIds);
+          },
         ),
         GoRoute(
           path: RouteNames.scheduledOrderStatus,
-          builder: (_, _) => const ScheduledStatusScreen(),
+          builder: (_, state) {
+            final orderIds = _scheduledOrderIds(state);
+            return ScheduledStatusScreen(orderIds: orderIds);
+          },
         ),
         GoRoute(
           path: RouteNames.scheduledOrderReceipt,
-          builder: (_, _) => const ScheduledReceiptScreen(),
+          builder: (_, state) {
+            final orderIds = _scheduledOrderIds(state);
+            return ScheduledReceiptScreen(orderIds: orderIds);
+          },
         ),
         GoRoute(
           path: RouteNames.dineInOrderWaiting,
@@ -877,6 +986,54 @@ class AppRouter {
   }
 }
 
+/// Prefer the parent list/store screen over a product detail page so Cart
+/// back does not dump the user on a detail route (e.g. electronics product).
+String? cartReturnPathFromUri(Uri uri) {
+  final path = uri.path;
+  if (path.isEmpty || path == RouteNames.home || path.startsWith(RouteNames.home)) {
+    return null;
+  }
+
+  if (path == RouteNames.electronicsProductDetail) {
+    final storeId = uri.queryParameters['store'];
+    if (storeId != null && storeId.isNotEmpty) {
+      return BrowseRoutes.electronicsStore(storeId: storeId);
+    }
+  }
+  if (path == RouteNames.itemDetail) {
+    final vendorId = uri.queryParameters['vendor'];
+    if (vendorId != null && vendorId.isNotEmpty) {
+      return BrowseRoutes.vendorMenu(
+        vendorId: vendorId,
+        cartType: uri.queryParameters['cart'],
+      );
+    }
+  }
+  if (path == RouteNames.dineInItemDetail) {
+    final restaurantId =
+        uri.queryParameters['restaurant'] ?? uri.queryParameters['id'];
+    if (restaurantId != null && restaurantId.isNotEmpty) {
+      return BrowseRoutes.dineInMenu(restaurantId: restaurantId);
+    }
+  }
+  if (path == RouteNames.vapeProductDetail) {
+    final storeId = uri.queryParameters['store'];
+    if (storeId != null && storeId.isNotEmpty) {
+      return BrowseRoutes.vapeStore(storeId: storeId);
+    }
+  }
+  if (path == RouteNames.servicesItemDetail) {
+    final providerId =
+        uri.queryParameters['provider'] ?? uri.queryParameters['id'];
+    if (providerId != null && providerId.isNotEmpty) {
+      return BrowseRoutes.servicesProvider(providerId: providerId);
+    }
+  }
+
+  final q = uri.query;
+  return q.isEmpty ? path : '$path?$q';
+}
+
 extension AppNavigation on BuildContext {
   void goHome({
     int tab = 0,
@@ -891,9 +1048,9 @@ extension AppNavigation on BuildContext {
     if (tab == 2) {
       final notifier =
           ProviderScope.containerOf(this).read(shellProvider.notifier);
-      final current = GoRouterState.of(this).uri.toString();
-      if (!current.startsWith(RouteNames.home)) {
-        notifier.setCartReturnPath(current);
+      final returnPath = cartReturnPathFromUri(GoRouterState.of(this).uri);
+      if (returnPath != null && returnPath.isNotEmpty) {
+        notifier.setCartReturnPath(returnPath);
       }
       // Cart tab is kept alive by the shell's IndexedStack — force a refetch so
       // a freshly added item shows up instead of the previously loaded cart.

@@ -20,10 +20,13 @@ class VendorMenuScreen extends ConsumerStatefulWidget {
     super.key,
     required this.vendorId,
     this.bottomNavIndex = 0,
+    this.cartType,
   });
 
   final String vendorId;
   final int bottomNavIndex;
+  /// When `pickup`, item detail adds to PICKUP cart.
+  final String? cartType;
 
   @override
   ConsumerState<VendorMenuScreen> createState() => _VendorMenuScreenState();
@@ -105,6 +108,7 @@ class _VendorMenuScreenState extends ConsumerState<VendorMenuScreen> {
             BrowseRoutes.itemDetail(
               vendorId: widget.vendorId,
               itemId: item.id,
+              cartType: widget.cartType,
             ),
           )
           .then((_) {

@@ -98,10 +98,7 @@ class _MainShellState extends ConsumerState<MainShell> {
             context.go(returnPath);
             return;
           }
-          if (context.canPop()) {
-            context.pop();
-            return;
-          }
+          // Opened cart from bottom nav (or no saved browse path) — previous tab.
           notifier.leaveCart();
         },
         onCartTabChanged: notifier.setCartTab,

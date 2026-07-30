@@ -40,6 +40,8 @@ class ScheduledDeliveryMethod {
     required this.priceValue,
     this.subtitle,
     this.freeAfterNoon = false,
+    this.available = true,
+    this.unavailableNote,
   });
 
   final String id;
@@ -48,6 +50,8 @@ class ScheduledDeliveryMethod {
   final double priceValue;
   final String? subtitle;
   final bool freeAfterNoon;
+  final bool available;
+  final String? unavailableNote;
 }
 
 abstract final class ScheduledCartStrings {

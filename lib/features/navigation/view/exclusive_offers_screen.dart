@@ -6,6 +6,7 @@ import 'package:yjeek_app/core/constants/navigation_strings.dart';
 import 'package:yjeek_app/core/providers/app_providers.dart';
 import 'package:yjeek_app/core/providers/shell_provider.dart';
 import 'package:yjeek_app/features/cart/model/cart_repository.dart';
+import 'package:yjeek_app/features/cart/view/widgets/cart_flow_widgets.dart';
 import 'package:yjeek_app/features/home/view/widgets/home_widgets.dart';
 import 'package:yjeek_app/features/navigation/model/navigation_data.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/navigation_widgets.dart';
@@ -89,10 +90,45 @@ class _ExclusiveOffersScreenState extends ConsumerState<ExclusiveOffersScreen> {
     if (_addingProductId != null) return;
     setState(() => _addingProductId = productId);
     try {
-      await ref.read(cartRepositoryProvider).addProduct(
-            type: CartOrderType.delivery,
+      final repo = ref.read(cartRepositoryProvider);
+      final useScheduled = offer.category == OfferCategory.groceries ||
+          offer.category == OfferCategory.fashion;
+      if (useScheduled) {
+        Future<void> addScheduled({bool replaceCart = false}) async {
+          final snap = await repo.addScheduledProduct(
             productId: productId,
+            replaceCart: replaceCart,
           );
+          if (!mounted) return;
+          if (snap == null || !snap.hasItems) {
+            throw Exception('Could not add to cart');
+          }
+          ref.read(shellProvider.notifier).openScheduledCartWithItems();
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('${offer.name} added to cart'),
+              duration: const Duration(seconds: 1),
+            ),
+          );
+          context.goHome(tab: 2, scheduledCart: true);
+        }
+
+        try {
+          await addScheduled();
+        } on ScheduledVendorLimitException {
+          if (!mounted) return;
+          showCartNewCartDialog(
+            context,
+            onConfirm: () => addScheduled(replaceCart: true),
+          );
+        }
+        return;
+      }
+
+      await repo.addProduct(
+        type: CartOrderType.delivery,
+        productId: productId,
+      );
       if (!mounted) return;
       ref.read(shellProvider.notifier).markCartDirty();
       ref.read(shellProvider.notifier).openCartWithItems();

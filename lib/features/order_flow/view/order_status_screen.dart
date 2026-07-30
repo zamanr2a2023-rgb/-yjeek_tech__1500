@@ -45,6 +45,8 @@ class _OrderStatusScreenState extends ConsumerState<OrderStatusScreen> {
   bool _navigatingToRate = false;
   double _mapLat = MapsConfig.defaultLat;
   double _mapLng = MapsConfig.defaultLng;
+  double? _dropoffLat;
+  double? _dropoffLng;
   Timer? _pollTimer;
 
   @override
@@ -106,6 +108,7 @@ class _OrderStatusScreenState extends ConsumerState<OrderStatusScreen> {
       final hasChamp = champMap != null && champName != _dash;
       // Live map only after champ is assigned (champ coords → address fallback).
       final liveCoords = hasChamp ? trackMapCoords(data) : null;
+      final dropoffCoords = trackDropoffCoords(data);
       final canRate = data['canRate'] == true;
       final statusUpper = (status ?? '').toUpperCase();
       final isDelivered = statusUpper == 'DELIVERED' ||
@@ -140,10 +143,14 @@ class _OrderStatusScreenState extends ConsumerState<OrderStatusScreen> {
             _mapLat = liveCoords.lat;
             _mapLng = liveCoords.lng;
           }
+          _dropoffLat = dropoffCoords?.lat;
+          _dropoffLng = dropoffCoords?.lng;
         } else {
           _champSubtitle = 'Champ will be assigned soon';
           _champMeta = 'Waiting for pickup';
           _champPhone = null;
+          _dropoffLat = null;
+          _dropoffLng = null;
         }
         final paymentRaw = data['paymentMethod']?.toString();
         _payment = paymentRaw == null || paymentRaw.isEmpty
@@ -286,9 +293,11 @@ class _OrderStatusScreenState extends ConsumerState<OrderStatusScreen> {
               children: [
                 // Spec: live map only after driver/champ is assigned.
                 if (_hasChamp)
-                  AppMapPreview(
-                    latitude: _mapLat,
-                    longitude: _mapLng,
+                  AppLiveTrackingMap(
+                    driverLatitude: _mapLat,
+                    driverLongitude: _mapLng,
+                    dropoffLatitude: _dropoffLat,
+                    dropoffLongitude: _dropoffLng,
                     height: 196.h,
                     borderRadius: BorderRadius.circular(16.r),
                   )

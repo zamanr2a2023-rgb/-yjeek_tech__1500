@@ -46,6 +46,9 @@ abstract final class PickupOrderFlowStrings {
       'Your order is being prepared for pickup.';
   static const String trackOrder = 'Track order';
   static const String viewReceipt = 'View receipt';
+  static const String imHere = "I'm here";
+  static const String paymentExpired =
+      'Payment window expired. Your order was cancelled.';
   static const String orderStatus = 'Order status';
   static const String notifyBanner =
       "We'll notify you the moment your order is ready to collect.";

@@ -127,6 +127,27 @@ String driverDisplayName(Map<String, dynamic>? driver) {
       fromMap(data['venue']);
 }
 
+/// Drop-off coords only (for live map destination pin).
+({double lat, double lng})? trackDropoffCoords(Map<String, dynamic> data) {
+  double? asDouble(dynamic v) {
+    if (v is num) return v.toDouble();
+    if (v is String) return double.tryParse(v);
+    return null;
+  }
+
+  ({double lat, double lng})? fromMap(dynamic raw) {
+    if (raw is! Map) return null;
+    final lat = asDouble(raw['latitude'] ?? raw['lat']);
+    final lng = asDouble(raw['longitude'] ?? raw['lng']);
+    if (lat == null || lng == null) return null;
+    return (lat: lat, lng: lng);
+  }
+
+  return fromMap(data['address']) ??
+      fromMap(data['deliveryAddress']) ??
+      fromMap(data['venue']);
+}
+
 String champMetaFromTrack(Map<String, dynamic>? champ) {
   if (champ == null) return '___';
   final rating = champ['rating'];

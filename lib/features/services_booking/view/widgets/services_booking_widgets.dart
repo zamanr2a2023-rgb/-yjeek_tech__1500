@@ -646,10 +646,14 @@ class ServicesBookingReviewStatusCard extends StatelessWidget {
     super.key,
     required this.secondsLeft,
     required this.progress,
+    this.title,
+    this.hint,
   });
 
   final int secondsLeft;
   final double progress;
+  final String? title;
+  final String? hint;
 
   static const Color _ringTrack = Color(0xFF2C6B47);
   static const Color _ringProgress = Color(0xFFC9A84C);
@@ -696,7 +700,7 @@ class ServicesBookingReviewStatusCard extends StatelessWidget {
           ),
           SizedBox(height: 12.h),
           Text(
-            ServicesBookingStrings.sendingBooking,
+            title ?? ServicesBookingStrings.sendingBooking,
             textAlign: TextAlign.center,
             style: AppTextStyles.labelMedium(color: AppColors.white).copyWith(
               fontWeight: FontWeight.w700,
@@ -706,7 +710,7 @@ class ServicesBookingReviewStatusCard extends StatelessWidget {
           ),
           SizedBox(height: 6.h),
           Text(
-            ServicesBookingStrings.autoConfirmHint,
+            hint ?? ServicesBookingStrings.autoConfirmHint,
             textAlign: TextAlign.center,
             style: AppTextStyles.caption(
               color: const Color(0xFFCFE8D8),
@@ -733,7 +737,20 @@ class ServicesBookingReviewStatusCard extends StatelessWidget {
 }
 
 class ServicesBookingSummaryCard extends StatelessWidget {
-  const ServicesBookingSummaryCard({super.key});
+  const ServicesBookingSummaryCard({
+    super.key,
+    this.serviceName,
+    this.providerName,
+    this.whenLabel,
+    this.locationLabel,
+    this.peopleLabel,
+  });
+
+  final String? serviceName;
+  final String? providerName;
+  final String? whenLabel;
+  final String? locationLabel;
+  final String? peopleLabel;
 
   static const Color _chipBorder = Color(0xFFE0E6E0);
   static const Color _labelMuted = Color(0xFF6B756E);
@@ -750,11 +767,27 @@ class ServicesBookingSummaryCard extends StatelessWidget {
       ),
       child: Column(
         children: [
-          _row(ServicesBookingStrings.service, ServicesBookingData.mainService),
-          _row(ServicesBookingStrings.providerLabel, ServicesBookingStrings.provider),
-          _row(ServicesBookingStrings.when, ServicesBookingData.appointmentWhen),
-          _row(ServicesBookingStrings.location, ServicesBookingStrings.venueLocationShort),
-          _row(ServicesBookingStrings.people, ServicesBookingData.peopleCount, isLast: true),
+          _row(
+            ServicesBookingStrings.service,
+            serviceName ?? ServicesBookingData.mainService,
+          ),
+          _row(
+            ServicesBookingStrings.providerLabel,
+            providerName ?? ServicesBookingStrings.provider,
+          ),
+          _row(
+            ServicesBookingStrings.when,
+            whenLabel ?? ServicesBookingData.appointmentWhen,
+          ),
+          _row(
+            ServicesBookingStrings.location,
+            locationLabel ?? ServicesBookingStrings.venueLocationShort,
+          ),
+          _row(
+            ServicesBookingStrings.people,
+            peopleLabel ?? ServicesBookingData.peopleCount,
+            isLast: true,
+          ),
         ],
       ),
     );

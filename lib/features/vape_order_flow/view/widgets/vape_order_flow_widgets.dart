@@ -4,10 +4,18 @@ import 'package:flutter/material.dart';
 import 'package:yjeek_app/core/constants/app_colors.dart';
 import 'package:yjeek_app/core/constants/app_text_styles.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
+import 'package:yjeek_app/features/navigation/model/navigation_data.dart';
 import 'package:yjeek_app/features/vape_order_flow/model/vape_order_flow_data.dart';
 
 class VapeWaitingTimer extends StatelessWidget {
-  const VapeWaitingTimer({super.key});
+  const VapeWaitingTimer({
+    super.key,
+    this.label = '~3m',
+    this.progress = 0.72,
+  });
+
+  final String label;
+  final double progress;
 
   @override
   Widget build(BuildContext context) {
@@ -30,7 +38,7 @@ class VapeWaitingTimer extends StatelessWidget {
             width: 108.w,
             height: 108.w,
             child: CircularProgressIndicator(
-              value: 0.72,
+              value: progress.clamp(0.0, 1.0),
               strokeWidth: 7,
               backgroundColor: const Color(0xFFDBE6D4),
               color: const Color(0xFF4CAF50),
@@ -38,7 +46,7 @@ class VapeWaitingTimer extends StatelessWidget {
             ),
           ),
           Text(
-            '~3m',
+            label,
             style: AppTextStyles.titleMedium(
               color: const Color(0xFF4CAF50),
             ).copyWith(
@@ -132,7 +140,14 @@ class VapeSecureBanner extends StatelessWidget {
 }
 
 class VapeOrderSummaryRow extends StatelessWidget {
-  const VapeOrderSummaryRow({super.key});
+  const VapeOrderSummaryRow({
+    super.key,
+    this.summary,
+    this.total,
+  });
+
+  final String? summary;
+  final String? total;
 
   @override
   Widget build(BuildContext context) {
@@ -149,7 +164,7 @@ class VapeOrderSummaryRow extends StatelessWidget {
         children: [
           Expanded(
             child: Text(
-              VapeOrderFlowData.waitingSummary,
+              summary ?? VapeOrderFlowData.waitingSummary,
               style: AppTextStyles.labelSmall(color: const Color(0xFF6B7B6E)).copyWith(
                 fontWeight: FontWeight.w500,
                 fontSize: 13.sp,
@@ -158,7 +173,7 @@ class VapeOrderSummaryRow extends StatelessWidget {
             ),
           ),
           Text(
-            VapeOrderFlowData.payTotal,
+            total ?? VapeOrderFlowData.payTotal,
             style: AppTextStyles.labelMedium(color: const Color(0xFF1A1A1A)).copyWith(
               fontWeight: FontWeight.w700,
               fontSize: 14.sp,
@@ -172,10 +187,15 @@ class VapeOrderSummaryRow extends StatelessWidget {
 }
 
 class VapeAcceptedBanner extends StatelessWidget {
-  const VapeAcceptedBanner({super.key});
+  const VapeAcceptedBanner({super.key, this.vendorName});
+
+  final String? vendorName;
 
   @override
   Widget build(BuildContext context) {
+    final name = (vendorName != null && vendorName!.trim().isNotEmpty)
+        ? vendorName!.trim()
+        : 'Vapeology';
     // Figma: #D9EFE0 · radius 14 · check disc #4CAF50.
     return Container(
       width: double.infinity,
@@ -199,7 +219,7 @@ class VapeAcceptedBanner extends StatelessWidget {
           SizedBox(width: 10.w),
           Expanded(
             child: Text(
-              VapeOrderFlowStrings.vendorAccepted,
+              '$name said yes! 🙌',
               style: AppTextStyles.labelMedium(color: const Color(0xFF0F4D27)).copyWith(
                 fontWeight: FontWeight.w700,
                 fontSize: 13.5.sp,
@@ -341,10 +361,18 @@ class _PayCountdownRingPainter extends CustomPainter {
 }
 
 class VapePayMethodCard extends StatelessWidget {
-  const VapePayMethodCard({super.key});
+  const VapePayMethodCard({
+    super.key,
+    this.methodLabel,
+    this.onChange,
+  });
+
+  final String? methodLabel;
+  final VoidCallback? onChange;
 
   @override
   Widget build(BuildContext context) {
+    final label = methodLabel ?? VapeOrderFlowStrings.applePay;
     // Figma: "Pay with" title outside · green 2px card · mint icon tile · Change.
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -384,7 +412,7 @@ class VapePayMethodCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      VapeOrderFlowStrings.applePay,
+                      label,
                       style: AppTextStyles.labelMedium(
                         color: const Color(0xFF1A1A1A),
                       ).copyWith(
@@ -407,12 +435,15 @@ class VapePayMethodCard extends StatelessWidget {
                   ],
                 ),
               ),
-              Text(
-                VapeOrderFlowStrings.change,
-                style: AppTextStyles.labelSmall(color: const Color(0xFF4CAF50)).copyWith(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 13.sp,
-                  height: 1.32,
+              GestureDetector(
+                onTap: onChange,
+                child: Text(
+                  VapeOrderFlowStrings.change,
+                  style: AppTextStyles.labelSmall(color: const Color(0xFF4CAF50)).copyWith(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13.sp,
+                    height: 1.32,
+                  ),
                 ),
               ),
             ],
@@ -424,7 +455,18 @@ class VapePayMethodCard extends StatelessWidget {
 }
 
 class VapePayBreakdownCard extends StatelessWidget {
-  const VapePayBreakdownCard({super.key});
+  const VapePayBreakdownCard({
+    super.key,
+    this.subtotal,
+    this.delivery,
+    this.deliveryLabel,
+    this.total,
+  });
+
+  final String? subtotal;
+  final String? delivery;
+  final String? deliveryLabel;
+  final String? total;
 
   @override
   Widget build(BuildContext context) {
@@ -438,15 +480,18 @@ class VapePayBreakdownCard extends StatelessWidget {
       ),
       child: Column(
         children: [
-          _row(VapeOrderFlowStrings.subtotal, VapeOrderFlowData.paySubtotal),
           _row(
-            VapeOrderFlowStrings.sameDayDelivery,
-            VapeOrderFlowData.payDelivery,
+            VapeOrderFlowStrings.subtotal,
+            subtotal ?? VapeOrderFlowData.paySubtotal,
+          ),
+          _row(
+            deliveryLabel ?? VapeOrderFlowStrings.sameDayDelivery,
+            delivery ?? VapeOrderFlowData.payDelivery,
           ),
           Divider(height: 16.h, thickness: 1, color: const Color(0xFFE2E8DD)),
           _row(
             VapeOrderFlowStrings.totalToPay,
-            VapeOrderFlowData.payTotal,
+            total ?? VapeOrderFlowData.payTotal,
             bold: true,
           ),
         ],
@@ -489,10 +534,12 @@ class VapePayStickyFooter extends StatelessWidget {
     super.key,
     required this.timerLabel,
     required this.onPay,
+    this.payAmount,
   });
 
   final String timerLabel;
   final VoidCallback onPay;
+  final String? payAmount;
 
   @override
   Widget build(BuildContext context) {
@@ -543,7 +590,7 @@ class VapePayStickyFooter extends StatelessWidget {
                 ),
                 alignment: Alignment.center,
                 child: Text(
-                  '${VapeOrderFlowStrings.pay} ${VapeOrderFlowData.payTotal}',
+                  '${VapeOrderFlowStrings.pay} ${payAmount ?? VapeOrderFlowData.payTotal}',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: AppTextStyles.labelMedium(color: AppColors.white).copyWith(
@@ -585,7 +632,20 @@ class VapeConfirmedIcon extends StatelessWidget {
 }
 
 class VapeOrderDetailsCard extends StatelessWidget {
-  const VapeOrderDetailsCard({super.key});
+  const VapeOrderDetailsCard({
+    super.key,
+    this.orderNumber,
+    this.items,
+    this.delivery,
+    this.payment,
+    this.total,
+  });
+
+  final String? orderNumber;
+  final String? items;
+  final String? delivery;
+  final String? payment;
+  final String? total;
 
   @override
   Widget build(BuildContext context) {
@@ -600,17 +660,29 @@ class VapeOrderDetailsCard extends StatelessWidget {
       ),
       child: Column(
         children: [
-          _row(VapeOrderFlowStrings.orderNumber, VapeOrderFlowData.orderId),
-          _row(VapeOrderFlowStrings.items, VapeOrderFlowData.confirmedItems),
-          _row(VapeOrderFlowStrings.delivery, VapeOrderFlowData.confirmedDelivery),
-          _row(VapeOrderFlowStrings.payment, VapeOrderFlowData.confirmedPayment),
+          _row(
+            VapeOrderFlowStrings.orderNumber,
+            orderNumber ?? VapeOrderFlowData.orderId,
+          ),
+          _row(
+            VapeOrderFlowStrings.items,
+            items ?? VapeOrderFlowData.confirmedItems,
+          ),
+          _row(
+            VapeOrderFlowStrings.delivery,
+            delivery ?? VapeOrderFlowData.confirmedDelivery,
+          ),
+          _row(
+            VapeOrderFlowStrings.payment,
+            payment ?? VapeOrderFlowData.confirmedPayment,
+          ),
           Padding(
             padding: EdgeInsets.symmetric(vertical: 5.h),
             child: const Divider(height: 1, thickness: 1, color: Color(0xFFE0E6E0)),
           ),
           _row(
             VapeOrderFlowStrings.total,
-            VapeOrderFlowData.confirmedTotal,
+            total ?? VapeOrderFlowData.confirmedTotal,
             bold: true,
           ),
         ],
@@ -653,7 +725,10 @@ class VapeOrderDetailsCard extends StatelessWidget {
 }
 
 class VapeLiveMapBanner extends StatelessWidget {
-  const VapeLiveMapBanner({super.key});
+  const VapeLiveMapBanner({super.key, this.label, this.unlocked = false});
+
+  final String? label;
+  final bool unlocked;
 
   @override
   Widget build(BuildContext context) {
@@ -667,11 +742,15 @@ class VapeLiveMapBanner extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(Icons.lock_outline_rounded, color: const Color(0xFF3D7BD9), size: 18.sp),
+          Icon(
+            unlocked ? Icons.location_on_outlined : Icons.lock_outline_rounded,
+            color: const Color(0xFF3D7BD9),
+            size: 18.sp,
+          ),
           SizedBox(width: 10.w),
           Expanded(
             child: Text(
-              VapeOrderFlowStrings.liveMapHint,
+              label ?? VapeOrderFlowStrings.liveMapHint,
               style: AppTextStyles.labelSmall(color: const Color(0xFF1F5B8F)).copyWith(
                 fontWeight: FontWeight.w600,
                 fontSize: 12.5.sp,
@@ -686,7 +765,9 @@ class VapeLiveMapBanner extends StatelessWidget {
 }
 
 class VapePackedBanner extends StatelessWidget {
-  const VapePackedBanner({super.key});
+  const VapePackedBanner({super.key, this.label});
+
+  final String? label;
 
   @override
   Widget build(BuildContext context) {
@@ -699,7 +780,7 @@ class VapePackedBanner extends StatelessWidget {
         borderRadius: BorderRadius.circular(12.r),
       ),
       child: Text(
-        VapeOrderFlowStrings.packedBanner,
+        label ?? VapeOrderFlowStrings.packedBanner,
         style: AppTextStyles.labelMedium(color: const Color(0xFF127036)).copyWith(
           fontWeight: FontWeight.w600,
           fontSize: 13.5.sp,
@@ -800,7 +881,16 @@ class VapeStatusTimeline extends StatelessWidget {
 }
 
 class VapeStatusSummaryCard extends StatelessWidget {
-  const VapeStatusSummaryCard({super.key});
+  const VapeStatusSummaryCard({
+    super.key,
+    this.items,
+    this.delivery,
+    this.total,
+  });
+
+  final String? items;
+  final String? delivery;
+  final String? total;
 
   @override
   Widget build(BuildContext context) {
@@ -814,15 +904,21 @@ class VapeStatusSummaryCard extends StatelessWidget {
       ),
       child: Column(
         children: [
-          _row(VapeOrderFlowStrings.items, VapeOrderFlowData.statusItems),
-          _row(VapeOrderFlowStrings.delivery, VapeOrderFlowData.statusDelivery),
+          _row(
+            VapeOrderFlowStrings.items,
+            items ?? VapeOrderFlowData.statusItems,
+          ),
+          _row(
+            VapeOrderFlowStrings.delivery,
+            delivery ?? VapeOrderFlowData.statusDelivery,
+          ),
           Padding(
             padding: EdgeInsets.symmetric(vertical: 5.h),
             child: const Divider(height: 1, thickness: 1, color: Color(0xFFE0E6E0)),
           ),
           _row(
             VapeOrderFlowStrings.orderTotal,
-            VapeOrderFlowData.confirmedTotal,
+            total ?? VapeOrderFlowData.confirmedTotal,
             bold: true,
           ),
         ],
@@ -862,10 +958,27 @@ class VapeStatusSummaryCard extends StatelessWidget {
 }
 
 class VapeReceiptPaper extends StatelessWidget {
-  const VapeReceiptPaper({super.key});
+  const VapeReceiptPaper({
+    super.key,
+    this.badgeLabel,
+    this.vendorName,
+    this.dateLabel,
+    this.items,
+    this.billLines,
+    this.paymentMethod,
+  });
+
+  final String? badgeLabel;
+  final String? vendorName;
+  final String? dateLabel;
+  final List<VapeReceiptLine>? items;
+  final List<BillLine>? billLines;
+  final String? paymentMethod;
 
   @override
   Widget build(BuildContext context) {
+    final receiptItems = items ?? VapeOrderFlowData.receiptItems;
+    final lines = billLines ?? VapeOrderFlowData.receiptBillLines;
     // Figma: white paper · mint ✓ PAID · dashed dividers · flat bill rows (no grey box).
     return Container(
       width: double.infinity,
@@ -889,7 +1002,7 @@ class VapeReceiptPaper extends StatelessWidget {
                 Icon(Icons.check, size: 12.sp, color: const Color(0xFF127036)),
                 SizedBox(width: 4.w),
                 Text(
-                  VapeOrderFlowStrings.paidBadge,
+                  badgeLabel ?? VapeOrderFlowStrings.paidBadge,
                   style: AppTextStyles.caption(color: const Color(0xFF127036)).copyWith(
                     fontWeight: FontWeight.w700,
                     fontSize: 11.sp,
@@ -901,7 +1014,7 @@ class VapeReceiptPaper extends StatelessWidget {
           ),
           SizedBox(height: 4.h),
           Text(
-            VapeOrderFlowData.receiptVendor,
+            vendorName ?? VapeOrderFlowData.receiptVendor,
             style: AppTextStyles.titleSmall(color: const Color(0xFF1A1A1A)).copyWith(
               fontWeight: FontWeight.w700,
               fontSize: 16.sp,
@@ -910,7 +1023,7 @@ class VapeReceiptPaper extends StatelessWidget {
           ),
           SizedBox(height: 4.h),
           Text(
-            VapeOrderFlowData.receiptDate,
+            dateLabel ?? VapeOrderFlowData.receiptDate,
             style: AppTextStyles.caption(color: const Color(0xFF6B756E)).copyWith(
               fontWeight: FontWeight.w400,
               fontSize: 12.sp,
@@ -921,7 +1034,7 @@ class VapeReceiptPaper extends StatelessWidget {
             padding: EdgeInsets.symmetric(vertical: 12.h),
             child: _dashedDivider(),
           ),
-          ...VapeOrderFlowData.receiptItems.map(
+          ...receiptItems.map(
             (item) => Padding(
               padding: EdgeInsets.only(bottom: 8.h),
               child: Row(
@@ -956,7 +1069,7 @@ class VapeReceiptPaper extends StatelessWidget {
             padding: EdgeInsets.symmetric(vertical: 12.h),
             child: _dashedDivider(),
           ),
-          ...VapeOrderFlowData.receiptBillLines.map((line) {
+          ...lines.map((line) {
             final isTotal = line.isBold;
             return Padding(
               padding: EdgeInsets.only(bottom: isTotal ? 0 : 8.h),
@@ -1004,7 +1117,7 @@ class VapeReceiptPaper extends StatelessWidget {
                 ),
               ),
               Text(
-                'Yjeek Wallet',
+                paymentMethod ?? 'Yjeek Wallet',
                 style: AppTextStyles.labelMedium(color: const Color(0xFF1A1A1A)).copyWith(
                   fontWeight: FontWeight.w500,
                   fontSize: 13.sp,

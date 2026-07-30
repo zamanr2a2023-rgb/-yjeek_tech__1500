@@ -11,8 +11,8 @@ import 'package:yjeek_app/features/cart/view/widgets/cart_flow_widgets.dart';
 import 'package:yjeek_app/features/navigation/model/navigation_data.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/navigation_widgets.dart';
 import 'package:yjeek_app/features/pickup_cart/model/pickup_cart_data.dart';
+import 'package:yjeek_app/features/pickup_cart/pickup_cart_routes.dart';
 import 'package:yjeek_app/features/pickup_cart/view/widgets/pickup_cart_widgets.dart';
-import 'package:yjeek_app/features/pickup_order_flow/pickup_order_flow_routes.dart';
 import 'package:yjeek_app/features/scheduled_cart/view/widgets/scheduled_cart_widgets.dart';
 
 /// Pickup checkout — layout from Figma; vendor / bill / ready time / slots from API.
@@ -25,7 +25,8 @@ class PickupCheckoutScreen extends ConsumerStatefulWidget {
 }
 
 class _PickupCheckoutScreenState extends ConsumerState<PickupCheckoutScreen> {
-  int _tipIndex = 0;
+  /// No tip selected until user taps a chip (keeps cart CTA total aligned).
+  int _tipIndex = -1;
   String _paymentId = 'benefitpay';
   CartSnapshot? _cart;
   PickupSlotsSnapshot? _slots;
@@ -33,7 +34,6 @@ class _PickupCheckoutScreenState extends ConsumerState<PickupCheckoutScreen> {
     base: PickupCartData.paymentOptions,
   );
   bool _loading = true;
-  bool _placing = false;
 
   double get _tipAmount => tipAmountFrom(PickupCartData.tipOptions, _tipIndex);
 
@@ -121,25 +121,19 @@ class _PickupCheckoutScreenState extends ConsumerState<PickupCheckoutScreen> {
     }
   }
 
-  Future<void> _placeOrder() async {
-    if (_placing) return;
-    setState(() => _placing = true);
-    try {
-      await ref.read(cartRepositoryProvider).checkout(
-            type: CartOrderType.pickup,
-            paymentMethod: paymentMethodApiValue(_paymentId),
-            tipAmount: _tipAmount,
-          );
-      if (!mounted) return;
-      context.pushReplacement(PickupOrderFlowRoutes.waiting);
-    } catch (e) {
-      if (!mounted) return;
+  void _goToReview() {
+    if (_cart == null || !_cart!.hasItems) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
+        const SnackBar(content: Text('Your pickup cart is empty')),
       );
-    } finally {
-      if (mounted) setState(() => _placing = false);
+      return;
     }
+    context.push(
+      PickupCartRoutes.reviewFor(
+        paymentId: _paymentId,
+        tipAmount: _tipAmount,
+      ),
+    );
   }
 
   @override
@@ -222,8 +216,8 @@ class _PickupCheckoutScreenState extends ConsumerState<PickupCheckoutScreen> {
             ),
       bottom: CartStickyFooter(
         total: footerTotal,
-        buttonLabel: _placing ? '…' : PickupCartStrings.placeOrder,
-        onPressed: _placing || _loading ? () {} : _placeOrder,
+        buttonLabel: PickupCartStrings.placeOrder,
+        onPressed: _loading ? () {} : _goToReview,
       ),
     );
   }

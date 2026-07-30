@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:yjeek_app/core/constants/app_colors.dart';
 import 'package:yjeek_app/core/constants/app_text_styles.dart';
 import 'package:yjeek_app/core/constants/navigation_strings.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
+import 'package:yjeek_app/core/widgets/app_google_map.dart';
 import 'package:yjeek_app/features/cart/model/cart_repository.dart';
 import 'package:yjeek_app/features/dine_in_cart/model/dine_in_cart_data.dart';
 import 'package:yjeek_app/features/dine_in_cart/view/widgets/dine_in_cart_widgets.dart';
@@ -1298,8 +1300,44 @@ class _PickupHeader extends StatelessWidget {
 
   final CartPickupInfo info;
 
+  Future<void> _openMap(BuildContext context) async {
+    final url = info.mapUrl?.trim();
+    Uri? uri;
+    if (url != null && url.isNotEmpty) {
+      uri = Uri.tryParse(url);
+    } else if (info.latitude != null && info.longitude != null) {
+      uri = Uri.parse(
+        'https://www.google.com/maps/dir/?api=1'
+        '&destination=${info.latitude},${info.longitude}',
+      );
+    } else {
+      final q = Uri.encodeComponent(
+        [info.title, info.address].where((s) => s.trim().isNotEmpty).join(' '),
+      );
+      if (q.isNotEmpty) {
+        uri = Uri.parse('https://www.google.com/maps/search/?api=1&query=$q');
+      }
+    }
+    if (uri == null) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Map location unavailable')),
+      );
+      return;
+    }
+    if (!await canLaunchUrl(uri)) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not open Maps')),
+      );
+      return;
+    }
+    await launchUrl(uri, mode: LaunchMode.externalApplication);
+  }
+
   @override
   Widget build(BuildContext context) {
+    final hasCoords = info.latitude != null && info.longitude != null;
     return Container(
       width: double.infinity,
       padding: EdgeInsets.all(14.w),
@@ -1312,22 +1350,38 @@ class _PickupHeader extends StatelessWidget {
         children: [
           Row(
             children: [
-              Container(
-                width: 64.w,
-                height: 64.w,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFE4EAE0),
+              GestureDetector(
+                onTap: () => _openMap(context),
+                child: ClipRRect(
                   borderRadius: BorderRadius.circular(12.r),
-                ),
-                alignment: Alignment.center,
-                child: Container(
-                  width: 26.w,
-                  height: 26.w,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFF4CAF50),
-                    shape: BoxShape.circle,
+                  child: SizedBox(
+                    width: 64.w,
+                    height: 64.w,
+                    child: hasCoords
+                        ? AppMapPreview(
+                            latitude: info.latitude!,
+                            longitude: info.longitude!,
+                            height: 64.w,
+                            borderRadius: BorderRadius.circular(12.r),
+                          )
+                        : Container(
+                            color: const Color(0xFFE4EAE0),
+                            alignment: Alignment.center,
+                            child: Container(
+                              width: 26.w,
+                              height: 26.w,
+                              decoration: const BoxDecoration(
+                                color: Color(0xFF4CAF50),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                Icons.location_on,
+                                size: 16.sp,
+                                color: AppColors.white,
+                              ),
+                            ),
+                          ),
                   ),
-                  child: Icon(Icons.location_on, size: 16.sp, color: AppColors.white),
                 ),
               ),
               SizedBox(width: 12.w),
@@ -1384,30 +1438,37 @@ class _PickupHeader extends StatelessWidget {
             ],
           ),
           SizedBox(height: 12.h),
-          Container(
-            width: double.infinity,
-            height: 33.h,
-            padding: EdgeInsets.symmetric(horizontal: 11.w),
-            decoration: BoxDecoration(
-              border: Border.all(color: const Color(0xFFE6EBE3)),
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () => _openMap(context),
               borderRadius: BorderRadius.circular(9.r),
-            ),
-            alignment: Alignment.centerLeft,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.near_me, size: 15.sp, color: const Color(0xFF2E7D32)),
-                SizedBox(width: 6.w),
-                Text(
-                  'Map',
-                  style: AppTextStyles.labelSmall(color: const Color(0xFF2E7D32))
-                      .copyWith(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 11.5.sp,
-                    height: 1.3,
-                  ),
+              child: Container(
+                width: double.infinity,
+                height: 33.h,
+                padding: EdgeInsets.symmetric(horizontal: 11.w),
+                decoration: BoxDecoration(
+                  border: Border.all(color: const Color(0xFFE6EBE3)),
+                  borderRadius: BorderRadius.circular(9.r),
                 ),
-              ],
+                alignment: Alignment.centerLeft,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.near_me, size: 15.sp, color: const Color(0xFF2E7D32)),
+                    SizedBox(width: 6.w),
+                    Text(
+                      'Map',
+                      style: AppTextStyles.labelSmall(color: const Color(0xFF2E7D32))
+                          .copyWith(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 11.5.sp,
+                        height: 1.3,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
         ],

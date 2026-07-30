@@ -13,6 +13,15 @@ enum CartOrderType {
   final String apiValue;
 }
 
+/// Thrown when POST /cart/scheduled/items hits the 3-vendor cap (409).
+class ScheduledVendorLimitException implements Exception {
+  ScheduledVendorLimitException(this.message);
+  final String message;
+
+  @override
+  String toString() => message;
+}
+
 class CartSideLine {
   const CartSideLine({
     required this.name,
@@ -81,6 +90,8 @@ class CartPickupInfo {
     required this.address,
     required this.readyLabel,
     this.mapUrl,
+    this.latitude,
+    this.longitude,
     this.noShowPolicy,
     this.vendorLabel,
     this.scheduledAt,
@@ -90,6 +101,8 @@ class CartPickupInfo {
   final String address;
   final String readyLabel;
   final String? mapUrl;
+  final double? latitude;
+  final double? longitude;
   final String? noShowPolicy;
   /// e.g. "Brew & Bean · Seef"
   final String? vendorLabel;
@@ -292,15 +305,68 @@ class CartRepository {
     return cartSnapshotFromJson(data, type);
   }
 
+  /// GET /cart?type= — includes deliveryOptions when vendor is vape/scheduled retail.
+  Future<({CartSnapshot cart, List<Map<String, dynamic>> deliveryOptions})>
+      fetchCartDetailed(CartOrderType type) async {
+    if (!_storage.hasSession) {
+      return (
+        cart: CartSnapshot.empty(type),
+        deliveryOptions: const <Map<String, dynamic>>[],
+      );
+    }
+    final response = await _apiClient.getJson(
+      '/cart?type=${type.apiValue}',
+      bearerToken: _token,
+    );
+    final data = response?['data'];
+    if (data is! Map<String, dynamic>) {
+      return (
+        cart: CartSnapshot.empty(type),
+        deliveryOptions: const <Map<String, dynamic>>[],
+      );
+    }
+    final raw = data['deliveryOptions'];
+    final options = <Map<String, dynamic>>[];
+    if (raw is List) {
+      for (final item in raw) {
+        if (item is Map<String, dynamic>) options.add(item);
+      }
+    }
+    return (
+      cart: cartSnapshotFromJson(data, type),
+      deliveryOptions: options,
+    );
+  }
+
   Future<CartSnapshot?> fetchScheduledCart() async {
-    if (!_storage.hasSession) return null;
+    final detailed = await fetchScheduledCartDetailed();
+    return detailed.cart;
+  }
+
+  Future<({CartSnapshot? cart, List<Map<String, dynamic>> deliveryOptions})>
+      fetchScheduledCartDetailed() async {
+    if (!_storage.hasSession) {
+      return (cart: null, deliveryOptions: const <Map<String, dynamic>>[]);
+    }
     final response = await _apiClient.getJson(
       '/cart/scheduled',
       bearerToken: _token,
     );
     final data = response?['data'];
-    if (data is! Map<String, dynamic>) return null;
-    return scheduledCartSnapshotFromJson(data);
+    if (data is! Map<String, dynamic>) {
+      return (cart: null, deliveryOptions: const <Map<String, dynamic>>[]);
+    }
+    final raw = data['deliveryOptions'];
+    final options = <Map<String, dynamic>>[];
+    if (raw is List) {
+      for (final item in raw) {
+        if (item is Map<String, dynamic>) options.add(item);
+      }
+    }
+    return (
+      cart: scheduledCartSnapshotFromJson(data),
+      deliveryOptions: options,
+    );
   }
 
   Future<CartSnapshot> updateItemQuantity({
@@ -506,12 +572,33 @@ class CartRepository {
   Future<CartSnapshot?> addScheduledProduct({
     required String productId,
     int quantity = 1,
+    bool replaceCart = false,
   }) async {
     final response = await _apiClient.postJson(
       '/cart/scheduled/items',
-      {'productId': productId, 'quantity': quantity},
+      {
+        'productId': productId,
+        'quantity': quantity,
+        'replaceCart': replaceCart,
+      },
       bearerToken: _token,
     );
+    if (!response.ok) {
+      final error = response.json?['error'];
+      final details = error is Map ? error['details'] : null;
+      final detailCode = details is Map ? details['code']?.toString() : null;
+      final code = error is Map ? error['code']?.toString() : null;
+      if (response.statusCode == 409 ||
+          detailCode == 'SCHEDULED_VENDOR_LIMIT' ||
+          code == 'SCHEDULED_VENDOR_LIMIT' ||
+          (response.message ?? '').toLowerCase().contains('up to 3 vendors')) {
+        throw ScheduledVendorLimitException(
+          response.message ??
+              'Scheduled cart supports up to 3 vendors',
+        );
+      }
+      throw Exception(response.message ?? 'Could not add to cart');
+    }
     final data = response.data;
     if (data != null) return scheduledCartSnapshotFromJson(data);
     return fetchScheduledCart();
@@ -810,6 +897,8 @@ CartSnapshot cartSnapshotFromJson(
       address: address.isEmpty ? (label.isEmpty ? 'Nearby' : label) : address,
       readyLabel: _pickupReadyLabel(pickupRaw, json),
       mapUrl: branchMap?['mapUrl'] as String?,
+      latitude: (branchMap?['latitude'] as num?)?.toDouble(),
+      longitude: (branchMap?['longitude'] as num?)?.toDouble(),
       noShowPolicy: pickupRaw['noShowPolicy'] as String?,
       vendorLabel: label.isEmpty ? null : label,
       scheduledAt: DateTime.tryParse(
@@ -1043,17 +1132,7 @@ List<BillLine> _billLinesFromSummary(
   if (type == CartOrderType.dineIn) {
     lines.add(const BillLine(label: 'Dine-in', value: '—'));
   } else if (type == CartOrderType.pickup) {
-    if (deliveryOriginal != null && deliveryOriginal > 0) {
-      lines.add(
-        BillLine(
-          label: deliveryLabel ?? 'Delivery',
-          value: _money(deliveryOriginal),
-          isStrikethrough: true,
-        ),
-      );
-    } else if (deliveryLabel != null) {
-      lines.add(BillLine(label: deliveryLabel, value: '—'));
-    }
+    lines.add(const BillLine(label: 'Pickup', value: '—'));
   } else if (deliveryFee == 0 &&
       deliveryOriginal != null &&
       deliveryOriginal > 0) {

@@ -23,7 +23,7 @@ class ScheduledReceiptLine {
 }
 
 abstract final class ScheduledOrderFlowStrings {
-  static const String sentToVendor = 'Sent to TechHub Electronics';
+  static const String sentToVendor = 'Sending to vendor…';
   static const String waitingSubtitle =
       'Waiting for the vendor to accept your order…';
   static const String notChargedYet =
@@ -31,7 +31,7 @@ abstract final class ScheduledOrderFlowStrings {
   static const String cancelOrder = 'Cancel order';
   static const String freeCancelHint =
       'Free cancellation before the vendor accepts.';
-  static const String vendorAccepted = 'TechHub Electronics said yes! 🙌';
+  static const String vendorAccepted = 'Vendor accepted!';
   static const String payWithinTitle = 'Complete payment within 5 minutes';
   static const String payWithinSubtitle =
       'If payment is not completed in time, your order will be cancelled automatically.';

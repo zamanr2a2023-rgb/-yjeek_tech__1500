@@ -167,7 +167,45 @@ DateTime windowStartForDelivery(String deliveryId) {
     'same-day' => now.add(const Duration(hours: 4)),
     'next-day' => DateTime.utc(now.year, now.month, now.day + 1, 12),
     'standard' => now.add(const Duration(days: 2)),
-    'economy' => now.add(const Duration(days: 4)),
+    'economy' => now.add(const Duration(days: 5)),
     _ => now.add(const Duration(hours: 4)),
+  };
+}
+
+/// Human label for a scheduled window, e.g. "Tomorrow · 12:00pm–2:00pm".
+String formatDeliveryWindowLabel(DateTime start, {DateTime? end}) {
+  final local = start.toLocal();
+  final endLocal = (end ?? start.add(const Duration(hours: 2))).toLocal();
+  final now = DateTime.now();
+  final today = DateTime(now.year, now.month, now.day);
+  final startDay = DateTime(local.year, local.month, local.day);
+  final dayDiff = startDay.difference(today).inDays;
+  final dayLabel = switch (dayDiff) {
+    0 => 'Today',
+    1 => 'Tomorrow',
+    _ => '${local.day}/${local.month}',
+  };
+  String clock(DateTime d) {
+    final h = d.hour;
+    final m = d.minute.toString().padLeft(2, '0');
+    final hour12 = h % 12 == 0 ? 12 : h % 12;
+    final suffix = h >= 12 ? 'pm' : 'am';
+    return m == '00' ? '$hour12$suffix' : '$hour12:$m$suffix';
+  }
+  return '$dayLabel · ${clock(local)}–${clock(endLocal)}';
+}
+
+/// Same-day is disabled after 12:00 local (Bahrain noon approximation on device).
+bool isSameDayDeliveryAvailable({DateTime? now}) {
+  final n = now ?? DateTime.now();
+  return n.hour < 12;
+}
+
+String deliveryUiIdFromApi(String? speed) {
+  return switch ((speed ?? '').toUpperCase()) {
+    'NEXT_DAY' => 'next-day',
+    'STANDARD' => 'standard',
+    'ECONOMY' => 'economy',
+    _ => 'same-day',
   };
 }

@@ -29,10 +29,14 @@ abstract final class BrowseRoutes {
   static String vendorMenu({
     String? vendorId,
     int tab = 0,
+    String? cartType,
   }) {
     final id = vendorId ?? defaultVendorId;
     final buffer = StringBuffer('${RouteNames.vendorMenu}?id=$id');
     if (tab != 0) buffer.write('&tab=$tab');
+    if (cartType != null && cartType.isNotEmpty) {
+      buffer.write('&cart=${Uri.encodeQueryComponent(cartType)}');
+    }
     return buffer.toString();
   }
 
@@ -40,11 +44,15 @@ abstract final class BrowseRoutes {
     String? vendorId,
     String? itemId,
     int tab = 0,
+    String? cartType,
   }) {
     final id = vendorId ?? defaultVendorId;
     final item = itemId ?? defaultItemId;
     final buffer = StringBuffer('${RouteNames.itemDetail}?vendor=$id&item=$item');
     if (tab != 0) buffer.write('&tab=$tab');
+    if (cartType != null && cartType.isNotEmpty) {
+      buffer.write('&cart=${Uri.encodeQueryComponent(cartType)}');
+    }
     return buffer.toString();
   }
 
@@ -134,9 +142,14 @@ abstract final class BrowseRoutes {
     return buffer.toString();
   }
 
-  static String electronicsBrowse({int tab = 0}) {
-    if (tab == 0) return RouteNames.electronicsBrowse;
-    return '${RouteNames.electronicsBrowse}?tab=$tab';
+  static String electronicsBrowse({int tab = 0, String category = 'electronics'}) {
+    final params = <String>[];
+    if (tab != 0) params.add('tab=$tab');
+    if (category != 'electronics') {
+      params.add('category=${Uri.encodeQueryComponent(category)}');
+    }
+    if (params.isEmpty) return RouteNames.electronicsBrowse;
+    return '${RouteNames.electronicsBrowse}?${params.join('&')}';
   }
 
   static String electronicsStore({

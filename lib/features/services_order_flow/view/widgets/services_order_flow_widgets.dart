@@ -72,7 +72,14 @@ class ServicesInfoBanner extends StatelessWidget {
 }
 
 class ServicesBookingSummaryRow extends StatelessWidget {
-  const ServicesBookingSummaryRow({super.key});
+  const ServicesBookingSummaryRow({
+    super.key,
+    this.summary,
+    this.total,
+  });
+
+  final String? summary;
+  final String? total;
 
   static const Color _muted = Color(0xFF6B7A6E);
 
@@ -89,7 +96,7 @@ class ServicesBookingSummaryRow extends StatelessWidget {
         children: [
           Expanded(
             child: Text(
-              ServicesOrderFlowData.bookingSummary,
+              summary ?? ServicesOrderFlowData.bookingSummary,
               style: AppTextStyles.labelSmall(color: _muted).copyWith(
                 fontWeight: FontWeight.w400,
                 fontSize: 13.sp,
@@ -99,7 +106,7 @@ class ServicesBookingSummaryRow extends StatelessWidget {
           ),
           SizedBox(width: 8.w),
           Text(
-            ServicesOrderFlowData.payTotal,
+            total ?? ServicesOrderFlowData.payTotal,
             style: AppTextStyles.labelMedium(
               color: AppColors.textPrimary,
             ).copyWith(
@@ -149,7 +156,9 @@ class ServicesCancelBookingButton extends StatelessWidget {
 }
 
 class ServicesAcceptedBanner extends StatelessWidget {
-  const ServicesAcceptedBanner({super.key});
+  const ServicesAcceptedBanner({super.key, this.vendorName});
+
+  final String? vendorName;
 
   @override
   Widget build(BuildContext context) {
@@ -183,7 +192,9 @@ class ServicesAcceptedBanner extends StatelessWidget {
           SizedBox(width: 10.w),
           Expanded(
             child: Text(
-              ServicesOrderFlowStrings.providerAccepted,
+              vendorName != null && vendorName!.isNotEmpty
+                  ? '$vendorName accepted! 🙌'
+                  : ServicesOrderFlowStrings.providerAccepted,
               style: AppTextStyles.labelMedium(
                 color: const Color(0xFF0F4D26),
               ).copyWith(
@@ -263,9 +274,16 @@ class ServicesPayTimerCard extends StatelessWidget {
 }
 
 class ServicesPayMethodCard extends StatelessWidget {
-  const ServicesPayMethodCard({super.key, this.onChange});
+  const ServicesPayMethodCard({
+    super.key,
+    this.onChange,
+    this.methodLabel,
+    this.balanceLabel,
+  });
 
   final VoidCallback? onChange;
+  final String? methodLabel;
+  final String? balanceLabel;
 
   static const Color _muted = Color(0xFF6B7A6E);
   static const Color _accent = Color(0xFF4DB04F);
@@ -317,7 +335,7 @@ class ServicesPayMethodCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      ServicesOrderFlowStrings.yjeekWallet,
+                      methodLabel ?? ServicesOrderFlowStrings.yjeekWallet,
                       style: AppTextStyles.labelMedium(
                         color: AppColors.textPrimary,
                       ).copyWith(
@@ -327,7 +345,8 @@ class ServicesPayMethodCard extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      'Balance ${ServicesOrderFlowData.walletBalance}',
+                      balanceLabel ??
+                          'Balance ${ServicesOrderFlowData.walletBalance}',
                       style: AppTextStyles.caption(color: _muted).copyWith(
                         fontWeight: FontWeight.w400,
                         fontSize: 12.sp,
@@ -357,7 +376,16 @@ class ServicesPayMethodCard extends StatelessWidget {
 }
 
 class ServicesPayBreakdownCard extends StatelessWidget {
-  const ServicesPayBreakdownCard({super.key});
+  const ServicesPayBreakdownCard({
+    super.key,
+    this.subtotal,
+    this.serviceFee,
+    this.total,
+  });
+
+  final String? subtotal;
+  final String? serviceFee;
+  final String? total;
 
   static const Color _muted = Color(0xFF6B7A6E);
 
@@ -366,11 +394,21 @@ class ServicesPayBreakdownCard extends StatelessWidget {
     return OrderFlowCard(
       child: Column(
         children: [
-          _line(ServicesOrderFlowStrings.subtotal, ServicesOrderFlowData.subtotalAmount),
+          _line(
+            ServicesOrderFlowStrings.subtotal,
+            subtotal ?? ServicesOrderFlowData.subtotalAmount,
+          ),
           SizedBox(height: 8.h),
-          _line(ServicesOrderFlowStrings.serviceFee, ServicesOrderFlowData.serviceFeeAmount),
+          _line(
+            ServicesOrderFlowStrings.serviceFee,
+            serviceFee ?? ServicesOrderFlowData.serviceFeeAmount,
+          ),
           Divider(height: 20.h, color: AppColors.border),
-          _line(ServicesOrderFlowStrings.totalToPay, ServicesOrderFlowData.payTotal, bold: true),
+          _line(
+            ServicesOrderFlowStrings.totalToPay,
+            total ?? ServicesOrderFlowData.payTotal,
+            bold: true,
+          ),
         ],
       ),
     );
@@ -411,10 +449,12 @@ class ServicesPayStickyFooter extends StatelessWidget {
     super.key,
     required this.timerLabel,
     required this.onPay,
+    this.payAmount,
   });
 
   final String timerLabel;
   final VoidCallback onPay;
+  final String? payAmount;
 
   static const Color _accent = Color(0xFFE8A33D);
   static const Color _payGreen = Color(0xFF4DB04F);
@@ -474,7 +514,7 @@ class ServicesPayStickyFooter extends StatelessWidget {
                   ),
                 ),
                 child: Text(
-                  '${ServicesOrderFlowStrings.pay} ${ServicesOrderFlowData.payTotal}',
+                  '${ServicesOrderFlowStrings.pay} ${payAmount ?? ServicesOrderFlowData.payTotal}',
                   style: AppTextStyles.labelMedium(color: AppColors.white).copyWith(
                     fontWeight: FontWeight.w600,
                     fontSize: 16.sp,
@@ -518,9 +558,24 @@ class ServicesConfirmedIcon extends StatelessWidget {
 }
 
 class ServicesBookingDetailsCard extends StatelessWidget {
-  const ServicesBookingDetailsCard({super.key, this.showPaid = false});
+  const ServicesBookingDetailsCard({
+    super.key,
+    this.showPaid = false,
+    this.serviceName,
+    this.providerName,
+    this.whenLabel,
+    this.locationLabel,
+    this.paidLabel,
+    this.refSubtitle,
+  });
 
   final bool showPaid;
+  final String? serviceName;
+  final String? providerName;
+  final String? whenLabel;
+  final String? locationLabel;
+  final String? paidLabel;
+  final String? refSubtitle;
 
   static const Color _muted = Color(0xFF6B756E);
   static const Color _value = Color(0xFF1A1A1A);
@@ -529,12 +584,27 @@ class ServicesBookingDetailsCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final rows = <(String, String)>[
-      (ServicesOrderFlowStrings.service, ServicesOrderFlowData.serviceName),
-      (ServicesOrderFlowStrings.provider, ServicesOrderFlowData.providerName),
-      (ServicesOrderFlowStrings.when, ServicesOrderFlowData.appointmentWhen),
-      (ServicesOrderFlowStrings.location, ServicesOrderFlowData.locationLabel),
+      (
+        ServicesOrderFlowStrings.service,
+        serviceName ?? ServicesOrderFlowData.serviceName,
+      ),
+      (
+        ServicesOrderFlowStrings.provider,
+        providerName ?? ServicesOrderFlowData.providerName,
+      ),
+      (
+        ServicesOrderFlowStrings.when,
+        whenLabel ?? ServicesOrderFlowData.appointmentWhen,
+      ),
+      (
+        ServicesOrderFlowStrings.location,
+        locationLabel ?? ServicesOrderFlowData.locationLabel,
+      ),
       if (showPaid)
-        (ServicesOrderFlowStrings.paid, ServicesOrderFlowData.confirmedPaid),
+        (
+          ServicesOrderFlowStrings.paid,
+          paidLabel ?? ServicesOrderFlowData.confirmedPaid,
+        ),
     ];
 
     return Container(
@@ -596,7 +666,9 @@ class ServicesBookingDetailsCard extends StatelessWidget {
 }
 
 class ServicesStatusBadge extends StatelessWidget {
-  const ServicesStatusBadge({super.key});
+  const ServicesStatusBadge({super.key, this.label});
+
+  final String? label;
 
   @override
   Widget build(BuildContext context) {
@@ -607,7 +679,7 @@ class ServicesStatusBadge extends StatelessWidget {
         borderRadius: BorderRadius.circular(20.r),
       ),
       child: Text(
-        ServicesOrderFlowStrings.statusConfirmed,
+        label ?? ServicesOrderFlowStrings.statusConfirmed,
         style: GoogleFonts.inter(
           color: const Color(0xFF127036),
           fontWeight: FontWeight.w600,
@@ -725,7 +797,18 @@ class _StatusTimelineRow extends StatelessWidget {
 }
 
 class ServicesStatusDetailsCard extends StatelessWidget {
-  const ServicesStatusDetailsCard({super.key});
+  const ServicesStatusDetailsCard({
+    super.key,
+    this.serviceName,
+    this.whenLabel,
+    this.locationLabel,
+    this.providerName,
+  });
+
+  final String? serviceName;
+  final String? whenLabel;
+  final String? locationLabel;
+  final String? providerName;
 
   static const Color _muted = Color(0xFF6B756E);
   static const Color _value = Color(0xFF1A1A1A);
@@ -734,10 +817,22 @@ class ServicesStatusDetailsCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final rows = <(String, String)>[
-      (ServicesOrderFlowStrings.service, ServicesOrderFlowData.serviceName),
-      (ServicesOrderFlowStrings.when, ServicesOrderFlowData.appointmentWhenShort),
-      (ServicesOrderFlowStrings.location, ServicesOrderFlowData.locationLabel),
-      (ServicesOrderFlowStrings.provider, ServicesOrderFlowData.providerName),
+      (
+        ServicesOrderFlowStrings.service,
+        serviceName ?? ServicesOrderFlowData.serviceName,
+      ),
+      (
+        ServicesOrderFlowStrings.when,
+        whenLabel ?? ServicesOrderFlowData.appointmentWhenShort,
+      ),
+      (
+        ServicesOrderFlowStrings.location,
+        locationLabel ?? ServicesOrderFlowData.locationLabel,
+      ),
+      (
+        ServicesOrderFlowStrings.provider,
+        providerName ?? ServicesOrderFlowData.providerName,
+      ),
     ];
 
     return Container(
@@ -909,7 +1004,28 @@ class ServicesStatusActions extends StatelessWidget {
 }
 
 class ServicesReceiptPaper extends StatelessWidget {
-  const ServicesReceiptPaper({super.key});
+  const ServicesReceiptPaper({
+    super.key,
+    this.badgeLabel,
+    this.venueTitle,
+    this.venueSubtitle,
+    this.bookingNumber,
+    this.serviceName,
+    this.whenLabel,
+    this.locationLabel,
+    this.billLines,
+    this.paymentLabel,
+  });
+
+  final String? badgeLabel;
+  final String? venueTitle;
+  final String? venueSubtitle;
+  final String? bookingNumber;
+  final String? serviceName;
+  final String? whenLabel;
+  final String? locationLabel;
+  final List<BillLine>? billLines;
+  final String? paymentLabel;
 
   static const Color _muted = Color(0xFF6B756E);
   static const Color _text = Color(0xFF1A1A1A);
@@ -917,6 +1033,7 @@ class ServicesReceiptPaper extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final lines = billLines ?? ServicesOrderFlowData.receiptBillLines;
     // Figma receipt: centered header block, then label/value rows.
     return OrderFlowCard(
       padding: EdgeInsets.all(18.w),
@@ -932,7 +1049,7 @@ class ServicesReceiptPaper extends StatelessWidget {
                   borderRadius: BorderRadius.circular(20.r),
                 ),
                 child: Text(
-                  ServicesOrderFlowStrings.servicePaid,
+                  badgeLabel ?? ServicesOrderFlowStrings.servicePaid,
                   style: GoogleFonts.inter(
                     color: const Color(0xFF127036),
                     fontWeight: FontWeight.w700,
@@ -943,7 +1060,7 @@ class ServicesReceiptPaper extends StatelessWidget {
               ),
               SizedBox(height: 4.h),
               Text(
-                ServicesOrderFlowData.venueReceipt,
+                venueTitle ?? ServicesOrderFlowData.venueReceipt,
                 textAlign: TextAlign.center,
                 style: GoogleFonts.inter(
                   color: _text,
@@ -954,7 +1071,7 @@ class ServicesReceiptPaper extends StatelessWidget {
               ),
               SizedBox(height: 4.h),
               Text(
-                ServicesOrderFlowData.venueAddress,
+                venueSubtitle ?? ServicesOrderFlowData.venueAddress,
                 textAlign: TextAlign.center,
                 style: GoogleFonts.inter(
                   color: _muted,
@@ -968,22 +1085,37 @@ class ServicesReceiptPaper extends StatelessWidget {
           SizedBox(height: 12.h),
           const _ServicesReceiptDashedDivider(color: _dash),
           SizedBox(height: 12.h),
-          _metaRow('Booking #', ServicesOrderFlowData.bookingId),
+          _metaRow(
+            'Booking #',
+            bookingNumber ?? ServicesOrderFlowData.bookingId,
+          ),
           SizedBox(height: 8.h),
-          _metaRow(ServicesOrderFlowStrings.service, ServicesOrderFlowData.serviceName),
+          _metaRow(
+            ServicesOrderFlowStrings.service,
+            serviceName ?? ServicesOrderFlowData.serviceName,
+          ),
           SizedBox(height: 8.h),
-          _metaRow(ServicesOrderFlowStrings.when, ServicesOrderFlowData.appointmentWhen),
+          _metaRow(
+            ServicesOrderFlowStrings.when,
+            whenLabel ?? ServicesOrderFlowData.appointmentWhen,
+          ),
           SizedBox(height: 8.h),
-          _metaRow(ServicesOrderFlowStrings.location, ServicesOrderFlowData.locationLabel),
+          _metaRow(
+            ServicesOrderFlowStrings.location,
+            locationLabel ?? ServicesOrderFlowData.locationLabel,
+          ),
           SizedBox(height: 12.h),
           const _ServicesReceiptDashedDivider(color: _dash),
           SizedBox(height: 12.h),
-          for (var i = 0; i < ServicesOrderFlowData.receiptBillLines.length; i++) ...[
+          for (var i = 0; i < lines.length; i++) ...[
             if (i > 0) SizedBox(height: 8.h),
-            _billRow(ServicesOrderFlowData.receiptBillLines[i]),
+            _billRow(lines[i]),
           ],
           SizedBox(height: 8.h),
-          _metaRow(ServicesOrderFlowStrings.paid, ServicesOrderFlowStrings.paymentCard),
+          _metaRow(
+            ServicesOrderFlowStrings.paid,
+            paymentLabel ?? ServicesOrderFlowStrings.paymentCard,
+          ),
         ],
       ),
     );
@@ -1019,7 +1151,6 @@ class ServicesReceiptPaper extends StatelessWidget {
   }
 
   Widget _billRow(BillLine line) {
-    final bold = line.isBold;
     return Row(
       children: [
         Expanded(
@@ -1027,10 +1158,10 @@ class ServicesReceiptPaper extends StatelessWidget {
             line.label,
             textAlign: TextAlign.left,
             style: GoogleFonts.inter(
-              color: bold ? _text : _muted,
-              fontWeight: bold ? FontWeight.w700 : FontWeight.w400,
-              fontSize: bold ? 15.sp : 13.sp,
-              height: bold ? 18 / 15 : 16 / 13,
+              color: line.isDiscount ? const Color(0xFF2E9E4D) : _muted,
+              fontWeight: line.isBold ? FontWeight.w700 : FontWeight.w400,
+              fontSize: 13.sp,
+              height: 16 / 13,
             ),
           ),
         ),
@@ -1038,10 +1169,10 @@ class ServicesReceiptPaper extends StatelessWidget {
           line.value,
           textAlign: TextAlign.right,
           style: GoogleFonts.inter(
-            color: _text,
-            fontWeight: bold ? FontWeight.w700 : FontWeight.w500,
-            fontSize: bold ? 16.sp : 13.sp,
-            height: bold ? 19 / 16 : 16 / 13,
+            color: line.isDiscount ? const Color(0xFF2E9E4D) : _text,
+            fontWeight: line.isBold ? FontWeight.w700 : FontWeight.w500,
+            fontSize: 13.sp,
+            height: 16 / 13,
           ),
         ),
       ],
@@ -1098,7 +1229,9 @@ class _ServicesDashedLinePainter extends CustomPainter {
 }
 
 class ServicesTipChips extends StatefulWidget {
-  const ServicesTipChips({super.key});
+  const ServicesTipChips({super.key, this.onChanged});
+
+  final ValueChanged<String?>? onChanged;
 
   @override
   State<ServicesTipChips> createState() => _ServicesTipChipsState();
@@ -1110,6 +1243,17 @@ class _ServicesTipChipsState extends State<ServicesTipChips> {
   static const Color _muted = Color(0xFF6B756E);
   static const Color _border = Color(0xFFE0E6E0);
   static const Color _selectedBg = Color(0xFF2E9E4D);
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_selected >= 0 &&
+          _selected < ServicesOrderFlowData.tipOptions.length) {
+        widget.onChanged?.call(ServicesOrderFlowData.tipOptions[_selected]);
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1127,7 +1271,10 @@ class _ServicesTipChipsState extends State<ServicesTipChips> {
                 right: index < ServicesOrderFlowData.tipOptions.length - 1 ? 8.w : 0,
               ),
               child: GestureDetector(
-                onTap: () => setState(() => _selected = index),
+                onTap: () {
+                  setState(() => _selected = index);
+                  widget.onChanged?.call(ServicesOrderFlowData.tipOptions[index]);
+                },
                 child: Container(
                   height: 29.h,
                   padding: EdgeInsets.symmetric(horizontal: 13.w),

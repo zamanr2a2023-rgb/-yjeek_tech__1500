@@ -75,12 +75,15 @@ class FoodVendorsRepository {
     return names.length > 1 ? names : BrowseData.cuisineFilters;
   }
 
-  /// GET /vendors?category=food&sort=&cuisine=&freeDelivery=&q=
+  /// GET /vendors?category=food&sort=&cuisine=&freeDelivery=&q=&latitude=&longitude=&withinDeliveryRadius=
   Future<List<BrowseRestaurant>> fetchVendors({
     String? cuisine,
     bool freeDelivery = false,
     String sort = 'rating',
     String? query,
+    double? latitude,
+    double? longitude,
+    bool withinDeliveryRadius = false,
   }) async {
     final params = <String, String>{
       'category': 'food',
@@ -94,6 +97,13 @@ class FoodVendorsRepository {
     if (freeDelivery) params['freeDelivery'] = 'true';
     if (query != null && query.trim().isNotEmpty) {
       params['q'] = query.trim();
+    }
+    if (latitude != null && longitude != null) {
+      params['latitude'] = latitude.toString();
+      params['longitude'] = longitude.toString();
+      if (withinDeliveryRadius) {
+        params['withinDeliveryRadius'] = 'true';
+      }
     }
 
     final qs = params.entries
@@ -312,7 +322,7 @@ class FoodVendorsRepository {
     );
   }
 
-  /// POST /cart/items?type=DELIVERY
+  /// POST /cart/items?type=DELIVERY|PICKUP
   /// Returns null on success, conflict message on vendor conflict, or error text.
   Future<({bool ok, bool vendorConflict, String? message})> addToCart({
     required String productId,
@@ -320,9 +330,11 @@ class FoodVendorsRepository {
     List<String> optionIds = const [],
     List<String> addonIds = const [],
     bool replaceCart = false,
+    String cartType = 'DELIVERY',
   }) async {
+    final type = cartType.toUpperCase() == 'PICKUP' ? 'PICKUP' : 'DELIVERY';
     final response = await _apiClient.postJson(
-      '/cart/items?type=DELIVERY',
+      '/cart/items?type=$type',
       {
         'productId': productId,
         'quantity': quantity,
