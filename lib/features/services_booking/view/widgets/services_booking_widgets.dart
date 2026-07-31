@@ -450,12 +450,14 @@ class ServicesPromoField extends StatelessWidget {
 }
 
 class ServicesServiceCard extends StatelessWidget {
-  const ServicesServiceCard({
+  ServicesServiceCard({
     super.key,
-    this.name = ServicesBookingData.mainService,
-    this.durationLabel = ServicesBookingData.mainServiceDuration,
-    this.priceLabel = ServicesBookingData.mainServicePrice,
-  });
+    String? name,
+    String? durationLabel,
+    String? priceLabel,
+  })  : name = name ?? ServicesBookingData.mainService,
+        durationLabel = durationLabel ?? ServicesBookingData.mainServiceDuration,
+        priceLabel = priceLabel ?? ServicesBookingData.mainServicePrice;
 
   final String name;
   final String durationLabel;

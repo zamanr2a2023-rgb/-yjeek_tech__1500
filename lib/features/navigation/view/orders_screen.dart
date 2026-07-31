@@ -25,16 +25,16 @@ class OrdersScreen extends ConsumerStatefulWidget {
 class _OrdersScreenState extends ConsumerState<OrdersScreen> {
   int _timeFilterIndex = 0;
   int _categoryFilterIndex = 0;
-  List<OrderHistoryItem> _orders = const [];
+  List<OrderHistoryItem> _orders = [];
   bool _loading = true;
 
-  static const _timeFilters = [
+  static final _timeFilters = [
     NavigationStrings.filterAll,
     NavigationStrings.filterActive,
     NavigationStrings.filterPast,
   ];
 
-  static const _categoryFilters = [
+  static final _categoryFilters = [
     NavigationStrings.categoryOrders,
     NavigationStrings.categoryServices,
     NavigationStrings.categoryDineIn,

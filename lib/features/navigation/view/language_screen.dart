@@ -1,22 +1,53 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:yjeek_app/core/constants/app_assets.dart';
 import 'package:yjeek_app/core/constants/app_colors.dart';
 import 'package:yjeek_app/core/constants/app_text_styles.dart';
 import 'package:yjeek_app/core/constants/navigation_strings.dart';
+import 'package:yjeek_app/core/providers/app_providers.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/account_widgets.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/navigation_widgets.dart';
+import 'package:yjeek_app/l10n/locale_controller.dart';
 
-class LanguageScreen extends StatefulWidget {
+class LanguageScreen extends ConsumerStatefulWidget {
   const LanguageScreen({super.key});
 
   @override
-  State<LanguageScreen> createState() => _LanguageScreenState();
+  ConsumerState<LanguageScreen> createState() => _LanguageScreenState();
 }
 
-class _LanguageScreenState extends State<LanguageScreen> {
-  String _selected = NavigationStrings.english;
+class _LanguageScreenState extends ConsumerState<LanguageScreen> {
+  late String _selected;
+  bool _saving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _selected = ref.read(localeControllerProvider.notifier).code;
+  }
+
+  Future<void> _apply() async {
+    if (_saving) return;
+    setState(() => _saving = true);
+
+    final code = _selected;
+    await ref.read(localeControllerProvider.notifier).setLanguage(code);
+
+    final storage = ref.read(storageServiceProvider);
+    if (storage.hasSession) {
+      final response =
+          await ref.read(userRepositoryProvider).updateProfile({'language': code});
+      if (response.ok) {
+        ref.invalidate(userMeProvider);
+      }
+    }
+
+    if (!mounted) return;
+    setState(() => _saving = false);
+    if (context.canPop()) context.pop();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -40,14 +71,14 @@ class _LanguageScreenState extends State<LanguageScreen> {
                     children: [
                       _LanguageRow(
                         label: NavigationStrings.english,
-                        selected: _selected == NavigationStrings.english,
-                        onTap: () => setState(() => _selected = NavigationStrings.english),
+                        selected: _selected == 'en',
+                        onTap: () => setState(() => _selected = 'en'),
                       ),
                       const Divider(height: 1, color: Color(0xFFE6EBE3)),
                       _LanguageRow(
                         label: NavigationStrings.arabic,
-                        selected: _selected == NavigationStrings.arabic,
-                        onTap: () => setState(() => _selected = NavigationStrings.arabic),
+                        selected: _selected == 'ar',
+                        onTap: () => setState(() => _selected = 'ar'),
                       ),
                     ],
                   ),
@@ -59,7 +90,7 @@ class _LanguageScreenState extends State<LanguageScreen> {
                   borderRadius: 13,
                   height: 49,
                   icon: Icons.check,
-                  onPressed: () => context.pop(),
+                  onPressed: _saving ? null : _apply,
                 ),
               ],
             ),

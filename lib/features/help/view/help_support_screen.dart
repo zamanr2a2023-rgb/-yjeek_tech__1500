@@ -96,7 +96,7 @@ class _HelpSupportScreenState extends ConsumerState<HelpSupportScreen> {
       backgroundColor: AppColors.background,
       body: Column(
         children: [
-          const GreenScreenHeader(title: NavigationStrings.helpSupport),
+          GreenScreenHeader(title: NavigationStrings.helpSupport),
           Expanded(
             child: ListView(
               padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 24.h),

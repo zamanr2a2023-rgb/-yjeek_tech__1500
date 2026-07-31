@@ -160,16 +160,31 @@ String formatDineInPrepareNowBanner(String readyLabel) {
   return 'Your table will be ready about $cleaned after you pay.';
 }
 
+/// Bahrain is UTC+3; matches backend scheduled drop-off ceiling (22:00 BH).
+DateTime _fitScheduledWindowStart(DateTime candidateUtc) {
+  final utc = candidateUtc.toUtc();
+  final bahrain = utc.add(const Duration(hours: 3));
+  if (bahrain.hour < 22) return utc;
+  final nextMorningBh = DateTime.utc(
+    bahrain.year,
+    bahrain.month,
+    bahrain.day + 1,
+    10,
+  );
+  return nextMorningBh.subtract(const Duration(hours: 3));
+}
+
 /// Next window start for scheduled / vape delivery speeds.
 DateTime windowStartForDelivery(String deliveryId) {
   final now = DateTime.now().toUtc();
-  return switch (deliveryId) {
+  final raw = switch (deliveryId) {
     'same-day' => now.add(const Duration(hours: 4)),
     'next-day' => DateTime.utc(now.year, now.month, now.day + 1, 12),
     'standard' => now.add(const Duration(days: 2)),
     'economy' => now.add(const Duration(days: 5)),
     _ => now.add(const Duration(hours: 4)),
   };
+  return _fitScheduledWindowStart(raw);
 }
 
 /// Human label for a scheduled window, e.g. "Tomorrow · 12:00pm–2:00pm".

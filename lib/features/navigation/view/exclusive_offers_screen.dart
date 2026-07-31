@@ -22,12 +22,12 @@ class ExclusiveOffersScreen extends ConsumerStatefulWidget {
 
 class _ExclusiveOffersScreenState extends ConsumerState<ExclusiveOffersScreen> {
   int _filterIndex = 0;
-  List<BrowseOffer> _offers = const [];
+  List<BrowseOffer> _offers = [];
   bool _loading = true;
   String? _error;
   String? _addingProductId;
 
-  static const _filters = [
+  static final _filters = [
     NavigationStrings.filterAll,
     NavigationStrings.filterFood,
     NavigationStrings.filterGroceries,
@@ -158,7 +158,7 @@ class _ExclusiveOffersScreenState extends ConsumerState<ExclusiveOffersScreen> {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const NavBackHeader(
+          NavBackHeader(
             title: NavigationStrings.exclusiveOffersTitle,
             subtitle: NavigationStrings.exclusiveOffersSubtitle,
           ),

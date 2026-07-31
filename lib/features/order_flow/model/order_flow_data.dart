@@ -1,50 +1,47 @@
 import 'package:yjeek_app/features/navigation/model/navigation_data.dart';
+import 'package:yjeek_app/l10n/l10n.dart';
 
 abstract final class OrderFlowStrings {
-  static const String orderConfirmed = 'Order confirmed!';
-  static const String trackOrder = 'Track order';
-  static const String viewReceipt = 'View receipt';
-  static const String estimatedArrival = 'Estimated arrival';
-  static const String preparingOrder = 'Preparing your order';
-  static const String statusLabel = 'STATUS';
-  static const String orderTotal = 'Order total';
-  static const String items = 'Items';
-  static const String deliverTo = 'Deliver to';
-  static const String arrivesIn = 'Arrives in';
-  static const String call = 'Call';
-  static const String chat = 'Chat';
-  static const String change = 'Change';
-  static const String contactSupport = 'Contact support';
-  static const String delivered = 'Delivered!';
-  static const String deliveredSubtitle =
-      'Hope you enjoyed your order from The Green Kitchen.';
-  static const String rateYourOrder = 'Rate your order';
-  static const String rateYourChamp = 'Rate your champ';
-  static const String reviewHint = 'Write a short review (optional)';
-  static const String submitAndDone = 'Submit & done';
-  static const String receipt = 'Receipt';
-  static const String receiptSubtitle = 'Order #YJK-3920';
-  static const String shareReceipt = 'Share receipt';
-  static const String orderConfirmedBadge = '✓ ORDER CONFIRMED';
-  static const String typeDelivery = 'Delivery';
-  static const String paid = 'Paid';
-  static const String itemColumn = 'ITEM';
-  static const String priceColumn = 'PRICE';
-  static const String messageAhmed = 'Message Ahmed…';
-  static const String onlineChamp = '● Online · your champ';
-  static const String yourChamp = 'your champ';
-  static const String sentToVendor = 'Sent to vendor';
-  static const String waitingSubtitle =
-      'Waiting for the vendor to accept your order…';
+  static String get orderConfirmed => L10n.tr('Order confirmed!');
+  static String get trackOrder => L10n.tr('Track order');
+  static String get viewReceipt => L10n.tr('View receipt');
+  static String get estimatedArrival => L10n.tr('Estimated arrival');
+  static String get preparingOrder => L10n.tr('Preparing your order');
+  static String get statusLabel => L10n.tr('STATUS');
+  static String get orderTotal => L10n.tr('Order total');
+  static String get items => L10n.tr('Items');
+  static String get deliverTo => L10n.tr('Deliver to');
+  static String get arrivesIn => L10n.tr('Arrives in');
+  static String get call => L10n.tr('Call');
+  static String get chat => L10n.tr('Chat');
+  static String get change => L10n.tr('Change');
+  static String get contactSupport => L10n.tr('Contact support');
+  static String get delivered => L10n.tr('Delivered!');
+  static String get deliveredSubtitle => L10n.tr('Hope you enjoyed your order from The Green Kitchen.');
+  static String get rateYourOrder => L10n.tr('Rate your order');
+  static String get rateYourChamp => L10n.tr('Rate your champ');
+  static String get reviewHint => L10n.tr('Write a short review (optional)');
+  static String get submitAndDone => L10n.tr('Submit & done');
+  static String get receipt => L10n.tr('Receipt');
+  static String get receiptSubtitle => L10n.tr('Order #YJK-3920');
+  static String get shareReceipt => L10n.tr('Share receipt');
+  static String get orderConfirmedBadge => L10n.tr('✓ ORDER CONFIRMED');
+  static String get typeDelivery => L10n.tr('Delivery');
+  static String get paid => L10n.tr('Paid');
+  static String get itemColumn => L10n.tr('ITEM');
+  static String get priceColumn => L10n.tr('PRICE');
+  static String get messageAhmed => L10n.tr('Message Ahmed…');
+  static String get onlineChamp => L10n.tr('● Online · your champ');
+  static String get yourChamp => L10n.tr('your champ');
+  static String get sentToVendor => L10n.tr('Sent to vendor');
+  static String get waitingSubtitle => L10n.tr('Waiting for the vendor to accept your order…');
   static const String notChargedYet =
       "You won't be charged until the vendor accepts your order.";
-  static const String cancelOrder = 'Cancel order';
-  static const String freeCancelHint =
-      'Free cancellation before the vendor accepts';
-  static const String payWithinHint =
-      'Complete payment within 5 minutes. If payment is not completed in time, your order will be cancelled automatically.';
-  static const String pay = 'Pay';
-  static const String payIn = 'PAY IN';
+  static String get cancelOrder => L10n.tr('Cancel order');
+  static String get freeCancelHint => L10n.tr('Free cancellation before the vendor accepts');
+  static String get payWithinHint => L10n.tr('Complete payment within 5 minutes. If payment is not completed in time, your order will be cancelled automatically.');
+  static String get pay => L10n.tr('Pay');
+  static String get payIn => L10n.tr('PAY IN');
 }
 
 class OrderTimelineStep {
@@ -81,23 +78,23 @@ class DriverChatMessage {
 }
 
 abstract final class OrderFlowData {
-  static const String orderId = 'YJK-3920';
-  static const String orderIdDisplay = '#YJK-3920';
+  static String get orderId => L10n.tr('YJK-3920');
+  static String get orderIdDisplay => L10n.tr('#YJK-3920');
   /// Figma order-status header: "Order #YJK-3920".
-  static const String orderStatusTitle = 'Order #YJK-3920';
-  static const String vendor = 'The Green Kitchen';
-  static const String vendorLocation = 'The Green Kitchen — Seef';
-  static const String vendorAddress = 'Block 338, Road 3801, Seef · CR 12345';
-  static const String deliveryAddress = 'Apartment · Seef';
-  static const String arrivalWindow = '15–25 min';
-  static const String orderTotal = 'BHD 2.110';
-  static const String itemCount = '2 items';
-  static const String orderDate = '17 Jun 2026 · 9:41';
-  static const String paymentMethod = 'Cash on delivery';
-  static const String driverName = 'Ahmed K.';
-  static const String driverSubtitle = 'Ahmed K. · your champ';
-  static const String driverMeta = '★ 4.9 · Motorcycle · M 1234';
-  static const String driverPlate = 'M 1234';
+  static String get orderStatusTitle => L10n.tr('Order #YJK-3920');
+  static String get vendor => L10n.tr('The Green Kitchen');
+  static String get vendorLocation => L10n.tr('The Green Kitchen — Seef');
+  static String get vendorAddress => L10n.tr('Block 338, Road 3801, Seef · CR 12345');
+  static String get deliveryAddress => L10n.tr('Apartment · Seef');
+  static String get arrivalWindow => L10n.tr('15–25 min');
+  static String get orderTotal => L10n.tr('BHD 2.110');
+  static String get itemCount => L10n.tr('2 items');
+  static String get orderDate => L10n.tr('17 Jun 2026 · 9:41');
+  static String get paymentMethod => L10n.tr('Cash on delivery');
+  static String get driverName => L10n.tr('Ahmed K.');
+  static String get driverSubtitle => L10n.tr('Ahmed K. · your champ');
+  static String get driverMeta => L10n.tr('★ 4.9 · Motorcycle · M 1234');
+  static String get driverPlate => L10n.tr('M 1234');
 
   static const List<OrderTimelineStep> timelineSteps = [
     OrderTimelineStep(label: 'Order confirmed', time: '9:41', completed: true),

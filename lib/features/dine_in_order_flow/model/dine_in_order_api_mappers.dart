@@ -37,7 +37,7 @@ List<DineInOrderTimelineStep> dineInTimelineFromTrack({
   required List<dynamic>? timeline,
   required String? currentStatus,
 }) {
-  const steps = <(Set<String>, String, String?)>[
+  final steps = <(Set<String>, String, String?)>[
     (
       {
         'PLACED',

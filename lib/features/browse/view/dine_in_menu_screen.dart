@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:yjeek_app/core/constants/app_colors.dart';
 import 'package:yjeek_app/core/constants/app_text_styles.dart';
 import 'package:yjeek_app/core/providers/app_providers.dart';
+import 'package:yjeek_app/core/providers/shell_provider.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/features/browse/browse_routes.dart';
 import 'package:yjeek_app/features/browse/model/browse_data.dart';
@@ -14,7 +15,7 @@ import 'package:yjeek_app/features/browse/model/dine_in_vendors_repository.dart'
 import 'package:yjeek_app/features/browse/view/widgets/browse_widgets.dart';
 import 'package:yjeek_app/features/browse/view/widgets/dine_in_widgets.dart';
 import 'package:yjeek_app/features/cart/view/widgets/cart_flow_widgets.dart';
-import 'package:yjeek_app/features/navigation/view/widgets/navigation_widgets.dart';
+import 'package:yjeek_app/features/home/view/widgets/home_widgets.dart';
 import 'package:yjeek_app/routes/app_router.dart';
 
 class DineInMenuScreen extends ConsumerStatefulWidget {
@@ -203,12 +204,36 @@ class _DineInMenuScreenState extends ConsumerState<DineInMenuScreen> {
           DineInOrderBar(
             itemCount: _cart.itemCount,
             totalLabel: _cart.totalLabel,
-            onTap: () => context.goHome(tab: 2, dineInCart: true),
+            onTap: () {
+              ref.read(shellProvider.notifier).openDineInCartWithItems();
+              context.goHome(tab: 2, dineInCart: true);
+            },
           ),
         ],
       ),
-      bottomNavigationBar:
-          ShellBottomNavBar(currentIndex: widget.bottomNavIndex),
+      bottomNavigationBar: HomeBottomNavBar(
+        currentIndex: widget.bottomNavIndex,
+        onTap: (index) {
+          if (index == 2) {
+            ref.read(shellProvider.notifier).openDineInCartWithItems();
+            context.goHome(tab: 2, dineInCart: true);
+            return;
+          }
+          if (index == 0) {
+            context.goHome(tab: 0);
+            return;
+          }
+          if (index == widget.bottomNavIndex) {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.goHome(tab: index);
+            }
+            return;
+          }
+          context.goHome(tab: index);
+        },
+      ),
     );
   }
 }

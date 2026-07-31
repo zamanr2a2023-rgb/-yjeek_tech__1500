@@ -164,7 +164,7 @@ class _PickupPayScreenState extends ConsumerState<PickupPayScreen> {
       _expiring = false;
     });
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
+      SnackBar(
         content: Text(PickupOrderFlowStrings.paymentExpired),
         backgroundColor: Color(0xFFB42318),
       ),

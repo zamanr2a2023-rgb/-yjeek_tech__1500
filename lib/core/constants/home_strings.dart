@@ -1,24 +1,25 @@
+import 'package:yjeek_app/l10n/l10n.dart';
 abstract final class HomeStrings {
-  static const String hello = 'Hello, Asmaa 👋';
-  static const String deliverTo = 'Deliver to';
-  static const String searchHome = 'Search for restaurants, groceries…';
-  static const String searchCategories = 'Search categories & vendors…';
-  static const String preparingOrder = 'Preparing your order';
-  static const String orderSubtitle = 'The Green Kitchen · arrives 15–25 min';
-  static const String track = 'Track';
-  static const String categories = 'Categories';
-  static const String seeAll = 'See all';
-  static const String orderAgain = 'Order again';
-  static const String exclusiveOffers = 'Super Exclusive offers';
-  static const String weeklySpotlight = 'WEEKLY SPOTLIGHT';
-  static const String spotlightTitle = 'Green Artisan Bakery';
-  static const String orderNow = 'Order Now';
-  static const String allCategories = 'All categories';
-  static const String deliverToLabel = 'DELIVER TO';
+  static String get hello => L10n.tr('Hello, Asmaa 👋');
+  static String get deliverTo => L10n.tr('Deliver to');
+  static String get searchHome => L10n.tr('Search for restaurants, groceries…');
+  static String get searchCategories => L10n.tr('Search categories & vendors…');
+  static String get preparingOrder => L10n.tr('Preparing your order');
+  static String get orderSubtitle => L10n.tr('The Green Kitchen · arrives 15–25 min');
+  static String get track => L10n.tr('Track');
+  static String get categories => L10n.tr('Categories');
+  static String get seeAll => L10n.tr('See all');
+  static String get orderAgain => L10n.tr('Order again');
+  static String get exclusiveOffers => L10n.tr('Super Exclusive offers');
+  static String get weeklySpotlight => L10n.tr('WEEKLY SPOTLIGHT');
+  static String get spotlightTitle => L10n.tr('Green Artisan Bakery');
+  static String get orderNow => L10n.tr('Order Now');
+  static String get allCategories => L10n.tr('All categories');
+  static String get deliverToLabel => L10n.tr('DELIVER TO');
 
-  static const String navHome = 'Home';
-  static const String navOrders = 'Orders';
-  static const String navCart = 'Cart';
-  static const String navWallet = 'Wallet';
-  static const String navAccount = 'Account';
+  static String get navHome => L10n.tr('Home');
+  static String get navOrders => L10n.tr('Orders');
+  static String get navCart => L10n.tr('Cart');
+  static String get navWallet => L10n.tr('Wallet');
+  static String get navAccount => L10n.tr('Account');
 }

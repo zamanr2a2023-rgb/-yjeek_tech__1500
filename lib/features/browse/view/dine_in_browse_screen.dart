@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:yjeek_app/core/constants/app_colors.dart';
 import 'package:yjeek_app/core/providers/app_providers.dart';
+import 'package:yjeek_app/core/providers/shell_provider.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/features/browse/browse_routes.dart';
 import 'package:yjeek_app/features/browse/model/dine_in_data.dart';
@@ -84,7 +85,10 @@ class _DineInBrowseScreenState extends ConsumerState<DineInBrowseScreen> {
                 children: [
                   BrowseTopBar(
                     title: DineInData.category,
-                    onCart: () => context.goHome(tab: 2, dineInCart: true),
+                    onCart: () {
+                      ref.read(shellProvider.notifier).openDineInCartWithItems();
+                      context.goHome(tab: 2, dineInCart: true);
+                    },
                   ),
                   Padding(
                     padding: EdgeInsets.fromLTRB(20.w, 6.h, 20.w, 0),

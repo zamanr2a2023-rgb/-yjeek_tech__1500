@@ -21,7 +21,10 @@ Future<void> main() async {
     }
   }
 
-  await GoogleFonts.pendingFonts([GoogleFonts.inter()]);
+  await GoogleFonts.pendingFonts([
+    GoogleFonts.inter(),
+    GoogleFonts.notoSansArabic(),
+  ]);
 
   final storage = await StorageService.init();
   Get.put<StorageService>(storage, permanent: true);

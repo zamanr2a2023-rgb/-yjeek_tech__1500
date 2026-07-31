@@ -181,7 +181,7 @@ class UserProfile {
   String get languageLabel {
     switch (language.toLowerCase()) {
       case 'ar':
-        return 'Arabic';
+        return 'العربية';
       case 'en':
       default:
         return 'English';

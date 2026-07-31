@@ -227,9 +227,9 @@ class _OtpVerifyScreenState extends ConsumerState<OtpVerifyScreen> {
             error: hasError,
             disabled: isBlocked,
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: 8),
           if (_state == OtpScreenState.resent)
-            const StatusBanner.success(message: AppStrings.newCodeSent),
+            StatusBanner.success(message: AppStrings.newCodeSent),
           if (hasError)
             StatusBanner.error(
               message:

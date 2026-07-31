@@ -220,20 +220,20 @@ class _ScheduledCheckoutScreenState
       title: ScheduledCartStrings.checkout,
       subtitle: vendor,
       lightHeader: true,
-      backgroundColor: const Color(0xFFF2F7F2),
+      backgroundColor: Color(0xFFF2F7F2),
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? Center(child: CircularProgressIndicator())
           : ListView(
               padding: EdgeInsets.fromLTRB(20.w, 8.h, 20.w, 24.h),
               children: [
-                const CartSectionTitle(ScheduledCartStrings.deliveryAddress),
+                CartSectionTitle(ScheduledCartStrings.deliveryAddress),
                 ScheduledAddressCard(
                   address: _address?.label,
                   addressDetail: _address?.subtitle,
                   onChange: () => context.push(CartRoutes.changeAddress),
                 ),
                 SizedBox(height: 14.h),
-                const CartSectionTitle(ScheduledCartStrings.deliveryMethod),
+                CartSectionTitle(ScheduledCartStrings.deliveryMethod),
                 ..._deliveryMethods.map(
                   (method) => ScheduledDeliveryMethodCard(
                     method: method,
@@ -249,7 +249,7 @@ class _ScheduledCheckoutScreenState
                   onSelected: (index) => setState(() => _dropOffIndex = index),
                 ),
                 SizedBox(height: 14.h),
-                const CartSectionTitle(ScheduledCartStrings.paymentMethod),
+                CartSectionTitle(ScheduledCartStrings.paymentMethod),
                 const ScheduledPaymentNoteBanner(),
                 SizedBox(height: 12.h),
                 CartPaymentMethodList(
@@ -270,7 +270,7 @@ class _ScheduledCheckoutScreenState
                   onTap: () => context.push(CartRoutes.zoodWaitingList),
                 ),
                 SizedBox(height: 14.h),
-                const CartSectionTitle(ScheduledCartStrings.billSummary),
+                CartSectionTitle(ScheduledCartStrings.billSummary),
                 BillSummaryCard(lines: _billLines),
                 SizedBox(height: 10.h),
                 ScheduledCashbackBanner(amount: cart?.cashbackLabel),

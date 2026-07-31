@@ -166,7 +166,7 @@ class _PickupCheckoutScreenState extends ConsumerState<PickupCheckoutScreen> {
       lightHeader: true,
       backgroundColor: const Color(0xFFF2F7F2),
       body: _loading
-          ? const Center(
+          ? Center(
               child: CircularProgressIndicator(color: Color(0xFF4CAF50)),
             )
           : ListView(
@@ -178,7 +178,7 @@ class _PickupCheckoutScreenState extends ConsumerState<PickupCheckoutScreen> {
                   readyLabel: pickup?.readyLabel ?? '',
                 ),
                 SizedBox(height: 14.h),
-                const CartSectionTitle(PickupCartStrings.pickupTime),
+                CartSectionTitle(PickupCartStrings.pickupTime),
                 PickupTimeCard(
                   timeLabel: timeLabel,
                   onChange: _changePickupTime,
@@ -189,7 +189,7 @@ class _PickupCheckoutScreenState extends ConsumerState<PickupCheckoutScreen> {
                       pickup?.noShowPolicy ?? PickupCartStrings.policyWarning,
                 ),
                 SizedBox(height: 14.h),
-                const CartSectionTitle(PickupCartStrings.paymentMethod),
+                CartSectionTitle(PickupCartStrings.paymentMethod),
                 CartPaymentMethodList(
                   options: _payments.options,
                   selectedId: _paymentId,
@@ -208,7 +208,7 @@ class _PickupCheckoutScreenState extends ConsumerState<PickupCheckoutScreen> {
                   onTap: () => context.push(CartRoutes.zoodWaitingList),
                 ),
                 SizedBox(height: 14.h),
-                const CartSectionTitle(PickupCartStrings.billSummary),
+                CartSectionTitle(PickupCartStrings.billSummary),
                 BillSummaryCard(lines: billLines),
                 SizedBox(height: 10.h),
                 ScheduledCashbackBanner(amount: cart?.cashbackLabel),

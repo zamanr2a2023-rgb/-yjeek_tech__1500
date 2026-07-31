@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:yjeek_app/features/cart/model/cart_flow_data.dart';
 import 'package:yjeek_app/features/navigation/model/navigation_data.dart';
+import 'package:yjeek_app/l10n/l10n.dart';
 
 class ScheduledCartItem {
   const ScheduledCartItem({
@@ -55,51 +56,48 @@ class ScheduledDeliveryMethod {
 }
 
 abstract final class ScheduledCartStrings {
-  static const String cart = 'Cart';
-  static const String checkout = 'Checkout';
-  static const String reviewConfirm = 'Review & confirm';
-  static const String addMorePrompt = 'Add more ... ?';
-  static const String promoCode = 'Have a promo code?';
-  static const String deliveryAddress = 'Delivery address';
-  static const String deliveryMethod = 'Delivery method';
-  static const String dropOffPreferences = 'Drop-off preferences';
-  static const String paymentMethod = 'Payment method';
-  static const String tipYourChamp = 'Tip your champ';
-  static const String billSummary = 'Bill summary';
-  static const String placeOrder = 'Place order';
-  static const String addMore = 'Add more';
-  static const String checkoutBtn = 'Checkout';
-  static const String placingOrder = 'Placing your order';
-  static const String autoConfirmHint =
-      'Auto-confirms in 10 seconds. You can still edit or cancel before then.';
-  static const String orderSummary = 'Order summary';
-  static const String editOrder = 'Edit order';
-  static const String sendToVendor = 'Send to vendor';
-  static const String vendorNote =
-      'scheduled cart: user can add items from different vendors, MAX 3';
+  static String get cart => L10n.tr('Cart');
+  static String get checkout => L10n.tr('Checkout');
+  static String get reviewConfirm => L10n.tr('Review & confirm');
+  static String get addMorePrompt => L10n.tr('Add more ... ?');
+  static String get promoCode => L10n.tr('Have a promo code?');
+  static String get deliveryAddress => L10n.tr('Delivery address');
+  static String get deliveryMethod => L10n.tr('Delivery method');
+  static String get dropOffPreferences => L10n.tr('Drop-off preferences');
+  static String get paymentMethod => L10n.tr('Payment method');
+  static String get tipYourChamp => L10n.tr('Tip your champ');
+  static String get billSummary => L10n.tr('Bill summary');
+  static String get placeOrder => L10n.tr('Place order');
+  static String get addMore => L10n.tr('Add more');
+  static String get checkoutBtn => L10n.tr('Checkout');
+  static String get placingOrder => L10n.tr('Placing your order');
+  static String get autoConfirmHint => L10n.tr('Auto-confirms in 10 seconds. You can still edit or cancel before then.');
+  static String get orderSummary => L10n.tr('Order summary');
+  static String get editOrder => L10n.tr('Edit order');
+  static String get sendToVendor => L10n.tr('Send to vendor');
+  static String get vendorNote => L10n.tr('scheduled cart: user can add items from different vendors, MAX 3');
   static const String paymentNote =
       "You won't be charged now. Once the vendor accepts, you'll have 5 minutes to pay";
-  static const String walletNote =
-      'You can pay with any method and use your Yjeek Wallet balance together.';
-  static const String cashbackEarn = 'Earn 3% cashback to your Wallet';
-  static const String orderType = 'TECHHUB ELECTRONICS · SCHEDULED DELIVERY';
-  static const String method = 'Method';
-  static const String deliverTo = 'Deliver to';
-  static const String payment = 'Payment';
-  static const String orderTotal = 'Order total';
-  static const String cashOnDelivery = 'Cash on delivery';
-  static const String customTip = 'Custom';
+  static String get walletNote => L10n.tr('You can pay with any method and use your Yjeek Wallet balance together.');
+  static String get cashbackEarn => L10n.tr('Earn 3% cashback to your Wallet');
+  static String get orderType => L10n.tr('TECHHUB ELECTRONICS · SCHEDULED DELIVERY');
+  static String get method => L10n.tr('Method');
+  static String get deliverTo => L10n.tr('Deliver to');
+  static String get payment => L10n.tr('Payment');
+  static String get orderTotal => L10n.tr('Order total');
+  static String get cashOnDelivery => L10n.tr('Cash on delivery');
+  static String get customTip => L10n.tr('Custom');
 }
 
 abstract final class ScheduledCartData {
-  static const String vendor = 'TechHub Electronics';
-  static const String selectedAddress = 'Apartment - Seef';
-  static const String selectedAddressDetail = 'Road 6000, Bldg 23, Flat 82';
-  static const String walletBalance = 'Balance BHD 12.450';
-  static const String cartTotal = 'BHD 154.300';
-  static const String checkoutTotal = 'BHD 154.300';
-  static const String reviewTotal = 'BHD 154.300';
-  static const String cashbackAmount = '+ BHD 1.260';
+  static String get vendor => L10n.tr('TechHub Electronics');
+  static String get selectedAddress => L10n.tr('Apartment - Seef');
+  static String get selectedAddressDetail => L10n.tr('Road 6000, Bldg 23, Flat 82');
+  static String get walletBalance => L10n.tr('Balance BHD 12.450');
+  static String get cartTotal => L10n.tr('BHD 154.300');
+  static String get checkoutTotal => L10n.tr('BHD 154.300');
+  static String get reviewTotal => L10n.tr('BHD 154.300');
+  static String get cashbackAmount => L10n.tr('+ BHD 1.260');
 
   static const List<ScheduledCartItem> cartItems = [
     ScheduledCartItem(
@@ -140,7 +138,7 @@ abstract final class ScheduledCartData {
     ),
   ];
 
-  static const List<BillLine> cartBillLines = [
+  static final List<BillLine> cartBillLines = [
     BillLine(label: 'Subtotal', value: 'BHD 153.000'),
     BillLine(label: 'Delivery', value: 'BHD 1.000'),
     BillLine(label: 'Service fee', value: 'BHD 0.300'),
@@ -177,7 +175,7 @@ abstract final class ScheduledCartData {
     ),
   ];
 
-  static const List<TipOption> tipOptions = [
+  static final List<TipOption> tipOptions = [
     TipOption(label: 'BHD 0.300', amount: 0.3),
     TipOption(label: 'BHD 0.500', amount: 0.5),
     TipOption(label: 'BHD 1', amount: 1),

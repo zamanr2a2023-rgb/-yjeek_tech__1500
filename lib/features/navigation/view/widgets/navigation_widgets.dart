@@ -431,7 +431,7 @@ class _CartCategoryTabsState extends State<CartCategoryTabs> {
   final List<GlobalKey> _tabKeys =
       List.generate(CartTab.values.length, (_) => GlobalKey());
 
-  static const _labels = [
+  static final _labels = [
     NavigationStrings.cartTabOrders,
     NavigationStrings.cartTabDineIn,
     NavigationStrings.cartTabPickup,

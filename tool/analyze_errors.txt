@@ -1,0 +1,14 @@
+﻿  error - Const variables must be initialized with a constant value. Try changing the initializer to be a constant expression - lib\features\cart\model\cart_flow_data.dart:260:14 - const_initialized_with_non_constant_value
+  error - Invalid constant value - lib\features\cart\model\cart_flow_data.dart:260:14 - invalid_constant
+  error - The values in a const list literal must be constants. Try removing the keyword 'const' from the list literal - lib\features\cart\model\cart_flow_data.dart:260:14 - non_constant_list_element
+  error - Invalid constant value - lib\features\cart\model\cart_flow_data.dart:270:14 - invalid_constant
+  error - The values in a const list literal must be constants. Try removing the keyword 'const' from the list literal - lib\features\cart\model\cart_flow_data.dart:270:14 - non_constant_list_element
+  error - Const variables must be initialized with a constant value. Try changing the initializer to be a constant expression - lib\features\dine_in_cart\model\dine_in_cart_data.dart:185:14 - const_initialized_with_non_constant_value
+  error - Invalid constant value - lib\features\dine_in_cart\model\dine_in_cart_data.dart:185:14 - invalid_constant
+  error - The values in a const list literal must be constants. Try removing the keyword 'const' from the list literal - lib\features\dine_in_cart\model\dine_in_cart_data.dart:185:14 - non_constant_list_element
+  error - Const variables must be initialized with a constant value. Try changing the initializer to be a constant expression - lib\features\dine_in_order_flow\model\dine_in_order_api_mappers.dart:68:7 - const_initialized_with_non_constant_value
+  error - The fields in a const record literal must be constants. Try removing the keyword 'const' from the record literal - lib\features\dine_in_order_flow\model\dine_in_order_api_mappers.dart:68:7 - non_constant_record_field
+  error - The values in a const list literal must be constants. Try removing the keyword 'const' from the list literal - lib\features\dine_in_order_flow\model\dine_in_order_api_mappers.dart:68:7 - non_constant_list_element
+  error - The default value of an optional parameter must be constant - lib\features\services_booking\view\widgets\services_booking_widgets.dart:455:17 - non_constant_default_value
+  error - The default value of an optional parameter must be constant - lib\features\services_booking\view\widgets\services_booking_widgets.dart:456:26 - non_constant_default_value
+  error - The default value of an optional parameter must be constant - lib\features\services_booking\view\widgets\services_booking_widgets.dart:457:23 - non_constant_default_value

@@ -1,6 +1,7 @@
 import 'package:yjeek_app/core/constants/app_assets.dart';
 import 'package:yjeek_app/features/cart/model/cart_flow_data.dart';
 import 'package:yjeek_app/features/navigation/model/navigation_data.dart';
+import 'package:yjeek_app/l10n/l10n.dart';
 
 class BookingDateOption {
   const BookingDateOption({required this.day, required this.date});
@@ -28,57 +29,56 @@ class BookingUpsellItem {
 }
 
 abstract final class ServicesBookingStrings {
-  static const String booking = 'Booking';
-  static const String checkout = 'Checkout';
-  static const String reviewConfirm = 'Review & confirm';
-  static const String provider = 'Glow Beauty Lounge';
-  static const String yourService = 'Your service';
-  static const String where = 'Where';
-  static const String atVenue = 'At venue';
-  static const String atHome = 'At home';
-  static const String date = 'Date';
-  static const String time = 'Time';
-  static const String addTheseToo = 'Add these too?';
-  static const String popularWith = 'Popular with Haircut & styling';
-  static const String promoCode = 'Promo code';
-  static const String enterPromoCode = 'Enter promo code';
-  static const String promoApplied = '✓ WELCOME10 applied';
-  static const String billSummary = 'Bill summary';
-  static const String addMore = 'Add more';
-  static const String checkoutBtn = 'Checkout';
-  static const String serviceLocation = 'Service location';
-  static const String venueLocationLabel = 'At venue · Glow Beauty Lounge';
-  static const String venueLocationShort = 'At venue · Adliya';
-  static const String venueAddress = 'Building 210, Road 2810, Adliya';
-  static const String appointment = 'Appointment';
-  static const String service = 'Service';
-  static const String when = 'When';
-  static const String specialist = 'Specialist';
-  static const String people = 'People';
-  static const String tipSpecialist = 'Tip the specialist (optional)';
-  static const String paymentMethod = 'Payment method';
-  static const String placeBooking = 'Place booking';
-  static const String sendingBooking = 'Sending your booking to Glow Beauty Lounge';
-  static const String autoConfirmHint =
-      'Auto-confirms in 10 seconds. You can still edit or cancel before then.';
-  static const String bookingSummary = 'Booking summary';
-  static const String providerLabel = 'Provider';
-  static const String location = 'Location';
-  static const String confirmBooking = 'Confirm booking';
-  static const String apply = 'Apply';
-  static const String customTip = 'Custom';
+  static String get booking => L10n.tr('Booking');
+  static String get checkout => L10n.tr('Checkout');
+  static String get reviewConfirm => L10n.tr('Review & confirm');
+  static String get provider => L10n.tr('Glow Beauty Lounge');
+  static String get yourService => L10n.tr('Your service');
+  static String get where => L10n.tr('Where');
+  static String get atVenue => L10n.tr('At venue');
+  static String get atHome => L10n.tr('At home');
+  static String get date => L10n.tr('Date');
+  static String get time => L10n.tr('Time');
+  static String get addTheseToo => L10n.tr('Add these too?');
+  static String get popularWith => L10n.tr('Popular with Haircut & styling');
+  static String get promoCode => L10n.tr('Promo code');
+  static String get enterPromoCode => L10n.tr('Enter promo code');
+  static String get promoApplied => L10n.tr('✓ WELCOME10 applied');
+  static String get billSummary => L10n.tr('Bill summary');
+  static String get addMore => L10n.tr('Add more');
+  static String get checkoutBtn => L10n.tr('Checkout');
+  static String get serviceLocation => L10n.tr('Service location');
+  static String get venueLocationLabel => L10n.tr('At venue · Glow Beauty Lounge');
+  static String get venueLocationShort => L10n.tr('At venue · Adliya');
+  static String get venueAddress => L10n.tr('Building 210, Road 2810, Adliya');
+  static String get appointment => L10n.tr('Appointment');
+  static String get service => L10n.tr('Service');
+  static String get when => L10n.tr('When');
+  static String get specialist => L10n.tr('Specialist');
+  static String get people => L10n.tr('People');
+  static String get tipSpecialist => L10n.tr('Tip the specialist (optional)');
+  static String get paymentMethod => L10n.tr('Payment method');
+  static String get placeBooking => L10n.tr('Place booking');
+  static String get sendingBooking => L10n.tr('Sending your booking to Glow Beauty Lounge');
+  static String get autoConfirmHint => L10n.tr('Auto-confirms in 10 seconds. You can still edit or cancel before then.');
+  static String get bookingSummary => L10n.tr('Booking summary');
+  static String get providerLabel => L10n.tr('Provider');
+  static String get location => L10n.tr('Location');
+  static String get confirmBooking => L10n.tr('Confirm booking');
+  static String get apply => L10n.tr('Apply');
+  static String get customTip => L10n.tr('Custom');
 }
 
 abstract final class ServicesBookingData {
-  static const String mainService = 'Haircut & styling';
-  static const String mainServiceDuration = '🕒 45 min';
-  static const String mainServicePrice = 'BHD 8.000';
-  static const String appointmentWhen = 'Wed 14 · 1:00 PM';
-  static const String specialistName = 'Sara';
-  static const String peopleCount = '1 person';
-  static const String bookingTotal = 'BHD 17.380';
-  static const String checkoutTotal = 'BHD 14.355';
-  static const String reviewTotal = 'BHD 9.350';
+  static String get mainService => L10n.tr('Haircut & styling');
+  static String get mainServiceDuration => L10n.tr('🕒 45 min');
+  static String get mainServicePrice => L10n.tr('BHD 8.000');
+  static String get appointmentWhen => L10n.tr('Wed 14 · 1:00 PM');
+  static String get specialistName => L10n.tr('Sara');
+  static String get peopleCount => L10n.tr('1 person');
+  static String get bookingTotal => L10n.tr('BHD 17.380');
+  static String get checkoutTotal => L10n.tr('BHD 14.355');
+  static String get reviewTotal => L10n.tr('BHD 9.350');
 
   static const List<BookingDateOption> dates = [
     BookingDateOption(day: 'Mon', date: 12),
@@ -153,7 +153,7 @@ abstract final class ServicesBookingData {
     BillLine(label: 'Total', value: 'BHD 9.350', isBold: true),
   ];
 
-  static const List<TipOption> tipOptions = [
+  static final List<TipOption> tipOptions = [
     TipOption(label: 'BHD 0.500', amount: 0.5),
     TipOption(label: 'BHD 1', amount: 1),
     TipOption(label: 'BHD 2', amount: 2),

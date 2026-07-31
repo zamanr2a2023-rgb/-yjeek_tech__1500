@@ -27,13 +27,13 @@ class _PickupCartBodyState extends State<PickupCartBody> {
           child: ListView(
             padding: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 16.h),
             children: [
-              const PickupDetailsCard(),
+              PickupDetailsCard(),
               SizedBox(height: 14.h),
-              const _PickupSectionHeader(title: PickupCartStrings.yourItems),
+              _PickupSectionHeader(title: PickupCartStrings.yourItems),
               SizedBox(height: 10.h),
-              const PickupItemsCard(),
+              PickupItemsCard(),
               SizedBox(height: 14.h),
-              const _PickupSectionHeader(title: PickupCartStrings.youMightAlsoLike),
+              _PickupSectionHeader(title: PickupCartStrings.youMightAlsoLike),
               SizedBox(height: 10.h),
               SizedBox(
                 height: 133.h,

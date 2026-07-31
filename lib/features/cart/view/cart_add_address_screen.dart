@@ -26,33 +26,33 @@ class _CartAddAddressScreenState extends State<CartAddAddressScreen> {
       body: ListView(
         padding: EdgeInsets.fromLTRB(20.w, 8.h, 20.w, 24.h),
         children: [
-          const CartMapPlaceholder(height: 130),
+          CartMapPlaceholder(height: 130),
           SizedBox(height: 14.h),
-          const CartFormLabel(CartFlowStrings.addressLabel),
+          CartFormLabel(CartFlowStrings.addressLabel),
           CartAddressLabelChips(
             labels: CartFlowData.addressLabels,
             selected: _selectedLabel,
             onSelected: (label) => setState(() => _selectedLabel = label),
           ),
           SizedBox(height: 14.h),
-          const CartFormFieldPair(
+          CartFormFieldPair(
             leftLabel: CartFlowStrings.areaBlock,
             leftValue: 'Seef · Block 428',
             rightLabel: CartFlowStrings.road,
             rightValue: 'Road 6000',
           ),
           SizedBox(height: 12.h),
-          const CartFormFieldPair(
+          CartFormFieldPair(
             leftLabel: CartFlowStrings.building,
             leftValue: 'Bldg 23',
             rightLabel: CartFlowStrings.flatFloor,
             rightValue: 'Flat 82',
           ),
           SizedBox(height: 12.h),
-          const CartFormLabel(CartFlowStrings.additionalDirections),
-          const CartFormField(value: 'Near City Centre, gate 2'),
+          CartFormLabel(CartFlowStrings.additionalDirections),
+          CartFormField(value: 'Near City Centre, gate 2'),
           SizedBox(height: 12.h),
-          const CartFormLabel(CartFlowStrings.locationPhotos),
+          CartFormLabel(CartFlowStrings.locationPhotos),
           SizedBox(height: 4.h),
           Text(
             CartFlowStrings.locationPhotosHint,
@@ -63,10 +63,10 @@ class _CartAddAddressScreenState extends State<CartAddAddressScreen> {
             ),
           ),
           SizedBox(height: 10.h),
-          const CartPhotoUploadRow(),
+          CartPhotoUploadRow(),
           SizedBox(height: 12.h),
-          const CartFormLabel(CartFlowStrings.phoneNumber),
-          const CartFormField(value: CartFlowData.userPhone),
+          CartFormLabel(CartFlowStrings.phoneNumber),
+          CartFormField(value: CartFlowData.userPhone),
           SizedBox(height: 14.h),
           PrimaryGreenButton(
             label: CartFlowStrings.saveAddress,

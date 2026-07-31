@@ -1,4 +1,5 @@
 import 'package:yjeek_app/features/navigation/model/navigation_data.dart';
+import 'package:yjeek_app/l10n/l10n.dart';
 
 class ScheduledOrderTimelineStep {
   const ScheduledOrderTimelineStep({
@@ -23,68 +24,62 @@ class ScheduledReceiptLine {
 }
 
 abstract final class ScheduledOrderFlowStrings {
-  static const String sentToVendor = 'Sending to vendor…';
-  static const String waitingSubtitle =
-      'Waiting for the vendor to accept your order…';
+  static String get sentToVendor => L10n.tr('Sending to vendor…');
+  static String get waitingSubtitle => L10n.tr('Waiting for the vendor to accept your order…');
   static const String notChargedYet =
       "You won't be charged until the vendor accepts your order.";
-  static const String cancelOrder = 'Cancel order';
-  static const String freeCancelHint =
-      'Free cancellation before the vendor accepts.';
-  static const String vendorAccepted = 'Vendor accepted!';
-  static const String payWithinTitle = 'Complete payment within 5 minutes';
-  static const String payWithinSubtitle =
-      'If payment is not completed in time, your order will be cancelled automatically.';
-  static const String payWithinHint =
-      'Complete payment within 5 minutes. If payment is not completed in time, your order will be cancelled automatically.';
-  static const String payWith = 'Pay with';
-  static const String tapPayToComplete = 'Tap pay to complete';
-  static const String change = 'Change';
-  static const String subtotal = 'Subtotal';
-  static const String sameDayDelivery = 'Same Day delivery';
-  static const String totalToPay = 'Total to pay';
-  static const String pay = 'Pay';
-  static const String payIn = 'PAY IN';
-  static const String orderConfirmed = 'Order confirmed';
-  static const String preparedForDelivery =
-      'Your order is being prepared for delivery.';
-  static const String trackOrder = 'Track order';
-  static const String viewReceipt = 'View receipt';
-  static const String orderStatus = 'Order status';
-  static const String liveMapHint =
-      'Live map tracking starts when the champ picks up your order.';
-  static const String packedBanner = '📦 Packed · ships today · arrives tomorrow';
-  static const String receipt = 'Receipt';
-  static const String shareReceipt = 'Share receipt';
-  static const String paidBadge = 'PAID';
-  static const String warrantyNote = '1-year warranty included on all devices.';
-  static const String paidWith = 'Paid: Yjeek Wallet';
-  static const String orderNumber = 'Order #';
-  static const String items = 'Items';
-  static const String delivery = 'Delivery';
-  static const String payment = 'Payment';
-  static const String total = 'Total';
-  static const String orderTotal = 'Order total';
-  static const String applePay = 'Apple Pay';
+  static String get cancelOrder => L10n.tr('Cancel order');
+  static String get freeCancelHint => L10n.tr('Free cancellation before the vendor accepts.');
+  static String get vendorAccepted => L10n.tr('Vendor accepted!');
+  static String get payWithinTitle => L10n.tr('Complete payment within 5 minutes');
+  static String get payWithinSubtitle => L10n.tr('If payment is not completed in time, your order will be cancelled automatically.');
+  static String get payWithinHint => L10n.tr('Complete payment within 5 minutes. If payment is not completed in time, your order will be cancelled automatically.');
+  static String get payWith => L10n.tr('Pay with');
+  static String get tapPayToComplete => L10n.tr('Tap pay to complete');
+  static String get change => L10n.tr('Change');
+  static String get subtotal => L10n.tr('Subtotal');
+  static String get sameDayDelivery => L10n.tr('Same Day delivery');
+  static String get totalToPay => L10n.tr('Total to pay');
+  static String get pay => L10n.tr('Pay');
+  static String get payIn => L10n.tr('PAY IN');
+  static String get orderConfirmed => L10n.tr('Order confirmed');
+  static String get preparedForDelivery => L10n.tr('Your order is being prepared for delivery.');
+  static String get trackOrder => L10n.tr('Track order');
+  static String get viewReceipt => L10n.tr('View receipt');
+  static String get orderStatus => L10n.tr('Order status');
+  static String get liveMapHint => L10n.tr('Live map tracking starts when the champ picks up your order.');
+  static String get packedBanner => L10n.tr('📦 Packed · ships today · arrives tomorrow');
+  static String get receipt => L10n.tr('Receipt');
+  static String get shareReceipt => L10n.tr('Share receipt');
+  static String get paidBadge => L10n.tr('PAID');
+  static String get warrantyNote => L10n.tr('1-year warranty included on all devices.');
+  static String get paidWith => L10n.tr('Paid: Yjeek Wallet');
+  static String get orderNumber => L10n.tr('Order #');
+  static String get items => L10n.tr('Items');
+  static String get delivery => L10n.tr('Delivery');
+  static String get payment => L10n.tr('Payment');
+  static String get total => L10n.tr('Total');
+  static String get orderTotal => L10n.tr('Order total');
+  static String get applePay => L10n.tr('Apple Pay');
 }
 
 abstract final class ScheduledOrderFlowData {
-  static const String orderId = 'YJK-2026-00061';
-  static const String waitingOrderId = 'YJK-…00043';
-  static const String vendorName = 'TechHub Electronics';
-  static const String receiptVendor = 'Yjeek Electronics';
-  static const String statusSubtitle = 'Electronics · #$orderId';
-  static const String waitingSummary = '1 item · Order $waitingOrderId';
-  static const String payTotal = 'BHD 43.310';
-  static const String paySubtotal = 'BHD 42.000';
-  static const String payDelivery = 'BHD 1.310';
-  static const String confirmedTotal = 'BHD 154.300';
-  static const String confirmedItems = 'Nova 12 + 2 more';
-  static const String confirmedDelivery = 'Tomorrow · 10am–2pm';
-  static const String confirmedPayment = 'Yjeek Wallet';
-  static const String statusItems = 'Nova 12 + 2 more';
-  static const String statusDelivery = 'Tomorrow · 10am–2pm';
-  static const String receiptDate = 'Order $orderId · Mon 14 Jun';
+  static String get orderId => L10n.tr('YJK-2026-00061');
+  static String get waitingOrderId => L10n.tr('YJK-…00043');
+  static String get vendorName => L10n.tr('TechHub Electronics');
+  static String get receiptVendor => L10n.tr('Yjeek Electronics');
+  static String get statusSubtitle => L10n.tr('Electronics · #$orderId');
+  static String get waitingSummary => L10n.tr('1 item · Order $waitingOrderId');
+  static String get payTotal => L10n.tr('BHD 43.310');
+  static String get paySubtotal => L10n.tr('BHD 42.000');
+  static String get payDelivery => L10n.tr('BHD 1.310');
+  static String get confirmedTotal => L10n.tr('BHD 154.300');
+  static String get confirmedItems => L10n.tr('Nova 12 + 2 more');
+  static String get confirmedDelivery => L10n.tr('Tomorrow · 10am–2pm');
+  static String get confirmedPayment => L10n.tr('Yjeek Wallet');
+  static String get statusItems => L10n.tr('Nova 12 + 2 more');
+  static String get statusDelivery => L10n.tr('Tomorrow · 10am–2pm');
+  static String get receiptDate => L10n.tr('Order $orderId · Mon 14 Jun');
 
   static const List<ScheduledOrderTimelineStep> statusTimeline = [
     ScheduledOrderTimelineStep(label: 'Order confirmed', time: '9:41', completed: true),
@@ -101,7 +96,7 @@ abstract final class ScheduledOrderFlowData {
     ScheduledReceiptLine(name: 'Fast charger 33W ×1', price: 'BHD 6.000'),
   ];
 
-  static const List<BillLine> receiptBillLines = [
+  static final List<BillLine> receiptBillLines = [
     BillLine(label: 'Subtotal', value: 'BHD 153.000'),
     BillLine(label: 'Delivery', value: 'BHD 1.000'),
     BillLine(label: 'Service fee', value: 'BHD 0.300'),

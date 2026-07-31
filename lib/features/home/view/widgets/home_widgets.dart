@@ -646,7 +646,7 @@ class HomeBottomNavBar extends StatelessWidget {
   final int currentIndex;
   final ValueChanged<int> onTap;
 
-  static const _items = [
+  static final _items = [
     _NavItem(
       activeAsset: AppAssets.navHomeActive,
       inactiveAsset: AppAssets.navHomeInactive,

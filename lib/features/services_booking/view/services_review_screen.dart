@@ -172,7 +172,7 @@ class _ServicesReviewScreenState extends ConsumerState<ServicesReviewScreen> {
             title: 'Sending your booking to $_vendor',
           ),
           SizedBox(height: 14.h),
-          const CartSectionTitle(ServicesBookingStrings.bookingSummary),
+          CartSectionTitle(ServicesBookingStrings.bookingSummary),
           ServicesBookingSummaryCard(
             serviceName: _service,
             providerName: _vendor,
@@ -181,7 +181,7 @@ class _ServicesReviewScreenState extends ConsumerState<ServicesReviewScreen> {
             peopleLabel: _people,
           ),
           SizedBox(height: 14.h),
-          const CartSectionTitle(ServicesBookingStrings.billSummary),
+          CartSectionTitle(ServicesBookingStrings.billSummary),
           BillSummaryCard(lines: _bill),
           SizedBox(height: 10.h),
           TextButton(

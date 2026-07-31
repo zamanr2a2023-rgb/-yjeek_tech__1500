@@ -1702,14 +1702,14 @@ class _KitchenNoteDialogState extends State<_KitchenNoteDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text(NavigationStrings.noteForKitchen),
+      title: Text(NavigationStrings.noteForKitchen),
       content: TextField(
         controller: _controller,
         focusNode: _focusNode,
         autofocus: true,
         maxLines: 4,
         maxLength: 500,
-        decoration: const InputDecoration(
+        decoration: InputDecoration(
           hintText: NavigationStrings.noteForKitchenSubtitle,
         ),
       ),

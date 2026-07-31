@@ -158,17 +158,17 @@ class _ServicesCheckoutScreenState
       lightHeader: true,
       bottomNavIndex: 0,
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? Center(child: CircularProgressIndicator())
           : ListView(
               padding: EdgeInsets.fromLTRB(20.w, 12.h, 20.w, 16.h),
               children: [
-                const CartSectionTitle(ServicesBookingStrings.serviceLocation),
+                CartSectionTitle(ServicesBookingStrings.serviceLocation),
                 ServicesLocationCard(
                   locationLabel: locationLabel,
                   address: cart?.pickup?.address,
                 ),
                 SizedBox(height: 14.h),
-                const CartSectionTitle(ServicesBookingStrings.appointment),
+                CartSectionTitle(ServicesBookingStrings.appointment),
                 ServicesAppointmentCard(
                   serviceName: serviceName,
                   whenLabel: when,
@@ -178,14 +178,14 @@ class _ServicesCheckoutScreenState
                       : '${cart!.partySize} people',
                 ),
                 SizedBox(height: 14.h),
-                const CartSectionTitle(ServicesBookingStrings.tipSpecialist),
+                CartSectionTitle(ServicesBookingStrings.tipSpecialist),
                 ServicesTipSelector(
                   options: ServicesBookingData.tipOptions,
                   selectedIndex: _tipIndex,
                   onSelected: (i) => setState(() => _tipIndex = i),
                 ),
                 SizedBox(height: 14.h),
-                const CartSectionTitle(ServicesBookingStrings.paymentMethod),
+                CartSectionTitle(ServicesBookingStrings.paymentMethod),
                 CartPaymentMethodList(
                   options: _payments.options,
                   selectedId: _paymentId,
@@ -193,7 +193,7 @@ class _ServicesCheckoutScreenState
                   showSecurityNotes: true,
                 ),
                 SizedBox(height: 14.h),
-                const CartSectionTitle(ServicesBookingStrings.billSummary),
+                CartSectionTitle(ServicesBookingStrings.billSummary),
                 CartZoodPromoBanner(
                   onTap: () => context.push(CartRoutes.zoodWaitingList),
                 ),

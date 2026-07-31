@@ -1,18 +1,29 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yjeek_app/core/constants/app_assets.dart';
 import 'package:yjeek_app/core/constants/app_colors.dart';
 import 'package:yjeek_app/core/constants/app_strings.dart';
 import 'package:yjeek_app/core/constants/app_text_styles.dart';
+import 'package:yjeek_app/core/constants/navigation_strings.dart';
+import 'package:yjeek_app/l10n/locale_controller.dart';
 
-class LanguageToggle extends StatelessWidget {
+class LanguageToggle extends ConsumerWidget {
   const LanguageToggle({super.key, this.onTap});
 
   final VoidCallback? onTap;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final locale = ref.watch(localeControllerProvider);
+    final code = locale.languageCode.toLowerCase() == 'ar' ? 'ar' : 'en';
+    // Show the language you can switch TO.
+    final label = code == 'ar' ? NavigationStrings.english : AppStrings.arabic;
+
     return GestureDetector(
-      onTap: onTap,
+      onTap: onTap ??
+          () {
+            ref.read(localeControllerProvider.notifier).toggle();
+          },
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
         decoration: BoxDecoration(
@@ -21,7 +32,7 @@ class LanguageToggle extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
         ),
         child: Text(
-          AppStrings.arabic,
+          label,
           style: AppTextStyles.labelMedium(color: AppColors.primary),
         ),
       ),

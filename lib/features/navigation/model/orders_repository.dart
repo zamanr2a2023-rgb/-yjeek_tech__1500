@@ -297,8 +297,8 @@ OrderHistoryItem? orderHistoryItemFromJson(Map<String, dynamic> json) {
   final badge = _badgeFor(statusRaw, orderType, isActive);
   final status = _mapStatus(statusRaw, isActive);
   final actions = isActive
-      ? const [NavigationStrings.trackOrder, NavigationStrings.getHelp]
-      : const [
+      ? [NavigationStrings.trackOrder, NavigationStrings.getHelp]
+      : [
           NavigationStrings.receipt,
           NavigationStrings.rate,
           NavigationStrings.reorder,

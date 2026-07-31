@@ -245,11 +245,11 @@ class _DineInCheckoutScreenState extends ConsumerState<DineInCheckoutScreen> {
       lightHeader: true,
       backgroundColor: const Color(0xFF8BAE9A),
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? Center(child: CircularProgressIndicator())
           : ListView(
               padding: EdgeInsets.fromLTRB(20.w, 8.h, 20.w, 28.h),
               children: [
-                const CartSectionTitle(DineInCartStrings.diningOption),
+                CartSectionTitle(DineInCartStrings.diningOption),
                 DineInPrepOptionCard(
                   title: DineInCartStrings.prepareNow,
                   subtitle: formatDineInPrepareNowHint(readyLabel),
@@ -317,12 +317,12 @@ class _DineInCheckoutScreenState extends ConsumerState<DineInCheckoutScreen> {
                     ),
                   ),
                   SizedBox(height: 10.h),
-                  const DineInInfoBanner(
+                  DineInInfoBanner(
                     message: DineInCartStrings.arrivalBanner,
                   ),
                 ],
                 SizedBox(height: 18.h),
-                const CartSectionTitle(DineInCartStrings.paymentMethod),
+                CartSectionTitle(DineInCartStrings.paymentMethod),
                 DineInPaymentList(
                   options: _paymentOptions,
                   selectedId: _paymentId,

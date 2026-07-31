@@ -1,4 +1,5 @@
 import 'package:yjeek_app/features/navigation/model/navigation_data.dart';
+import 'package:yjeek_app/l10n/l10n.dart';
 
 class DineInOrderTimelineStep {
   const DineInOrderTimelineStep({
@@ -24,89 +25,84 @@ class DineInReceiptItem {
 }
 
 abstract final class DineInOrderFlowStrings {
-  static const String sentToVendor = 'Sent to VEERA';
-  static const String waitingSubtitle =
-      'Waiting for the vendor to accept your dine-in order…';
+  static String get sentToVendor => L10n.tr('Sent to VEERA');
+  static String get waitingSubtitle => L10n.tr('Waiting for the vendor to accept your dine-in order…');
   static const String notChargedYet =
       "You won't be charged until the vendor accepts your order.";
-  static const String cancelOrder = 'Cancel order';
-  static const String freeCancelHint =
-      'Free cancellation before the vendor accepts.';
-  static const String vendorAccepted = 'VEERA accepted ✨';
-  static const String payWithinTitle = 'Complete payment within 5 minutes';
-  static const String payWithinSubtitle =
-      'If payment is not completed in time, your order will be cancelled automatically.';
-  static const String payWithinHint =
-      'Complete payment within 5 minutes. If payment is not completed in time, your order will be cancelled automatically.';
-  static const String payWith = 'Pay with';
-  static const String change = 'Change';
-  static const String subtotal = 'Subtotal';
-  static const String serviceFee = 'Service fee';
-  static const String totalToPay = 'Total to pay';
-  static const String pay = 'Pay';
-  static const String payIn = 'PAY IN';
+  static String get cancelOrder => L10n.tr('Cancel order');
+  static String get freeCancelHint => L10n.tr('Free cancellation before the vendor accepts.');
+  static String get vendorAccepted => L10n.tr('VEERA accepted ✨');
+  static String get payWithinTitle => L10n.tr('Complete payment within 5 minutes');
+  static String get payWithinSubtitle => L10n.tr('If payment is not completed in time, your order will be cancelled automatically.');
+  static String get payWithinHint => L10n.tr('Complete payment within 5 minutes. If payment is not completed in time, your order will be cancelled automatically.');
+  static String get payWith => L10n.tr('Pay with');
+  static String get change => L10n.tr('Change');
+  static String get subtotal => L10n.tr('Subtotal');
+  static String get serviceFee => L10n.tr('Service fee');
+  static String get totalToPay => L10n.tr('Total to pay');
+  static String get pay => L10n.tr('Pay');
+  static String get payIn => L10n.tr('PAY IN');
   static const String youreAllSet = "You're all set";
-  static const String showCodeHint =
-      'Show this number to the vendor when you arrive at VEERA.';
-  static const String arrivalCodeLabel = 'ARRIVAL CODE';
-  static const String showAtCounter = 'SHOW THIS AT THE COUNTER';
-  static const String viewOrderStatus = 'View order status';
-  static const String dineInOrder = 'Dine-in order';
-  static const String orderHeaderSubtitle = 'VEERA · #YJK-3920';
-  static const String preparingPill = '👨‍🍳 Preparing · table ready ~1 hr';
+  static String get showCodeHint => L10n.tr('Show this number to the vendor when you arrive at VEERA.');
+  static String get arrivalCodeLabel => L10n.tr('ARRIVAL CODE');
+  static String get showAtCounter => L10n.tr('SHOW THIS AT THE COUNTER');
+  static String get viewOrderStatus => L10n.tr('View order status');
+  static String get dineInOrder => L10n.tr('Dine-in order');
+  static String get orderHeaderSubtitle => L10n.tr('VEERA · #YJK-3920');
+  static String get preparingPill => L10n.tr('👨‍🍳 Preparing · table ready ~1 hr');
   static const String kitchenOnIt = "The kitchen's on it 🔥";
-  static const String enjoyYourMeal = 'Enjoy your meal';
-  static const String venue = 'Venue';
-  static const String table = 'Table';
-  static const String time = 'Time';
-  static const String track = 'Track';
-  static const String status = 'Status';
-  static const String viewReceipt = 'View receipt';
-  static const String getDirections = 'Get directions';
-  static const String contactVenue = 'Contact venue';
-  static const String visitComplete = 'Visit complete!';
-  static const String thankYouVisit = 'Thanks for dining at VEERA · Adliya.';
-  static const String rateExperience = 'Rate your experience';
-  static const String rateFood = 'Rate the food';
-  static const String tipStaff = 'Tip the staff (optional)';
-  static const String customTip = 'Custom';
-  static const String reviewHint = 'Write a review… (optional)';
-  static const String submit = 'Submit';
-  static const String bookAgain = 'Book again';
-  static const String receipt = 'Receipt';
-  static const String shareReceipt = 'Share receipt';
-  static const String dineInPaid = '✓ DINE-IN · PAID';
-  static const String typeDineIn = 'Dine-in';
-  static const String paid = 'Paid';
-  static const String itemColumn = 'ITEM';
-  static const String priceColumn = 'PRICE';
-  static const String vat = 'VAT (10%)';
-  static const String total = 'Total';
-  static const String discount = 'Discount';
+  static String get enjoyYourMeal => L10n.tr('Enjoy your meal');
+  static String get venue => L10n.tr('Venue');
+  static String get table => L10n.tr('Table');
+  static String get time => L10n.tr('Time');
+  static String get track => L10n.tr('Track');
+  static String get status => L10n.tr('Status');
+  static String get viewReceipt => L10n.tr('View receipt');
+  static String get getDirections => L10n.tr('Get directions');
+  static String get contactVenue => L10n.tr('Contact venue');
+  static String get visitComplete => L10n.tr('Visit complete!');
+  static String get thankYouVisit => L10n.tr('Thanks for dining at VEERA · Adliya.');
+  static String get rateExperience => L10n.tr('Rate your experience');
+  static String get rateFood => L10n.tr('Rate the food');
+  static String get tipStaff => L10n.tr('Tip the staff (optional)');
+  static String get customTip => L10n.tr('Custom');
+  static String get reviewHint => L10n.tr('Write a review… (optional)');
+  static String get submit => L10n.tr('Submit');
+  static String get bookAgain => L10n.tr('Book again');
+  static String get receipt => L10n.tr('Receipt');
+  static String get shareReceipt => L10n.tr('Share receipt');
+  static String get dineInPaid => L10n.tr('✓ DINE-IN · PAID');
+  static String get typeDineIn => L10n.tr('Dine-in');
+  static String get paid => L10n.tr('Paid');
+  static String get itemColumn => L10n.tr('ITEM');
+  static String get priceColumn => L10n.tr('PRICE');
+  static String get vat => L10n.tr('VAT (10%)');
+  static String get total => L10n.tr('Total');
+  static String get discount => L10n.tr('Discount');
 }
 
 abstract final class DineInOrderFlowData {
-  static const String orderId = 'YJK-2026-00042';
-  static const String orderIdShort = 'YJK-…00042';
-  static const String receiptOrderId = 'YJK-3920';
-  static const String receiptHeaderSubtitle = '#YJK-3920';
-  static const String arrivalCode = 'YJK-2026-00042';
-  static const String vendor = 'VEERA';
-  static const String venue = 'VEERA - Adliya';
-  static const String venueReceipt = 'VEERA — Adliya';
-  static const String venueAddress = 'Block 338, Road 2801, Adliya';
-  static const String crNumber = 'CR 54321';
-  static const String dineInTime = 'Today · 19:30';
-  static const String tableLabel = 'Table for 2';
-  static const String itemSummary = '3 items · Order $orderIdShort';
-  static const String orderTotal = 'BHD 20.500';
-  static const String subtotalAmount = 'BHD 20.000';
-  static const String serviceFeeAmount = 'BHD 0.500';
-  static const String walletBalance = 'BHD 12.450';
-  static const String prepTrack = 'Start preparing now';
-  static const String statusPreparing = 'Preparing · Paid $orderTotal';
+  static String get orderId => L10n.tr('YJK-2026-00042');
+  static String get orderIdShort => L10n.tr('YJK-…00042');
+  static String get receiptOrderId => L10n.tr('YJK-3920');
+  static String get receiptHeaderSubtitle => L10n.tr('#YJK-3920');
+  static String get arrivalCode => L10n.tr('YJK-2026-00042');
+  static String get vendor => L10n.tr('VEERA');
+  static String get venue => L10n.tr('VEERA - Adliya');
+  static String get venueReceipt => L10n.tr('VEERA — Adliya');
+  static String get venueAddress => L10n.tr('Block 338, Road 2801, Adliya');
+  static String get crNumber => L10n.tr('CR 54321');
+  static String get dineInTime => L10n.tr('Today · 19:30');
+  static String get tableLabel => L10n.tr('Table for 2');
+  static String get itemSummary => L10n.tr('3 items · Order $orderIdShort');
+  static String get orderTotal => L10n.tr('BHD 20.500');
+  static String get subtotalAmount => L10n.tr('BHD 20.000');
+  static String get serviceFeeAmount => L10n.tr('BHD 0.500');
+  static String get walletBalance => L10n.tr('BHD 12.450');
+  static String get prepTrack => L10n.tr('Start preparing now');
+  static String get statusPreparing => L10n.tr('Preparing · Paid $orderTotal');
 
-  static const List<DineInOrderTimelineStep> statusTimeline = [
+  static final List<DineInOrderTimelineStep> statusTimeline = [
     DineInOrderTimelineStep(label: 'Placed & paid', time: 'Today · 19:05', completed: true),
     DineInOrderTimelineStep(label: 'Vendor confirmed', time: 'Today · 19:08', completed: true),
     DineInOrderTimelineStep(
@@ -129,12 +125,12 @@ abstract final class DineInOrderFlowData {
     DineInReceiptItem(name: '2× Fresh Juice', price: 'BHD 4.000'),
   ];
 
-  static const List<BillLine> receiptBillLines = [
+  static final List<BillLine> receiptBillLines = [
     BillLine(label: 'Subtotal', value: 'BHD 29.000'),
     BillLine(label: 'Discount', value: '− BHD 8.500'),
     BillLine(label: 'VAT (10%)', value: 'BHD 0.000'),
     BillLine(label: 'Total', value: 'BHD 20.500', isBold: true),
   ];
 
-  static const List<String> tipOptions = ['BHD 0.500', 'BHD 1', 'BHD 2', DineInOrderFlowStrings.customTip];
+  static List<String> tipOptions = ['BHD 0.500', 'BHD 1', 'BHD 2', DineInOrderFlowStrings.customTip];
 }

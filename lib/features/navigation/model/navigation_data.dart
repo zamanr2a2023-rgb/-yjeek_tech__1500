@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:yjeek_app/core/constants/navigation_strings.dart';
+import 'package:yjeek_app/l10n/l10n.dart';
 
 enum OfferCategory { all, food, groceries, fashion }
 
@@ -122,16 +123,16 @@ class OrderItemLine {
 }
 
 abstract final class NavigationData {
-  static const String userName = 'Asmaa';
-  static const String userPhone = '+973 3300 0000';
-  static const String walletBalance = 'BHD 12.450';
-  static const String cashbackBalance = 'BHD 3.200';
-  static const String orderId = '#YJK-2026-00041';
-  static const String cartVendor = 'The Green Kitchen';
-  static const String cartItemName = 'Iced Americano + Choc Muffin';
-  static const String cartItemSubtitle = 'Americano · Chocolate muffin';
-  static const String cartItemPrice = 'BHD 2.000';
-  static const String cartItemOriginalPrice = 'BHD 3.700';
+  static String get userName => L10n.tr('Asmaa');
+  static String get userPhone => L10n.tr('+973 3300 0000');
+  static String get walletBalance => L10n.tr('BHD 12.450');
+  static String get cashbackBalance => L10n.tr('BHD 3.200');
+  static String get orderId => L10n.tr('#YJK-2026-00041');
+  static String get cartVendor => L10n.tr('The Green Kitchen');
+  static String get cartItemName => L10n.tr('Iced Americano + Choc Muffin');
+  static String get cartItemSubtitle => L10n.tr('Americano · Chocolate muffin');
+  static String get cartItemPrice => L10n.tr('BHD 2.000');
+  static String get cartItemOriginalPrice => L10n.tr('BHD 3.700');
 
   static const List<BrowseOffer> browseOffers = [
     BrowseOffer(
@@ -220,7 +221,7 @@ abstract final class NavigationData {
     BillLine(label: 'Order total', value: 'BHD 2.110', isBold: true),
   ];
 
-  static const List<OrderHistoryItem> orders = [
+  static final List<OrderHistoryItem> orders = [
     OrderHistoryItem(
       id: 'YJK-2026-00041',
       vendor: 'The Green Kitchen',

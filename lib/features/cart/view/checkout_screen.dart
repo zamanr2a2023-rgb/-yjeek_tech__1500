@@ -123,11 +123,11 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
         }
       },
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? Center(child: CircularProgressIndicator())
           : ListView(
               padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 16.h),
               children: [
-                const CartSectionTitle(CartFlowStrings.deliveryDetails),
+                CartSectionTitle(CartFlowStrings.deliveryDetails),
                 CartDeliveryDetailsCard(
                   address: _address?.label ?? 'Add delivery address',
                   addressDetail: _address?.subtitle,
@@ -158,7 +158,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                   showHeader: true,
                 ),
                 SizedBox(height: 18.h),
-                const CartSectionTitle(CartFlowStrings.paymentMethod),
+                CartSectionTitle(CartFlowStrings.paymentMethod),
                 CartPaymentMethodList(
                   options: _payments.options,
                   selectedId: _paymentId,
@@ -166,7 +166,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                   showSecurityNotes: true,
                 ),
                 SizedBox(height: 18.h),
-                const CartSectionTitle(CartFlowStrings.billSummary),
+                CartSectionTitle(CartFlowStrings.billSummary),
                 CartZoodPromoBanner(
                   onTap: () => context.push(CartRoutes.zoodWaitingList),
                 ),

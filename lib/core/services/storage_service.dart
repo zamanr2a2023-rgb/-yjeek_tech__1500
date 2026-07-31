@@ -9,6 +9,7 @@ class StorageService {
   static const _keyLoggedIn = 'logged_in';
   static const _keyPhone = 'phone';
   static const _keyToken = 'auth_token';
+  static const _keyLanguage = 'language_code';
 
   static Future<StorageService> init() async {
     final prefs = await SharedPreferences.getInstance();
@@ -27,6 +28,11 @@ class StorageService {
   String? get token => _prefs.getString(_keyToken);
 
   Future<void> saveToken(String value) => _prefs.setString(_keyToken, value);
+
+  String? get languageCode => _prefs.getString(_keyLanguage);
+
+  Future<void> saveLanguageCode(String value) =>
+      _prefs.setString(_keyLanguage, value);
 
   Future<void> clearSession() async {
     await _prefs.remove(_keyLoggedIn);

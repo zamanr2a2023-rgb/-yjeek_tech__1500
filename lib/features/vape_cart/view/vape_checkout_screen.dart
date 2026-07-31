@@ -254,11 +254,11 @@ class _VapeCheckoutScreenState extends ConsumerState<VapeCheckoutScreen> {
       lightHeader: true,
       backgroundColor: const Color(0xFFF2F7F2),
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? Center(child: CircularProgressIndicator())
           : ListView(
               padding: EdgeInsets.fromLTRB(20.w, 8.h, 20.w, 24.h),
               children: [
-                const CartSectionTitle(VapeCartStrings.deliveryDetails),
+                CartSectionTitle(VapeCartStrings.deliveryDetails),
                 CartDeliveryDetailsCard(
                   address: _address?.label ?? 'Add delivery address',
                   addressDetail: _address?.subtitle,
@@ -268,10 +268,10 @@ class _VapeCheckoutScreenState extends ConsumerState<VapeCheckoutScreen> {
                 ),
                 SizedBox(height: 14.h),
                 if (_ageVerified) ...[
-                  const VapeIdVerifiedCard(),
+                  VapeIdVerifiedCard(),
                   SizedBox(height: 14.h),
                 ],
-                const CartSectionTitle(VapeCartStrings.deliveryMethod),
+                CartSectionTitle(VapeCartStrings.deliveryMethod),
                 ..._deliveryMethods.map(
                   (method) => VapeDeliveryMethodCard(
                     method: method,
@@ -292,7 +292,7 @@ class _VapeCheckoutScreenState extends ConsumerState<VapeCheckoutScreen> {
                   onSaveChanged: (v) => setState(() => _saveDropOff = v),
                 ),
                 SizedBox(height: 14.h),
-                const CartSectionTitle(VapeCartStrings.paymentMethod),
+                CartSectionTitle(VapeCartStrings.paymentMethod),
                 const VapePaymentNoteBanner(),
                 SizedBox(height: 12.h),
                 CartPaymentMethodList(
@@ -313,7 +313,7 @@ class _VapeCheckoutScreenState extends ConsumerState<VapeCheckoutScreen> {
                   onTap: () => context.push(CartRoutes.zoodWaitingList),
                 ),
                 SizedBox(height: 14.h),
-                const CartSectionTitle(VapeCartStrings.billSummary),
+                CartSectionTitle(VapeCartStrings.billSummary),
                 BillSummaryCard(lines: billLines),
                 SizedBox(height: 10.h),
                 VapeCashbackBanner(amount: cart?.cashbackLabel),

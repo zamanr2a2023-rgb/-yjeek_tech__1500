@@ -65,7 +65,7 @@ class _OutOfDeliveryScreenState extends ConsumerState<OutOfDeliveryScreen> {
       backgroundColor: AppColors.background,
       body: Column(
         children: [
-          const GreenScreenHeader(title: CartFlowStrings.deliveryAddress),
+          GreenScreenHeader(title: CartFlowStrings.deliveryAddress),
           Expanded(
             child: Padding(
               padding: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 0),

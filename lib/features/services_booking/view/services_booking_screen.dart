@@ -336,14 +336,14 @@ class _ServicesBookingScreenState extends ConsumerState<ServicesBookingScreen> {
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 14.sp,
-                      color: const Color(0xFF6B756E),
+                      color: Color(0xFF6B756E),
                     ),
                   ),
                 )
               : ListView(
                   padding: EdgeInsets.fromLTRB(20.w, 8.h, 20.w, 16.h),
                   children: [
-                    const CartSectionTitle(ServicesBookingStrings.yourService),
+                    CartSectionTitle(ServicesBookingStrings.yourService),
                     for (final item in _mainServices) ...[
                       ServicesServiceCard(
                         name: item.name,
@@ -354,7 +354,7 @@ class _ServicesBookingScreenState extends ConsumerState<ServicesBookingScreen> {
                       SizedBox(height: 8.h),
                     ],
                     SizedBox(height: 6.h),
-                    const CartSectionTitle(ServicesBookingStrings.where),
+                    CartSectionTitle(ServicesBookingStrings.where),
                     ServicesLocationToggle(
                       atVenue: _atVenue,
                       onChanged: (v) {
@@ -363,7 +363,7 @@ class _ServicesBookingScreenState extends ConsumerState<ServicesBookingScreen> {
                       },
                     ),
                     SizedBox(height: 14.h),
-                    const CartSectionTitle(ServicesBookingStrings.date),
+                    CartSectionTitle(ServicesBookingStrings.date),
                     ServicesDatePicker(
                       dates: dateOptions,
                       selectedIndex: _selectedDate,
@@ -373,7 +373,7 @@ class _ServicesBookingScreenState extends ConsumerState<ServicesBookingScreen> {
                       },
                     ),
                     SizedBox(height: 14.h),
-                    const CartSectionTitle(ServicesBookingStrings.time),
+                    CartSectionTitle(ServicesBookingStrings.time),
                     if (_slotsLoading)
                       Padding(
                         padding: EdgeInsets.symmetric(vertical: 8.h),
@@ -403,7 +403,7 @@ class _ServicesBookingScreenState extends ConsumerState<ServicesBookingScreen> {
                       ),
                     if (_cart.upsell.isNotEmpty) ...[
                       SizedBox(height: 14.h),
-                      const CartSectionTitle(
+                      CartSectionTitle(
                         ServicesBookingStrings.addTheseToo,
                       ),
                       Text(
@@ -432,7 +432,7 @@ class _ServicesBookingScreenState extends ConsumerState<ServicesBookingScreen> {
                         ),
                     ],
                     SizedBox(height: 14.h),
-                    const CartSectionTitle(ServicesBookingStrings.promoCode),
+                    CartSectionTitle(ServicesBookingStrings.promoCode),
                     ServicesPromoField(
                       controller: _promoController,
                       applying: _applyingPromo,
@@ -440,7 +440,7 @@ class _ServicesBookingScreenState extends ConsumerState<ServicesBookingScreen> {
                       onApply: _applyPromo,
                     ),
                     SizedBox(height: 14.h),
-                    const CartSectionTitle(ServicesBookingStrings.billSummary),
+                    CartSectionTitle(ServicesBookingStrings.billSummary),
                     BillSummaryCard(lines: _cart.billLines),
                   ],
                 ),
