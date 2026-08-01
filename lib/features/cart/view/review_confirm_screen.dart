@@ -64,7 +64,7 @@ class _ReviewConfirmScreenState extends ConsumerState<ReviewConfirmScreen> {
       if (_secondsLeft <= 1) {
         _timer?.cancel();
         setState(() => _secondsLeft = 0);
-        _goConfirmed();
+        _goWaiting();
         return;
       }
       setState(() => _secondsLeft--);
@@ -115,12 +115,12 @@ class _ReviewConfirmScreenState extends ConsumerState<ReviewConfirmScreen> {
     });
   }
 
-  void _goConfirmed() {
+  void _goWaiting() {
     if (_finishing) return;
     _finishing = true;
     _timer?.cancel();
     final orderId = widget.orderId;
-    context.pushReplacement(OrderFlowRoutes.confirmedFor(orderId));
+    context.pushReplacement(OrderFlowRoutes.waitingFor(orderId));
   }
 
   Future<void> _cancelAndLeave(String route) async {
@@ -217,7 +217,7 @@ class _ReviewConfirmScreenState extends ConsumerState<ReviewConfirmScreen> {
                   label: CartFlowStrings.confirmNow,
                   height: 53,
                   enabled: !_finishing,
-                  onPressed: _goConfirmed,
+                  onPressed: _goWaiting,
                 ),
               ),
             ],
