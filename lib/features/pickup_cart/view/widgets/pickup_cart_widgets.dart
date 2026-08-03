@@ -27,13 +27,13 @@ class _PickupCartBodyState extends State<PickupCartBody> {
           child: ListView(
             padding: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 16.h),
             children: [
-              const PickupDetailsCard(),
+              PickupDetailsCard(),
               SizedBox(height: 14.h),
-              const _PickupSectionHeader(title: PickupCartStrings.yourItems),
+              _PickupSectionHeader(title: PickupCartStrings.yourItems),
               SizedBox(height: 10.h),
-              const PickupItemsCard(),
+              PickupItemsCard(),
               SizedBox(height: 14.h),
-              const _PickupSectionHeader(title: PickupCartStrings.youMightAlsoLike),
+              _PickupSectionHeader(title: PickupCartStrings.youMightAlsoLike),
               SizedBox(height: 10.h),
               SizedBox(
                 height: 133.h,
@@ -605,10 +605,23 @@ class PickupCartFooter extends StatelessWidget {
 
 /// Figma checkout: one white card — title + PICKUP badge row, then map/store row.
 class PickupCheckoutDetailsSection extends StatelessWidget {
-  const PickupCheckoutDetailsSection({super.key});
+  const PickupCheckoutDetailsSection({
+    super.key,
+    this.vendorLabel,
+    this.address,
+    this.readyLabel,
+  });
+
+  final String? vendorLabel;
+  final String? address;
+  final String? readyLabel;
 
   @override
   Widget build(BuildContext context) {
+    final store = vendorLabel ?? PickupCartData.vendorLocation;
+    final addr = address ?? PickupCartData.checkoutAddress;
+    final ready = readyLabel ?? PickupCartData.readyIn;
+
     return Container(
       width: double.infinity,
       padding: EdgeInsets.all(14.w),
@@ -682,7 +695,7 @@ class PickupCheckoutDetailsSection extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      PickupCartData.vendorLocation,
+                      store,
                       style: AppTextStyles.labelMedium(color: const Color(0xFF1A1A1A)).copyWith(
                         fontWeight: FontWeight.w700,
                         fontSize: 13.5.sp,
@@ -691,7 +704,7 @@ class PickupCheckoutDetailsSection extends StatelessWidget {
                     ),
                     SizedBox(height: 3.h),
                     Text(
-                      PickupCartData.checkoutAddress,
+                      addr,
                       style: AppTextStyles.caption(color: const Color(0xFF6B7B6E)).copyWith(
                         fontWeight: FontWeight.w500,
                         fontSize: 11.sp,
@@ -704,7 +717,7 @@ class PickupCheckoutDetailsSection extends StatelessWidget {
                         Icon(Icons.schedule, size: 14.sp, color: const Color(0xFFE08A1E)),
                         SizedBox(width: 6.w),
                         Text(
-                          PickupCartData.readyIn,
+                          ready,
                           style: AppTextStyles.caption(color: const Color(0xFFE08A1E)).copyWith(
                             fontWeight: FontWeight.w700,
                             fontSize: 11.sp,
@@ -725,7 +738,14 @@ class PickupCheckoutDetailsSection extends StatelessWidget {
 }
 
 class PickupTimeCard extends StatelessWidget {
-  const PickupTimeCard({super.key});
+  const PickupTimeCard({
+    super.key,
+    this.timeLabel,
+    this.onChange,
+  });
+
+  final String? timeLabel;
+  final VoidCallback? onChange;
 
   @override
   Widget build(BuildContext context) {
@@ -756,7 +776,7 @@ class PickupTimeCard extends StatelessWidget {
                 ),
                 SizedBox(height: 2.h),
                 Text(
-                  PickupCartData.pickupTime,
+                  timeLabel ?? PickupCartData.pickupTime,
                   style: AppTextStyles.labelMedium(color: const Color(0xFF1A1A1A)).copyWith(
                     fontWeight: FontWeight.w700,
                     fontSize: 16.sp,
@@ -766,12 +786,15 @@ class PickupTimeCard extends StatelessWidget {
               ],
             ),
           ),
-          Text(
-            PickupCartStrings.change,
-            style: AppTextStyles.labelSmall(color: const Color(0xFF4CAF50)).copyWith(
-              fontWeight: FontWeight.w700,
-              fontSize: 13.sp,
-              height: 1.28,
+          GestureDetector(
+            onTap: onChange,
+            child: Text(
+              PickupCartStrings.change,
+              style: AppTextStyles.labelSmall(color: const Color(0xFF4CAF50)).copyWith(
+                fontWeight: FontWeight.w700,
+                fontSize: 13.sp,
+                height: 1.28,
+              ),
             ),
           ),
         ],
@@ -781,7 +804,9 @@ class PickupTimeCard extends StatelessWidget {
 }
 
 class PickupPolicyBanner extends StatelessWidget {
-  const PickupPolicyBanner({super.key});
+  const PickupPolicyBanner({super.key, this.policyText});
+
+  final String? policyText;
 
   @override
   Widget build(BuildContext context) {
@@ -800,7 +825,7 @@ class PickupPolicyBanner extends StatelessWidget {
           SizedBox(width: 8.w),
           Expanded(
             child: Text(
-              PickupCartStrings.policyWarning,
+              policyText ?? PickupCartStrings.policyWarning,
               style: AppTextStyles.caption(color: const Color(0xFF996B0D)).copyWith(
                 fontWeight: FontWeight.w500,
                 fontSize: 12.5.sp,
@@ -924,29 +949,44 @@ class PickupReviewStatusCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final progress = (secondsLeft.clamp(0, 10)) / 10;
+
+    // Figma: #4CAF50 card, 92px ring (track #2C6B47, fill #C9A84C), white count.
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.all(18.w),
+      padding: EdgeInsets.all(20.w),
       decoration: BoxDecoration(
-        color: AppColors.primary,
-        borderRadius: BorderRadius.circular(18.r),
+        color: const Color(0xFF4CAF50),
+        borderRadius: BorderRadius.circular(20.r),
       ),
       child: Column(
         children: [
-          Container(
-            width: 64.w,
-            height: 64.w,
-            decoration: const BoxDecoration(
-              color: AppColors.white,
-              shape: BoxShape.circle,
-            ),
-            alignment: Alignment.center,
-            child: Text(
-              '$secondsLeft',
-              style: AppTextStyles.titleMedium(color: AppColors.primary).copyWith(
-                fontWeight: FontWeight.w800,
-                fontSize: 38.sp,
-              ),
+          SizedBox(
+            width: 92.w,
+            height: 92.w,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                SizedBox(
+                  width: 92.w,
+                  height: 92.w,
+                  child: CircularProgressIndicator(
+                    value: progress,
+                    strokeWidth: 7,
+                    backgroundColor: const Color(0xFF2C6B47),
+                    color: const Color(0xFFC9A84C),
+                    strokeCap: StrokeCap.round,
+                  ),
+                ),
+                Text(
+                  '$secondsLeft',
+                  style: AppTextStyles.titleMedium(color: AppColors.white).copyWith(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 38.sp,
+                    height: 1.3,
+                  ),
+                ),
+              ],
             ),
           ),
           SizedBox(height: 12.h),
@@ -956,6 +996,7 @@ class PickupReviewStatusCard extends StatelessWidget {
             style: AppTextStyles.labelMedium(color: AppColors.white).copyWith(
               fontWeight: FontWeight.w700,
               fontSize: 16.sp,
+              height: 1.3,
             ),
           ),
           SizedBox(height: 6.h),
@@ -963,16 +1004,17 @@ class PickupReviewStatusCard extends StatelessWidget {
             PickupCartStrings.autoConfirmHint,
             textAlign: TextAlign.center,
             style: AppTextStyles.caption(color: const Color(0xFFCFE8D8)).copyWith(
+              fontWeight: FontWeight.w500,
               fontSize: 12.5.sp,
-              height: 1.35,
+              height: 1.3,
             ),
           ),
           SizedBox(height: 12.h),
           ClipRRect(
             borderRadius: BorderRadius.circular(3.r),
             child: LinearProgressIndicator(
-              value: secondsLeft / 10,
-              minHeight: 6.h,
+              value: progress,
+              minHeight: 6,
               backgroundColor: const Color(0xFF2C6B47),
               valueColor: const AlwaysStoppedAnimation(Color(0xFFC9A84C)),
             ),
@@ -984,75 +1026,111 @@ class PickupReviewStatusCard extends StatelessWidget {
 }
 
 class PickupReviewSummaryCard extends StatelessWidget {
-  const PickupReviewSummaryCard({super.key});
+  const PickupReviewSummaryCard({
+    super.key,
+    this.orderTypeLabel,
+    this.collectAt,
+    this.orderTotal,
+    this.paymentLabel,
+  });
+
+  final String? orderTypeLabel;
+  final String? collectAt;
+  final String? orderTotal;
+  final String? paymentLabel;
 
   @override
   Widget build(BuildContext context) {
-    return CartFlowCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            PickupCartStrings.orderSummary,
-            style: AppTextStyles.labelMedium().copyWith(
-              fontWeight: FontWeight.w700,
-              fontSize: 16.sp,
-            ),
+    // Figma: "Order summary" title above card; card padding 14×16.
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          PickupCartStrings.orderSummary,
+          style: AppTextStyles.labelMedium(color: const Color(0xFF1A1A1A)).copyWith(
+            fontWeight: FontWeight.w700,
+            fontSize: 16.sp,
+            height: 1.3,
           ),
-          SizedBox(height: 12.h),
-          Text(
-            PickupCartStrings.orderType,
-            style: AppTextStyles.caption(color: AppColors.textSecondary).copyWith(
-              fontWeight: FontWeight.w600,
-              fontSize: 11.sp,
-            ),
-          ),
-          SizedBox(height: 10.h),
-          _row(PickupCartStrings.method, PickupCartStrings.pickupMethod),
-          _row(PickupCartStrings.collectAt, PickupCartData.collectAt),
-          _row(PickupCartStrings.payment, PickupCartStrings.applePay),
-          Divider(height: 20.h, color: AppColors.border),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        ),
+        SizedBox(height: 8.h),
+        CartFlowCard(
+          padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                PickupCartStrings.orderTotal,
-                style: AppTextStyles.labelMedium().copyWith(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 16.sp,
+                orderTypeLabel ?? PickupCartStrings.orderType,
+                style: AppTextStyles.caption(color: const Color(0xFF6B7B6E)).copyWith(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 11.sp,
+                  height: 1.3,
                 ),
               ),
-              Text(
-                PickupCartData.orderTotal,
-                style: AppTextStyles.titleSmall().copyWith(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 18.sp,
-                ),
+              SizedBox(height: 8.h),
+              _row(PickupCartStrings.method, PickupCartStrings.pickupMethod),
+              _row(
+                PickupCartStrings.collectAt,
+                collectAt ?? PickupCartData.collectAt,
+              ),
+              _row(
+                PickupCartStrings.payment,
+                paymentLabel ?? PickupCartStrings.applePay,
+              ),
+              SizedBox(height: 8.h),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    PickupCartStrings.orderTotal,
+                    style: AppTextStyles.labelMedium(
+                      color: const Color(0xFF1A1A1A),
+                    ).copyWith(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 16.sp,
+                    ),
+                  ),
+                  Text(
+                    orderTotal ?? PickupCartData.orderTotal,
+                    style: AppTextStyles.titleSmall(
+                      color: const Color(0xFF1A1A1A),
+                    ).copyWith(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 18.sp,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
   Widget _row(String label, String value) {
     return Padding(
-      padding: EdgeInsets.only(bottom: 8.h),
+      padding: EdgeInsets.symmetric(vertical: 3.h),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(
             label,
-            style: AppTextStyles.labelSmall(color: AppColors.textSecondary).copyWith(
+            style: AppTextStyles.labelSmall(color: const Color(0xFF6B7B6E)).copyWith(
+              fontWeight: FontWeight.w500,
               fontSize: 13.sp,
+              height: 1.3,
             ),
           ),
-          Text(
-            value,
-            style: AppTextStyles.labelMedium().copyWith(
-              fontWeight: FontWeight.w700,
-              fontSize: 13.sp,
+          Flexible(
+            child: Text(
+              value,
+              textAlign: TextAlign.right,
+              style: AppTextStyles.labelMedium(color: const Color(0xFF1A1A1A)).copyWith(
+                fontWeight: FontWeight.w700,
+                fontSize: 13.sp,
+                height: 1.3,
+              ),
             ),
           ),
         ],

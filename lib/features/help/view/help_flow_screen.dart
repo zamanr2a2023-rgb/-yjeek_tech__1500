@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:yjeek_app/core/constants/app_colors.dart';
 import 'package:yjeek_app/core/constants/app_text_styles.dart';
+import 'package:yjeek_app/core/providers/app_providers.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/features/help/help_routes.dart';
 import 'package:yjeek_app/features/help/model/help_data.dart';
@@ -9,28 +11,127 @@ import 'package:yjeek_app/features/help/model/help_phase2_data.dart';
 import 'package:yjeek_app/features/help/view/widgets/help_widgets.dart';
 import 'package:yjeek_app/routes/route_names.dart';
 
-class HelpFlowScreen extends StatefulWidget {
+class HelpFlowScreen extends ConsumerStatefulWidget {
   const HelpFlowScreen({
     super.key,
     required this.flow,
+    this.orderId,
     this.bottomNavIndex = 4,
   });
 
   final HelpFlowType flow;
+  final String? orderId;
   final int bottomNavIndex;
 
   @override
-  State<HelpFlowScreen> createState() => _HelpFlowScreenState();
+  ConsumerState<HelpFlowScreen> createState() => _HelpFlowScreenState();
 }
 
-class _HelpFlowScreenState extends State<HelpFlowScreen> {
+class _HelpFlowScreenState extends ConsumerState<HelpFlowScreen> {
   String? _selectedReason;
   bool _confirmFee = true;
+  bool _loading = false;
+  bool _submitting = false;
+  String _vendor = HelpPhase2Data.scheduledGroceryOrder.vendor;
+  String _orderNumber = HelpPhase2Data.scheduledGroceryOrder.orderId;
+  String _subtitle = HelpPhase2Data.scheduledGroceryOrder.subtitle;
+  String _totalBhd = '24.600';
+  bool _canCancel = true;
+  bool _isFreeWindow = true;
+  double _feePercent = 0;
+  double _refundMin = 0;
+  double _refundMax = 0;
+  String? _cancelRef;
+  String? _policyNote;
 
   @override
   void initState() {
     super.initState();
     _selectedReason = HelpPhase2Data.scheduledCancelReasons.first;
+    WidgetsBinding.instance.addPostFrameCallback((_) => _hydrate());
+  }
+
+  Future<void> _hydrate() async {
+    final orderId = widget.orderId;
+    if (orderId == null || orderId.isEmpty) return;
+    setState(() => _loading = true);
+    final order = await ref.read(ordersRepositoryProvider).getOrder(orderId);
+    if (!mounted || order == null) {
+      setState(() => _loading = false);
+      return;
+    }
+    final vendor = order['vendor'];
+    final quote = order['cancelQuote'];
+    final total = order['totalAmount'];
+    setState(() {
+      _vendor = vendor is Map
+          ? (vendor['name']?.toString() ?? _vendor)
+          : _vendor;
+      final number = order['orderNumber']?.toString();
+      if (number != null && number.isNotEmpty) {
+        _orderNumber = number.startsWith('#') ? number : '#$number';
+      }
+      _totalBhd = total is num ? total.toStringAsFixed(3) : _totalBhd;
+      _subtitle =
+          '${order['itemCount'] ?? 0} items · BHD $_totalBhd';
+      if (quote is Map) {
+        _canCancel = quote['canCancel'] == true;
+        _isFreeWindow = quote['isFreeWindow'] == true;
+        _feePercent = (quote['feePercentMax'] as num?)?.toDouble() ?? 0;
+        _refundMin = (quote['refundEstimateMin'] as num?)?.toDouble() ?? 0;
+        _refundMax = (quote['refundEstimateMax'] as num?)?.toDouble() ?? 0;
+        _policyNote = quote['policyNote']?.toString();
+      }
+      _loading = false;
+    });
+  }
+
+  Future<void> _confirmCancel() async {
+    final orderId = widget.orderId;
+    if (orderId == null || orderId.isEmpty) {
+      context.push(
+        HelpRoutes.helpFlow(
+          flow: HelpFlowType.scheduledCancelConfirmed,
+          tab: widget.bottomNavIndex,
+        ),
+      );
+      return;
+    }
+    if (!_canCancel) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('This order can no longer be cancelled'),
+          backgroundColor: Color(0xFFB42318),
+        ),
+      );
+      return;
+    }
+    setState(() => _submitting = true);
+    final ok = await ref.read(ordersRepositoryProvider).cancel(
+          orderId,
+          reason: _selectedReason ?? 'Scheduled order cancelled',
+        );
+    if (!mounted) return;
+    setState(() => _submitting = false);
+    if (!ok) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Could not cancel this order'),
+          backgroundColor: Color(0xFFB42318),
+        ),
+      );
+      return;
+    }
+    setState(() {
+      _cancelRef = 'CX-${DateTime.now().year}-${DateTime.now().millisecond}';
+    });
+    context.push(
+      HelpRoutes.helpFlow(
+        flow: HelpFlowType.scheduledCancelConfirmed,
+        orderId: orderId,
+        tab: widget.bottomNavIndex,
+      ),
+    );
   }
 
   String get _title => switch (widget.flow) {
@@ -38,249 +139,223 @@ class _HelpFlowScreenState extends State<HelpFlowScreen> {
         HelpFlowType.scheduledCancelOutside => 'Cancel scheduled order',
         HelpFlowType.scheduledCancelConfirmed => 'Cancellation confirmed',
         HelpFlowType.modifyAwaiting => 'Change requested',
-        HelpFlowType.modifyCannotAccommodate => 'Change unavailable',
+        HelpFlowType.modifyCannotAccommodate => 'Vendor response',
       };
 
   @override
   Widget build(BuildContext context) {
+    // Auto-pick SC1 vs SC3 when opening free flow but quote says outside window.
+    final effectiveFlow =
+        widget.flow == HelpFlowType.scheduledCancelFree && !_isFreeWindow
+            ? HelpFlowType.scheduledCancelOutside
+            : widget.flow;
+
     return HelpScreenScaffold(
       title: _title,
       bottomNavIndex: widget.bottomNavIndex,
-      body: ListView(
-        padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 8.h),
-        children: _buildBody(),
-      ),
-      bottom: _buildBottom(context),
+      body: _loading
+          ? const Center(
+              child: CircularProgressIndicator(color: AppColors.primary),
+            )
+          : ListView(
+              padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 8.h),
+              children: _buildBody(effectiveFlow),
+            ),
+      bottom: _buildBottom(context, effectiveFlow),
     );
   }
 
-  List<Widget> _buildBody() {
-    final order = HelpPhase2Data.scheduledGroceryOrder;
-    return switch (widget.flow) {
+  List<Widget> _buildBody(HelpFlowType flow) {
+    return switch (flow) {
       HelpFlowType.scheduledCancelFree => [
-        _orderCard(order.vendor, order.orderId, order.subtitle),
-        SizedBox(height: 14.h),
-        Center(
-          child: Container(
-            width: 140.w,
-            height: 140.w,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(color: AppColors.primary, width: 4),
-            ),
-            alignment: Alignment.center,
-            child: Text(
-              '01:45:30',
-              style: AppTextStyles.labelMedium(color: AppColors.primary).copyWith(
-                fontWeight: FontWeight.w700,
-                fontSize: 18.sp,
-              ),
-            ),
+          _orderCard(_vendor, _orderNumber, _subtitle),
+          SizedBox(height: 14.h),
+          const HelpInfoBanner(
+            message:
+                'You’re within the free cancellation window — no fee will be charged.',
           ),
-        ),
-        SizedBox(height: 14.h),
-        const HelpInfoBanner(
-          message: 'You’re within the free cancellation window — no fee will be charged.',
-        ),
-        SizedBox(height: 14.h),
-        const HelpFormHeading(title: 'Why are you cancelling?'),
-        SizedBox(height: 10.h),
-        HelpChipSelector(
-          options: HelpPhase2Data.scheduledCancelReasons,
-          selected: _selectedReason,
-          onSelected: (v) => setState(() => _selectedReason = v),
-        ),
-        SizedBox(height: 14.h),
-        HelpDetailRowsCard(
-          title: 'Refund summary',
-          lines: const [
-            HelpDetailLine(label: 'Order total', value: 'BHD 24.600'),
-            HelpDetailLine(
-              label: 'Cancellation fee',
-              value: 'BHD 0.000 — Free',
-              valueColor: Color(0xFF0F4D27),
-            ),
-            HelpDetailLine(
-              label: 'Refund to Wallet',
-              value: 'BHD 24.600',
-              valueColor: Color(0xFF0F4D27),
-            ),
-          ],
-        ),
-      ],
+          SizedBox(height: 14.h),
+          const HelpFormHeading(title: 'Why are you cancelling?'),
+          SizedBox(height: 10.h),
+          HelpChipSelector(
+            options: HelpPhase2Data.scheduledCancelReasons,
+            selected: _selectedReason,
+            onSelected: (v) => setState(() => _selectedReason = v),
+          ),
+          SizedBox(height: 14.h),
+          HelpDetailRowsCard(
+            title: 'Refund summary',
+            lines: [
+              HelpDetailLine(label: 'Order total', value: 'BHD $_totalBhd'),
+              const HelpDetailLine(
+                label: 'Cancellation fee',
+                value: 'BHD 0.000 — Free',
+                valueColor: Color(0xFF0F4D27),
+              ),
+              HelpDetailLine(
+                label: 'Refund to Wallet',
+                value: 'BHD $_totalBhd',
+                valueColor: const Color(0xFF0F4D27),
+              ),
+            ],
+          ),
+        ],
       HelpFlowType.scheduledCancelOutside => [
-        _orderCard(order.vendor, order.orderId, order.subtitle),
-        SizedBox(height: 14.h),
-        const HelpAlertCard(
-          title: 'Free cancellation window has closed',
-          subtitle:
-              'The vendor may already be preparing your order. A cancellation fee may apply.',
-        ),
-        SizedBox(height: 14.h),
-        const HelpSectionTitle(label: 'Estimated refund'),
-        SizedBox(height: 10.h),
-        HelpDetailRowsCard(
-          lines: const [
-            HelpDetailLine(label: 'Order total', value: 'BHD 24.600'),
-            HelpDetailLine(
-              label: 'Cancellation fee',
-              value: 'Up to 50% · prep-based',
-              valueColor: Color(0xFFE08A1E),
-            ),
-            HelpDetailLine(
-              label: 'Estimated refund',
-              value: 'BHD 12.300 – 24.600',
-            ),
-          ],
-        ),
-        SizedBox(height: 14.h),
-        GestureDetector(
-          onTap: () => setState(() => _confirmFee = !_confirmFee),
-          child: Container(
-            width: double.infinity,
-            padding: EdgeInsets.all(14.w),
-            decoration: BoxDecoration(
-              color: AppColors.white,
-              borderRadius: BorderRadius.circular(12.r),
-              border: Border.all(color: const Color(0xFFE6EBE3)),
-            ),
+          _orderCard(_vendor, _orderNumber, _subtitle),
+          SizedBox(height: 14.h),
+          HelpAlertCard(
+            icon: Icons.schedule,
+            title: 'Free window closed',
+            subtitle: _policyNote ??
+                'A fee may apply based on preparation stage (up to ${_feePercent.toStringAsFixed(0)}%).',
+            backgroundColor: const Color(0xFFFBEFE0),
+            foregroundColor: const Color(0xFFE08A1E),
+            subtitleColor: const Color(0xFF9A6A1E),
+          ),
+          SizedBox(height: 14.h),
+          HelpDetailRowsCard(
+            title: 'Estimated refund',
+            lines: [
+              HelpDetailLine(label: 'Order total', value: 'BHD $_totalBhd'),
+              HelpDetailLine(
+                label: 'Cancellation fee',
+                value: 'Up to ${_feePercent.toStringAsFixed(0)}% · prep-based',
+                valueColor: const Color(0xFFE08A1E),
+              ),
+              HelpDetailLine(
+                label: 'Estimated refund',
+                value:
+                    'BHD ${_refundMin.toStringAsFixed(3)} – ${_refundMax.toStringAsFixed(3)}',
+              ),
+            ],
+          ),
+          SizedBox(height: 12.h),
+          GestureDetector(
+            onTap: () => setState(() => _confirmFee = !_confirmFee),
             child: Row(
               children: [
-                Container(
-                  width: 24.w,
-                  height: 24.w,
-                  decoration: BoxDecoration(
-                    color: _confirmFee ? AppColors.primary : AppColors.white,
-                    borderRadius: BorderRadius.circular(6.r),
-                    border: Border.all(
-                      color: _confirmFee ? AppColors.primary : const Color(0xFFE6EBE3),
-                      width: 1.5,
-                    ),
-                  ),
-                  alignment: Alignment.center,
-                  child: _confirmFee
-                      ? Icon(Icons.check, size: 15.sp, color: AppColors.white)
-                      : null,
+                Icon(
+                  _confirmFee
+                      ? Icons.check_box
+                      : Icons.check_box_outline_blank,
+                  color: AppColors.primary,
+                  size: 22.sp,
                 ),
-                SizedBox(width: 12.w),
+                SizedBox(width: 8.w),
                 Expanded(
                   child: Text(
                     'I understand a cancellation fee may apply based on the preparation stage.',
-                    style: AppTextStyles.labelMedium(color: AppColors.textPrimary).copyWith(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 13.sp,
-                    ),
+                    style: AppTextStyles.labelSmall(
+                      color: const Color(0xFF6B7B6E),
+                    ).copyWith(fontSize: 12.sp, height: 1.35),
                   ),
                 ),
               ],
             ),
           ),
-        ),
-      ],
+        ],
       HelpFlowType.scheduledCancelConfirmed => [
-        SizedBox(height: 24.h),
-        const Center(child: HelpSuccessCircle()),
-        SizedBox(height: 16.h),
-        Text(
-          'Scheduled order cancelled',
-          textAlign: TextAlign.center,
-          style: AppTextStyles.labelMedium(color: AppColors.textPrimary).copyWith(
-            fontWeight: FontWeight.w700,
-            fontSize: 16.sp,
+          SizedBox(height: 24.h),
+          Center(
+            child: Container(
+              width: 72.w,
+              height: 72.w,
+              decoration: const BoxDecoration(
+                color: Color(0xFFEAF3DE),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(Icons.check, color: AppColors.primary, size: 36.sp),
+            ),
           ),
-        ),
-        SizedBox(height: 6.h),
-        Text(
-          'You cancelled within the free window — no fee charged.',
-          textAlign: TextAlign.center,
-          style: AppTextStyles.caption(color: const Color(0xFF6B7B6E)).copyWith(fontSize: 12.sp),
-        ),
-        SizedBox(height: 20.h),
-        HelpDetailRowsCard(
-          lines: const [
-            HelpDetailLine(
-              label: 'Refunded to Wallet',
-              value: '+ BHD 24.600',
-              valueColor: Color(0xFF0F4D27),
+          SizedBox(height: 16.h),
+          Center(
+            child: Text(
+              'Scheduled order cancelled',
+              style: AppTextStyles.labelMedium(color: AppColors.textPrimary)
+                  .copyWith(fontWeight: FontWeight.w800, fontSize: 18.sp),
             ),
-            HelpDetailLine(label: 'Order', value: '#YJK-2026-00051'),
-            HelpDetailLine(label: 'Reference', value: 'CX-2026-10521'),
-          ],
-        ),
-        SizedBox(height: 12.h),
-        Text(
-          'Your delivery slot was released and any promo codes were restored.',
-          textAlign: TextAlign.center,
-          style: AppTextStyles.caption(color: const Color(0xFF6B7B6E)).copyWith(fontSize: 11.sp),
-        ),
-      ],
+          ),
+          SizedBox(height: 8.h),
+          Center(
+            child: Text(
+              'Your cancellation was processed.',
+              textAlign: TextAlign.center,
+              style: AppTextStyles.caption(color: const Color(0xFF6B7B6E)),
+            ),
+          ),
+          SizedBox(height: 16.h),
+          HelpDetailRowsCard(
+            title: 'Details',
+            lines: [
+              HelpDetailLine(
+                label: 'Refunded to Wallet',
+                value: '+ BHD $_totalBhd',
+                valueColor: const Color(0xFF0F4D27),
+              ),
+              HelpDetailLine(label: 'Order', value: _orderNumber),
+              HelpDetailLine(
+                label: 'Reference',
+                value: _cancelRef ?? 'CX-pending',
+              ),
+            ],
+          ),
+        ],
       HelpFlowType.modifyAwaiting => [
-        const HelpAlertCard(
-          icon: Icons.hourglass_top_rounded,
-          title: 'Waiting for approval',
-          subtitle: 'Responds within 2:00:00',
-        ),
-        SizedBox(height: 14.h),
-        const HelpSectionTitle(label: 'Requested change'),
-        SizedBox(height: 10.h),
-        HelpDetailRowsCard(
-          lines: const [
-            HelpDetailLine(label: 'From', value: 'Sat 4 Jul · 18:00 – 18:30'),
-            HelpDetailLine(
-              label: 'To',
-              value: 'Sat 4 Jul · 20:00 – 20:30',
-              valueColor: Color(0xFF0F4D27),
-            ),
-          ],
-        ),
-        SizedBox(height: 12.h),
-        Text(
-          'Your original delivery time stays active until the vendor responds.',
-          style: AppTextStyles.caption(color: const Color(0xFF6B7B6E)).copyWith(fontSize: 11.5.sp),
-        ),
-      ],
+          const HelpAlertCard(
+            icon: Icons.hourglass_top_outlined,
+            title: 'Waiting for approval',
+            subtitle: 'Vendor usually responds within 2 hours.',
+            backgroundColor: Color(0xFFFBEFE0),
+            foregroundColor: Color(0xFFE08A1E),
+            subtitleColor: Color(0xFF9A6A1E),
+          ),
+          SizedBox(height: 14.h),
+          _orderCard(_vendor, _orderNumber, _subtitle),
+          SizedBox(height: 12.h),
+          Text(
+            'Your original delivery time stays active until the vendor responds.',
+            style: AppTextStyles.caption(color: const Color(0xFF6B7B6E))
+                .copyWith(fontSize: 11.5.sp),
+          ),
+        ],
       HelpFlowType.modifyCannotAccommodate => [
-        const HelpAlertCard(
-          icon: Icons.event_busy_outlined,
-          title: 'Vendor cannot accommodate',
-          subtitle: 'Your requested time slot is not available.',
-          backgroundColor: Color(0xFFFBEAEC),
-          foregroundColor: Color(0xFFC0392B),
-          subtitleColor: Color(0xFF9A3A3A),
-        ),
-        SizedBox(height: 14.h),
-        const HelpSectionTitle(label: 'Your options'),
-        SizedBox(height: 10.h),
-        const HelpNumberedStep(
-          number: 1,
-          text: 'Keep your original delivery slot.',
-        ),
-        SizedBox(height: 10.h),
-        const HelpNumberedStep(
-          number: 2,
-          text: 'Choose another available slot or cancel for a full refund.',
-        ),
-      ],
+          HelpAlertCard(
+            icon: Icons.event_busy_outlined,
+            title: 'Vendor can\'t accommodate',
+            subtitle:
+                '$_vendor couldn\'t accept the new time. Your original order is still confirmed.',
+            backgroundColor: const Color(0xFFFBEAEC),
+            foregroundColor: const Color(0xFFC0392B),
+            subtitleColor: const Color(0xFF9A3A3A),
+          ),
+          SizedBox(height: 14.h),
+          const HelpSectionTitle(label: 'What would you like to do?'),
+          SizedBox(height: 10.h),
+          _orderCard(_vendor, _orderNumber, 'Original order'),
+        ],
     };
   }
 
-  Widget? _buildBottom(BuildContext context) {
-    return switch (widget.flow) {
+  Widget? _buildBottom(BuildContext context, HelpFlowType flow) {
+    return switch (flow) {
       HelpFlowType.scheduledCancelFree => HelpPrimaryButton(
-          label: 'Confirm free cancellation',
+          label: _submitting ? 'Cancelling…' : 'Confirm free cancellation',
           showCheck: true,
-          onTap: () => context.push(HelpRoutes.helpFlow(flow: HelpFlowType.scheduledCancelConfirmed)),
+          onTap: _submitting ? null : _confirmCancel,
         ),
       HelpFlowType.scheduledCancelOutside => Padding(
           padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 16.h),
           child: Column(
             children: [
               HelpOrangeButton(
-                label: 'Continue to cancel',
-                onTap: () => context.push(HelpRoutes.helpFlow(flow: HelpFlowType.scheduledCancelConfirmed)),
+                label: _submitting ? 'Cancelling…' : 'Continue to cancel',
+                onTap: (!_confirmFee || _submitting) ? null : _confirmCancel,
               ),
               SizedBox(height: 10.h),
-              HelpOutlineButton(label: 'Keep my order', onTap: () => context.pop()),
+              HelpOutlineButton(
+                label: 'Keep my order',
+                onTap: () => context.pop(),
+              ),
             ],
           ),
         ),
@@ -304,15 +379,45 @@ class _HelpFlowScreenState extends State<HelpFlowScreen> {
           padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 16.h),
           child: Column(
             children: [
-              HelpPrimaryButton(label: 'Notify me & keep waiting', onTap: () => context.pop()),
+              HelpPrimaryButton(
+                label: 'Notify me & keep waiting',
+                onTap: () => context.pop(),
+              ),
               SizedBox(height: 10.h),
-              HelpOutlineButton(label: 'Preview: vendor response', onTap: () {}),
+              HelpOutlineButton(
+                label: 'Preview: vendor response',
+                onTap: () => context.push(
+                  HelpRoutes.helpFlow(
+                    flow: HelpFlowType.modifyCannotAccommodate,
+                    orderId: widget.orderId,
+                    tab: widget.bottomNavIndex,
+                  ),
+                ),
+              ),
             ],
           ),
         ),
-      HelpFlowType.modifyCannotAccommodate => HelpPrimaryButton(
-          label: 'Choose another slot',
-          onTap: () => context.pop(),
+      HelpFlowType.modifyCannotAccommodate => Padding(
+          padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 16.h),
+          child: Column(
+            children: [
+              HelpPrimaryButton(
+                label: 'Keep my original order',
+                onTap: () => context.pop(),
+              ),
+              SizedBox(height: 10.h),
+              HelpOrangeButton(
+                label: 'Cancel order · outside-window policy',
+                onTap: () => context.push(
+                  HelpRoutes.helpFlow(
+                    flow: HelpFlowType.scheduledCancelOutside,
+                    orderId: widget.orderId,
+                    tab: widget.bottomNavIndex,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
     };
   }
@@ -324,8 +429,8 @@ class _HelpFlowScreenState extends State<HelpFlowScreen> {
         orderId: orderId,
         shortId: orderId,
         statusLabel: subtitle,
-        itemCount: 6,
-        totalBhd: '24.600',
+        itemCount: 1,
+        totalBhd: _totalBhd,
         deliveredAt: subtitle,
         compactSubtitle: subtitle,
       ),

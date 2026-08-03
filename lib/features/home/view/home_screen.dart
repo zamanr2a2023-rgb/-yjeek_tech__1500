@@ -4,12 +4,17 @@ import 'package:go_router/go_router.dart';
 import 'package:yjeek_app/core/constants/app_colors.dart';
 import 'package:yjeek_app/core/constants/home_strings.dart';
 import 'package:yjeek_app/core/providers/app_providers.dart';
+import 'package:yjeek_app/core/providers/shell_provider.dart';
 import 'package:yjeek_app/features/browse/browse_routes.dart';
-import 'package:yjeek_app/features/home/model/category_item.dart';
+import 'package:yjeek_app/features/cart/model/cart_repository.dart';
+import 'package:yjeek_app/features/cart/view/widgets/cart_flow_widgets.dart';
+import 'package:yjeek_app/features/home/model/category_navigation.dart';
+import 'package:yjeek_app/features/home/model/home_data.dart';
 import 'package:yjeek_app/features/home/model/home_feed.dart';
 import 'package:yjeek_app/features/home/view/widgets/home_widgets.dart';
 import 'package:yjeek_app/features/navigation/model/user_me.dart';
 import 'package:yjeek_app/features/order_flow/order_flow_routes.dart';
+import 'package:yjeek_app/routes/app_router.dart';
 import 'package:yjeek_app/routes/route_names.dart';
 
 class HomeScreen extends ConsumerWidget {
@@ -32,20 +37,95 @@ class HomeScreen extends ConsumerWidget {
     return HomeStrings.hello;
   }
 
-  void _onCategoryTap(BuildContext context, CategoryItem category) {
-    final key = (category.slug ?? category.name).toLowerCase();
-    if (key.contains('food')) {
-      context.push(BrowseRoutes.foodBrowse());
-    } else if (key.contains('dine')) {
-      context.push(BrowseRoutes.dineInBrowse());
-    } else if (key.contains('service')) {
-      context.push(BrowseRoutes.servicesBrowse());
-    } else if (key.contains('electronic')) {
-      context.push(BrowseRoutes.electronicsBrowse());
-    } else if (key.contains('vape')) {
-      context.push(BrowseRoutes.vapeBrowse());
-    } else if (key.contains('pickup')) {
-      context.push(BrowseRoutes.pickupBrowse());
+  bool _isScheduledOffer(OfferItem offer) {
+    final slug = (offer.categorySlug ?? '').toLowerCase();
+    if (slug.contains('food') || slug.contains('restaurant')) return false;
+    if (slug.contains('grocery') ||
+        slug.contains('fashion') ||
+        slug.contains('electronic') ||
+        slug.contains('cosmetic') ||
+        slug.contains('gift') ||
+        slug.contains('pharmacy') ||
+        slug.contains('vape') ||
+        slug.contains('jewelry') ||
+        slug.contains('sport') ||
+        slug.contains('station') ||
+        slug.contains('baby') ||
+        slug.contains('prosthetic')) {
+      return true;
+    }
+    // Name heuristics for mock fallback offers without category.
+    final name = offer.name.toLowerCase();
+    return name.contains('dress') ||
+        name.contains('grocery') ||
+        name.contains('basket');
+  }
+
+  Future<void> _addHomeOffer(
+    BuildContext context,
+    WidgetRef ref,
+    OfferItem offer,
+  ) async {
+    final productId = offer.productId;
+    if (productId == null || productId.isEmpty) {
+      context.push(RouteNames.exclusiveOffers);
+      return;
+    }
+
+    try {
+      final repo = ref.read(cartRepositoryProvider);
+      if (_isScheduledOffer(offer)) {
+        Future<void> addScheduled({bool replaceCart = false}) async {
+          final snap = await repo.addScheduledProduct(
+            productId: productId,
+            replaceCart: replaceCart,
+          );
+          if (!context.mounted) return;
+          if (snap == null || !snap.hasItems) {
+            throw Exception('Could not add to cart');
+          }
+          ref.read(shellProvider.notifier).openScheduledCartWithItems();
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('${offer.name} added to cart'),
+              duration: const Duration(seconds: 1),
+            ),
+          );
+          context.goHome(tab: 2, scheduledCart: true);
+        }
+
+        try {
+          await addScheduled();
+        } on ScheduledVendorLimitException {
+          if (!context.mounted) return;
+          showCartNewCartDialog(
+            context,
+            onConfirm: () => addScheduled(replaceCart: true),
+          );
+        }
+        return;
+      }
+
+      await repo.addProduct(
+        type: CartOrderType.delivery,
+        productId: productId,
+      );
+      if (!context.mounted) return;
+      ref.read(shellProvider.notifier).openCartWithItems();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${offer.name} added to cart'),
+          duration: const Duration(seconds: 1),
+        ),
+      );
+      context.goHome(tab: 2, cartHasItems: true);
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.toString().replaceFirst('Exception: ', '')),
+        ),
+      );
     }
   }
 
@@ -97,7 +177,9 @@ class HomeScreen extends ConsumerWidget {
                     OrderStatusCard(
                       title: feed.activeOrder!.title,
                       subtitle: feed.activeOrder!.subtitle,
-                      onTrack: () => context.push(OrderFlowRoutes.status),
+                      onTrack: () => context.push(
+                        OrderFlowRoutes.statusFor(feed.activeOrder!.id),
+                      ),
                     ),
                     const SizedBox(height: 18),
                   ],
@@ -109,7 +191,7 @@ class HomeScreen extends ConsumerWidget {
                   HomeCategoriesGrid(
                     categories: feed.categories.take(8).toList(),
                     onCategoryTap: (category) =>
-                        _onCategoryTap(context, category),
+                        openHomeCategory(context, category),
                   ),
                   const SizedBox(height: 18),
                   SectionHeader(
@@ -143,8 +225,10 @@ class HomeScreen extends ConsumerWidget {
                       itemCount: feed.exclusiveOffers.length,
                       separatorBuilder: (_, _) => const SizedBox(width: 12),
                       itemBuilder: (context, index) {
+                        final offer = feed.exclusiveOffers[index];
                         return OfferProductCard(
-                          offer: feed.exclusiveOffers[index],
+                          offer: offer,
+                          onTap: () => _addHomeOffer(context, ref, offer),
                         );
                       },
                     ),

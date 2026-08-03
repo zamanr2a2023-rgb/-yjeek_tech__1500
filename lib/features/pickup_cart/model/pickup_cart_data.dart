@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:yjeek_app/features/cart/model/cart_flow_data.dart';
 import 'package:yjeek_app/features/navigation/model/navigation_data.dart';
+import 'package:yjeek_app/l10n/l10n.dart';
 
 class PickupCartItem {
   const PickupCartItem({
@@ -31,57 +32,54 @@ class PickupUpsellItem {
 }
 
 abstract final class PickupCartStrings {
-  static const String cart = 'Cart';
-  static const String checkout = 'Checkout';
-  static const String reviewConfirm = 'Review & confirm';
-  static const String yourItems = 'Your items';
-  static const String youMightAlsoLike = 'You might also like';
-  static const String promoCode = 'Have a promo code?';
-  static const String pickupDetails = 'Pickup details';
-  static const String pickupTime = 'Pickup time';
-  static const String pickupTimeLabel = 'Pickup time ·';
-  static const String paymentMethod = 'Payment method';
-  static const String billSummary = 'Bill summary';
-  static const String placeOrder = 'Place order';
-  static const String goToCheckout = 'Go to checkout';
-  static const String placingOrder = 'Placing your order';
-  static const String autoConfirmHint =
-      'Auto-confirms in 10 seconds. You can still edit or cancel before then.';
-  static const String orderSummary = 'Order summary';
-  static const String editOrder = 'Edit order';
-  static const String sendToVendor = 'Send to vendor';
-  static const String orderType = 'BREW & BEAN · PICKUP';
-  static const String method = 'Method';
-  static const String pickupMethod = 'Pickup';
-  static const String collectAt = 'Collect at';
-  static const String payment = 'Payment';
-  static const String orderTotal = 'Order total';
-  static const String applePay = 'Apple Pay';
-  static const String map = 'Map';
-  static const String change = 'Change';
-  static const String pickupFrom = 'Pickup from';
-  static const String tip = 'Tip';
-  static const String customTip = 'Custom';
-  static const String policyWarning =
-      'Please collect on time. No-show within 1 hour of the ready time is non-refundable.';
-  static const String paymentNote =
-      'You can pay with any method and use your Yjeek Wallet balance together.';
-  static const String cashbackEarn = 'Earn 3% cashback to your Wallet';
+  static String get cart => L10n.tr('Cart');
+  static String get checkout => L10n.tr('Checkout');
+  static String get reviewConfirm => L10n.tr('Review & confirm');
+  static String get yourItems => L10n.tr('Your items');
+  static String get youMightAlsoLike => L10n.tr('You might also like');
+  static String get promoCode => L10n.tr('Have a promo code?');
+  static String get pickupDetails => L10n.tr('Pickup details');
+  static String get pickupTime => L10n.tr('Pickup time');
+  static String get pickupTimeLabel => L10n.tr('Pickup time ·');
+  static String get paymentMethod => L10n.tr('Payment method');
+  static String get billSummary => L10n.tr('Bill summary');
+  static String get placeOrder => L10n.tr('Place order');
+  static String get goToCheckout => L10n.tr('Go to checkout');
+  static String get placingOrder => L10n.tr('Placing your order');
+  static String get autoConfirmHint => L10n.tr('Auto-confirms in 10 seconds. You can still edit or cancel before then.');
+  static String get orderSummary => L10n.tr('Order summary');
+  static String get editOrder => L10n.tr('Edit order');
+  static String get sendToVendor => L10n.tr('Send to vendor');
+  static String get orderType => L10n.tr('BREW & BEAN · PICKUP');
+  static String get method => L10n.tr('Method');
+  static String get pickupMethod => L10n.tr('Pickup');
+  static String get collectAt => L10n.tr('Collect at');
+  static String get payment => L10n.tr('Payment');
+  static String get orderTotal => L10n.tr('Order total');
+  static String get applePay => L10n.tr('Apple Pay');
+  static String get map => L10n.tr('Map');
+  static String get change => L10n.tr('Change');
+  static String get pickupFrom => L10n.tr('Pickup from');
+  static String get tip => L10n.tr('Tip');
+  static String get customTip => L10n.tr('Custom');
+  static String get policyWarning => L10n.tr('Please collect on time. No-show within 1 hour of the ready time is non-refundable.');
+  static String get paymentNote => L10n.tr('You can pay with any method and use your Yjeek Wallet balance together.');
+  static String get cashbackEarn => L10n.tr('Earn 3% cashback to your Wallet');
 }
 
 abstract final class PickupCartData {
-  static const String vendor = 'Brew & Bean';
-  static const String vendorLocation = 'Brew & Bean · Seef';
-  static const String pickupAddress = 'Seef Blvd, Shop 12 · 0.4 km away';
-  static const String checkoutAddress = 'Shop 12, Seef Blvd · 0.4 km';
-  static const String readyIn = 'Ready in ~8 min';
-  static const String pickupTime = 'Today · 19:30';
-  static const String collectAt = 'Apartment · Seef';
-  static const String checkoutTotal = 'BHD 4.900';
-  static const String orderTotal = 'BHD 6.610';
-  static const String cashbackAmount = '+ BHD 0.198';
-  static const String walletBalance = 'Balance BHD 12.450';
-  static const String pickupBadge = 'PICKUP';
+  static String get vendor => L10n.tr('Brew & Bean');
+  static String get vendorLocation => L10n.tr('Brew & Bean · Seef');
+  static String get pickupAddress => L10n.tr('Seef Blvd, Shop 12 · 0.4 km away');
+  static String get checkoutAddress => L10n.tr('Shop 12, Seef Blvd · 0.4 km');
+  static String get readyIn => L10n.tr('Ready in ~8 min');
+  static String get pickupTime => L10n.tr('Today · 19:30');
+  static String get collectAt => L10n.tr('Apartment · Seef');
+  static String get checkoutTotal => L10n.tr('BHD 4.290');
+  static String get orderTotal => L10n.tr('BHD 4.290');
+  static String get cashbackAmount => L10n.tr('+ BHD 0.129');
+  static String get walletBalance => L10n.tr('Balance BHD 12.450');
+  static String get pickupBadge => L10n.tr('PICKUP');
 
   static const List<PickupCartItem> cartItems = [
     PickupCartItem(
@@ -102,35 +100,35 @@ abstract final class PickupCartData {
 
   static const List<PickupUpsellItem> upsellItems = [
     PickupUpsellItem(
-      name: 'Blue Razz',
-      price: 'BHD 6.500',
+      name: 'Flat White',
+      price: 'BHD 1.800',
       gradientStart: Color(0xFF6B4A2A),
       gradientEnd: Color(0xFF15302B),
     ),
     PickupUpsellItem(
-      name: 'Watermelon Ice',
-      price: 'BHD 6.500',
+      name: 'Blueberry Muffin',
+      price: 'BHD 1.400',
       gradientStart: Color(0xFF8A5B2A),
       gradientEnd: Color(0xFF15302B),
     ),
     PickupUpsellItem(
-      name: 'Mint Tobacco',
-      price: 'BHD 6.500',
+      name: 'Banana Bread',
+      price: 'BHD 1.500',
       gradientStart: Color(0xFF7A4A22),
       gradientEnd: Color(0xFF15302B),
     ),
   ];
 
-  static const List<BillLine> cartBillLines = [
-    BillLine(label: 'Subtotal', value: 'BHD 6.500'),
-    BillLine(label: 'Discount', value: '− BHD 0.500', isDiscount: true),
-    BillLine(label: 'Delivery', value: 'BHD 0.500'),
-    BillLine(label: 'Service fee', value: 'BHD 0.110'),
+  static final List<BillLine> cartBillLines = [
+    BillLine(label: 'Subtotal', value: 'BHD 4.900'),
+    BillLine(label: 'Discount', value: '− BHD 0.735', isDiscount: true),
+    BillLine(label: 'Delivery', value: 'BHD 0.450'),
+    BillLine(label: 'Service fee', value: 'BHD 0.125'),
     BillLine(label: 'Order total', value: orderTotal, isBold: true),
   ];
 
   /// Same tip chips as Electronics scheduled checkout.
-  static const List<TipOption> tipOptions = [
+  static final List<TipOption> tipOptions = [
     TipOption(label: 'BHD 0.300', amount: 0.3),
     TipOption(label: 'BHD 0.500', amount: 0.5),
     TipOption(label: 'BHD 1', amount: 1),

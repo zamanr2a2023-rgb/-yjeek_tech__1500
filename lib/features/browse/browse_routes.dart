@@ -29,10 +29,14 @@ abstract final class BrowseRoutes {
   static String vendorMenu({
     String? vendorId,
     int tab = 0,
+    String? cartType,
   }) {
     final id = vendorId ?? defaultVendorId;
     final buffer = StringBuffer('${RouteNames.vendorMenu}?id=$id');
     if (tab != 0) buffer.write('&tab=$tab');
+    if (cartType != null && cartType.isNotEmpty) {
+      buffer.write('&cart=${Uri.encodeQueryComponent(cartType)}');
+    }
     return buffer.toString();
   }
 
@@ -40,17 +44,30 @@ abstract final class BrowseRoutes {
     String? vendorId,
     String? itemId,
     int tab = 0,
+    String? cartType,
   }) {
     final id = vendorId ?? defaultVendorId;
     final item = itemId ?? defaultItemId;
     final buffer = StringBuffer('${RouteNames.itemDetail}?vendor=$id&item=$item');
     if (tab != 0) buffer.write('&tab=$tab');
+    if (cartType != null && cartType.isNotEmpty) {
+      buffer.write('&cart=${Uri.encodeQueryComponent(cartType)}');
+    }
     return buffer.toString();
   }
 
   static String dineInBrowse({int tab = 0}) {
     if (tab == 0) return RouteNames.dineInBrowse;
     return '${RouteNames.dineInBrowse}?tab=$tab';
+  }
+
+  static String dineInSearch({String query = '', int tab = 0}) {
+    final buffer = StringBuffer(RouteNames.dineInSearch);
+    final params = <String>[];
+    if (query.isNotEmpty) params.add('q=${Uri.encodeQueryComponent(query)}');
+    if (tab != 0) params.add('tab=$tab');
+    if (params.isNotEmpty) buffer.write('?${params.join('&')}');
+    return buffer.toString();
   }
 
   static String dineInOrderAgain({int tab = 0}) {
@@ -85,13 +102,13 @@ abstract final class BrowseRoutes {
     return '${RouteNames.servicesBrowse}?tab=$tab';
   }
 
-  static String servicesSearch({String? query, int tab = 0}) {
-    final queryBuffer = StringBuffer(RouteNames.servicesSearch);
+  static String servicesSearch({String query = '', int tab = 0}) {
+    final buffer = StringBuffer(RouteNames.servicesSearch);
     final params = <String>[];
-    if (query != null && query.isNotEmpty) params.add('q=$query');
+    if (query.isNotEmpty) params.add('q=${Uri.encodeQueryComponent(query)}');
     if (tab != 0) params.add('tab=$tab');
-    if (params.isNotEmpty) queryBuffer.write('?${params.join('&')}');
-    return queryBuffer.toString();
+    if (params.isNotEmpty) buffer.write('?${params.join('&')}');
+    return buffer.toString();
   }
 
   static String servicesCategory({
@@ -125,9 +142,14 @@ abstract final class BrowseRoutes {
     return buffer.toString();
   }
 
-  static String electronicsBrowse({int tab = 0}) {
-    if (tab == 0) return RouteNames.electronicsBrowse;
-    return '${RouteNames.electronicsBrowse}?tab=$tab';
+  static String electronicsBrowse({int tab = 0, String category = 'electronics'}) {
+    final params = <String>[];
+    if (tab != 0) params.add('tab=$tab');
+    if (category != 'electronics') {
+      params.add('category=${Uri.encodeQueryComponent(category)}');
+    }
+    if (params.isEmpty) return RouteNames.electronicsBrowse;
+    return '${RouteNames.electronicsBrowse}?${params.join('&')}';
   }
 
   static String electronicsStore({
@@ -181,9 +203,14 @@ abstract final class BrowseRoutes {
     return buffer.toString();
   }
 
-  static String pickupBrowse({int tab = 0}) {
-    if (tab == 0) return RouteNames.pickupBrowse;
-    return '${RouteNames.pickupBrowse}?tab=$tab';
+  static String pickupBrowse({int tab = 0, String? category}) {
+    final params = <String>[];
+    if (tab != 0) params.add('tab=$tab');
+    if (category != null && category.isNotEmpty) {
+      params.add('category=${Uri.encodeQueryComponent(category)}');
+    }
+    if (params.isEmpty) return RouteNames.pickupBrowse;
+    return '${RouteNames.pickupBrowse}?${params.join('&')}';
   }
 
   static String pickupCategories({int tab = 0}) {

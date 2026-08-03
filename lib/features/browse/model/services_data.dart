@@ -30,6 +30,9 @@ class ServiceProvider {
     required this.gradientStart,
     required this.gradientEnd,
     this.emoji = '💇‍♀',
+    this.openHoursTitle = 'Open · 9–9',
+    this.openHoursSubtitle = 'Today',
+    this.bookingModeLabel = 'Walk-in / book',
   });
 
   final String id;
@@ -46,6 +49,9 @@ class ServiceProvider {
   final Color gradientStart;
   final Color gradientEnd;
   final String emoji;
+  final String openHoursTitle;
+  final String openHoursSubtitle;
+  final String bookingModeLabel;
 }
 
 class ServiceMenuItem {
@@ -71,16 +77,23 @@ class ServiceOption {
     required this.name,
     required this.subtitle,
     this.extraPrice,
+    this.id,
   });
 
+  final String? id;
   final String name;
   final String subtitle;
   final String? extraPrice;
 }
 
 class ServiceAddon {
-  const ServiceAddon({required this.name, required this.price});
+  const ServiceAddon({
+    required this.name,
+    required this.price,
+    this.id,
+  });
 
+  final String? id;
   final String name;
   final String price;
 }

@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:yjeek_app/core/constants/app_colors.dart';
 import 'package:yjeek_app/core/constants/app_text_styles.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
-import 'package:yjeek_app/features/help/help_routes.dart';
 import 'package:yjeek_app/features/help/model/help_data.dart';
 import 'package:yjeek_app/features/help/model/help_phase2_data.dart';
 import 'package:yjeek_app/features/help/view/widgets/help_widgets.dart';
@@ -19,7 +17,8 @@ class HelpPhase2IssueBody extends StatefulWidget {
 
   final HelpIssueType type;
   final HelpOrderContext orderContext;
-  final VoidCallback onSubmit;
+  /// Called with a structured remark built from chips / rating / notes.
+  final void Function(String remark) onSubmit;
   final bool externalSubmit;
 
   @override
@@ -126,22 +125,30 @@ class _HelpPhase2IssueBodyState extends State<HelpPhase2IssueBody> {
       };
 
   void _onPrimaryTap() {
-    if (widget.type == HelpIssueType.paymentIssue) {
-      context.push(HelpRoutes.helpChat(variant: HelpChatVariant.payment));
-      return;
+    widget.onSubmit(_buildPhase2Remark());
+  }
+
+  String _buildPhase2Remark() {
+    final parts = <String>[];
+    if (_champSelections.isNotEmpty &&
+        widget.type == HelpIssueType.champComplaint) {
+      parts.add('Champ issues: ${_champSelections.join(', ')}');
+      parts.add('Rating: $_rating/5');
+    }
+    if (_selectedChip != null && _selectedChip!.isNotEmpty) {
+      parts.add('Issue: $_selectedChip');
+    }
+    if (_selectedRadio != null && _selectedRadio!.isNotEmpty) {
+      parts.add('Selected: $_selectedRadio');
     }
     if (widget.type == HelpIssueType.serviceNoShow) {
-      context.push(HelpRoutes.helpChat(variant: HelpChatVariant.serviceNoShow));
-      return;
+      parts.add(_noAnswer ? 'Tried calling: no answer' : 'Tried calling: not yet');
     }
-    if (widget.type == HelpIssueType.dineInReservation ||
-        widget.type == HelpIssueType.dineInBillQuality ||
-        widget.type == HelpIssueType.pickUpNotReady ||
-        widget.type == HelpIssueType.cashOut) {
-      context.push(HelpRoutes.helpChat(variant: HelpChatVariant.support));
-      return;
-    }
-    widget.onSubmit();
+    final note = _noteController.text.trim();
+    if (note.isNotEmpty) parts.add(note);
+    return parts.isEmpty
+        ? 'Customer submitted ${widget.type.name}'
+        : parts.join(' · ');
   }
 
   List<Widget> _buildContent() {
@@ -1043,7 +1050,9 @@ class _HelpPhase2IssueBodyState extends State<HelpPhase2IssueBody> {
         HelpPrimaryButton(
           label: 'Submit change request',
           showCheck: true,
-          onTap: () => context.push(HelpRoutes.helpFlow(flow: HelpFlowType.modifyAwaiting)),
+          onTap: () => widget.onSubmit(
+                'Modify request · customer asked to change delivery window',
+              ),
         ),
       ],
       _ => [],

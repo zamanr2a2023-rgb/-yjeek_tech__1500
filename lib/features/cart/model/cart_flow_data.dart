@@ -1,97 +1,91 @@
 import 'package:flutter/material.dart';
 import 'package:yjeek_app/core/constants/app_assets.dart';
 import 'package:yjeek_app/features/navigation/model/navigation_data.dart';
+import 'package:yjeek_app/l10n/l10n.dart';
 
 abstract final class CartFlowStrings {
-  static const String checkout = 'Checkout';
-  static const String reviewConfirm = 'Review & confirm';
-  static const String deliveryDetails = 'Delivery details';
-  static const String dropOffPreferences = 'Drop-off preferences';
-  static const String tipYourChamp = 'Tip your champ';
-  static const String paymentMethod = 'Payment method';
-  static const String billSummary = 'Bill summary';
-  static const String placeOrder = 'Place order';
-  static const String change = 'Change';
-  static const String arrivalEstimate = '15–25 mins';
-  static const String arrivesIn = 'Arrives in 15–25 mins';
-  static const String tipChampSubtitle = '100% goes straight to your champ';
-  static const String saveDropOffForAddress = 'Save these for this address';
-  static const String pciProtected =
-      'Protected by PCI Data Security Standard';
-  static const String walletComboNote =
-      'You can pay with any method and use your Yjeek Wallet balance together.';
-  static const String sendingOrder = 'Sending your order';
-  static const String autoConfirmHint =
-      'Auto-confirms in 10 seconds. You can still edit or cancel before then.';
-  static const String editOrder = 'Edit order';
-  static const String confirmNow = 'Confirm now';
-  static const String orderSummary = 'Order summary';
-  static const String orderTotalLabel = 'Order total';
-  static const String deliverToLabel = 'DELIVER TO';
-  static const String arrivesInLabel = 'ARRIVES IN';
-  static const String paymentLabel = 'PAYMENT';
-  static const String edit = 'Edit';
-  static const String changeAddress = 'Change address';
-  static const String deliveryAddress = 'Delivery address';
-  static const String chooseWhereToDeliver = 'Choose where to deliver';
-  static const String useCurrentLocation = 'Use current location';
-  static const String detectGpsLocation = 'Detect my GPS location';
-  static const String savedAddresses = 'Saved addresses';
-  static const String addNewAddress = '+ Add new address';
-  static const String deliverHere = 'Deliver here';
-  static const String startNewCartTitle = 'Start a new cart?';
-  static const String startNewCartBody =
-      'Your cart has items from The Green Kitchen. Adding from Burger Boss will clear your current cart.';
-  static const String startNewCart = 'Start new cart';
-  static const String keepCurrentCart = 'Keep current cart';
-  static const String setYourLocation = 'Set your location';
-  static const String moveMapPin = 'Move the map to drop your pin';
-  static const String searchAreaHint = 'Search area, street or landmark...';
-  static const String confirmLocation = 'Confirm location';
-  static const String detectedLocationLabel = 'DETECTED LOCATION';
-  static const String addNewAddressTitle = 'Add new address';
-  static const String savePlaceSubtitle = 'Save a place for faster checkout';
-  static const String addressLabel = 'Address label';
-  static const String areaBlock = 'Area / Block';
-  static const String road = 'Road';
-  static const String building = 'Building';
-  static const String flatFloor = 'Flat / Floor';
-  static const String additionalDirections = 'Additional Directions';
-  static const String locationPhotos = 'Location photos · Optional';
-  static const String locationPhotosHint =
-      'Add photos of the entrance, gate or a landmark to help the champ find you.';
-  static const String addPhoto = 'Add photo';
-  static const String phoneNumber = 'Phone number';
-  static const String saveAddress = 'Save address';
-  static const String outOfRangeTitle = 'Out of range for this vendor';
+  static String get checkout => L10n.tr('Checkout');
+  static String get reviewConfirm => L10n.tr('Review & confirm');
+  static String get deliveryDetails => L10n.tr('Delivery details');
+  static String get dropOffPreferences => L10n.tr('Drop-off preferences');
+  static String get tipYourChamp => L10n.tr('Tip your champ');
+  static String get paymentMethod => L10n.tr('Payment method');
+  static String get billSummary => L10n.tr('Bill summary');
+  static String get placeOrder => L10n.tr('Place order');
+  static String get change => L10n.tr('Change');
+  static String get arrivalEstimate => L10n.tr('15–25 mins');
+  static String get arrivesIn => L10n.tr('Arrives in 15–25 mins');
+  static String get tipChampSubtitle => L10n.tr('100% goes straight to your champ');
+  static String get saveDropOffForAddress => L10n.tr('Save these for this address');
+  static String get pciProtected => L10n.tr('Protected by PCI Data Security Standard');
+  static String get walletComboNote => L10n.tr('You can pay with any method and use your Yjeek Wallet balance together.');
+  static String get sendingOrder => L10n.tr('Sending your order');
+  static String get autoConfirmHint => L10n.tr('Auto-confirms in 10 seconds. You can still edit or cancel before then.');
+  static String get editOrder => L10n.tr('Edit order');
+  static String get confirmNow => L10n.tr('Confirm now');
+  static String get orderSummary => L10n.tr('Order summary');
+  static String get orderTotalLabel => L10n.tr('Order total');
+  static String get deliverToLabel => L10n.tr('DELIVER TO');
+  static String get arrivesInLabel => L10n.tr('ARRIVES IN');
+  static String get paymentLabel => L10n.tr('PAYMENT');
+  static String get edit => L10n.tr('Edit');
+  static String get changeAddress => L10n.tr('Change address');
+  static String get deliveryAddress => L10n.tr('Delivery address');
+  static String get chooseWhereToDeliver => L10n.tr('Choose where to deliver');
+  static String get useCurrentLocation => L10n.tr('Use current location');
+  static String get detectGpsLocation => L10n.tr('Detect my GPS location');
+  static String get savedAddresses => L10n.tr('Saved addresses');
+  static String get addNewAddress => L10n.tr('+ Add new address');
+  static String get deliverHere => L10n.tr('Deliver here');
+  static String get startNewCartTitle => L10n.tr('Start a new cart?');
+  static String get startNewCartBody => L10n.tr('Your cart has items from The Green Kitchen. Adding from Burger Boss will clear your current cart.');
+  static String get startNewCart => L10n.tr('Start new cart');
+  static String get keepCurrentCart => L10n.tr('Keep current cart');
+  static String get setYourLocation => L10n.tr('Set your location');
+  static String get moveMapPin => L10n.tr('Move the map to drop your pin');
+  static String get searchAreaHint => L10n.tr('Search area, street or landmark...');
+  static String get confirmLocation => L10n.tr('Confirm location');
+  static String get detectedLocationLabel => L10n.tr('DETECTED LOCATION');
+  static String get addNewAddressTitle => L10n.tr('Add new address');
+  static String get savePlaceSubtitle => L10n.tr('Save a place for faster checkout');
+  static String get addressLabel => L10n.tr('Address label');
+  static String get areaBlock => L10n.tr('Area / Block');
+  static String get road => L10n.tr('Road');
+  static String get building => L10n.tr('Building');
+  static String get flatFloor => L10n.tr('Flat / Floor');
+  static String get additionalDirections => L10n.tr('Additional Directions');
+  static String get locationPhotos => L10n.tr('Location photos · Optional');
+  static String get locationPhotosHint => L10n.tr('Add photos of the entrance, gate or a landmark to help the champ find you.');
+  static String get addPhoto => L10n.tr('Add photo');
+  static String get phoneNumber => L10n.tr('Phone number');
+  static String get saveAddress => L10n.tr('Save address');
+  static String get outOfRangeTitle => L10n.tr('Out of range for this vendor');
   static const String outOfRangeBody =
       "We can't deliver to that location yet. Try another address or check back soon.";
-  static const String chooseAnotherAddress = 'Choose another address';
-  static const String editAddress = 'Edit address';
-  static const String updatePlaceSubtitle = 'Update this saved place';
-  static const String deleteAddress = 'Delete address';
-  static const String saveChanges = 'Save changes';
-  static const String deleteAddressTitle = 'Delete this address?';
+  static String get chooseAnotherAddress => L10n.tr('Choose another address');
+  static String get editAddress => L10n.tr('Edit address');
+  static String get updatePlaceSubtitle => L10n.tr('Update this saved place');
+  static String get deleteAddress => L10n.tr('Delete address');
+  static String get saveChanges => L10n.tr('Save changes');
+  static String get deleteAddressTitle => L10n.tr('Delete this address?');
   static const String deleteAddressBody =
       "Are you sure you want to delete 'Home · Adliya'? This action can't be undone.";
-  static const String cancel = 'Cancel';
-  static const String delete = 'Delete';
-  static const String zoodTitle = 'Join the Zood waiting list?';
-  static const String zoodSubtitle =
-      'Get early access to member discounts, cashback and exclusive offers — before everyone else.';
-  static const String zoodJoin = 'Yes, join the list';
-  static const String zoodNotNow = 'Not now';
-  static const String zoodBanner =
-      'Save more on every order with Zood — join the waiting list';
-  static const String zoodPromoTitle = 'Join Zood and save on every order';
-  static const String zoodPromoHint = 'Be first on the Zood waiting list';
-  static const String zoodJoinWaitingList = 'Join waiting list';
-  static const String zoodBadge = '✦ Zood';
-  static const String cashbackBanner = '2% cashback to your Yjeek Wallet';
-  static const String addNewCard = 'Add new card';
-  static const String customTip = 'Custom';
-  static const String standardDelivery = '15–25 min · Standard';
-  static const String cashOnDelivery = 'Cash on delivery';
+  static String get cancel => L10n.tr('Cancel');
+  static String get delete => L10n.tr('Delete');
+  static String get zoodTitle => L10n.tr('Join the Zood waiting list?');
+  static String get zoodSubtitle => L10n.tr('Get early access to member discounts, cashback and exclusive offers — before everyone else.');
+  static String get zoodJoin => L10n.tr('Yes, join the list');
+  static String get zoodNotNow => L10n.tr('Not now');
+  static String get zoodBanner => L10n.tr('Save more on every order with Zood — join the waiting list');
+  static String get zoodPromoTitle => L10n.tr('Join Zood and save on every order');
+  static String get zoodPromoHint => L10n.tr('Be first on the Zood waiting list');
+  static String get zoodJoinWaitingList => L10n.tr('Join waiting list');
+  static String get zoodBadge => L10n.tr('✦ Zood');
+  static String get cashbackBanner => L10n.tr('2% cashback to your Yjeek Wallet');
+  static String get addNewCard => L10n.tr('Add new card');
+  static String get customTip => L10n.tr('Custom');
+  static String get standardDelivery => L10n.tr('15–25 min · Standard');
+  static String get cashOnDelivery => L10n.tr('Cash on delivery');
 }
 
 class CartDeliveryAddress {
@@ -150,26 +144,25 @@ class TipOption {
 }
 
 class ZoodBenefit {
-  const ZoodBenefit({required this.emoji, required this.text});
+  ZoodBenefit({required this.emoji, required this.text});
 
   final String emoji;
   final String text;
 }
 
 abstract final class CartFlowData {
-  static const String vendor = NavigationData.cartVendor;
-  static const String orderTotal = 'BHD 2.110';
-  static const String itemName = NavigationData.cartItemName;
-  static const String itemPrice = NavigationData.cartItemPrice;
-  static const String addonItemName = 'Honey Chocolate Chips';
-  static const String addonItemPrice = 'BHD 0.500';
-  static const String selectedAddress = 'Apartment · Seef';
-  static const String reviewAddressLine = 'Apartment · Seef · Road 6055';
-  static const String selectedAddressDetail = 'Road 6000, Bldg 23, Flat 82';
-  static const String detectedLocation = 'Seef · Bahrain';
-  static const String detectedLocationDetail =
-      'Road 6000, Block 428 · near City Centre';
-  static const String userPhone = '+973 3558 0000';
+  static String vendor = NavigationData.cartVendor;
+  static String get orderTotal => L10n.tr('BHD 2.110');
+  static String itemName = NavigationData.cartItemName;
+  static String itemPrice = NavigationData.cartItemPrice;
+  static String get addonItemName => L10n.tr('Honey Chocolate Chips');
+  static String get addonItemPrice => L10n.tr('BHD 0.500');
+  static String get selectedAddress => L10n.tr('Apartment · Seef');
+  static String get reviewAddressLine => L10n.tr('Apartment · Seef · Road 6055');
+  static String get selectedAddressDetail => L10n.tr('Road 6000, Bldg 23, Flat 82');
+  static String get detectedLocation => L10n.tr('Seef · Bahrain');
+  static String get detectedLocationDetail => L10n.tr('Road 6000, Block 428 · near City Centre');
+  static String get userPhone => L10n.tr('+973 3558 0000');
 
   static const List<BillLine> billLines = NavigationData.cartBillLines;
 
@@ -234,14 +227,14 @@ abstract final class CartFlowData {
     ),
   ];
 
-  static const List<TipOption> tipOptions = [
+  static final List<TipOption> tipOptions = [
     TipOption(label: 'BHD 0.300', amount: 0.3),
     TipOption(label: 'BHD 0.600', amount: 0.6),
     TipOption(label: 'BHD 1', amount: 1),
     TipOption(label: CartFlowStrings.customTip),
   ];
 
-  static const List<PaymentOption> paymentOptions = [
+  static final List<PaymentOption> paymentOptions = [
     PaymentOption(
       id: 'benefitpay',
       label: 'BenefitPay',
@@ -280,9 +273,9 @@ abstract final class CartFlowData {
     ),
   ];
 
-  static const List<String> addressLabels = ['Home', 'Work', 'Apartment', 'Other'];
+  static final List<String> addressLabels = ['Home', 'Work', 'Apartment', 'Other'];
 
-  static const List<ZoodBenefit> zoodBenefits = [
+  static final List<ZoodBenefit> zoodBenefits = [
     ZoodBenefit(emoji: '🏷️', text: 'Up to 25% off every order'),
     ZoodBenefit(emoji: '💰', text: '5% cashback to your Wallet'),
     ZoodBenefit(emoji: '✨', text: 'Members-only offers & deals'),

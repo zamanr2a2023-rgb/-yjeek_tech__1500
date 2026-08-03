@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:yjeek_app/core/constants/app_assets.dart';
 import 'package:yjeek_app/features/navigation/model/navigation_data.dart';
+import 'package:yjeek_app/l10n/l10n.dart';
 
 enum DineInPrepMode { prepareNow, prepareOnArrival }
 
@@ -39,71 +40,65 @@ class DineInComboItem {
 }
 
 abstract final class DineInCartStrings {
-  static const String basket = 'Dine-in basket';
-  static const String checkout = 'Dine-in checkout';
-  static const String reviewConfirm = 'Review & confirm';
-  static const String yourItems = 'Your items';
-  static const String makeItCombo = 'Make it a combo';
-  static const String promoCode = 'Enter promo code';
-  static const String dineInPreferences = 'Dine-in preferences';
-  static const String partySize = 'Party size';
-  static const String seating = 'Seating';
-  static const String indoor = 'Indoor';
-  static const String outdoor = 'Outdoor';
-  static const String any = 'Any';
-  static const String specialOccasion = 'Special occasion setup';
-  static const String specialOccasionHint =
-      'Candles & a little surprise on the table.';
-  static const String noteForKitchen = 'Note for the kitchen';
-  static const String noteForKitchenHint = 'Allergies, seating, less spicy…';
-  static const String addMore = 'Add more';
-  static const String checkoutBtn = 'Checkout';
-  static const String diningOption = 'How would you like to dine?';
-  static const String prepareNow = 'Prepare now';
-  static const String prepareNowHint = 'Kitchen starts now. Table ready in ~1 hour.';
-  static const String prepareOnArrival = 'Prepare on arrival';
-  static const String prepareOnArrivalHint =
-      'Choose your time. Kitchen starts on check-in.';
-  static const String tableReadyLabel = 'Table ready';
-  static const String tableReadyValue = 'in ~1 hour';
-  static const String tableReadyIn = 'Table ready in ~1 hour';
-  static const String prepareNowBanner =
-      'Your table will be ready about 1 hour after you pay.';
-  static const String dineInTime = 'Dine-in time';
-  static const String arrivalBanner =
-      'Arrive within 1 hour of your time, or the order auto-cancels.';
-  static const String paymentMethod = 'Payment method';
-  static const String walletComboNote =
-      'You can pay with any method and use your Yjeek Wallet balance together.';
-  static const String walletBalance = 'Balance BHD 12.450';
-  static const String billSummary = 'Bill summary';
-  static const String placeOrder = 'Place order';
-  static const String sendingOrder = 'Sending your dine-in order to VEERA';
-  static const String autoConfirmHint =
-      'Auto-confirms in 10 seconds. You can still edit or cancel before then.';
-  static const String orderSummary = 'Order summary';
-  static const String editOrder = 'Edit order';
-  static const String confirmNow = 'Confirm now';
-  static const String restaurant = 'Restaurant';
-  static const String items = 'Items';
-  static const String diningOptionLabel = 'Dining option';
-  static const String time = 'Time';
-  static const String payment = 'Payment';
-  static const String orderTotal = 'Order total';
-  static const String payPrepNow = 'Pay & prep now';
-  static const String yjeekWallet = 'Yjeek Wallet';
-  static const String deliveryDineIn = 'Dine-in';
-  static const String submit = 'Submit';
+  static String get basket => L10n.tr('Dine-in basket');
+  static String get checkout => L10n.tr('Dine-in checkout');
+  static String get reviewConfirm => L10n.tr('Review & confirm');
+  static String get yourItems => L10n.tr('Your items');
+  static String get makeItCombo => L10n.tr('Make it a combo');
+  static String get promoCode => L10n.tr('Enter promo code');
+  static String get dineInPreferences => L10n.tr('Dine-in preferences');
+  static String get partySize => L10n.tr('Party size');
+  static String get seating => L10n.tr('Seating');
+  static String get indoor => L10n.tr('Indoor');
+  static String get outdoor => L10n.tr('Outdoor');
+  static String get any => L10n.tr('Any');
+  static String get specialOccasion => L10n.tr('Special occasion setup');
+  static String get specialOccasionHint => L10n.tr('Candles & a little surprise on the table.');
+  static String get noteForKitchen => L10n.tr('Note for the kitchen');
+  static String get noteForKitchenHint => L10n.tr('Allergies, seating, less spicy…');
+  static String get addMore => L10n.tr('Add more');
+  static String get checkoutBtn => L10n.tr('Checkout');
+  static String get diningOption => L10n.tr('How would you like to dine?');
+  static String get prepareNow => L10n.tr('Prepare now');
+  static String get prepareNowHint => L10n.tr('Kitchen starts now. Table ready in ~1 hour.');
+  static String get prepareOnArrival => L10n.tr('Prepare on arrival');
+  static String get prepareOnArrivalHint => L10n.tr('Choose your time. Kitchen starts on check-in.');
+  static String get tableReadyLabel => L10n.tr('Table ready');
+  static String get tableReadyValue => L10n.tr('in ~1 hour');
+  static String get tableReadyIn => L10n.tr('Table ready in ~1 hour');
+  static String get prepareNowBanner => L10n.tr('Your table will be ready about 1 hour after you pay.');
+  static String get dineInTime => L10n.tr('Dine-in time');
+  static String get arrivalBanner => L10n.tr('Arrive within 1 hour of your time, or the order auto-cancels.');
+  static String get paymentMethod => L10n.tr('Payment method');
+  static String get walletComboNote => L10n.tr('You can pay with any method and use your Yjeek Wallet balance together.');
+  static String get walletBalance => L10n.tr('Balance BHD 12.450');
+  static String get billSummary => L10n.tr('Bill summary');
+  static String get placeOrder => L10n.tr('Place order');
+  static String get sendingOrder => L10n.tr('Sending your dine-in order to VEERA');
+  static String get autoConfirmHint => L10n.tr('Auto-confirms in 10 seconds. You can still edit or cancel before then.');
+  static String get orderSummary => L10n.tr('Order summary');
+  static String get editOrder => L10n.tr('Edit order');
+  static String get confirmNow => L10n.tr('Confirm now');
+  static String get restaurant => L10n.tr('Restaurant');
+  static String get items => L10n.tr('Items');
+  static String get diningOptionLabel => L10n.tr('Dining option');
+  static String get time => L10n.tr('Time');
+  static String get payment => L10n.tr('Payment');
+  static String get orderTotal => L10n.tr('Order total');
+  static String get payPrepNow => L10n.tr('Pay & prep now');
+  static String get yjeekWallet => L10n.tr('Yjeek Wallet');
+  static String get deliveryDineIn => L10n.tr('Dine-in');
+  static String get submit => L10n.tr('Submit');
 }
 
 abstract final class DineInCartData {
-  static const String vendor = 'VEERA';
-  static const String location = 'Adliya';
-  static const String vendorSubtitle = 'VEERA · Adliya';
-  static const String vendorFull = 'VEERA · ADLIYA · DINE-IN';
-  static const String orderTotal = 'BHD 20.500';
-  static const String dineInTime = 'Today · 19:30';
-  static const String checkoutSubtitle = 'VEERA · Adliya · Today 19:30';
+  static String get vendor => L10n.tr('VEERA');
+  static String get location => L10n.tr('Adliya');
+  static String get vendorSubtitle => L10n.tr('VEERA · Adliya');
+  static String get vendorFull => L10n.tr('VEERA · ADLIYA · DINE-IN');
+  static String get orderTotal => L10n.tr('BHD 20.500');
+  static String get dineInTime => L10n.tr('Today · 19:30');
+  static String get checkoutSubtitle => L10n.tr('VEERA · Adliya · Today 19:30');
   static const int defaultPartySize = 2;
   static const int minPartySize = 1;
   static const int maxPartySize = 12;
@@ -150,7 +145,7 @@ abstract final class DineInCartData {
     ),
   ];
 
-  static const String cashbackAmount = '+ BHD 0.615';
+  static String get cashbackAmount => L10n.tr('+ BHD 0.615');
 
   static const List<BillLine> billLines = [
     BillLine(label: 'Subtotal', value: 'BHD 23.500'),
@@ -159,7 +154,7 @@ abstract final class DineInCartData {
     BillLine(label: 'Order total', value: 'BHD 20.500', isBold: true),
   ];
 
-  static const List<PaymentOption> paymentOptions = [
+  static final List<PaymentOption> paymentOptions = [
     PaymentOption(
       id: 'benefitpay',
       label: 'BenefitPay',

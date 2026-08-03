@@ -87,7 +87,7 @@ class BrowseTopBar extends StatelessWidget {
   }
 }
 
-class BrowseSearchBar extends StatelessWidget {
+class BrowseSearchBar extends StatefulWidget {
   const BrowseSearchBar({
     super.key,
     required this.hint,
@@ -96,6 +96,7 @@ class BrowseSearchBar extends StatelessWidget {
     this.onChanged,
     this.showCancel = false,
     this.onCancel,
+    this.autofocus,
   });
 
   final String hint;
@@ -104,6 +105,41 @@ class BrowseSearchBar extends StatelessWidget {
   final ValueChanged<String>? onChanged;
   final bool showCancel;
   final VoidCallback? onCancel;
+  final bool? autofocus;
+
+  @override
+  State<BrowseSearchBar> createState() => _BrowseSearchBarState();
+}
+
+class _BrowseSearchBarState extends State<BrowseSearchBar> {
+  late final TextEditingController _controller;
+  late final FocusNode _focusNode;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.value ?? '');
+    _focusNode = FocusNode();
+  }
+
+  @override
+  void didUpdateWidget(BrowseSearchBar oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final next = widget.value ?? '';
+    if (widget.value != oldWidget.value && _controller.text != next) {
+      _controller.value = TextEditingValue(
+        text: next,
+        selection: TextSelection.collapsed(offset: next.length),
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    _controller.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -120,32 +156,38 @@ class BrowseSearchBar extends StatelessWidget {
           Icon(Icons.search, size: 16.sp, color: const Color(0xFF6B756E)),
           SizedBox(width: 8.w),
           Expanded(
-            child: onChanged != null
+            child: widget.onChanged != null
                 ? TextField(
-                    autofocus: true,
-                    controller: value != null
-                        ? TextEditingController(text: value)
-                        : null,
-                    onChanged: onChanged,
+                    autofocus: widget.autofocus ?? true,
+                    controller: _controller,
+                    focusNode: _focusNode,
+                    onChanged: widget.onChanged,
                     style: AppTextStyles.bodyMedium(
                       color: AppColors.textPrimary,
                     ).copyWith(fontSize: 13.sp),
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
+                      hintText: widget.hint,
+                      hintStyle: AppTextStyles.bodySmall(
+                        color: const Color(0xFF6B756E),
+                      ).copyWith(fontSize: 13.sp, height: 16 / 13),
                       border: InputBorder.none,
                       isDense: true,
                       contentPadding: EdgeInsets.zero,
                     ),
                   )
                 : Text(
-                    hint,
+                    widget.hint,
                     style: AppTextStyles.bodySmall(
                       color: const Color(0xFF6B756E),
                     ).copyWith(fontSize: 13.sp, height: 16 / 13),
                   ),
           ),
-          if (value != null && value!.isNotEmpty)
+          if (widget.value != null && widget.value!.isNotEmpty)
             GestureDetector(
-              onTap: () => onChanged?.call(''),
+              onTap: () {
+                _controller.clear();
+                widget.onChanged?.call('');
+              },
               child: Icon(
                 Icons.close,
                 size: 18.sp,
@@ -159,14 +201,14 @@ class BrowseSearchBar extends StatelessWidget {
     return Row(
       children: [
         Expanded(
-          child: onTap != null
-              ? GestureDetector(onTap: onTap, child: child)
+          child: widget.onTap != null
+              ? GestureDetector(onTap: widget.onTap, child: child)
               : child,
         ),
-        if (showCancel) ...[
+        if (widget.showCancel) ...[
           SizedBox(width: 10.w),
           GestureDetector(
-            onTap: onCancel,
+            onTap: widget.onCancel,
             child: Text(
               'Cancel',
               style: AppTextStyles.labelMedium(
@@ -702,14 +744,20 @@ class BrowseOrderAgainRow extends StatelessWidget {
     super.key,
     this.onSeeAll,
     this.brands,
+    this.onBrandTap,
   });
 
   final VoidCallback? onSeeAll;
-  final List<(String, Color)>? brands;
+  /// (name, color, vendorId?)
+  final List<(String, Color, String?)>? brands;
+  final void Function(String? vendorId, String name)? onBrandTap;
 
   @override
   Widget build(BuildContext context) {
-    final items = brands ?? BrowseData.orderAgainBrands;
+    final items = brands ??
+        BrowseData.orderAgainBrands
+            .map<(String, Color, String?)>((e) => (e.$1, e.$2, null))
+            .toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -752,52 +800,55 @@ class BrowseOrderAgainRow extends StatelessWidget {
                 itemCount: items.length,
                 separatorBuilder: (_, _) => SizedBox(width: 16.w),
                 itemBuilder: (context, index) {
-                  final (name, color) = items[index];
+                  final (name, color, vendorId) = items[index];
                   final initial = name.isNotEmpty ? name[0] : '';
-                  return SizedBox(
-                    width: circleSize,
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          width: circleSize,
-                          height: circleSize,
-                          decoration: BoxDecoration(
-                            color: color,
-                            shape: BoxShape.circle,
-                            border: Border.all(color: const Color(0xFFE2E8DD)),
+                  return GestureDetector(
+                    onTap: () => onBrandTap?.call(vendorId, name),
+                    child: SizedBox(
+                      width: circleSize,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: circleSize,
+                            height: circleSize,
+                            decoration: BoxDecoration(
+                              color: color,
+                              shape: BoxShape.circle,
+                              border: Border.all(color: const Color(0xFFE2E8DD)),
+                            ),
+                            alignment: Alignment.center,
+                            child: Text(
+                              initial,
+                              style:
+                                  AppTextStyles.labelMedium(
+                                    color: AppColors.white,
+                                  ).copyWith(
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 18.sp,
+                                  ),
+                            ),
                           ),
-                          alignment: Alignment.center,
-                          child: Text(
-                            initial,
-                            style:
-                                AppTextStyles.labelMedium(
-                                  color: AppColors.white,
-                                ).copyWith(
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 18.sp,
-                                ),
+                          SizedBox(height: gap),
+                          SizedBox(
+                            height: labelHeight,
+                            child: Text(
+                              name,
+                              textAlign: TextAlign.center,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style:
+                                  AppTextStyles.caption(
+                                    color: AppColors.textPrimary,
+                                  ).copyWith(
+                                    fontWeight: FontWeight.w500,
+                                    fontSize: 11.sp,
+                                    height: 1.0,
+                                  ),
+                            ),
                           ),
-                        ),
-                        SizedBox(height: gap),
-                        SizedBox(
-                          height: labelHeight,
-                          child: Text(
-                            name,
-                            textAlign: TextAlign.center,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style:
-                                AppTextStyles.caption(
-                                  color: AppColors.textPrimary,
-                                ).copyWith(
-                                  fontWeight: FontWeight.w500,
-                                  fontSize: 11.sp,
-                                  height: 1.0,
-                                ),
-                          ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   );
                 },
@@ -894,7 +945,7 @@ class BrowseVendorHero extends StatelessWidget {
                     ),
                     SizedBox(width: 4.w),
                     Text(
-                      '${restaurant.rating} (2.5k)',
+                      '${restaurant.rating} (${restaurant.reviewCount})',
                       style: AppTextStyles.labelSmall(color: AppColors.white)
                           .copyWith(
                             fontWeight: FontWeight.w700,
@@ -1014,12 +1065,23 @@ class BrowseMenuItemRow extends StatelessWidget {
 }
 
 class BrowseCartBar extends StatelessWidget {
-  const BrowseCartBar({super.key, this.onTap});
+  const BrowseCartBar({
+    super.key,
+    this.onTap,
+    this.itemCount,
+    this.totalLabel,
+  });
 
   final VoidCallback? onTap;
+  final int? itemCount;
+  final String? totalLabel;
 
   @override
   Widget build(BuildContext context) {
+    final count = itemCount ?? BrowseData.cartItemCount;
+    final total = totalLabel ?? BrowseData.cartTotal;
+    if (count <= 0) return const SizedBox.shrink();
+
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
@@ -1039,7 +1101,7 @@ class BrowseCartBar extends StatelessWidget {
                 borderRadius: BorderRadius.circular(8.r),
               ),
               child: Text(
-                '${BrowseData.cartItemCount}',
+                '$count',
                 style: AppTextStyles.labelSmall(color: AppColors.white)
                     .copyWith(
                       fontWeight: FontWeight.w700,
@@ -1059,7 +1121,7 @@ class BrowseCartBar extends StatelessWidget {
             ),
             const Spacer(),
             Text(
-              'BHD ${BrowseData.cartTotal}',
+              'BHD $total',
               style: AppTextStyles.labelMedium(color: AppColors.white).copyWith(
                 fontWeight: FontWeight.w700,
                 fontSize: 16.sp,

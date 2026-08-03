@@ -4,10 +4,18 @@ import 'package:flutter/material.dart';
 import 'package:yjeek_app/core/constants/app_colors.dart';
 import 'package:yjeek_app/core/constants/app_text_styles.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
+import 'package:yjeek_app/features/navigation/model/navigation_data.dart';
 import 'package:yjeek_app/features/scheduled_order_flow/model/scheduled_order_flow_data.dart';
 
 class ScheduledWaitingTimer extends StatelessWidget {
-  const ScheduledWaitingTimer({super.key});
+  const ScheduledWaitingTimer({
+    super.key,
+    this.label,
+    this.progress,
+  });
+
+  final String? label;
+  final double? progress;
 
   @override
   Widget build(BuildContext context) {
@@ -30,7 +38,7 @@ class ScheduledWaitingTimer extends StatelessWidget {
             width: 108.w,
             height: 108.w,
             child: CircularProgressIndicator(
-              value: 0.72,
+              value: progress ?? 0.72,
               strokeWidth: 7,
               backgroundColor: const Color(0xFFDBE6D4),
               color: const Color(0xFF4CAF50),
@@ -38,7 +46,7 @@ class ScheduledWaitingTimer extends StatelessWidget {
             ),
           ),
           Text(
-            '~3m',
+            label ?? '~3m',
             style: AppTextStyles.titleMedium(
               color: const Color(0xFF4CAF50),
             ).copyWith(
@@ -132,7 +140,14 @@ class ScheduledSecureBanner extends StatelessWidget {
 }
 
 class ScheduledOrderSummaryRow extends StatelessWidget {
-  const ScheduledOrderSummaryRow({super.key});
+  const ScheduledOrderSummaryRow({
+    super.key,
+    this.summary,
+    this.total,
+  });
+
+  final String? summary;
+  final String? total;
 
   @override
   Widget build(BuildContext context) {
@@ -149,7 +164,7 @@ class ScheduledOrderSummaryRow extends StatelessWidget {
         children: [
           Expanded(
             child: Text(
-              ScheduledOrderFlowData.waitingSummary,
+              summary ?? '—',
               style: AppTextStyles.labelSmall(color: const Color(0xFF6B7B6E)).copyWith(
                 fontWeight: FontWeight.w500,
                 fontSize: 13.sp,
@@ -158,7 +173,7 @@ class ScheduledOrderSummaryRow extends StatelessWidget {
             ),
           ),
           Text(
-            ScheduledOrderFlowData.payTotal,
+            total ?? '—',
             style: AppTextStyles.labelMedium(color: const Color(0xFF1A1A1A)).copyWith(
               fontWeight: FontWeight.w700,
               fontSize: 14.sp,
@@ -172,11 +187,16 @@ class ScheduledOrderSummaryRow extends StatelessWidget {
 }
 
 class ScheduledAcceptedBanner extends StatelessWidget {
-  const ScheduledAcceptedBanner({super.key});
+  const ScheduledAcceptedBanner({super.key, this.vendorName});
+
+  final String? vendorName;
 
   @override
   Widget build(BuildContext context) {
     // Figma: #D9EFE0 · radius 14 · check disc #4CAF50.
+    final label = vendorName != null && vendorName!.isNotEmpty
+        ? '$vendorName accepted!'
+        : ScheduledOrderFlowStrings.vendorAccepted;
     return Container(
       width: double.infinity,
       padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
@@ -199,7 +219,7 @@ class ScheduledAcceptedBanner extends StatelessWidget {
           SizedBox(width: 10.w),
           Expanded(
             child: Text(
-              ScheduledOrderFlowStrings.vendorAccepted,
+              label,
               style: AppTextStyles.labelMedium(color: const Color(0xFF0F4D27)).copyWith(
                 fontWeight: FontWeight.w700,
                 fontSize: 13.5.sp,
@@ -341,7 +361,14 @@ class _PayCountdownRingPainter extends CustomPainter {
 }
 
 class ScheduledPayMethodCard extends StatelessWidget {
-  const ScheduledPayMethodCard({super.key});
+  const ScheduledPayMethodCard({
+    super.key,
+    this.methodLabel,
+    this.onChange,
+  });
+
+  final String? methodLabel;
+  final VoidCallback? onChange;
 
   @override
   Widget build(BuildContext context) {
@@ -376,7 +403,8 @@ class ScheduledPayMethodCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(9.r),
                 ),
                 alignment: Alignment.center,
-                child: Icon(Icons.apple, size: 20.sp, color: const Color(0xFF0F4D27)),
+                child: Icon(Icons.account_balance_wallet_outlined,
+                    size: 20.sp, color: const Color(0xFF0F4D27)),
               ),
               SizedBox(width: 12.w),
               Expanded(
@@ -384,7 +412,7 @@ class ScheduledPayMethodCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      ScheduledOrderFlowStrings.applePay,
+                      methodLabel ?? ScheduledOrderFlowStrings.applePay,
                       style: AppTextStyles.labelMedium(
                         color: const Color(0xFF1A1A1A),
                       ).copyWith(
@@ -407,12 +435,15 @@ class ScheduledPayMethodCard extends StatelessWidget {
                   ],
                 ),
               ),
-              Text(
-                ScheduledOrderFlowStrings.change,
-                style: AppTextStyles.labelSmall(color: const Color(0xFF4CAF50)).copyWith(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 13.sp,
-                  height: 1.32,
+              GestureDetector(
+                onTap: onChange,
+                child: Text(
+                  ScheduledOrderFlowStrings.change,
+                  style: AppTextStyles.labelSmall(color: const Color(0xFF4CAF50)).copyWith(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13.sp,
+                    height: 1.32,
+                  ),
                 ),
               ),
             ],
@@ -424,7 +455,18 @@ class ScheduledPayMethodCard extends StatelessWidget {
 }
 
 class ScheduledPayBreakdownCard extends StatelessWidget {
-  const ScheduledPayBreakdownCard({super.key});
+  const ScheduledPayBreakdownCard({
+    super.key,
+    this.subtotal,
+    this.delivery,
+    this.deliveryLabel,
+    this.total,
+  });
+
+  final String? subtotal;
+  final String? delivery;
+  final String? deliveryLabel;
+  final String? total;
 
   @override
   Widget build(BuildContext context) {
@@ -438,15 +480,18 @@ class ScheduledPayBreakdownCard extends StatelessWidget {
       ),
       child: Column(
         children: [
-          _row(ScheduledOrderFlowStrings.subtotal, ScheduledOrderFlowData.paySubtotal),
           _row(
-            ScheduledOrderFlowStrings.sameDayDelivery,
-            ScheduledOrderFlowData.payDelivery,
+            ScheduledOrderFlowStrings.subtotal,
+            subtotal ?? '—',
+          ),
+          _row(
+            deliveryLabel ?? ScheduledOrderFlowStrings.sameDayDelivery,
+            delivery ?? '—',
           ),
           Divider(height: 16.h, thickness: 1, color: const Color(0xFFE2E8DD)),
           _row(
             ScheduledOrderFlowStrings.totalToPay,
-            ScheduledOrderFlowData.payTotal,
+            total ?? '—',
             bold: true,
           ),
         ],
@@ -489,10 +534,12 @@ class ScheduledPayStickyFooter extends StatelessWidget {
     super.key,
     required this.timerLabel,
     required this.onPay,
+    this.payAmount,
   });
 
   final String timerLabel;
   final VoidCallback onPay;
+  final String? payAmount;
 
   @override
   Widget build(BuildContext context) {
@@ -543,7 +590,7 @@ class ScheduledPayStickyFooter extends StatelessWidget {
                 ),
                 alignment: Alignment.center,
                 child: Text(
-                  '${ScheduledOrderFlowStrings.pay} ${ScheduledOrderFlowData.payTotal}',
+                  '${ScheduledOrderFlowStrings.pay} ${payAmount ?? '—'}',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: AppTextStyles.labelMedium(color: AppColors.white).copyWith(
@@ -585,7 +632,20 @@ class ScheduledConfirmedIcon extends StatelessWidget {
 }
 
 class ScheduledOrderDetailsCard extends StatelessWidget {
-  const ScheduledOrderDetailsCard({super.key});
+  const ScheduledOrderDetailsCard({
+    super.key,
+    this.orderNumber,
+    this.items,
+    this.delivery,
+    this.payment,
+    this.total,
+  });
+
+  final String? orderNumber;
+  final String? items;
+  final String? delivery;
+  final String? payment;
+  final String? total;
 
   @override
   Widget build(BuildContext context) {
@@ -600,17 +660,29 @@ class ScheduledOrderDetailsCard extends StatelessWidget {
       ),
       child: Column(
         children: [
-          _row(ScheduledOrderFlowStrings.orderNumber, ScheduledOrderFlowData.orderId),
-          _row(ScheduledOrderFlowStrings.items, ScheduledOrderFlowData.confirmedItems),
-          _row(ScheduledOrderFlowStrings.delivery, ScheduledOrderFlowData.confirmedDelivery),
-          _row(ScheduledOrderFlowStrings.payment, ScheduledOrderFlowData.confirmedPayment),
+          _row(
+            ScheduledOrderFlowStrings.orderNumber,
+            orderNumber ?? '—',
+          ),
+          _row(
+            ScheduledOrderFlowStrings.items,
+            items ?? '—',
+          ),
+          _row(
+            ScheduledOrderFlowStrings.delivery,
+            delivery ?? '—',
+          ),
+          _row(
+            ScheduledOrderFlowStrings.payment,
+            payment ?? '—',
+          ),
           Padding(
             padding: EdgeInsets.symmetric(vertical: 5.h),
             child: const Divider(height: 1, thickness: 1, color: Color(0xFFE0E6E0)),
           ),
           _row(
             ScheduledOrderFlowStrings.total,
-            ScheduledOrderFlowData.confirmedTotal,
+            total ?? '—',
             bold: true,
           ),
         ],
@@ -653,7 +725,10 @@ class ScheduledOrderDetailsCard extends StatelessWidget {
 }
 
 class ScheduledLiveMapBanner extends StatelessWidget {
-  const ScheduledLiveMapBanner({super.key});
+  const ScheduledLiveMapBanner({super.key, this.label, this.unlocked = false});
+
+  final String? label;
+  final bool unlocked;
 
   @override
   Widget build(BuildContext context) {
@@ -667,11 +742,15 @@ class ScheduledLiveMapBanner extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(Icons.lock_outline_rounded, color: const Color(0xFF3D7BD9), size: 18.sp),
+          Icon(
+            unlocked ? Icons.location_on_outlined : Icons.lock_outline_rounded,
+            color: const Color(0xFF3D7BD9),
+            size: 18.sp,
+          ),
           SizedBox(width: 10.w),
           Expanded(
             child: Text(
-              ScheduledOrderFlowStrings.liveMapHint,
+              label ?? ScheduledOrderFlowStrings.liveMapHint,
               style: AppTextStyles.labelSmall(color: const Color(0xFF1F5B8F)).copyWith(
                 fontWeight: FontWeight.w600,
                 fontSize: 12.5.sp,
@@ -686,7 +765,9 @@ class ScheduledLiveMapBanner extends StatelessWidget {
 }
 
 class ScheduledPackedBanner extends StatelessWidget {
-  const ScheduledPackedBanner({super.key});
+  const ScheduledPackedBanner({super.key, this.label});
+
+  final String? label;
 
   @override
   Widget build(BuildContext context) {
@@ -699,7 +780,7 @@ class ScheduledPackedBanner extends StatelessWidget {
         borderRadius: BorderRadius.circular(12.r),
       ),
       child: Text(
-        ScheduledOrderFlowStrings.packedBanner,
+        label ?? ScheduledOrderFlowStrings.packedBanner,
         style: AppTextStyles.labelMedium(color: const Color(0xFF127036)).copyWith(
           fontWeight: FontWeight.w600,
           fontSize: 13.5.sp,
@@ -800,7 +881,16 @@ class ScheduledStatusTimeline extends StatelessWidget {
 }
 
 class ScheduledStatusSummaryCard extends StatelessWidget {
-  const ScheduledStatusSummaryCard({super.key});
+  const ScheduledStatusSummaryCard({
+    super.key,
+    this.items,
+    this.delivery,
+    this.total,
+  });
+
+  final String? items;
+  final String? delivery;
+  final String? total;
 
   @override
   Widget build(BuildContext context) {
@@ -814,15 +904,21 @@ class ScheduledStatusSummaryCard extends StatelessWidget {
       ),
       child: Column(
         children: [
-          _row(ScheduledOrderFlowStrings.items, ScheduledOrderFlowData.statusItems),
-          _row(ScheduledOrderFlowStrings.delivery, ScheduledOrderFlowData.statusDelivery),
+          _row(
+            ScheduledOrderFlowStrings.items,
+            items ?? '—',
+          ),
+          _row(
+            ScheduledOrderFlowStrings.delivery,
+            delivery ?? '—',
+          ),
           Padding(
             padding: EdgeInsets.symmetric(vertical: 5.h),
             child: const Divider(height: 1, thickness: 1, color: Color(0xFFE0E6E0)),
           ),
           _row(
             ScheduledOrderFlowStrings.orderTotal,
-            ScheduledOrderFlowData.confirmedTotal,
+            total ?? '—',
             bold: true,
           ),
         ],
@@ -862,10 +958,27 @@ class ScheduledStatusSummaryCard extends StatelessWidget {
 }
 
 class ScheduledReceiptPaper extends StatelessWidget {
-  const ScheduledReceiptPaper({super.key});
+  const ScheduledReceiptPaper({
+    super.key,
+    this.badgeLabel,
+    this.vendorName,
+    this.dateLabel,
+    this.items,
+    this.billLines,
+    this.paymentMethod,
+  });
+
+  final String? badgeLabel;
+  final String? vendorName;
+  final String? dateLabel;
+  final List<ScheduledReceiptLine>? items;
+  final List<BillLine>? billLines;
+  final String? paymentMethod;
 
   @override
   Widget build(BuildContext context) {
+    final receiptItems = items ?? const <ScheduledReceiptLine>[];
+    final lines = billLines ?? const <BillLine>[];
     // Figma: white paper · mint ✓ PAID · dashed dividers · flat bill rows (no grey box).
     return Container(
       width: double.infinity,
@@ -889,7 +1002,7 @@ class ScheduledReceiptPaper extends StatelessWidget {
                 Icon(Icons.check, size: 12.sp, color: const Color(0xFF127036)),
                 SizedBox(width: 4.w),
                 Text(
-                  ScheduledOrderFlowStrings.paidBadge,
+                  badgeLabel ?? ScheduledOrderFlowStrings.paidBadge,
                   style: AppTextStyles.caption(color: const Color(0xFF127036)).copyWith(
                     fontWeight: FontWeight.w700,
                     fontSize: 11.sp,
@@ -901,7 +1014,7 @@ class ScheduledReceiptPaper extends StatelessWidget {
           ),
           SizedBox(height: 4.h),
           Text(
-            ScheduledOrderFlowData.receiptVendor,
+            vendorName ?? '—',
             style: AppTextStyles.titleSmall(color: const Color(0xFF1A1A1A)).copyWith(
               fontWeight: FontWeight.w700,
               fontSize: 16.sp,
@@ -910,7 +1023,7 @@ class ScheduledReceiptPaper extends StatelessWidget {
           ),
           SizedBox(height: 4.h),
           Text(
-            ScheduledOrderFlowData.receiptDate,
+            dateLabel ?? '—',
             style: AppTextStyles.caption(color: const Color(0xFF6B756E)).copyWith(
               fontWeight: FontWeight.w400,
               fontSize: 12.sp,
@@ -921,7 +1034,7 @@ class ScheduledReceiptPaper extends StatelessWidget {
             padding: EdgeInsets.symmetric(vertical: 12.h),
             child: _dashedDivider(),
           ),
-          ...ScheduledOrderFlowData.receiptItems.map(
+          ...receiptItems.map(
             (item) => Padding(
               padding: EdgeInsets.only(bottom: 8.h),
               child: Row(
@@ -956,7 +1069,7 @@ class ScheduledReceiptPaper extends StatelessWidget {
             padding: EdgeInsets.symmetric(vertical: 12.h),
             child: _dashedDivider(),
           ),
-          ...ScheduledOrderFlowData.receiptBillLines.map((line) {
+          ...lines.map((line) {
             final isTotal = line.isBold;
             return Padding(
               padding: EdgeInsets.only(bottom: isTotal ? 0 : 8.h),
@@ -1004,7 +1117,7 @@ class ScheduledReceiptPaper extends StatelessWidget {
                 ),
               ),
               Text(
-                'Yjeek Wallet',
+                paymentMethod ?? '—',
                 style: AppTextStyles.labelMedium(color: const Color(0xFF1A1A1A)).copyWith(
                   fontWeight: FontWeight.w500,
                   fontSize: 13.sp,

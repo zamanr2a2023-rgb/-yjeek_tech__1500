@@ -8,13 +8,19 @@ class UserMe {
     required this.profile,
     required this.wallet,
     required this.verification,
+    this.email,
+    this.createdAt,
+    this.phoneVerifiedAt,
   });
 
   final String id;
   final String phone;
   final String countryCode;
+  final String? email;
   final String role;
   final String status;
+  final DateTime? createdAt;
+  final DateTime? phoneVerifiedAt;
   final UserProfile profile;
   final UserWallet wallet;
   final UserVerification verification;
@@ -24,8 +30,12 @@ class UserMe {
       id: json['id']?.toString() ?? '',
       phone: json['phone']?.toString() ?? '',
       countryCode: json['countryCode']?.toString() ?? '',
+      email: json['email']?.toString(),
       role: json['role']?.toString() ?? '',
       status: json['status']?.toString() ?? '',
+      createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? '')?.toLocal(),
+      phoneVerifiedAt:
+          DateTime.tryParse(json['phoneVerifiedAt']?.toString() ?? '')?.toLocal(),
       profile: UserProfile.fromJson(
         (json['profile'] as Map?)?.cast<String, dynamic>() ?? const {},
       ),
@@ -36,6 +46,28 @@ class UserMe {
         (json['verification'] as Map?)?.cast<String, dynamic>() ?? const {},
       ),
     );
+  }
+
+  bool get isPhoneVerified => phoneVerifiedAt != null;
+
+  String get memberSinceLabel {
+    final dt = createdAt;
+    if (dt == null) return '—';
+    const months = [
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
+    ];
+    return '${months[dt.month - 1]} ${dt.year}';
   }
 
   String get displayName {
@@ -83,6 +115,8 @@ class UserProfile {
     this.language = 'en',
     this.country = 'BH',
     this.addressCount = 0,
+    this.dateOfBirth,
+    this.gender,
   });
 
   final String? firstName;
@@ -92,8 +126,15 @@ class UserProfile {
   final String language;
   final String country;
   final int addressCount;
+  final DateTime? dateOfBirth;
+  final String? gender;
 
   factory UserProfile.fromJson(Map<String, dynamic> json) {
+    DateTime? dob;
+    final rawDob = json['dateOfBirth'];
+    if (rawDob != null) {
+      dob = DateTime.tryParse(rawDob.toString())?.toLocal();
+    }
     return UserProfile(
       firstName: json['firstName']?.toString(),
       lastName: json['lastName']?.toString(),
@@ -102,13 +143,45 @@ class UserProfile {
       language: json['language']?.toString() ?? 'en',
       country: json['country']?.toString() ?? 'BH',
       addressCount: (json['addressCount'] as num?)?.toInt() ?? 0,
+      dateOfBirth: dob,
+      gender: json['gender']?.toString(),
     );
+  }
+
+  /// UI label for gender chips.
+  String get genderLabel {
+    return switch ((gender ?? '').toUpperCase()) {
+      'FEMALE' => 'Female',
+      'MALE' => 'Male',
+      'OTHER' => 'Prefer not to say',
+      _ => 'Prefer not to say',
+    };
+  }
+
+  String get dateOfBirthLabel {
+    final dt = dateOfBirth;
+    if (dt == null) return '';
+    const months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
+    return '${dt.day} ${months[dt.month - 1]} ${dt.year}';
   }
 
   String get languageLabel {
     switch (language.toLowerCase()) {
       case 'ar':
-        return 'Arabic';
+        return 'العربية';
       case 'en':
       default:
         return 'English';
@@ -119,6 +192,22 @@ class UserProfile {
     switch (country.toUpperCase()) {
       case 'BH':
         return 'Bahrain';
+      case 'KW':
+        return 'Kuwait';
+      case 'SA':
+        return 'KSA';
+      case 'AE':
+        return 'UAE';
+      case 'OM':
+        return 'Oman';
+      case 'QA':
+        return 'Qatar';
+      case 'JO':
+        return 'Jordan';
+      case 'EG':
+        return 'Egypt';
+      case 'IQ':
+        return 'Iraq';
       default:
         return country;
     }

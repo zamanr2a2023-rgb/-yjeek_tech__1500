@@ -349,18 +349,52 @@ class ServicesToolbar extends StatelessWidget {
     super.key,
     required this.isGridView,
     required this.onViewChanged,
+    this.sort = 'popular',
+    this.onSortChanged,
+    this.offersOnly = false,
+    this.onOffersChanged,
   });
 
   final bool isGridView;
   final ValueChanged<bool> onViewChanged;
+  final String sort;
+  final ValueChanged<String>? onSortChanged;
+  final bool offersOnly;
+  final ValueChanged<bool>? onOffersChanged;
+
+  static const _sortOptions = <(String value, String label)>[
+    ('popular', 'Most Popular'),
+    ('rating', 'Top rated'),
+    ('name', 'Name'),
+  ];
+
+  String get _sortLabel {
+    for (final option in _sortOptions) {
+      if (option.$1 == sort) return option.$2;
+    }
+    return 'Sort';
+  }
 
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
-        _chip('Sort', Icons.swap_vert),
+        PopupMenuButton<String>(
+          initialValue: sort,
+          onSelected: onSortChanged,
+          itemBuilder: (context) => [
+            for (final option in _sortOptions)
+              PopupMenuItem(value: option.$1, child: Text(option.$2)),
+          ],
+          child: _chip(_sortLabel, Icons.swap_vert, active: false),
+        ),
         SizedBox(width: 8.w),
-        _chip('Offers', Icons.local_offer_outlined),
+        GestureDetector(
+          onTap: onOffersChanged == null
+              ? null
+              : () => onOffersChanged!(!offersOnly),
+          child: _chip('Offers', Icons.local_offer_outlined, active: offersOnly),
+        ),
         const Spacer(),
         // Design: bordered 72×34 split (not a filled pill track).
         Container(
@@ -427,23 +461,30 @@ class ServicesToolbar extends StatelessWidget {
     );
   }
 
-  Widget _chip(String label, IconData icon) {
+  Widget _chip(String label, IconData icon, {bool active = false}) {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 7.h),
       decoration: BoxDecoration(
-        color: AppColors.white,
+        color: active ? _ServicesDesign.greenActive : AppColors.white,
         borderRadius: BorderRadius.circular(10.r),
-        border: Border.all(color: _ServicesDesign.cardBorder),
+        border: Border.all(
+          color: active ? _ServicesDesign.greenActive : _ServicesDesign.cardBorder,
+        ),
       ),
       child: Row(
         children: [
-          Icon(icon, size: 14.sp, color: AppColors.textPrimary),
+          Icon(
+            icon,
+            size: 14.sp,
+            color: active ? AppColors.white : AppColors.textPrimary,
+          ),
           SizedBox(width: 6.w),
           Text(
             label,
             style: AppTextStyles.labelSmall().copyWith(
               fontWeight: FontWeight.w600,
               fontSize: 12.sp,
+              color: active ? AppColors.white : AppColors.textPrimary,
             ),
           ),
         ],
@@ -884,7 +925,7 @@ class ServicesProviderInfoCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Open · 9–9',
+                  provider.openHoursTitle,
                   style: AppTextStyles.labelMedium(color: AppColors.textPrimary)
                       .copyWith(
                         fontWeight: FontWeight.w700,
@@ -894,7 +935,7 @@ class ServicesProviderInfoCard extends StatelessWidget {
                 ),
                 SizedBox(height: 3.w),
                 Text(
-                  'Today',
+                  provider.openHoursSubtitle,
                   style: AppTextStyles.caption(
                     color: _ServicesDesign.mutedAlt,
                   ).copyWith(fontSize: 13.sp, height: 16 / 13),
@@ -917,7 +958,7 @@ class ServicesProviderInfoCard extends StatelessWidget {
               ),
               SizedBox(height: 3.w),
               Text(
-                'Walk-in / book',
+                provider.bookingModeLabel,
                 style: AppTextStyles.caption(
                   color: _ServicesDesign.mutedAlt,
                 ).copyWith(fontSize: 13.sp, height: 16 / 13),

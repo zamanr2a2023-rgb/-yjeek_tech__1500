@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:yjeek_app/core/constants/app_colors.dart';
 import 'package:yjeek_app/core/constants/app_text_styles.dart';
 import 'package:yjeek_app/core/providers/app_providers.dart';
+import 'package:yjeek_app/core/services/location_service.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/features/browse/browse_routes.dart';
 import 'package:yjeek_app/features/browse/model/browse_data.dart';
@@ -28,21 +29,34 @@ class FoodSearchScreen extends ConsumerStatefulWidget {
 
 class _FoodSearchScreenState extends ConsumerState<FoodSearchScreen> {
   late String _query;
-  List<BrowseRestaurant> _results = BrowseData.restaurants;
+  List<BrowseRestaurant> _results = const [];
+  List<String> _recent = BrowseData.recentSearches;
   Timer? _debounce;
   bool _loading = false;
+  ({double lat, double lng})? _position;
 
   @override
   void initState() {
     super.initState();
     _query = widget.initialQuery;
-    WidgetsBinding.instance.addPostFrameCallback((_) => _search(_query));
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      _position = await const LocationService().currentPosition();
+      await _loadRecent();
+      await _search(_query);
+    });
   }
 
   @override
   void dispose() {
     _debounce?.cancel();
     super.dispose();
+  }
+
+  Future<void> _loadRecent() async {
+    final recent =
+        await ref.read(foodVendorsRepositoryProvider).fetchRecentSearches();
+    if (!mounted) return;
+    setState(() => _recent = recent);
   }
 
   void _onQueryChanged(String value) {
@@ -55,9 +69,13 @@ class _FoodSearchScreenState extends ConsumerState<FoodSearchScreen> {
 
   Future<void> _search(String value) async {
     setState(() => _loading = true);
+    final pos = _position;
     final results = await ref.read(foodVendorsRepositoryProvider).fetchVendors(
           query: value,
-          sort: 'rating',
+          sort: pos != null ? 'distance' : 'rating',
+          latitude: pos?.lat,
+          longitude: pos?.lng,
+          withinDeliveryRadius: pos != null,
         );
     if (!mounted) return;
     setState(() {
@@ -98,7 +116,7 @@ class _FoodSearchScreenState extends ConsumerState<FoodSearchScreen> {
               child: Wrap(
                 spacing: 8.w,
                 runSpacing: 8.h,
-                children: BrowseData.recentSearches.map((term) {
+                children: _recent.map((term) {
                   return GestureDetector(
                     onTap: () {
                       setState(() => _query = term);
@@ -148,19 +166,29 @@ class _FoodSearchScreenState extends ConsumerState<FoodSearchScreen> {
                         color: AppColors.primary,
                       ),
                     )
-                  : ListView.separated(
-                      padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 24.h),
-                      itemCount: _results.length,
-                      separatorBuilder: (_, _) => SizedBox(height: 10.h),
-                      itemBuilder: (context, index) => BrowseRestaurantListCard(
-                        restaurant: _results[index],
-                        onTap: () => context.push(
-                          BrowseRoutes.vendorMenu(
-                            vendorId: _results[index].id,
+                  : _results.isEmpty
+                      ? Center(
+                          child: Text(
+                            '___',
+                            style: AppTextStyles.bodyMedium(
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                        )
+                      : ListView.separated(
+                          padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 24.h),
+                          itemCount: _results.length,
+                          separatorBuilder: (_, _) => SizedBox(height: 10.h),
+                          itemBuilder: (context, index) =>
+                              BrowseRestaurantListCard(
+                            restaurant: _results[index],
+                            onTap: () => context.push(
+                              BrowseRoutes.vendorMenu(
+                                vendorId: _results[index].id,
+                              ),
+                            ),
                           ),
                         ),
-                      ),
-                    ),
             ),
           ],
         ),

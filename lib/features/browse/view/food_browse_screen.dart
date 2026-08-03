@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:yjeek_app/core/constants/app_colors.dart';
+import 'package:yjeek_app/core/constants/app_text_styles.dart';
 import 'package:yjeek_app/core/providers/app_providers.dart';
+import 'package:yjeek_app/core/services/location_service.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/features/browse/browse_routes.dart';
 import 'package:yjeek_app/features/browse/model/browse_data.dart';
@@ -28,6 +30,7 @@ class _FoodBrowseScreenState extends ConsumerState<FoodBrowseScreen> {
   List<String> _cuisineFilters = BrowseData.cuisineFilters;
   List<BrowseRestaurant> _restaurants = BrowseData.restaurants;
   bool _loading = true;
+  bool _locationDenied = false;
 
   @override
   void initState() {
@@ -39,11 +42,16 @@ class _FoodBrowseScreenState extends ConsumerState<FoodBrowseScreen> {
     final repo = ref.read(foodVendorsRepositoryProvider);
     setState(() => _loading = true);
     try {
+      final position = await const LocationService().currentPosition();
       final filters = await repo.fetchCuisineFilters();
+      final hasLocation = position != null;
       final vendors = await repo.fetchVendors(
         cuisine: _selectedFilter,
         freeDelivery: _freeDeliveryOnly,
-        sort: _sort,
+        sort: hasLocation && _sort == 'rating' ? 'distance' : _sort,
+        latitude: position?.lat,
+        longitude: position?.lng,
+        withinDeliveryRadius: hasLocation,
       );
       if (!mounted) return;
       setState(() {
@@ -52,24 +60,33 @@ class _FoodBrowseScreenState extends ConsumerState<FoodBrowseScreen> {
           _selectedFilter = 'All';
         }
         _restaurants = vendors;
+        _locationDenied = !hasLocation;
         _loading = false;
       });
     } catch (_) {
       if (!mounted) return;
       setState(() {
-        _restaurants = BrowseData.restaurantsForFilter(_selectedFilter);
+        _restaurants = const [];
         _loading = false;
       });
     }
   }
 
-  List<(String, Color)> get _orderAgainBrands {
+  List<(String, Color, String?)> get _orderAgainBrands {
     final vendors = ref.watch(homeFeedProvider).valueOrNull?.reorderVendors;
     if (vendors == null || vendors.isEmpty) {
-      return BrowseData.orderAgainBrands;
+      return BrowseData.orderAgainBrands
+          .map<(String, Color, String?)>((e) => (e.$1, e.$2, null))
+          .toList();
     }
     return vendors
-        .map((v) => (v.name, HomeBrandStyle.forName(v.name)))
+        .map(
+          (v) => (
+            v.name,
+            HomeBrandStyle.forName(v.name),
+            v.id,
+          ),
+        )
         .toList();
   }
 
@@ -102,6 +119,16 @@ class _FoodBrowseScreenState extends ConsumerState<FoodBrowseScreen> {
                       onTap: () => context.push(BrowseRoutes.foodSearch()),
                     ),
                   ),
+                  if (_locationDenied)
+                    Padding(
+                      padding: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 0),
+                      child: Text(
+                        'Enable location to see restaurants that deliver to you.',
+                        style: AppTextStyles.caption(
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ),
                   Padding(
                     padding: EdgeInsets.fromLTRB(16.w, 14.h, 16.w, 0),
                     child: BrowseFilterChips(
@@ -115,9 +142,13 @@ class _FoodBrowseScreenState extends ConsumerState<FoodBrowseScreen> {
                   ),
                   Padding(
                     padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 0),
-                    child: BrowseOrderAgainRow(
+                    child:                     BrowseOrderAgainRow(
                       brands: _orderAgainBrands,
                       onSeeAll: () => context.goHome(tab: 1),
+                      onBrandTap: (vendorId, name) {
+                        if (vendorId == null || vendorId.isEmpty) return;
+                        context.push(BrowseRoutes.vendorMenu(vendorId: vendorId));
+                      },
                     ),
                   ),
                   Padding(

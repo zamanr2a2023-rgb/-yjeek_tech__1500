@@ -7,6 +7,7 @@ import 'package:yjeek_app/core/constants/home_strings.dart';
 import 'package:yjeek_app/core/providers/app_providers.dart';
 import 'package:yjeek_app/features/browse/browse_routes.dart';
 import 'package:yjeek_app/features/home/model/category_item.dart';
+import 'package:yjeek_app/features/home/model/category_navigation.dart';
 import 'package:yjeek_app/features/home/model/home_data.dart';
 import 'package:yjeek_app/features/home/view/widgets/home_widgets.dart';
 import 'package:yjeek_app/routes/app_router.dart';
@@ -22,20 +23,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
   bool _isGridView = true;
 
   void _onCategoryTap(CategoryItem category) {
-    final key = (category.slug ?? category.name).toLowerCase();
-    if (key.contains('food')) {
-      context.push(BrowseRoutes.foodBrowse());
-    } else if (key.contains('dine')) {
-      context.push(BrowseRoutes.dineInBrowse());
-    } else if (key.contains('service')) {
-      context.push(BrowseRoutes.servicesBrowse());
-    } else if (key.contains('electronic')) {
-      context.push(BrowseRoutes.electronicsBrowse());
-    } else if (key.contains('vape')) {
-      context.push(BrowseRoutes.vapeBrowse());
-    } else if (key.contains('pickup')) {
-      context.push(BrowseRoutes.pickupBrowse());
-    }
+    openHomeCategory(context, category);
   }
 
   @override

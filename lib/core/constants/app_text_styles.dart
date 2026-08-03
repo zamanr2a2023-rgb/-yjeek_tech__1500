@@ -4,7 +4,9 @@ import 'package:yjeek_app/core/constants/app_colors.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
 
 abstract final class AppTextStyles {
-  static TextStyle get _base => GoogleFonts.inter();
+  static TextStyle get _base => GoogleFonts.inter().copyWith(
+        fontFamilyFallback: const ['Noto Sans Arabic'],
+      );
 
   static TextStyle displayLarge({Color? color}) => _base.copyWith(
         fontSize: 27.sp,

@@ -48,7 +48,7 @@ class _ServicesBrowseScreenState extends ConsumerState<ServicesBrowseScreen> {
       if (!mounted) return;
       setState(() {
         _categories = ServicesData.categories;
-        _popular = ServicesData.popularProviders;
+        _popular = const [];
         _loading = false;
       });
     }
@@ -99,7 +99,9 @@ class _ServicesBrowseScreenState extends ConsumerState<ServicesBrowseScreen> {
                       providers: _popular,
                       onSeeAll: () => context.push(
                         BrowseRoutes.servicesCategory(
-                          categoryId: 'salon-beauty',
+                          categoryId: _categories.isNotEmpty
+                              ? _categories.first.id
+                              : 'salon-beauty',
                         ),
                       ),
                       onProviderTap: (provider) => context.push(

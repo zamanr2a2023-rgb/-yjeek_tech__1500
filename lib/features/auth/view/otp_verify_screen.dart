@@ -53,15 +53,7 @@ class _OtpVerifyScreenState extends ConsumerState<OtpVerifyScreen> {
   void initState() {
     super.initState();
     _startResendTimer(widget.expiresInSeconds);
-    _otpController.addListener(() {
-      // Typing a new code clears the previous error state.
-      if (_state == OtpScreenState.wrongCode &&
-          _otpController.text.isNotEmpty) {
-        _state = OtpScreenState.normal;
-        _responseMessage = null;
-      }
-      setState(() {});
-    });
+    _otpController.addListener(() => setState(() {}));
   }
 
   @override
@@ -127,10 +119,19 @@ class _OtpVerifyScreenState extends ConsumerState<OtpVerifyScreen> {
     setState(() => _verifying = false);
 
     if (result.success) {
+      final token = result.token?.trim();
+      if (token == null || token.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Login succeeded but no session token was returned.'),
+          ),
+        );
+        return;
+      }
       final storage = ref.read(storageServiceProvider);
-      await storage.setLoggedIn(true);
+      await storage.saveToken(token);
       await storage.savePhone(widget.phoneNumber);
-      if (result.token != null) await storage.saveToken(result.token!);
+      await storage.setLoggedIn(true);
       ref.invalidate(userMeProvider);
       ref.invalidate(homeFeedProvider);
       if (!mounted) return;
@@ -159,12 +160,9 @@ class _OtpVerifyScreenState extends ConsumerState<OtpVerifyScreen> {
       if (isTooManyAttempts) {
         _state = OtpScreenState.blocked;
         _startBlockTimer(blockSeconds);
-        _otpController.clear();
       } else {
         _attemptsLeft--;
         _state = OtpScreenState.wrongCode;
-        // Clear the boxes so the user can type a fresh code right away.
-        _otpController.clear();
       }
     });
   }
@@ -229,9 +227,9 @@ class _OtpVerifyScreenState extends ConsumerState<OtpVerifyScreen> {
             error: hasError,
             disabled: isBlocked,
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: 8),
           if (_state == OtpScreenState.resent)
-            const StatusBanner.success(message: AppStrings.newCodeSent),
+            StatusBanner.success(message: AppStrings.newCodeSent),
           if (hasError)
             StatusBanner.error(
               message:

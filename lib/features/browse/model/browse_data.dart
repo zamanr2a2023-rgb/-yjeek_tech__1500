@@ -15,6 +15,7 @@ class BrowseRestaurant {
     this.minOrder = '5',
     this.distance = '2.4 km',
     this.imageUrl,
+    this.reviewCount = '___',
   });
 
   final String id;
@@ -30,6 +31,7 @@ class BrowseRestaurant {
   final String minOrder;
   final String distance;
   final String? imageUrl;
+  final String reviewCount;
 }
 
 class BrowseMenuItem {
@@ -39,6 +41,7 @@ class BrowseMenuItem {
     required this.description,
     required this.price,
     required this.section,
+    this.imageUrl,
   });
 
   final String id;
@@ -46,6 +49,7 @@ class BrowseMenuItem {
   final String description;
   final String price;
   final String section;
+  final String? imageUrl;
 }
 
 class BrowseSizeOption {
@@ -53,16 +57,23 @@ class BrowseSizeOption {
     required this.label,
     required this.subtitle,
     this.extraPrice,
+    this.id,
   });
 
+  final String? id;
   final String label;
   final String subtitle;
   final String? extraPrice;
 }
 
 class BrowseAddonOption {
-  const BrowseAddonOption({required this.label, required this.price});
+  const BrowseAddonOption({
+    required this.label,
+    required this.price,
+    this.id,
+  });
 
+  final String? id;
   final String label;
   final String price;
 }

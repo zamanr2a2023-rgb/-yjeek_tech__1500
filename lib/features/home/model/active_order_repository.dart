@@ -10,6 +10,8 @@ class ActiveOrderRepository {
   /// Returns the active order payload, or null when the API reports no
   /// active order (`{"success": true, "data": null}`).
   Future<Map<String, dynamic>?> fetchActiveOrder() async {
+    if (!_storage.hasSession) return null;
+
     final response = await _apiClient.getJson(
       '/orders/active',
       bearerToken: _storage.token,

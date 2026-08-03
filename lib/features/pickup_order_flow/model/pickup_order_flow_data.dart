@@ -1,4 +1,5 @@
 import 'package:yjeek_app/features/navigation/model/navigation_data.dart';
+import 'package:yjeek_app/l10n/l10n.dart';
 
 class PickupOrderTimelineStep {
   const PickupOrderTimelineStep({
@@ -23,66 +24,65 @@ class PickupReceiptLine {
 }
 
 abstract final class PickupOrderFlowStrings {
-  static const String sentToVendor = 'Sent to Brew & Bean';
-  static const String waitingSubtitle =
-      'Waiting for the vendor to accept your order…';
+  static String get sentToVendor => L10n.tr('Sent to Brew & Bean');
+  static String get waitingSubtitle => L10n.tr('Waiting for the vendor to accept your order…');
   static const String notChargedYet =
       "You won't be charged until the vendor accepts your order.";
-  static const String cancelOrder = 'Cancel order';
-  static const String freeCancelHint = 'Free cancellation before the vendor accepts';
-  static const String vendorAccepted = 'Brew & Bean said yes! 🙌';
-  static const String payWithinHint =
-      'Complete payment within 2 minutes. If payment is not completed in time, your order will be cancelled automatically.';
-  static const String payWith = 'Pay with';
-  static const String change = 'Change';
-  static const String subtotal = 'Subtotal';
-  static const String pickupDiscount = 'Pickup discount (15%)';
-  static const String serviceFee = 'Service fee';
-  static const String totalToPay = 'Total to pay';
-  static const String pay = 'Pay';
-  static const String payIn = 'PAY IN';
-  static const String orderConfirmed = 'Order confirmed';
-  static const String preparedForPickup =
-      'Your order is being prepared for pickup.';
-  static const String trackOrder = 'Track order';
-  static const String viewReceipt = 'View receipt';
-  static const String orderStatus = 'Order status';
+  static String get cancelOrder => L10n.tr('Cancel order');
+  static String get freeCancelHint => L10n.tr('Free cancellation before the vendor accepts');
+  static String get vendorAccepted => L10n.tr('Brew & Bean said yes! 🙌');
+  static String get payWithinHint => L10n.tr('Complete payment within 2 minutes. If payment is not completed in time, your order will be cancelled automatically.');
+  static String get payWith => L10n.tr('Pay with');
+  static String get change => L10n.tr('Change');
+  static String get subtotal => L10n.tr('Subtotal');
+  static String get pickupDiscount => L10n.tr('Pickup discount (15%)');
+  static String get serviceFee => L10n.tr('Service fee');
+  static String get totalToPay => L10n.tr('Total to pay');
+  static String get pay => L10n.tr('Pay');
+  static String get payIn => L10n.tr('PAY IN');
+  static String get orderConfirmed => L10n.tr('Order confirmed');
+  static String get preparedForPickup => L10n.tr('Your order is being prepared for pickup.');
+  static String get trackOrder => L10n.tr('Track order');
+  static String get viewReceipt => L10n.tr('View receipt');
+  static const String imHere = "I'm here";
+  static String get paymentExpired => L10n.tr('Payment window expired. Your order was cancelled.');
+  static String get orderStatus => L10n.tr('Order status');
   static const String notifyBanner =
       "We'll notify you the moment your order is ready to collect.";
-  static const String preparingBanner = 'Preparing · ready in ~8 min';
-  static const String statusSection = 'STATUS';
-  static const String receipt = 'Receipt';
-  static const String shareReceipt = 'Share receipt';
-  static const String paidBadge = 'PICKUP · PAID';
-  static const String collectNote = 'Show this receipt at the counter to collect.';
-  static const String paidWith = 'Paid: Yjeek Wallet';
-  static const String orderNumber = 'Order #';
-  static const String items = 'Items';
-  static const String pickup = 'Pickup';
-  static const String payment = 'Payment';
-  static const String total = 'Total';
-  static const String orderTotal = 'Order total';
-  static const String yjeekWallet = 'Yjeek Wallet';
+  static String get preparingBanner => L10n.tr('Preparing · ready in ~8 min');
+  static String get statusSection => L10n.tr('STATUS');
+  static String get receipt => L10n.tr('Receipt');
+  static String get shareReceipt => L10n.tr('Share receipt');
+  static String get paidBadge => L10n.tr('PICKUP · PAID');
+  static String get collectNote => L10n.tr('Show this receipt at the counter to collect.');
+  static String get paidWith => L10n.tr('Paid: Yjeek Wallet');
+  static String get orderNumber => L10n.tr('Order #');
+  static String get items => L10n.tr('Items');
+  static String get pickup => L10n.tr('Pickup');
+  static String get payment => L10n.tr('Payment');
+  static String get total => L10n.tr('Total');
+  static String get orderTotal => L10n.tr('Order total');
+  static String get yjeekWallet => L10n.tr('Yjeek Wallet');
 }
 
 abstract final class PickupOrderFlowData {
-  static const String orderId = 'YJK-2026-00091';
-  static const String waitingOrderId = 'YJK-…00091';
-  static const String vendorName = 'Brew & Bean';
-  static const String statusSubtitle = 'Pickup · #$orderId';
-  static const String waitingSummary = '4 items · Order $waitingOrderId';
-  static const String payTotal = 'BHD 5.675';
-  static const String paySubtotal = 'BHD 6.500';
-  static const String payDiscount = '− BHD 0.975';
-  static const String payServiceFee = 'BHD 0.150';
-  static const String confirmedTotal = 'BHD 5.675';
-  static const String confirmedItems = 'Iced Caramel Latte + 3 more';
-  static const String confirmedPickup = 'Brew & Bean · ready in ~8 min';
-  static const String confirmedPayment = 'Yjeek Wallet';
-  static const String statusItems = 'Iced Caramel Latte + 3 more';
-  static const String statusPickup = 'Brew & Bean · Seef';
-  static const String receiptDate = 'Order $orderId · Seef';
-  static const String walletBalance = 'Balance BHD 12.450';
+  static String get orderId => L10n.tr('YJK-2026-00091');
+  static String get waitingOrderId => L10n.tr('YJK-…00091');
+  static String get vendorName => L10n.tr('Brew & Bean');
+  static String get statusSubtitle => L10n.tr('Pickup · #$orderId');
+  static String get waitingSummary => L10n.tr('4 items · Order $waitingOrderId');
+  static String get payTotal => L10n.tr('BHD 5.675');
+  static String get paySubtotal => L10n.tr('BHD 6.500');
+  static String get payDiscount => L10n.tr('− BHD 0.975');
+  static String get payServiceFee => L10n.tr('BHD 0.150');
+  static String get confirmedTotal => L10n.tr('BHD 5.675');
+  static String get confirmedItems => L10n.tr('Iced Caramel Latte + 3 more');
+  static String get confirmedPickup => L10n.tr('Brew & Bean · ready in ~8 min');
+  static String get confirmedPayment => L10n.tr('Yjeek Wallet');
+  static String get statusItems => L10n.tr('Iced Caramel Latte + 3 more');
+  static String get statusPickup => L10n.tr('Brew & Bean · Seef');
+  static String get receiptDate => L10n.tr('Order $orderId · Seef');
+  static String get walletBalance => L10n.tr('Balance BHD 12.450');
 
   static const List<PickupOrderTimelineStep> statusTimeline = [
     PickupOrderTimelineStep(label: 'Order placed', time: '14:02', completed: true),
@@ -99,7 +99,7 @@ abstract final class PickupOrderFlowData {
     PickupReceiptLine(name: 'Flat White ×1', price: 'BHD 1.600'),
   ];
 
-  static const List<BillLine> receiptBillLines = [
+  static final List<BillLine> receiptBillLines = [
     BillLine(label: 'Subtotal', value: 'BHD 6.500'),
     BillLine(label: 'Pickup discount (15%)', value: '− BHD 0.975', isDiscount: true),
     BillLine(label: 'Service fee', value: 'BHD 0.150'),

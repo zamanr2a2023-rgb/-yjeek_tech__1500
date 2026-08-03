@@ -3,6 +3,22 @@ import 'package:yjeek_app/features/help/model/help_phase2_data.dart';
 import 'package:yjeek_app/routes/route_names.dart';
 
 abstract final class HelpRoutes {
+  static String helpSupport({
+    String? orderId,
+    int tab = 0,
+  }) {
+    final query = StringBuffer();
+    if (orderId != null && orderId.isNotEmpty) {
+      query.write('orderId=$orderId');
+    }
+    if (tab != 0) {
+      if (query.isNotEmpty) query.write('&');
+      query.write('tab=$tab');
+    }
+    if (query.isEmpty) return RouteNames.helpSupport;
+    return '${RouteNames.helpSupport}?$query';
+  }
+
   static String orderHelp({
     String? orderId,
     int tab = 0,
@@ -26,9 +42,13 @@ abstract final class HelpRoutes {
 
   static String helpChat({
     HelpChatVariant variant = HelpChatVariant.support,
+    String? ticketId,
     int tab = 0,
   }) {
     final query = StringBuffer('variant=${variant.routeValue}');
+    if (ticketId != null && ticketId.isNotEmpty) {
+      query.write('&ticketId=$ticketId');
+    }
     if (tab != 0) query.write('&tab=$tab');
     return '${RouteNames.helpChat}?$query';
   }
@@ -45,9 +65,13 @@ abstract final class HelpRoutes {
 
   static String helpFlow({
     HelpFlowType flow = HelpFlowType.scheduledCancelFree,
+    String? orderId,
     int tab = 0,
   }) {
     final query = StringBuffer('flow=${flow.routeValue}');
+    if (orderId != null && orderId.isNotEmpty) {
+      query.write('&orderId=$orderId');
+    }
     if (tab != 0) query.write('&tab=$tab');
     return '${RouteNames.helpFlow}?$query';
   }

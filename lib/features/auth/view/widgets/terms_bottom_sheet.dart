@@ -113,7 +113,7 @@ class TermsBottomSheet extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 22),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
+                  children: [
                     _TermsIntro(),
                     SizedBox(height: 12),
                     _Article(

@@ -82,10 +82,16 @@ class DineInSecureBanner extends StatelessWidget {
 }
 
 class DineInAcceptedBanner extends StatelessWidget {
-  const DineInAcceptedBanner({super.key});
+  const DineInAcceptedBanner({super.key, this.vendorName});
+
+  final String? vendorName;
 
   @override
   Widget build(BuildContext context) {
+    final name = vendorName?.trim();
+    final label = (name == null || name.isEmpty)
+        ? DineInOrderFlowStrings.vendorAccepted
+        : '$name accepted ✨';
     return Container(
       width: double.infinity,
       padding: EdgeInsets.fromLTRB(14.w, 12.h, 16.w, 12.h),
@@ -116,7 +122,7 @@ class DineInAcceptedBanner extends StatelessWidget {
           SizedBox(width: 10.w),
           Expanded(
             child: Text(
-              DineInOrderFlowStrings.vendorAccepted,
+              label,
               style: AppTextStyles.labelMedium(color: const Color(0xFFCCF2D9)).copyWith(
                 fontWeight: FontWeight.w600,
                 fontSize: 14.sp,
@@ -179,7 +185,10 @@ class DineInPayTimerCard extends StatelessWidget {
 }
 
 class DineInOrderSummaryRow extends StatelessWidget {
-  const DineInOrderSummaryRow({super.key});
+  const DineInOrderSummaryRow({super.key, this.summary, this.total});
+
+  final String? summary;
+  final String? total;
 
   @override
   Widget build(BuildContext context) {
@@ -194,7 +203,7 @@ class DineInOrderSummaryRow extends StatelessWidget {
         children: [
           Expanded(
             child: Text(
-              DineInOrderFlowData.itemSummary,
+              summary ?? DineInOrderFlowData.itemSummary,
               style: AppTextStyles.labelMedium(color: const Color(0xFF6B7A6E)).copyWith(
                 fontWeight: FontWeight.w400,
                 fontSize: 13.sp,
@@ -203,7 +212,7 @@ class DineInOrderSummaryRow extends StatelessWidget {
             ),
           ),
           Text(
-            DineInOrderFlowData.orderTotal,
+            total ?? DineInOrderFlowData.orderTotal,
             style: AppTextStyles.labelMedium(color: AppColors.textPrimary).copyWith(
               fontWeight: FontWeight.w700,
               fontSize: 16.sp,
@@ -240,9 +249,10 @@ class DineInSuccessIcon extends StatelessWidget {
 }
 
 class DineInArrivalCodeCard extends StatelessWidget {
-  const DineInArrivalCodeCard({super.key, this.compact = false});
+  const DineInArrivalCodeCard({super.key, this.compact = false, this.code});
 
   final bool compact;
+  final String? code;
 
   @override
   Widget build(BuildContext context) {
@@ -287,7 +297,7 @@ class DineInArrivalCodeCard extends StatelessWidget {
           ),
           SizedBox(height: 6.h),
           Text(
-            DineInOrderFlowData.arrivalCode,
+            code ?? DineInOrderFlowData.arrivalCode,
             style: AppTextStyles.titleMedium(color: AppColors.white).copyWith(
               fontWeight: FontWeight.w700,
               fontSize: 26.sp,
@@ -302,7 +312,18 @@ class DineInArrivalCodeCard extends StatelessWidget {
 }
 
 class DineInDetailsCard extends StatelessWidget {
-  const DineInDetailsCard({super.key});
+  const DineInDetailsCard({
+    super.key,
+    this.venue,
+    this.dineInTime,
+    this.track,
+    this.status,
+  });
+
+  final String? venue;
+  final String? dineInTime;
+  final String? track;
+  final String? status;
 
   @override
   Widget build(BuildContext context) {
@@ -316,13 +337,13 @@ class DineInDetailsCard extends StatelessWidget {
       ),
       child: Column(
         children: [
-          _row('Venue', DineInOrderFlowData.venue),
+          _row('Venue', venue ?? DineInOrderFlowData.venue),
           SizedBox(height: 10.h),
-          _row('Dine-in time', DineInOrderFlowData.dineInTime),
+          _row('Dine-in time', dineInTime ?? DineInOrderFlowData.dineInTime),
           SizedBox(height: 10.h),
-          _row('Track', DineInOrderFlowData.prepTrack),
+          _row('Track', track ?? DineInOrderFlowData.prepTrack),
           SizedBox(height: 10.h),
-          _row('Status', DineInOrderFlowData.statusPreparing),
+          _row('Status', status ?? DineInOrderFlowData.statusPreparing),
         ],
       ),
     );
@@ -357,9 +378,14 @@ class DineInDetailsCard extends StatelessWidget {
 }
 
 class DineInStatusTimeline extends StatelessWidget {
-  const DineInStatusTimeline({super.key, required this.steps});
+  const DineInStatusTimeline({
+    super.key,
+    required this.steps,
+    this.onYouArrivedTap,
+  });
 
   final List<DineInOrderTimelineStep> steps;
+  final VoidCallback? onYouArrivedTap;
 
   @override
   Widget build(BuildContext context) {
@@ -378,8 +404,11 @@ class DineInStatusTimeline extends StatelessWidget {
           final done = step.completed && !step.active;
           final active = step.active;
           final pending = !step.completed && !step.active;
+          final isYouArrived = step.label == 'You arrived';
+          final canTapArrived =
+              isYouArrived && onYouArrivedTap != null && !done;
 
-          return Row(
+          final row = Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Column(
@@ -468,6 +497,13 @@ class DineInStatusTimeline extends StatelessWidget {
               ),
             ],
           );
+
+          if (!canTapArrived) return row;
+          return GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: onYouArrivedTap,
+            child: row,
+          );
         }),
       ),
     );
@@ -475,7 +511,16 @@ class DineInStatusTimeline extends StatelessWidget {
 }
 
 class DineInStatusInfoCard extends StatelessWidget {
-  const DineInStatusInfoCard({super.key});
+  const DineInStatusInfoCard({
+    super.key,
+    this.venue,
+    this.table,
+    this.time,
+  });
+
+  final String? venue;
+  final String? table;
+  final String? time;
 
   @override
   Widget build(BuildContext context) {
@@ -489,11 +534,11 @@ class DineInStatusInfoCard extends StatelessWidget {
       ),
       child: Column(
         children: [
-          _row(DineInOrderFlowStrings.venue, DineInOrderFlowData.venue),
+          _row(DineInOrderFlowStrings.venue, venue ?? DineInOrderFlowData.venue),
           SizedBox(height: 10.h),
-          _row(DineInOrderFlowStrings.table, DineInOrderFlowData.tableLabel),
+          _row(DineInOrderFlowStrings.table, table ?? DineInOrderFlowData.tableLabel),
           SizedBox(height: 10.h),
-          _row(DineInOrderFlowStrings.time, DineInOrderFlowData.dineInTime),
+          _row(DineInOrderFlowStrings.time, time ?? DineInOrderFlowData.dineInTime),
         ],
       ),
     );
@@ -526,7 +571,9 @@ class DineInStatusInfoCard extends StatelessWidget {
 }
 
 class DineInPreparingPill extends StatelessWidget {
-  const DineInPreparingPill({super.key});
+  const DineInPreparingPill({super.key, this.label});
+
+  final String? label;
 
   @override
   Widget build(BuildContext context) {
@@ -539,7 +586,7 @@ class DineInPreparingPill extends StatelessWidget {
           borderRadius: BorderRadius.circular(20.r),
         ),
         child: Text(
-          DineInOrderFlowStrings.preparingPill,
+          label ?? DineInOrderFlowStrings.preparingPill,
           style: AppTextStyles.labelSmall(color: const Color(0xFF127036)).copyWith(
             fontWeight: FontWeight.w600,
             fontSize: 13.sp,
@@ -552,9 +599,16 @@ class DineInPreparingPill extends StatelessWidget {
 }
 
 class DineInPayMethodCard extends StatelessWidget {
-  const DineInPayMethodCard({super.key, this.onChange});
+  const DineInPayMethodCard({
+    super.key,
+    this.onChange,
+    this.methodLabel,
+    this.balanceLabel,
+  });
 
   final VoidCallback? onChange;
+  final String? methodLabel;
+  final String? balanceLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -564,7 +618,6 @@ class DineInPayMethodCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(12.r),
-        border: Border.all(color: const Color(0xFFE3E8DE)),
       ),
       child: Row(
         children: [
@@ -589,7 +642,7 @@ class DineInPayMethodCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Yjeek Wallet',
+                  methodLabel ?? 'Yjeek Wallet',
                   style: AppTextStyles.labelMedium(color: AppColors.textPrimary).copyWith(
                     fontWeight: FontWeight.w600,
                     fontSize: 14.sp,
@@ -598,7 +651,7 @@ class DineInPayMethodCard extends StatelessWidget {
                 ),
                 SizedBox(height: 2.h),
                 Text(
-                  'Balance ${DineInOrderFlowData.walletBalance}',
+                  balanceLabel ?? 'Balance ${DineInOrderFlowData.walletBalance}',
                   style: AppTextStyles.caption(color: const Color(0xFF6B7A6E)).copyWith(
                     fontWeight: FontWeight.w400,
                     fontSize: 12.sp,
@@ -626,7 +679,16 @@ class DineInPayMethodCard extends StatelessWidget {
 }
 
 class DineInPayBreakdownCard extends StatelessWidget {
-  const DineInPayBreakdownCard({super.key});
+  const DineInPayBreakdownCard({
+    super.key,
+    this.subtotal,
+    this.serviceFee,
+    this.total,
+  });
+
+  final String? subtotal;
+  final String? serviceFee;
+  final String? total;
 
   @override
   Widget build(BuildContext context) {
@@ -639,11 +701,11 @@ class DineInPayBreakdownCard extends StatelessWidget {
       ),
       child: Column(
         children: [
-          _line(DineInOrderFlowStrings.subtotal, DineInOrderFlowData.subtotalAmount),
+          _line(DineInOrderFlowStrings.subtotal, subtotal ?? DineInOrderFlowData.subtotalAmount),
           SizedBox(height: 8.h),
-          _line(DineInOrderFlowStrings.serviceFee, DineInOrderFlowData.serviceFeeAmount),
+          _line(DineInOrderFlowStrings.serviceFee, serviceFee ?? DineInOrderFlowData.serviceFeeAmount),
           SizedBox(height: 8.h),
-          _line(DineInOrderFlowStrings.totalToPay, DineInOrderFlowData.orderTotal, bold: true),
+          _line(DineInOrderFlowStrings.totalToPay, total ?? DineInOrderFlowData.orderTotal, bold: true),
         ],
       ),
     );
@@ -682,10 +744,12 @@ class DineInPayStickyFooter extends StatelessWidget {
     super.key,
     required this.timerLabel,
     required this.onPay,
+    this.payAmount,
   });
 
   final String timerLabel;
   final VoidCallback onPay;
+  final String? payAmount;
 
   @override
   Widget build(BuildContext context) {
@@ -739,7 +803,7 @@ class DineInPayStickyFooter extends StatelessWidget {
                   padding: EdgeInsets.zero,
                 ),
                 child: Text(
-                  '${DineInOrderFlowStrings.pay} ${DineInOrderFlowData.orderTotal}',
+                  '${DineInOrderFlowStrings.pay} ${payAmount ?? DineInOrderFlowData.orderTotal}',
                   style: AppTextStyles.labelMedium(color: AppColors.white).copyWith(
                     fontWeight: FontWeight.w600,
                     fontSize: 16.sp,
@@ -755,13 +819,36 @@ class DineInPayStickyFooter extends StatelessWidget {
 }
 
 class DineInReceiptPaper extends StatelessWidget {
-  const DineInReceiptPaper({super.key});
+  const DineInReceiptPaper({
+    super.key,
+    this.badgeLabel,
+    this.venueTitle,
+    this.venueSubtitle,
+    this.orderNumber,
+    this.tableLabel,
+    this.timeLabel,
+    this.items,
+    this.billLines,
+    this.paymentMethod,
+  });
+
+  final String? badgeLabel;
+  final String? venueTitle;
+  final String? venueSubtitle;
+  final String? orderNumber;
+  final String? tableLabel;
+  final String? timeLabel;
+  final List<DineInReceiptItem>? items;
+  final List<BillLine>? billLines;
+  final String? paymentMethod;
 
   static const Color _labelGrey = Color(0xFF6B756E);
   static const Color _dashColor = Color(0xFFC7CCC7);
 
   @override
   Widget build(BuildContext context) {
+    final receiptItems = items ?? DineInOrderFlowData.receiptItems;
+    final receiptBill = billLines ?? DineInOrderFlowData.receiptBillLines;
     return Container(
       width: double.infinity,
       padding: EdgeInsets.all(18.w),
@@ -782,7 +869,7 @@ class DineInReceiptPaper extends StatelessWidget {
                   borderRadius: BorderRadius.circular(20.r),
                 ),
                 child: Text(
-                  DineInOrderFlowStrings.dineInPaid,
+                  badgeLabel ?? DineInOrderFlowStrings.dineInPaid,
                   style: AppTextStyles.caption(color: const Color(0xFF127036)).copyWith(
                     fontWeight: FontWeight.w700,
                     fontSize: 11.sp,
@@ -792,7 +879,7 @@ class DineInReceiptPaper extends StatelessWidget {
               ),
               SizedBox(height: 4.h),
               Text(
-                DineInOrderFlowData.venueReceipt,
+                venueTitle ?? DineInOrderFlowData.venueReceipt,
                 textAlign: TextAlign.center,
                 style: AppTextStyles.titleSmall(color: AppColors.textPrimary).copyWith(
                   fontWeight: FontWeight.w700,
@@ -802,7 +889,8 @@ class DineInReceiptPaper extends StatelessWidget {
               ),
               SizedBox(height: 4.h),
               Text(
-                '${DineInOrderFlowData.venueAddress} · ${DineInOrderFlowData.crNumber}',
+                venueSubtitle ??
+                    '${DineInOrderFlowData.venueAddress} · ${DineInOrderFlowData.crNumber}',
                 textAlign: TextAlign.center,
                 style: AppTextStyles.labelSmall(color: _labelGrey).copyWith(
                   fontWeight: FontWeight.w400,
@@ -815,13 +903,13 @@ class DineInReceiptPaper extends StatelessWidget {
           SizedBox(height: 12.h),
           const _DineInReceiptDashedDivider(color: _dashColor),
           SizedBox(height: 12.h),
-          _metaRow('Order #', DineInOrderFlowData.receiptOrderId),
+          _metaRow('Order #', orderNumber ?? DineInOrderFlowData.receiptOrderId),
           SizedBox(height: 8.h),
           _metaRow('Type', DineInOrderFlowStrings.typeDineIn),
           SizedBox(height: 8.h),
-          _metaRow('Table', DineInOrderFlowData.tableLabel),
+          _metaRow('Table', tableLabel ?? DineInOrderFlowData.tableLabel),
           SizedBox(height: 8.h),
-          _metaRow('Time', DineInOrderFlowData.dineInTime),
+          _metaRow('Time', timeLabel ?? DineInOrderFlowData.dineInTime),
           SizedBox(height: 12.h),
           const _DineInReceiptDashedDivider(color: _dashColor),
           SizedBox(height: 12.h),
@@ -830,22 +918,22 @@ class DineInReceiptPaper extends StatelessWidget {
             DineInOrderFlowStrings.priceColumn,
           ),
           SizedBox(height: 8.h),
-          for (var i = 0; i < DineInOrderFlowData.receiptItems.length; i++) ...[
+          for (var i = 0; i < receiptItems.length; i++) ...[
             if (i > 0) SizedBox(height: 8.h),
-            _itemRow(
-              DineInOrderFlowData.receiptItems[i].name,
-              DineInOrderFlowData.receiptItems[i].price,
-            ),
+            _itemRow(receiptItems[i].name, receiptItems[i].price),
           ],
           SizedBox(height: 12.h),
           const _DineInReceiptDashedDivider(color: _dashColor),
           SizedBox(height: 12.h),
-          for (var i = 0; i < DineInOrderFlowData.receiptBillLines.length; i++) ...[
+          for (var i = 0; i < receiptBill.length; i++) ...[
             if (i > 0) SizedBox(height: 8.h),
-            _billRow(DineInOrderFlowData.receiptBillLines[i]),
+            _billRow(receiptBill[i]),
           ],
           SizedBox(height: 8.h),
-          _metaRow(DineInOrderFlowStrings.paid, 'Yjeek Wallet'),
+          _metaRow(
+            DineInOrderFlowStrings.paid,
+            paymentMethod ?? 'Yjeek Wallet',
+          ),
         ],
       ),
     );
@@ -1003,7 +1091,9 @@ class _DineInDashedLinePainter extends CustomPainter {
 }
 
 class DineInTipChips extends StatefulWidget {
-  const DineInTipChips({super.key});
+  const DineInTipChips({super.key, this.onChanged});
+
+  final ValueChanged<String?>? onChanged;
 
   @override
   State<DineInTipChips> createState() => _DineInTipChipsState();
@@ -1020,7 +1110,13 @@ class _DineInTipChipsState extends State<DineInTipChips> {
       children: List.generate(DineInOrderFlowData.tipOptions.length, (index) {
         final selected = index == _selected;
         return GestureDetector(
-          onTap: () => setState(() => _selected = selected ? null : index),
+          onTap: () {
+            setState(() => _selected = selected ? null : index);
+            final label = _selected == null
+                ? null
+                : DineInOrderFlowData.tipOptions[_selected!];
+            widget.onChanged?.call(label);
+          },
           child: Container(
             padding: EdgeInsets.symmetric(horizontal: 13.w, vertical: 7.h),
             decoration: BoxDecoration(
@@ -1049,23 +1145,37 @@ class _DineInTipChipsState extends State<DineInTipChips> {
 }
 
 class DineInReviewField extends StatelessWidget {
-  const DineInReviewField({super.key});
+  const DineInReviewField({super.key, this.controller});
+
+  final TextEditingController? controller;
 
   @override
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
       height: 46.h,
-      padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
+      padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 0),
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(12.r),
         border: Border.all(color: const Color(0xFFE0E6E0)),
       ),
       alignment: Alignment.centerLeft,
-      child: Text(
-        DineInOrderFlowStrings.reviewHint,
-        style: AppTextStyles.bodySmall(color: const Color(0xFF6B756E)).copyWith(
+      child: TextField(
+        controller: controller,
+        decoration: InputDecoration(
+          border: InputBorder.none,
+          hintText: DineInOrderFlowStrings.reviewHint,
+          hintStyle: AppTextStyles.bodySmall(color: const Color(0xFF6B756E))
+              .copyWith(
+                fontWeight: FontWeight.w400,
+                fontSize: 13.sp,
+                height: 1.23,
+              ),
+          isDense: true,
+          contentPadding: EdgeInsets.symmetric(vertical: 12.h),
+        ),
+        style: AppTextStyles.bodySmall(color: AppColors.textPrimary).copyWith(
           fontWeight: FontWeight.w400,
           fontSize: 13.sp,
           height: 1.23,

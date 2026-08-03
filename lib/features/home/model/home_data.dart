@@ -22,6 +22,8 @@ class OfferItem {
     required this.imageColor,
     this.imageUrl,
     this.badgeLabel,
+    this.productId,
+    this.categorySlug,
   });
 
   final String name;
@@ -29,6 +31,8 @@ class OfferItem {
   final Color imageColor;
   final String? imageUrl;
   final String? badgeLabel;
+  final String? productId;
+  final String? categorySlug;
 }
 
 abstract final class HomeData {

@@ -8,6 +8,8 @@ abstract final class AppTheme {
     return ThemeData(
       useMaterial3: true,
       scaffoldBackgroundColor: AppColors.background,
+      fontFamily: 'Inter',
+      fontFamilyFallback: const ['Noto Sans Arabic'],
       colorScheme: ColorScheme.fromSeed(
         seedColor: AppColors.primary,
         primary: AppColors.primary,

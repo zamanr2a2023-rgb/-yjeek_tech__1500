@@ -209,12 +209,22 @@ class HomeFeed {
             : title;
         if (name.isEmpty) continue;
         final price = item['offerPrice'];
+        final productId = item['productId']?.toString() ??
+            (product is Map<String, dynamic>
+                ? product['id']?.toString()
+                : null);
+        final category = item['category'];
+        final categorySlug = category is Map<String, dynamic>
+            ? category['slug']?.toString()
+            : null;
         offers.add(
           offerItemFromApi(
             name: name,
             offerPrice: price is num ? price : 0,
             imageUrl: imageUrl,
             badgeLabel: item['badgeLabel'] as String?,
+            productId: productId,
+            categorySlug: categorySlug,
           ),
         );
       }

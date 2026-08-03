@@ -10,6 +10,7 @@ abstract final class RouteNames {
   static const String vendorMenu = '/browse/vendor';
   static const String itemDetail = '/browse/item';
   static const String dineInBrowse = '/browse/dine-in';
+  static const String dineInSearch = '/browse/dine-in/search';
   static const String dineInMenu = '/browse/dine-in/menu';
   static const String dineInItemDetail = '/browse/dine-in/item';
   static const String dineInOrderAgain = '/browse/dine-in/order-again';
@@ -66,6 +67,7 @@ abstract final class RouteNames {
   static const String editProfile = '/account/edit-profile';
   static const String personalInfo = '/account/personal-info';
   static const String editPersonalInfo = '/account/edit-personal-info';
+  static const String changePhone = '/account/change-phone';
   static const String savedAddresses = '/account/addresses';
   static const String addAddress = '/account/add-address';
   static const String language = '/account/language';
@@ -92,6 +94,8 @@ abstract final class RouteNames {
   static const String cartZoodWaitingList = '/cart/zood-waiting-list';
   static const String cartNewCartDialog = '/cart/new-cart-dialog';
   static const String orderConfirmed = '/order/confirmed';
+  static const String orderWaiting = '/order/waiting';
+  static const String orderPay = '/order/pay';
   static const String orderStatus = '/order/status';
   static const String orderDelivered = '/order/delivered';
   static const String orderReceipt = '/order/receipt';

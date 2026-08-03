@@ -64,8 +64,10 @@ class ElectronicsStorageOption {
   const ElectronicsStorageOption({
     required this.label,
     this.extraPrice = 0,
+    this.id,
   });
 
+  final String? id;
   final String label;
   final int extraPrice;
 }
@@ -74,8 +76,10 @@ class ElectronicsColorOption {
   const ElectronicsColorOption({
     required this.color,
     this.selectedBorder = false,
+    this.id,
   });
 
+  final String? id;
   final Color color;
   final bool selectedBorder;
 }
@@ -84,6 +88,42 @@ abstract final class ElectronicsData {
   static const homeTitle = 'Electronics';
   static const searchHint = 'Search devices, brands…';
   static const storesSectionTitle = 'Stores near you';
+
+  static String titleForCategory(String category) {
+    return switch (category.toLowerCase()) {
+      'fashion' => 'Fashion',
+      'grocery' || 'groceries' => 'Groceries',
+      'prosthetics' => 'Prosthetics',
+      'pharmacy' => 'Pharmacy',
+      'cosmetics' => 'Cosmetics',
+      'gifts' || 'gift' => 'Gifts',
+      'jewelry' || 'jewellery' => 'Jewelry',
+      'stationery' => 'Stationery',
+      'baby-kids' || 'baby_kids' => 'Baby & Kids',
+      'sports' || 'sport' => 'Sports',
+      _ => homeTitle,
+    };
+  }
+
+  static String searchHintForCategory(String category) {
+    return switch (category.toLowerCase()) {
+      'fashion' => 'Search brands, styles…',
+      'grocery' || 'groceries' => 'Search groceries, stores…',
+      'prosthetics' => 'Search products, brands…',
+      'pharmacy' => 'Search pharmacies, products…',
+      'cosmetics' => 'Search beauty, brands…',
+      'gifts' || 'gift' => 'Search gifts, brands…',
+      'jewelry' || 'jewellery' => 'Search jewelry, brands…',
+      'stationery' => 'Search stationery, stores…',
+      'baby-kids' || 'baby_kids' => 'Search baby & kids…',
+      'sports' || 'sport' => 'Search sports, brands…',
+      _ => searchHint,
+    };
+  }
+
+  static String categoryFallbackLabel(String category) {
+    return titleForCategory(category);
+  }
 
   static const productFilters = [
     'All',

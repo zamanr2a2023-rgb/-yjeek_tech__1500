@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:yjeek_app/features/cart/model/cart_flow_data.dart';
 import 'package:yjeek_app/features/navigation/model/navigation_data.dart';
+import 'package:yjeek_app/l10n/l10n.dart';
 
 class VapeCartItem {
   const VapeCartItem({
@@ -39,6 +40,8 @@ class VapeDeliveryMethod {
     required this.price,
     required this.priceValue,
     this.subtitle,
+    this.available = true,
+    this.unavailableNote,
   });
 
   final String id;
@@ -46,62 +49,61 @@ class VapeDeliveryMethod {
   final String price;
   final double priceValue;
   final String? subtitle;
+  final bool available;
+  final String? unavailableNote;
 }
 
 abstract final class VapeCartStrings {
-  static const String cart = 'Cart';
-  static const String checkout = 'Checkout';
-  static const String reviewConfirm = 'Review & confirm';
-  static const String yourItems = 'Your items';
-  static const String youMightAlsoLike = 'You might also like';
-  static const String promoCode = 'Have a promo code?';
-  static const String edit = 'Edit';
-  static const String deliveryDetails = 'Delivery details';
-  static const String deliveryMethod = 'Delivery method';
-  static const String dropOffPreferences = 'Drop-off preferences';
-  static const String tipYourChamp = 'Tip your champ';
-  static const String paymentMethod = 'Payment method';
-  static const String billSummary = 'Bill summary';
-  static const String placeOrder = 'Place order';
-  static const String addMore = 'Add more';
-  static const String checkoutBtn = 'Checkout';
-  static const String placingOrder = 'Placing your order';
-  static const String autoConfirmHint =
-      'Auto-confirms in 10 seconds. You can still edit or cancel before then.';
-  static const String orderSummary = 'Order summary';
-  static const String editOrder = 'Edit order';
-  static const String sendToVendor = 'Send to vendor';
-  static const String orderType = 'VAPEOLOGY · VAPE DELIVERY';
-  static const String method = 'Method';
-  static const String deliverTo = 'Deliver to';
-  static const String payment = 'Payment';
-  static const String orderTotal = 'Order total';
-  static const String cashOnDelivery = 'Cash on delivery';
-  static const String customTip = 'Custom';
-  static const String idVerification = 'ID verification';
-  static const String verified = 'VERIFIED ✓';
-  static const String verifiedNote =
-      'Your CPR is verified by Yjeek. The champ still checks your ID (18+) on delivery.';
-  static const String arrivesIn = 'Arrives in 30–45 mins';
-  static const String phone = '+973 3558 0000';
+  static String get cart => L10n.tr('Cart');
+  static String get checkout => L10n.tr('Checkout');
+  static String get reviewConfirm => L10n.tr('Review & confirm');
+  static String get yourItems => L10n.tr('Your items');
+  static String get youMightAlsoLike => L10n.tr('You might also like');
+  static String get promoCode => L10n.tr('Have a promo code?');
+  static String get edit => L10n.tr('Edit');
+  static String get deliveryDetails => L10n.tr('Delivery details');
+  static String get deliveryMethod => L10n.tr('Delivery method');
+  static String get dropOffPreferences => L10n.tr('Drop-off preferences');
+  static String get tipYourChamp => L10n.tr('Tip your champ');
+  static String get paymentMethod => L10n.tr('Payment method');
+  static String get billSummary => L10n.tr('Bill summary');
+  static String get placeOrder => L10n.tr('Place order');
+  static String get addMore => L10n.tr('Add more');
+  static String get checkoutBtn => L10n.tr('Checkout');
+  static String get placingOrder => L10n.tr('Placing your order');
+  static String get autoConfirmHint => L10n.tr('Auto-confirms in 10 seconds. You can still edit or cancel before then.');
+  static String get orderSummary => L10n.tr('Order summary');
+  static String get editOrder => L10n.tr('Edit order');
+  static String get sendToVendor => L10n.tr('Send to vendor');
+  static String get orderType => L10n.tr('VAPEOLOGY · VAPE DELIVERY');
+  static String get method => L10n.tr('Method');
+  static String get deliverTo => L10n.tr('Deliver to');
+  static String get payment => L10n.tr('Payment');
+  static String get orderTotal => L10n.tr('Order total');
+  static String get cashOnDelivery => L10n.tr('Cash on delivery');
+  static String get customTip => L10n.tr('Custom');
+  static String get idVerification => L10n.tr('ID verification');
+  static String get verified => L10n.tr('VERIFIED ✓');
+  static String get verifiedNote => L10n.tr('Your CPR is verified by Yjeek. The champ still checks your ID (18+) on delivery.');
+  static String get arrivesIn => L10n.tr('Scheduled delivery');
+  static String get phone => L10n.tr('+973 3558 0000');
   static const String paymentNote =
       "You won't be charged now. Once the vendor accepts, you'll have 5 minutes to pay";
-  static const String verifyTitle = 'Verify your age first';
-  static const String verifyBody =
-      'This is an age-restricted (18+) order. You need to upload your CPR and documents and get verified before you can place this order.';
-  static const String goToVerification = 'Go to verification';
-  static const String notNow = 'Not now';
-  static const String cashbackEarn = 'Earn 3% cashback to your Wallet';
-  static const String enterPromoCode = 'Enter promo code';
-  static const String submit = 'Submit';
+  static String get verifyTitle => L10n.tr('Verify your age first');
+  static String get verifyBody => L10n.tr('This is an age-restricted (18+) order. You need to upload your CPR and documents and get verified before you can place this order.');
+  static String get goToVerification => L10n.tr('Go to verification');
+  static String get notNow => L10n.tr('Not now');
+  static String get cashbackEarn => L10n.tr('Earn 3% cashback to your Wallet');
+  static String get enterPromoCode => L10n.tr('Enter promo code');
+  static String get submit => L10n.tr('Submit');
 }
 
 abstract final class VapeCartData {
-  static const String vendor = 'Vapeology';
-  static const String selectedAddress = 'Apartment · Seef';
-  static const String selectedAddressDetail = 'Road 6000, Bldg 23, Flat 82';
-  static const String orderTotal = 'BHD 6.610';
-  static const String cashbackAmount = '+ BHD 0.198';
+  static String get vendor => L10n.tr('Vapeology');
+  static String get selectedAddress => L10n.tr('Apartment · Seef');
+  static String get selectedAddressDetail => L10n.tr('Road 6000, Bldg 23, Flat 82');
+  static String get orderTotal => L10n.tr('BHD 6.610');
+  static String get cashbackAmount => L10n.tr('+ BHD 0.198');
 
   static const List<VapeCartItem> cartItems = [
     VapeCartItem(
@@ -133,7 +135,7 @@ abstract final class VapeCartData {
     ),
   ];
 
-  static const List<BillLine> cartBillLines = [
+  static final List<BillLine> cartBillLines = [
     BillLine(label: 'Subtotal', value: 'BHD 6.500'),
     BillLine(label: 'Discount', value: '- BHD 0.500', isDiscount: true),
     BillLine(label: 'Delivery', value: 'BHD 0.500'),
@@ -157,20 +159,20 @@ abstract final class VapeCartData {
     VapeDeliveryMethod(
       id: 'standard',
       label: 'Standard',
-      subtitle: '1–2 days',
+      subtitle: '1–3 days',
       price: 'BHD 1.000',
       priceValue: 1.0,
     ),
     VapeDeliveryMethod(
       id: 'economy',
       label: 'Economy',
-      subtitle: '3–7 days',
+      subtitle: '5–7 days',
       price: 'BHD 0.500',
       priceValue: 0.5,
     ),
   ];
 
-  static const List<TipOption> tipOptions = [
+  static final List<TipOption> tipOptions = [
     TipOption(label: 'BHD 0.200', amount: 0.2),
     TipOption(label: 'BHD 0.500', amount: 0.5),
     TipOption(label: 'BHD 1', amount: 1),
@@ -199,9 +201,9 @@ abstract final class VapeCartData {
       const BillLine(label: 'Subtotal', value: 'BHD 6.500'),
       const BillLine(label: 'Discount', value: '- BHD 0.500', isDiscount: true),
       BillLine(label: method.label, value: method.price),
-      const BillLine(label: 'Service fee', value: 'BHD 0.110'),
+      BillLine(label: 'Service fee', value: 'BHD 0.110'),
       if (tip > 0) BillLine(label: 'Tip', value: 'BHD ${tip.toStringAsFixed(3)}'),
-      const BillLine(label: 'Order total', value: orderTotal, isBold: true),
+      BillLine(label: 'Order total', value: orderTotal, isBold: true),
     ];
   }
 

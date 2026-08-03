@@ -519,44 +519,94 @@ class HelpPhotoUploadBox extends StatelessWidget {
     super.key,
     this.hint = 'Add photo',
     this.subtitle = 'JPG/PNG · up to 5MB',
+    this.onTap,
+    this.imageUrl,
+    this.uploading = false,
   });
 
   final String hint;
   final String subtitle;
+  final VoidCallback? onTap;
+  final String? imageUrl;
+  final bool uploading;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: const Color(0xFFFBFCFB),
-        borderRadius: BorderRadius.circular(14.r),
-      ),
-      child: CustomPaint(
-        foregroundPainter: _HelpDashedBorderPainter(
-          color: const Color(0xFFCFD4D0),
-          radius: 14.r,
+    final hasImage = imageUrl != null && imageUrl!.isNotEmpty;
+    return GestureDetector(
+      onTap: uploading ? null : onTap,
+      child: Container(
+        width: double.infinity,
+        decoration: BoxDecoration(
+          color: const Color(0xFFFBFCFB),
+          borderRadius: BorderRadius.circular(14.r),
         ),
-        child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 22.h),
-          child: Column(
-            children: [
-              Text(
-                '＋ $hint',
-                style: AppTextStyles.labelMedium(color: AppColors.primary).copyWith(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 14.sp,
-                ),
-              ),
-              SizedBox(height: 4.h),
-              Text(
-                subtitle,
-                style: AppTextStyles.caption(color: const Color(0xFF6B7280)).copyWith(
-                  fontSize: 11.sp,
-                  fontWeight: FontWeight.w400,
-                ),
-              ),
-            ],
+        child: CustomPaint(
+          foregroundPainter: _HelpDashedBorderPainter(
+            color: const Color(0xFFCFD4D0),
+            radius: 14.r,
+          ),
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 22.h),
+            child: uploading
+                ? SizedBox(
+                    height: 48.h,
+                    child: const Center(
+                      child: CircularProgressIndicator(
+                        color: AppColors.primary,
+                        strokeWidth: 2,
+                      ),
+                    ),
+                  )
+                : hasImage
+                    ? Column(
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(10.r),
+                            child: Image.network(
+                              imageUrl!,
+                              height: 120.h,
+                              width: double.infinity,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, _, _) => Icon(
+                                Icons.broken_image_outlined,
+                                size: 40.sp,
+                                color: const Color(0xFF6B7B6E),
+                              ),
+                            ),
+                          ),
+                          SizedBox(height: 8.h),
+                          Text(
+                            'Tap to change photo',
+                            style: AppTextStyles.caption(
+                              color: AppColors.primary,
+                            ).copyWith(fontSize: 11.sp),
+                          ),
+                        ],
+                      )
+                    : Column(
+                        children: [
+                          Text(
+                            '＋ $hint',
+                            style: AppTextStyles.labelMedium(
+                              color: AppColors.primary,
+                            ).copyWith(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 14.sp,
+                            ),
+                          ),
+                          SizedBox(height: 4.h),
+                          Text(
+                            subtitle,
+                            style: AppTextStyles.caption(
+                              color: const Color(0xFF6B7280),
+                            ).copyWith(
+                              fontSize: 11.sp,
+                              fontWeight: FontWeight.w400,
+                            ),
+                          ),
+                        ],
+                      ),
           ),
         ),
       ),
@@ -977,10 +1027,26 @@ class HelpNoteField extends StatelessWidget {
 }
 
 class HelpRefundSummaryCard extends StatelessWidget {
-  const HelpRefundSummaryCard({super.key});
+  const HelpRefundSummaryCard({
+    super.key,
+    this.orderTotalBhd,
+    this.canCancel = true,
+    this.showFeeEstimate = true,
+  });
+
+  final String? orderTotalBhd;
+  final bool canCancel;
+  final bool showFeeEstimate;
 
   @override
   Widget build(BuildContext context) {
+    final total = double.tryParse(orderTotalBhd ?? '') ?? 0;
+    final totalLabel = total.toStringAsFixed(3);
+    final fee = showFeeEstimate ? total * 0.5 : 0.0;
+    final refund = (total - fee).clamp(0.0, total);
+    final feeLabel = fee.toStringAsFixed(3);
+    final refundLabel = refund.toStringAsFixed(3);
+
     return Container(
       width: double.infinity,
       padding: EdgeInsets.all(14.w),
@@ -1000,22 +1066,35 @@ class HelpRefundSummaryCard extends StatelessWidget {
             ),
           ),
           SizedBox(height: 12.h),
-          _row('Order total', 'BHD 35.800'),
+          _row('Order total', 'BHD $totalLabel'),
           SizedBox(height: 10.h),
           _row(
-            'Cancellation fee (up to 50%)',
-            '− BHD 17.900',
-            valueColor: const Color(0xFFC0392B),
+            showFeeEstimate
+                ? 'Cancellation fee (up to 50%)'
+                : 'Cancellation fee',
+            showFeeEstimate ? '− BHD $feeLabel' : 'BHD 0.000',
+            valueColor: showFeeEstimate
+                ? const Color(0xFFC0392B)
+                : const Color(0xFF6B7B6E),
           ),
           SizedBox(height: 10.h),
           const Divider(height: 1, color: Color(0xFFE6EBE3)),
           SizedBox(height: 10.h),
           _row(
-            'Refund to you',
-            'BHD 17.900',
-            valueColor: AppColors.successText,
+            canCancel ? 'Refund to you' : 'Not cancellable',
+            canCancel ? 'BHD $refundLabel' : '—',
+            valueColor:
+                canCancel ? AppColors.successText : const Color(0xFFC0392B),
             bold: true,
           ),
+          if (!canCancel) ...[
+            SizedBox(height: 8.h),
+            Text(
+              'This order can no longer be cancelled from the app. Contact support if you need help.',
+              style: AppTextStyles.caption(color: const Color(0xFF6B7B6E))
+                  .copyWith(fontSize: 11.sp, height: 1.35),
+            ),
+          ],
         ],
       ),
     );
@@ -1580,7 +1659,16 @@ class HelpChatBubble extends StatelessWidget {
 }
 
 class HelpChatInputBar extends StatelessWidget {
-  const HelpChatInputBar({super.key});
+  const HelpChatInputBar({
+    super.key,
+    this.controller,
+    this.onSend,
+    this.enabled = true,
+  });
+
+  final TextEditingController? controller;
+  final VoidCallback? onSend;
+  final bool enabled;
 
   @override
   Widget build(BuildContext context) {
@@ -1604,23 +1692,38 @@ class HelpChatInputBar extends StatelessWidget {
                   color: const Color(0xFFF2F5F1),
                   borderRadius: BorderRadius.circular(20.r),
                 ),
-                child: Text(
-                  'Message…',
-                  style: AppTextStyles.bodyMedium(color: const Color(0xFF9AA09B))
-                      .copyWith(fontSize: 13.sp),
+                child: TextField(
+                  controller: controller,
+                  enabled: enabled,
+                  decoration: InputDecoration(
+                    isDense: true,
+                    border: InputBorder.none,
+                    hintText: 'Message…',
+                    hintStyle: AppTextStyles.bodyMedium(
+                      color: const Color(0xFF9AA09B),
+                    ).copyWith(fontSize: 13.sp),
+                  ),
+                  style: AppTextStyles.bodyMedium(
+                    color: AppColors.textPrimary,
+                  ).copyWith(fontSize: 13.sp),
+                  textInputAction: TextInputAction.send,
+                  onSubmitted: enabled ? (_) => onSend?.call() : null,
                 ),
               ),
             ),
             SizedBox(width: 10.w),
-            Container(
-              width: 40.w,
-              height: 40.w,
-              decoration: const BoxDecoration(
-                color: AppColors.primary,
-                shape: BoxShape.circle,
+            GestureDetector(
+              onTap: enabled ? onSend : null,
+              child: Container(
+                width: 40.w,
+                height: 40.w,
+                decoration: BoxDecoration(
+                  color: enabled ? AppColors.primary : const Color(0xFFB8C4B5),
+                  shape: BoxShape.circle,
+                ),
+                alignment: Alignment.center,
+                child: Icon(Icons.send_rounded, size: 18.sp, color: AppColors.white),
               ),
-              alignment: Alignment.center,
-              child: Icon(Icons.send_rounded, size: 18.sp, color: AppColors.white),
             ),
           ],
         ),

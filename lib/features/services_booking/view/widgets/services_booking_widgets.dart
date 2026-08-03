@@ -139,11 +139,14 @@ class ServicesTimeGrid extends StatelessWidget {
     required this.slots,
     required this.selectedIndex,
     required this.onSelected,
+    this.available,
   });
 
   final List<String> slots;
   final int selectedIndex;
   final ValueChanged<int> onSelected;
+  /// Parallel to [slots]; when false the chip is muted and not tappable.
+  final List<bool>? available;
 
   static const Color _chipBorder = Color(0xFFE0E6E0);
 
@@ -156,28 +159,37 @@ class ServicesTimeGrid extends StatelessWidget {
       runSpacing: 8.h,
       children: List.generate(slots.length, (index) {
         final selected = index == selectedIndex;
+        final isAvailable = available == null ||
+            (index < available!.length && available![index]);
         return GestureDetector(
-          onTap: () => onSelected(index),
-          child: Container(
-            height: 29.h,
-            padding: EdgeInsets.symmetric(horizontal: 13.w),
-            decoration: BoxDecoration(
-              color: selected ? AppColors.offerBadgeGreenBg : AppColors.white,
-              borderRadius: BorderRadius.circular(20.r),
-              border: Border.all(
-                color: selected ? AppColors.cartTabActive : _chipBorder,
-                width: selected ? 1.5 : 1.2,
+          onTap: isAvailable ? () => onSelected(index) : null,
+          child: Opacity(
+            opacity: isAvailable ? 1 : 0.4,
+            child: Container(
+              height: 29.h,
+              padding: EdgeInsets.symmetric(horizontal: 13.w),
+              decoration: BoxDecoration(
+                color: selected ? AppColors.offerBadgeGreenBg : AppColors.white,
+                borderRadius: BorderRadius.circular(20.r),
+                border: Border.all(
+                  color: selected ? AppColors.cartTabActive : _chipBorder,
+                  width: selected ? 1.5 : 1.2,
+                ),
               ),
-            ),
-            // Center(widthFactor: 1) keeps chip intrinsic width so Wrap
-            // lays out compact chips in a grid (not full-width rows).
-            child: Center(
-              widthFactor: 1,
-              child: Text(
-                slots[index],
-                style: AppTextStyles.labelSmall(
-                  color: selected ? AppColors.offerBadgeGreenText : _labelMuted,
-                ).copyWith(fontWeight: FontWeight.w600, fontSize: 12.5.sp),
+              child: Center(
+                widthFactor: 1,
+                child: Text(
+                  slots[index],
+                  style: AppTextStyles.labelSmall(
+                    color: selected
+                        ? AppColors.offerBadgeGreenText
+                        : _labelMuted,
+                  ).copyWith(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 12.sp,
+                    height: 1.2,
+                  ),
+                ),
               ),
             ),
           ),
@@ -293,7 +305,7 @@ class ServicesUpsellCard extends StatelessWidget {
                     ).copyWith(fontWeight: FontWeight.w600, fontSize: 15.sp),
                   ),
                   Text(
-                    '🕒 ${item.duration} · BHD ${item.price}',
+                    '🕒 ${item.duration} · ${item.price.startsWith('BHD') ? item.price : 'BHD ${item.price}'}',
                     style: AppTextStyles.caption(color: _labelMuted).copyWith(
                       fontSize: 12.5.sp,
                     ),
@@ -339,9 +351,18 @@ class ServicesUpsellCard extends StatelessWidget {
 }
 
 class ServicesPromoField extends StatelessWidget {
-  const ServicesPromoField({super.key, this.applied = true});
+  const ServicesPromoField({
+    super.key,
+    this.controller,
+    this.onApply,
+    this.applying = false,
+    this.appliedCode,
+  });
 
-  final bool applied;
+  final TextEditingController? controller;
+  final VoidCallback? onApply;
+  final bool applying;
+  final String? appliedCode;
 
   static const Color _chipBorder = Color(0xFFE0E6E0);
   static const Color _labelMuted = Color(0xFF6B756E);
@@ -363,37 +384,61 @@ class ServicesPromoField extends StatelessWidget {
                   border: Border.all(color: _chipBorder),
                 ),
                 alignment: Alignment.centerLeft,
-                child: Text(
-                  ServicesBookingStrings.enterPromoCode,
-                  style: AppTextStyles.bodySmall(color: _labelMuted).copyWith(
-                    fontSize: 14.sp,
+                child: TextField(
+                  controller: controller,
+                  onSubmitted: (_) => onApply?.call(),
+                  textCapitalization: TextCapitalization.characters,
+                  decoration: InputDecoration(
+                    isDense: true,
+                    border: InputBorder.none,
+                    hintText: ServicesBookingStrings.enterPromoCode,
+                    hintStyle:
+                        AppTextStyles.bodySmall(color: _labelMuted).copyWith(
+                      fontSize: 14.sp,
+                    ),
                   ),
+                  style: AppTextStyles.bodySmall(
+                    color: AppColors.textPrimary,
+                  ).copyWith(fontSize: 14.sp),
                 ),
               ),
             ),
             SizedBox(width: 10.w),
-            Container(
-              width: 84.w,
-              height: 48.h,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: AppColors.cartTabActive,
-                borderRadius: BorderRadius.circular(12.r),
-              ),
-              child: Text(
-                ServicesBookingStrings.apply,
-                style: AppTextStyles.labelSmall(color: AppColors.white).copyWith(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 15.sp,
+            GestureDetector(
+              onTap: applying ? null : onApply,
+              child: Container(
+                width: 84.w,
+                height: 48.h,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: AppColors.cartTabActive,
+                  borderRadius: BorderRadius.circular(12.r),
                 ),
+                child: applying
+                    ? SizedBox(
+                        width: 18.w,
+                        height: 18.w,
+                        child: const CircularProgressIndicator(
+                          color: AppColors.white,
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : Text(
+                        ServicesBookingStrings.apply,
+                        style: AppTextStyles.labelSmall(color: AppColors.white)
+                            .copyWith(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 15.sp,
+                        ),
+                      ),
               ),
             ),
           ],
         ),
-        if (applied) ...[
+        if (appliedCode != null && appliedCode!.isNotEmpty) ...[
           SizedBox(height: 8.h),
           Text(
-            ServicesBookingStrings.promoApplied,
+            '✓ $appliedCode applied',
             style: AppTextStyles.labelSmall(
               color: AppColors.cartTabActive,
             ).copyWith(fontWeight: FontWeight.w600, fontSize: 12.sp),
@@ -405,7 +450,18 @@ class ServicesPromoField extends StatelessWidget {
 }
 
 class ServicesServiceCard extends StatelessWidget {
-  const ServicesServiceCard({super.key});
+  ServicesServiceCard({
+    super.key,
+    String? name,
+    String? durationLabel,
+    String? priceLabel,
+  })  : name = name ?? ServicesBookingData.mainService,
+        durationLabel = durationLabel ?? ServicesBookingData.mainServiceDuration,
+        priceLabel = priceLabel ?? ServicesBookingData.mainServicePrice;
+
+  final String name;
+  final String durationLabel;
+  final String priceLabel;
 
   static const Color _chipBorder = Color(0xFFE0E6E0);
   static const Color _labelMuted = Color(0xFF6B756E);
@@ -426,13 +482,13 @@ class ServicesServiceCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  ServicesBookingData.mainService,
+                  name,
                   style: AppTextStyles.labelMedium(
                     color: AppColors.textPrimary,
                   ).copyWith(fontWeight: FontWeight.w600, fontSize: 14.sp),
                 ),
                 Text(
-                  ServicesBookingData.mainServiceDuration,
+                  durationLabel,
                   style: AppTextStyles.caption(color: _labelMuted).copyWith(
                     fontSize: 12.sp,
                   ),
@@ -441,7 +497,7 @@ class ServicesServiceCard extends StatelessWidget {
             ),
           ),
           Text(
-            ServicesBookingData.mainServicePrice,
+            priceLabel,
             style: AppTextStyles.labelSmall(
               color: AppColors.offerBadgeGreenText,
             ).copyWith(fontWeight: FontWeight.w600, fontSize: 13.sp),
@@ -453,7 +509,14 @@ class ServicesServiceCard extends StatelessWidget {
 }
 
 class ServicesLocationCard extends StatelessWidget {
-  const ServicesLocationCard({super.key});
+  const ServicesLocationCard({
+    super.key,
+    this.locationLabel,
+    this.address,
+  });
+
+  final String? locationLabel;
+  final String? address;
 
   static const Color _chipBorder = Color(0xFFE0E6E0);
   static const Color _labelMuted = Color(0xFF6B756E);
@@ -485,13 +548,13 @@ class ServicesLocationCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  ServicesBookingStrings.venueLocationLabel,
+                  locationLabel ?? ServicesBookingStrings.venueLocationLabel,
                   style: AppTextStyles.labelMedium(
                     color: AppColors.textPrimary,
                   ).copyWith(fontWeight: FontWeight.w600, fontSize: 14.sp),
                 ),
                 Text(
-                  ServicesBookingStrings.venueAddress,
+                  address ?? ServicesBookingStrings.venueAddress,
                   style: AppTextStyles.caption(color: _labelMuted).copyWith(
                     fontSize: 12.sp,
                   ),
@@ -506,7 +569,18 @@ class ServicesLocationCard extends StatelessWidget {
 }
 
 class ServicesAppointmentCard extends StatelessWidget {
-  const ServicesAppointmentCard({super.key});
+  const ServicesAppointmentCard({
+    super.key,
+    this.serviceName,
+    this.whenLabel,
+    this.specialistName,
+    this.peopleLabel,
+  });
+
+  final String? serviceName;
+  final String? whenLabel;
+  final String? specialistName;
+  final String? peopleLabel;
 
   static const Color _chipBorder = Color(0xFFE0E6E0);
   static const Color _labelMuted = Color(0xFF6B756E);
@@ -522,10 +596,22 @@ class ServicesAppointmentCard extends StatelessWidget {
       ),
       child: Column(
         children: [
-          _row(ServicesBookingStrings.service, ServicesBookingData.mainService),
-          _row(ServicesBookingStrings.when, ServicesBookingData.appointmentWhen),
-          _row(ServicesBookingStrings.specialist, ServicesBookingData.specialistName),
-          _row(ServicesBookingStrings.people, ServicesBookingData.peopleCount),
+          _row(
+            ServicesBookingStrings.service,
+            serviceName ?? ServicesBookingData.mainService,
+          ),
+          _row(
+            ServicesBookingStrings.when,
+            whenLabel ?? ServicesBookingData.appointmentWhen,
+          ),
+          _row(
+            ServicesBookingStrings.specialist,
+            specialistName ?? ServicesBookingData.specialistName,
+          ),
+          _row(
+            ServicesBookingStrings.people,
+            peopleLabel ?? ServicesBookingData.peopleCount,
+          ),
         ],
       ),
     );
@@ -562,10 +648,14 @@ class ServicesBookingReviewStatusCard extends StatelessWidget {
     super.key,
     required this.secondsLeft,
     required this.progress,
+    this.title,
+    this.hint,
   });
 
   final int secondsLeft;
   final double progress;
+  final String? title;
+  final String? hint;
 
   static const Color _ringTrack = Color(0xFF2C6B47);
   static const Color _ringProgress = Color(0xFFC9A84C);
@@ -612,7 +702,7 @@ class ServicesBookingReviewStatusCard extends StatelessWidget {
           ),
           SizedBox(height: 12.h),
           Text(
-            ServicesBookingStrings.sendingBooking,
+            title ?? ServicesBookingStrings.sendingBooking,
             textAlign: TextAlign.center,
             style: AppTextStyles.labelMedium(color: AppColors.white).copyWith(
               fontWeight: FontWeight.w700,
@@ -622,7 +712,7 @@ class ServicesBookingReviewStatusCard extends StatelessWidget {
           ),
           SizedBox(height: 6.h),
           Text(
-            ServicesBookingStrings.autoConfirmHint,
+            hint ?? ServicesBookingStrings.autoConfirmHint,
             textAlign: TextAlign.center,
             style: AppTextStyles.caption(
               color: const Color(0xFFCFE8D8),
@@ -649,7 +739,20 @@ class ServicesBookingReviewStatusCard extends StatelessWidget {
 }
 
 class ServicesBookingSummaryCard extends StatelessWidget {
-  const ServicesBookingSummaryCard({super.key});
+  const ServicesBookingSummaryCard({
+    super.key,
+    this.serviceName,
+    this.providerName,
+    this.whenLabel,
+    this.locationLabel,
+    this.peopleLabel,
+  });
+
+  final String? serviceName;
+  final String? providerName;
+  final String? whenLabel;
+  final String? locationLabel;
+  final String? peopleLabel;
 
   static const Color _chipBorder = Color(0xFFE0E6E0);
   static const Color _labelMuted = Color(0xFF6B756E);
@@ -666,11 +769,27 @@ class ServicesBookingSummaryCard extends StatelessWidget {
       ),
       child: Column(
         children: [
-          _row(ServicesBookingStrings.service, ServicesBookingData.mainService),
-          _row(ServicesBookingStrings.providerLabel, ServicesBookingStrings.provider),
-          _row(ServicesBookingStrings.when, ServicesBookingData.appointmentWhen),
-          _row(ServicesBookingStrings.location, ServicesBookingStrings.venueLocationShort),
-          _row(ServicesBookingStrings.people, ServicesBookingData.peopleCount, isLast: true),
+          _row(
+            ServicesBookingStrings.service,
+            serviceName ?? ServicesBookingData.mainService,
+          ),
+          _row(
+            ServicesBookingStrings.providerLabel,
+            providerName ?? ServicesBookingStrings.provider,
+          ),
+          _row(
+            ServicesBookingStrings.when,
+            whenLabel ?? ServicesBookingData.appointmentWhen,
+          ),
+          _row(
+            ServicesBookingStrings.location,
+            locationLabel ?? ServicesBookingStrings.venueLocationShort,
+          ),
+          _row(
+            ServicesBookingStrings.people,
+            peopleLabel ?? ServicesBookingData.peopleCount,
+            isLast: true,
+          ),
         ],
       ),
     );

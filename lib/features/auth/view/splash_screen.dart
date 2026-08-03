@@ -45,9 +45,15 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     if (!mounted) return;
 
     final storage = ref.read(storageServiceProvider);
-    if (storage.isLoggedIn) {
+    if (storage.hasSession) {
+      if (!mounted) return;
       context.goHome();
     } else {
+      // Stale "logged in" flag without a token causes 401s on /orders and /cart.
+      if (storage.isLoggedIn) {
+        await storage.clearSession();
+      }
+      if (!mounted) return;
       context.go(RouteNames.welcome);
     }
   }

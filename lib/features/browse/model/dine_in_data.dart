@@ -17,6 +17,10 @@ class DineInRestaurant {
     this.subtitle,
     this.reviewCount = '2.5k',
     this.tableMin = 2,
+    this.statusLabel = 'Open now',
+    this.modeLabel = 'Dine-in',
+    this.entryLabel = 'Walk-in',
+    this.imageUrl,
   });
 
   final String id;
@@ -31,6 +35,10 @@ class DineInRestaurant {
   final String? subtitle;
   final String reviewCount;
   final int tableMin;
+  final String statusLabel;
+  final String modeLabel;
+  final String entryLabel;
+  final String? imageUrl;
 }
 
 class DineInVisit {

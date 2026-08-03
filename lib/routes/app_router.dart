@@ -11,6 +11,7 @@ import 'package:yjeek_app/features/browse/view/dine_in_browse_screen.dart';
 import 'package:yjeek_app/features/browse/view/dine_in_item_detail_screen.dart';
 import 'package:yjeek_app/features/browse/view/dine_in_menu_screen.dart';
 import 'package:yjeek_app/features/browse/view/dine_in_order_again_screen.dart';
+import 'package:yjeek_app/features/browse/view/dine_in_search_screen.dart';
 import 'package:yjeek_app/features/browse/view/services_browse_screen.dart';
 import 'package:yjeek_app/features/browse/view/services_category_screen.dart';
 import 'package:yjeek_app/features/browse/view/services_item_detail_screen.dart';
@@ -45,8 +46,6 @@ import 'package:yjeek_app/features/browse/view/food_search_screen.dart';
 import 'package:yjeek_app/features/browse/view/item_detail_screen.dart';
 import 'package:yjeek_app/features/browse/view/vendor_menu_screen.dart';
 import 'package:yjeek_app/features/browse/browse_routes.dart';
-import 'package:yjeek_app/features/cart/view/cart_add_address_screen.dart';
-import 'package:yjeek_app/features/cart/view/cart_edit_address_screen.dart';
 import 'package:yjeek_app/features/cart/view/cart_new_cart_dialog_screen.dart';
 import 'package:yjeek_app/features/cart/view/change_address_screen.dart';
 import 'package:yjeek_app/features/cart/view/checkout_screen.dart';
@@ -62,6 +61,7 @@ import 'package:yjeek_app/features/navigation/view/add_address_screen.dart';
 import 'package:yjeek_app/features/navigation/view/cashback_screen.dart';
 import 'package:yjeek_app/features/navigation/view/country_region_screen.dart';
 import 'package:yjeek_app/features/navigation/view/edit_personal_info_screen.dart';
+import 'package:yjeek_app/features/navigation/view/change_phone_screen.dart';
 import 'package:yjeek_app/features/navigation/view/edit_profile_screen.dart';
 import 'package:yjeek_app/features/navigation/view/exclusive_offers_screen.dart';
 import 'package:yjeek_app/features/navigation/view/id_verification_screen.dart';
@@ -110,9 +110,21 @@ import 'package:yjeek_app/features/dine_in_cart/model/dine_in_cart_data.dart';
 import 'package:yjeek_app/features/order_flow/view/delivered_rate_screen.dart';
 import 'package:yjeek_app/features/order_flow/view/driver_chat_screen.dart';
 import 'package:yjeek_app/features/order_flow/view/order_confirmed_screen.dart';
+import 'package:yjeek_app/features/order_flow/view/order_pay_screen.dart';
 import 'package:yjeek_app/features/order_flow/view/order_receipt_screen.dart';
 import 'package:yjeek_app/features/order_flow/view/order_status_screen.dart';
+import 'package:yjeek_app/features/order_flow/view/order_waiting_screen.dart';
 import 'package:yjeek_app/routes/route_names.dart';
+
+List<String> _scheduledOrderIds(GoRouterState state) {
+  final idsParam = state.uri.queryParameters['ids'];
+  final id = state.uri.queryParameters['id'];
+  if (idsParam != null && idsParam.isNotEmpty) {
+    return idsParam.split(',').where((e) => e.isNotEmpty).toList();
+  }
+  if (id != null && id.isNotEmpty) return [id];
+  return const [];
+}
 
 class AppRouter {
   static GoRouter create() {
@@ -195,7 +207,12 @@ class AppRouter {
             final vendorId =
                 state.uri.queryParameters['id'] ?? BrowseRoutes.defaultVendorId;
             final tab = int.tryParse(state.uri.queryParameters['tab'] ?? '') ?? 0;
-            return VendorMenuScreen(vendorId: vendorId, bottomNavIndex: tab);
+            final cartType = state.uri.queryParameters['cart'];
+            return VendorMenuScreen(
+              vendorId: vendorId,
+              bottomNavIndex: tab,
+              cartType: cartType,
+            );
           },
         ),
         GoRoute(
@@ -206,10 +223,12 @@ class AppRouter {
             final itemId =
                 state.uri.queryParameters['item'] ?? BrowseRoutes.defaultItemId;
             final tab = int.tryParse(state.uri.queryParameters['tab'] ?? '') ?? 0;
+            final cartType = state.uri.queryParameters['cart'];
             return ItemDetailScreen(
               vendorId: vendorId,
               itemId: itemId,
               bottomNavIndex: tab,
+              cartType: cartType,
             );
           },
         ),
@@ -218,6 +237,17 @@ class AppRouter {
           builder: (_, state) {
             final tab = int.tryParse(state.uri.queryParameters['tab'] ?? '') ?? 0;
             return DineInBrowseScreen(bottomNavIndex: tab);
+          },
+        ),
+        GoRoute(
+          path: RouteNames.dineInSearch,
+          builder: (_, state) {
+            final tab = int.tryParse(state.uri.queryParameters['tab'] ?? '') ?? 0;
+            final query = state.uri.queryParameters['q'] ?? '';
+            return DineInSearchScreen(
+              initialQuery: query,
+              bottomNavIndex: tab,
+            );
           },
         ),
         GoRoute(
@@ -261,9 +291,12 @@ class AppRouter {
         GoRoute(
           path: RouteNames.servicesSearch,
           builder: (_, state) {
-            final query = state.uri.queryParameters['q'] ?? '';
             final tab = int.tryParse(state.uri.queryParameters['tab'] ?? '') ?? 0;
-            return ServicesSearchScreen(initialQuery: query, bottomNavIndex: tab);
+            final query = state.uri.queryParameters['q'] ?? '';
+            return ServicesSearchScreen(
+              initialQuery: query,
+              bottomNavIndex: tab,
+            );
           },
         ),
         GoRoute(
@@ -308,7 +341,12 @@ class AppRouter {
           path: RouteNames.electronicsBrowse,
           builder: (_, state) {
             final tab = int.tryParse(state.uri.queryParameters['tab'] ?? '') ?? 0;
-            return ElectronicsBrowseScreen(bottomNavIndex: tab);
+            final category =
+                state.uri.queryParameters['category'] ?? 'electronics';
+            return ElectronicsBrowseScreen(
+              bottomNavIndex: tab,
+              category: category,
+            );
           },
         ),
         GoRoute(
@@ -349,7 +387,11 @@ class AppRouter {
           path: RouteNames.pickupBrowse,
           builder: (_, state) {
             final tab = int.tryParse(state.uri.queryParameters['tab'] ?? '') ?? 0;
-            return PickupBrowseScreen(bottomNavIndex: tab);
+            final category = state.uri.queryParameters['category'];
+            return PickupBrowseScreen(
+              bottomNavIndex: tab,
+              categorySlug: category,
+            );
           },
         ),
         GoRoute(
@@ -396,31 +438,45 @@ class AppRouter {
         ),
         GoRoute(
           path: RouteNames.servicesBookingReview,
-          builder: (_, _) => const ServicesReviewScreen(),
+          builder: (_, state) => ServicesReviewScreen(
+            orderId: state.uri.queryParameters['id'],
+          ),
         ),
         GoRoute(
           path: RouteNames.servicesOrderWaiting,
-          builder: (_, _) => const ServicesWaitingScreen(),
+          builder: (_, state) => ServicesWaitingScreen(
+            orderId: state.uri.queryParameters['id'],
+          ),
         ),
         GoRoute(
           path: RouteNames.servicesOrderPay,
-          builder: (_, _) => const ServicesPayScreen(),
+          builder: (_, state) => ServicesPayScreen(
+            orderId: state.uri.queryParameters['id'],
+          ),
         ),
         GoRoute(
           path: RouteNames.servicesOrderConfirmed,
-          builder: (_, _) => const ServicesConfirmedScreen(),
+          builder: (_, state) => ServicesConfirmedScreen(
+            orderId: state.uri.queryParameters['id'],
+          ),
         ),
         GoRoute(
           path: RouteNames.servicesOrderStatus,
-          builder: (_, _) => const ServicesStatusScreen(),
+          builder: (_, state) => ServicesStatusScreen(
+            orderId: state.uri.queryParameters['id'],
+          ),
         ),
         GoRoute(
           path: RouteNames.servicesOrderComplete,
-          builder: (_, _) => const ServicesCompleteScreen(),
+          builder: (_, state) => ServicesCompleteScreen(
+            orderId: state.uri.queryParameters['id'],
+          ),
         ),
         GoRoute(
           path: RouteNames.servicesOrderReceipt,
-          builder: (_, _) => const ServicesReceiptScreen(),
+          builder: (_, state) => ServicesReceiptScreen(
+            orderId: state.uri.queryParameters['id'],
+          ),
         ),
         GoRoute(
           path: RouteNames.exclusiveOffers,
@@ -447,10 +503,7 @@ class AppRouter {
         ),
         GoRoute(
           path: RouteNames.withdrawBank,
-          builder: (_, state) {
-            final verified = state.uri.queryParameters['verified'] == '1';
-            return WithdrawBankScreen(verified: verified);
-          },
+          builder: (_, _) => const WithdrawBankScreen(),
         ),
         GoRoute(
           path: RouteNames.editProfile,
@@ -465,12 +518,31 @@ class AppRouter {
           builder: (_, _) => const EditPersonalInfoScreen(),
         ),
         GoRoute(
+          path: RouteNames.changePhone,
+          builder: (_, _) => const ChangePhoneScreen(),
+        ),
+        GoRoute(
           path: RouteNames.savedAddresses,
           builder: (_, _) => const SavedAddressesScreen(),
         ),
         GoRoute(
           path: RouteNames.addAddress,
-          builder: (_, _) => const AddAddressScreen(),
+          builder: (_, state) {
+            final id = state.uri.queryParameters['id'];
+            final area = state.uri.queryParameters['area'];
+            final block = state.uri.queryParameters['block'];
+            final road = state.uri.queryParameters['road'];
+            final lat = double.tryParse(state.uri.queryParameters['lat'] ?? '');
+            final lng = double.tryParse(state.uri.queryParameters['lng'] ?? '');
+            return AddAddressScreen(
+              addressId: (id != null && id.isNotEmpty) ? id : null,
+              initialArea: area,
+              initialBlock: block,
+              initialRoad: road,
+              initialLatitude: lat,
+              initialLongitude: lng,
+            );
+          },
         ),
         GoRoute(
           path: RouteNames.language,
@@ -501,7 +573,12 @@ class AppRouter {
         ),
         GoRoute(
           path: RouteNames.helpSupport,
-          builder: (_, _) => const HelpSupportScreen(),
+          builder: (_, state) {
+            final orderId = state.uri.queryParameters['orderId'];
+            final tab =
+                int.tryParse(state.uri.queryParameters['tab'] ?? '') ?? 4;
+            return HelpSupportScreen(orderId: orderId, bottomNavIndex: tab);
+          },
         ),
         GoRoute(
           path: RouteNames.orderHelp,
@@ -532,7 +609,12 @@ class AppRouter {
             final variant =
                 HelpChatVariantX.fromQuery(state.uri.queryParameters['variant']);
             final tab = int.tryParse(state.uri.queryParameters['tab'] ?? '') ?? 0;
-            return HelpChatScreen(variant: variant, bottomNavIndex: tab);
+            final ticketId = state.uri.queryParameters['ticketId'];
+            return HelpChatScreen(
+              variant: variant,
+              ticketId: ticketId,
+              bottomNavIndex: tab,
+            );
           },
         ),
         GoRoute(
@@ -554,7 +636,12 @@ class AppRouter {
           builder: (_, state) {
             final flow = HelpFlowTypeX.fromQuery(state.uri.queryParameters['flow']);
             final tab = int.tryParse(state.uri.queryParameters['tab'] ?? '') ?? 0;
-            return HelpFlowScreen(flow: flow, bottomNavIndex: tab);
+            final orderId = state.uri.queryParameters['orderId'];
+            return HelpFlowScreen(
+              flow: flow,
+              orderId: orderId,
+              bottomNavIndex: tab,
+            );
           },
         ),
         GoRoute(
@@ -569,7 +656,9 @@ class AppRouter {
         ),
         GoRoute(
           path: RouteNames.cartReview,
-          builder: (_, _) => const ReviewConfirmScreen(),
+          builder: (_, state) => ReviewConfirmScreen(
+            orderId: state.uri.queryParameters['id'],
+          ),
         ),
         GoRoute(
           path: RouteNames.cartChangeAddress,
@@ -581,17 +670,39 @@ class AppRouter {
         ),
         GoRoute(
           path: RouteNames.cartAddAddress,
-          builder: (_, _) => const CartAddAddressScreen(),
+          builder: (_, state) => AddAddressScreen(
+            addressId: state.uri.queryParameters['id'],
+            initialArea: state.uri.queryParameters['area'],
+            initialBlock: state.uri.queryParameters['block'],
+            initialRoad: state.uri.queryParameters['road'],
+            initialLatitude:
+                double.tryParse(state.uri.queryParameters['lat'] ?? ''),
+            initialLongitude:
+                double.tryParse(state.uri.queryParameters['lng'] ?? ''),
+          ),
         ),
         GoRoute(
           path: RouteNames.cartEditAddress,
-          builder: (_, state) => CartEditAddressScreen(
+          builder: (_, state) => AddAddressScreen(
             addressId: state.uri.queryParameters['id'],
+            initialArea: state.uri.queryParameters['area'],
+            initialBlock: state.uri.queryParameters['block'],
+            initialRoad: state.uri.queryParameters['road'],
+            initialLatitude:
+                double.tryParse(state.uri.queryParameters['lat'] ?? ''),
+            initialLongitude:
+                double.tryParse(state.uri.queryParameters['lng'] ?? ''),
           ),
         ),
         GoRoute(
           path: RouteNames.cartOutOfDelivery,
-          builder: (_, _) => const OutOfDeliveryScreen(),
+          builder: (_, state) => OutOfDeliveryScreen(
+            addressId: state.uri.queryParameters['id'],
+            latitude:
+                double.tryParse(state.uri.queryParameters['lat'] ?? ''),
+            longitude:
+                double.tryParse(state.uri.queryParameters['lng'] ?? ''),
+          ),
         ),
         GoRoute(
           path: RouteNames.cartZoodWaitingList,
@@ -602,8 +713,22 @@ class AppRouter {
           builder: (_, _) => const CartNewCartDialogScreen(),
         ),
         GoRoute(
+          path: RouteNames.orderWaiting,
+          builder: (_, state) => OrderWaitingScreen(
+            orderId: state.uri.queryParameters['id'],
+          ),
+        ),
+        GoRoute(
+          path: RouteNames.orderPay,
+          builder: (_, state) => OrderPayScreen(
+            orderId: state.uri.queryParameters['id'],
+          ),
+        ),
+        GoRoute(
           path: RouteNames.orderConfirmed,
-          builder: (_, _) => const OrderConfirmedScreen(),
+          builder: (_, state) => OrderConfirmedScreen(
+            orderId: state.uri.queryParameters['id'],
+          ),
         ),
         GoRoute(
           path: RouteNames.orderStatus,
@@ -613,7 +738,9 @@ class AppRouter {
         ),
         GoRoute(
           path: RouteNames.orderDelivered,
-          builder: (_, _) => const DeliveredRateScreen(),
+          builder: (_, state) => DeliveredRateScreen(
+            orderId: state.uri.queryParameters['id'],
+          ),
         ),
         GoRoute(
           path: RouteNames.orderReceipt,
@@ -623,7 +750,9 @@ class AppRouter {
         ),
         GoRoute(
           path: RouteNames.orderChat,
-          builder: (_, _) => const DriverChatScreen(),
+          builder: (_, state) => DriverChatScreen(
+            orderId: state.uri.queryParameters['id'],
+          ),
         ),
         GoRoute(
           path: RouteNames.dineInCartCheckout,
@@ -653,8 +782,20 @@ class AppRouter {
         GoRoute(
           path: RouteNames.scheduledCartReview,
           builder: (_, state) {
-            final deliveryId = state.uri.queryParameters['delivery'] ?? 'same-day';
-            return ScheduledReviewScreen(deliveryId: deliveryId);
+            final deliveryId =
+                state.uri.queryParameters['delivery'] ?? 'same-day';
+            final idsParam = state.uri.queryParameters['ids'];
+            final id = state.uri.queryParameters['id'];
+            final orderIds = <String>[
+              if (idsParam != null && idsParam.isNotEmpty)
+                ...idsParam.split(',').where((e) => e.isNotEmpty)
+              else if (id != null && id.isNotEmpty)
+                id,
+            ];
+            return ScheduledReviewScreen(
+              deliveryId: deliveryId,
+              orderIds: orderIds,
+            );
           },
         ),
         GoRoute(
@@ -663,27 +804,53 @@ class AppRouter {
         ),
         GoRoute(
           path: RouteNames.pickupCartReview,
-          builder: (_, _) => const PickupReviewScreen(),
+          builder: (_, state) {
+            final paymentId =
+                state.uri.queryParameters['payment'] ?? 'benefitpay';
+            final tip = double.tryParse(
+                  state.uri.queryParameters['tip'] ?? '',
+                ) ??
+                0;
+            return PickupReviewScreen(
+              paymentId: paymentId,
+              tipAmount: tip,
+            );
+          },
         ),
         GoRoute(
           path: RouteNames.pickupOrderWaiting,
-          builder: (_, _) => const PickupWaitingScreen(),
+          builder: (_, state) {
+            final orderId = state.uri.queryParameters['id'];
+            return PickupWaitingScreen(orderId: orderId);
+          },
         ),
         GoRoute(
           path: RouteNames.pickupOrderPay,
-          builder: (_, _) => const PickupPayScreen(),
+          builder: (_, state) {
+            final orderId = state.uri.queryParameters['id'];
+            return PickupPayScreen(orderId: orderId);
+          },
         ),
         GoRoute(
           path: RouteNames.pickupOrderConfirmed,
-          builder: (_, _) => const PickupConfirmedScreen(),
+          builder: (_, state) {
+            final orderId = state.uri.queryParameters['id'];
+            return PickupConfirmedScreen(orderId: orderId);
+          },
         ),
         GoRoute(
           path: RouteNames.pickupOrderStatus,
-          builder: (_, _) => const PickupStatusScreen(),
+          builder: (_, state) {
+            final orderId = state.uri.queryParameters['id'];
+            return PickupStatusScreen(orderId: orderId);
+          },
         ),
         GoRoute(
           path: RouteNames.pickupOrderReceipt,
-          builder: (_, _) => const PickupReceiptScreen(),
+          builder: (_, state) {
+            final orderId = state.uri.queryParameters['id'];
+            return PickupReceiptScreen(orderId: orderId);
+          },
         ),
         GoRoute(
           path: RouteNames.vapeCartCheckout,
@@ -695,8 +862,13 @@ class AppRouter {
         GoRoute(
           path: RouteNames.vapeCartReview,
           builder: (_, state) {
-            final deliveryId = state.uri.queryParameters['delivery'] ?? 'same-day';
-            return VapeReviewScreen(deliveryId: deliveryId);
+            final deliveryId =
+                state.uri.queryParameters['delivery'] ?? 'same-day';
+            final orderIds = _scheduledOrderIds(state);
+            return VapeReviewScreen(
+              deliveryId: deliveryId,
+              orderIds: orderIds,
+            );
           },
         ),
         GoRoute(
@@ -705,71 +877,161 @@ class AppRouter {
         ),
         GoRoute(
           path: RouteNames.vapeOrderWaiting,
-          builder: (_, _) => const VapeWaitingScreen(),
+          builder: (_, state) {
+            final orderIds = _scheduledOrderIds(state);
+            return VapeWaitingScreen(orderIds: orderIds);
+          },
         ),
         GoRoute(
           path: RouteNames.vapeOrderPay,
-          builder: (_, _) => const VapePayScreen(),
+          builder: (_, state) {
+            final orderIds = _scheduledOrderIds(state);
+            return VapePayScreen(orderIds: orderIds);
+          },
         ),
         GoRoute(
           path: RouteNames.vapeOrderConfirmed,
-          builder: (_, _) => const VapeConfirmedScreen(),
+          builder: (_, state) {
+            final orderIds = _scheduledOrderIds(state);
+            return VapeConfirmedScreen(orderIds: orderIds);
+          },
         ),
         GoRoute(
           path: RouteNames.vapeOrderStatus,
-          builder: (_, _) => const VapeStatusScreen(),
+          builder: (_, state) {
+            final orderIds = _scheduledOrderIds(state);
+            return VapeStatusScreen(orderIds: orderIds);
+          },
         ),
         GoRoute(
           path: RouteNames.vapeOrderReceipt,
-          builder: (_, _) => const VapeReceiptScreen(),
+          builder: (_, state) {
+            final orderIds = _scheduledOrderIds(state);
+            return VapeReceiptScreen(orderIds: orderIds);
+          },
         ),
         GoRoute(
           path: RouteNames.scheduledOrderWaiting,
-          builder: (_, _) => const ScheduledWaitingScreen(),
+          builder: (_, state) {
+            final orderIds = _scheduledOrderIds(state);
+            return ScheduledWaitingScreen(orderIds: orderIds);
+          },
         ),
         GoRoute(
           path: RouteNames.scheduledOrderPay,
-          builder: (_, _) => const ScheduledPayScreen(),
+          builder: (_, state) {
+            final orderIds = _scheduledOrderIds(state);
+            return ScheduledPayScreen(orderIds: orderIds);
+          },
         ),
         GoRoute(
           path: RouteNames.scheduledOrderConfirmed,
-          builder: (_, _) => const ScheduledConfirmedScreen(),
+          builder: (_, state) {
+            final orderIds = _scheduledOrderIds(state);
+            return ScheduledConfirmedScreen(orderIds: orderIds);
+          },
         ),
         GoRoute(
           path: RouteNames.scheduledOrderStatus,
-          builder: (_, _) => const ScheduledStatusScreen(),
+          builder: (_, state) {
+            final orderIds = _scheduledOrderIds(state);
+            return ScheduledStatusScreen(orderIds: orderIds);
+          },
         ),
         GoRoute(
           path: RouteNames.scheduledOrderReceipt,
-          builder: (_, _) => const ScheduledReceiptScreen(),
+          builder: (_, state) {
+            final orderIds = _scheduledOrderIds(state);
+            return ScheduledReceiptScreen(orderIds: orderIds);
+          },
         ),
         GoRoute(
           path: RouteNames.dineInOrderWaiting,
-          builder: (_, _) => const DineInWaitingScreen(),
+          builder: (_, state) => DineInWaitingScreen(
+            orderId: state.uri.queryParameters['id'],
+          ),
         ),
         GoRoute(
           path: RouteNames.dineInOrderPay,
-          builder: (_, _) => const DineInPayScreen(),
+          builder: (_, state) => DineInPayScreen(
+            orderId: state.uri.queryParameters['id'],
+          ),
         ),
         GoRoute(
           path: RouteNames.dineInOrderConfirmed,
-          builder: (_, _) => const DineInConfirmedScreen(),
+          builder: (_, state) => DineInConfirmedScreen(
+            orderId: state.uri.queryParameters['id'],
+          ),
         ),
         GoRoute(
           path: RouteNames.dineInOrderStatus,
-          builder: (_, _) => const DineInStatusScreen(),
+          builder: (_, state) => DineInStatusScreen(
+            orderId: state.uri.queryParameters['id'],
+          ),
         ),
         GoRoute(
           path: RouteNames.dineInOrderComplete,
-          builder: (_, _) => const DineInCompleteScreen(),
+          builder: (_, state) => DineInCompleteScreen(
+            orderId: state.uri.queryParameters['id'],
+          ),
         ),
         GoRoute(
           path: RouteNames.dineInOrderReceipt,
-          builder: (_, _) => const DineInReceiptScreen(),
+          builder: (_, state) => DineInReceiptScreen(
+            orderId: state.uri.queryParameters['id'],
+          ),
         ),
       ],
     );
   }
+}
+
+/// Prefer the parent list/store screen over a product detail page so Cart
+/// back does not dump the user on a detail route (e.g. electronics product).
+String? cartReturnPathFromUri(Uri uri) {
+  final path = uri.path;
+  if (path.isEmpty || path == RouteNames.home || path.startsWith(RouteNames.home)) {
+    return null;
+  }
+
+  if (path == RouteNames.electronicsProductDetail) {
+    final storeId = uri.queryParameters['store'];
+    if (storeId != null && storeId.isNotEmpty) {
+      return BrowseRoutes.electronicsStore(storeId: storeId);
+    }
+  }
+  if (path == RouteNames.itemDetail) {
+    final vendorId = uri.queryParameters['vendor'];
+    if (vendorId != null && vendorId.isNotEmpty) {
+      return BrowseRoutes.vendorMenu(
+        vendorId: vendorId,
+        cartType: uri.queryParameters['cart'],
+      );
+    }
+  }
+  if (path == RouteNames.dineInItemDetail) {
+    final restaurantId =
+        uri.queryParameters['restaurant'] ?? uri.queryParameters['id'];
+    if (restaurantId != null && restaurantId.isNotEmpty) {
+      return BrowseRoutes.dineInMenu(restaurantId: restaurantId);
+    }
+  }
+  if (path == RouteNames.vapeProductDetail) {
+    final storeId = uri.queryParameters['store'];
+    if (storeId != null && storeId.isNotEmpty) {
+      return BrowseRoutes.vapeStore(storeId: storeId);
+    }
+  }
+  if (path == RouteNames.servicesItemDetail) {
+    final providerId =
+        uri.queryParameters['provider'] ?? uri.queryParameters['id'];
+    if (providerId != null && providerId.isNotEmpty) {
+      return BrowseRoutes.servicesProvider(providerId: providerId);
+    }
+  }
+
+  final q = uri.query;
+  return q.isEmpty ? path : '$path?$q';
 }
 
 extension AppNavigation on BuildContext {
@@ -784,12 +1046,15 @@ extension AppNavigation on BuildContext {
   }) {
     // Remember where we came from so Cart back can restore that screen.
     if (tab == 2) {
-      final current = GoRouterState.of(this).uri.toString();
-      if (!current.startsWith(RouteNames.home)) {
-        ProviderScope.containerOf(this)
-            .read(shellProvider.notifier)
-            .setCartReturnPath(current);
+      final notifier =
+          ProviderScope.containerOf(this).read(shellProvider.notifier);
+      final returnPath = cartReturnPathFromUri(GoRouterState.of(this).uri);
+      if (returnPath != null && returnPath.isNotEmpty) {
+        notifier.setCartReturnPath(returnPath);
       }
+      // Cart tab is kept alive by the shell's IndexedStack — force a refetch so
+      // a freshly added item shows up instead of the previously loaded cart.
+      notifier.markCartDirty();
     }
 
     final params = <String>['tab=$tab'];
