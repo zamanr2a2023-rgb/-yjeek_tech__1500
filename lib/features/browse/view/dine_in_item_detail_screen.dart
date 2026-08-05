@@ -11,6 +11,7 @@ import 'package:yjeek_app/features/browse/model/dine_in_data.dart';
 import 'package:yjeek_app/features/browse/view/widgets/browse_widgets.dart';
 import 'package:yjeek_app/features/cart/view/widgets/cart_flow_widgets.dart';
 import 'package:yjeek_app/features/home/view/widgets/home_widgets.dart';
+import 'package:yjeek_app/l10n/locale_controller.dart';
 import 'package:yjeek_app/routes/app_router.dart';
 
 class DineInItemDetailScreen extends ConsumerStatefulWidget {
@@ -142,6 +143,11 @@ class _DineInItemDetailScreenState
 
   @override
   Widget build(BuildContext context) {
+    ref.watch(localeControllerProvider);
+    final isAr = ref.read(localeControllerProvider).code == 'ar';
+    final arDesc = _item.descriptionAr?.trim();
+    final description =
+        (isAr && arDesc != null && arDesc.isNotEmpty) ? arDesc : _description;
     return Scaffold(
       backgroundColor: _screenBg,
       body: _loading
@@ -219,7 +225,7 @@ class _DineInItemDetailScreenState
                         children: [
                           Expanded(
                             child: Text(
-                              _item.name,
+                              _item.localizedName,
                               style: AppTextStyles.titleMedium(
                                 color: AppColors.textPrimary,
                               ).copyWith(
@@ -243,7 +249,7 @@ class _DineInItemDetailScreenState
                       ),
                       SizedBox(height: 16.h),
                       Text(
-                        _description,
+                        description,
                         style: AppTextStyles.bodyMedium(
                           color: AppColors.textPrimary,
                         ).copyWith(

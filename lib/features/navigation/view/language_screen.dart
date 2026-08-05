@@ -7,6 +7,7 @@ import 'package:yjeek_app/core/constants/app_text_styles.dart';
 import 'package:yjeek_app/core/constants/navigation_strings.dart';
 import 'package:yjeek_app/core/providers/app_providers.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
+import 'package:yjeek_app/features/navigation/model/user_repository.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/account_widgets.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/navigation_widgets.dart';
 import 'package:yjeek_app/l10n/locale_controller.dart';
@@ -51,49 +52,60 @@ class _LanguageScreenState extends ConsumerState<LanguageScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final languagesAsync = ref.watch(appLanguagesProvider);
+    final languages =
+        languagesAsync.valueOrNull ?? AppLanguageOption.fallback;
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: Column(
         children: [
           GreenScreenHeader(title: NavigationStrings.language),
           Expanded(
-            child: ListView(
-              padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 24.h),
-              children: [
-                Container(
-                  decoration: BoxDecoration(
-                    color: AppColors.white,
-                    borderRadius: BorderRadius.circular(14.r),
-                    border: Border.all(color: const Color(0xFFE6EBE3)),
-                  ),
-                  clipBehavior: Clip.antiAlias,
-                  child: Column(
+            child: languagesAsync.isLoading && languagesAsync.valueOrNull == null
+                ? const Center(
+                    child: CircularProgressIndicator(color: AppColors.primary),
+                  )
+                : ListView(
+                    padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 24.h),
                     children: [
-                      _LanguageRow(
-                        label: NavigationStrings.english,
-                        selected: _selected == 'en',
-                        onTap: () => setState(() => _selected = 'en'),
+                      Container(
+                        decoration: BoxDecoration(
+                          color: AppColors.white,
+                          borderRadius: BorderRadius.circular(14.r),
+                          border: Border.all(color: const Color(0xFFE6EBE3)),
+                        ),
+                        clipBehavior: Clip.antiAlias,
+                        child: Column(
+                          children: [
+                            for (var i = 0; i < languages.length; i++) ...[
+                              if (i > 0)
+                                const Divider(
+                                  height: 1,
+                                  color: Color(0xFFE6EBE3),
+                                ),
+                              _LanguageRow(
+                                label: languages[i].label,
+                                selected: _selected == languages[i].code,
+                                onTap: () => setState(
+                                  () => _selected = languages[i].code,
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
                       ),
-                      const Divider(height: 1, color: Color(0xFFE6EBE3)),
-                      _LanguageRow(
-                        label: NavigationStrings.arabic,
-                        selected: _selected == 'ar',
-                        onTap: () => setState(() => _selected = 'ar'),
+                      SizedBox(height: 14.h),
+                      PrimaryGreenButton(
+                        label: NavigationStrings.apply,
+                        backgroundColor: AppColors.primary,
+                        borderRadius: 13,
+                        height: 49,
+                        icon: Icons.check,
+                        onPressed: _saving ? null : _apply,
                       ),
                     ],
                   ),
-                ),
-                SizedBox(height: 14.h),
-                PrimaryGreenButton(
-                  label: NavigationStrings.apply,
-                  backgroundColor: AppColors.primary,
-                  borderRadius: 13,
-                  height: 49,
-                  icon: Icons.check,
-                  onPressed: _saving ? null : _apply,
-                ),
-              ],
-            ),
           ),
         ],
       ),

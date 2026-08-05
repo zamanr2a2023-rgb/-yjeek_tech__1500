@@ -10,6 +10,7 @@ import 'package:yjeek_app/core/providers/app_providers.dart';
 import 'package:yjeek_app/core/widgets/custom_button.dart';
 import 'package:yjeek_app/features/auth/view/widgets/auth_widgets.dart';
 import 'package:yjeek_app/features/auth/view/widgets/otp_input.dart';
+import 'package:yjeek_app/l10n/locale_controller.dart';
 import 'package:yjeek_app/routes/app_router.dart';
 
 enum OtpScreenState { normal, wrongCode, resent, blocked }
@@ -134,6 +135,13 @@ class _OtpVerifyScreenState extends ConsumerState<OtpVerifyScreen> {
       await storage.setLoggedIn(true);
       ref.invalidate(userMeProvider);
       ref.invalidate(homeFeedProvider);
+      try {
+        final me = await ref.read(userRepositoryProvider).fetchMe();
+        final lang = me?.profile.language;
+        if (lang != null && lang.isNotEmpty) {
+          await ref.read(localeControllerProvider.notifier).setLanguage(lang);
+        }
+      } catch (_) {}
       if (!mounted) return;
       context.goHome();
       return;

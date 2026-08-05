@@ -9,6 +9,7 @@ import 'package:yjeek_app/features/browse/model/browse_data.dart';
 import 'package:yjeek_app/features/browse/view/widgets/browse_widgets.dart';
 import 'package:yjeek_app/features/cart/view/widgets/cart_flow_widgets.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/navigation_widgets.dart';
+import 'package:yjeek_app/l10n/locale_controller.dart';
 import 'package:yjeek_app/routes/app_router.dart';
 
 class ItemDetailScreen extends ConsumerStatefulWidget {
@@ -40,6 +41,7 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
   BrowseRestaurant _restaurant = BrowseData.restaurants.first;
   BrowseMenuItem _item = BrowseData.greenKitchenMenu.first;
   String _description = BrowseData.mezzeLongDescription;
+  String? _descriptionAr;
   List<BrowseSizeOption> _sizes = BrowseData.mezzeSizes;
   List<BrowseAddonOption> _addons = BrowseData.mezzeAddons;
   String? _imageUrl;
@@ -66,6 +68,7 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
         _restaurant = vendor;
         _item = detail.item;
         _description = detail.description;
+        _descriptionAr = detail.descriptionAr;
         _sizes = detail.options;
         _addons = detail.addons;
         _imageUrl = detail.imageUrl ?? detail.item.imageUrl;
@@ -76,6 +79,16 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
     } catch (_) {
       if (mounted) setState(() => _loading = false);
     }
+  }
+
+  String get _localizedDescription {
+    final ar = _descriptionAr?.trim();
+    if (ref.watch(localeControllerProvider).code == 'ar' &&
+        ar != null &&
+        ar.isNotEmpty) {
+      return ar;
+    }
+    return _description;
   }
 
   String get _displayPrice {
@@ -234,7 +247,7 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
                           children: [
                             Expanded(
                               child: Text(
-                                _item.name,
+                                _item.localizedName,
                                 style: AppTextStyles.titleMedium(
                                   color: AppColors.textPrimary,
                                 ).copyWith(
@@ -259,7 +272,7 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
                         ),
                         SizedBox(height: 8.h),
                         Text(
-                          _description,
+                          _localizedDescription,
                           style: AppTextStyles.bodyMedium(
                             color: const Color(0xFF6B7B6E),
                           ).copyWith(

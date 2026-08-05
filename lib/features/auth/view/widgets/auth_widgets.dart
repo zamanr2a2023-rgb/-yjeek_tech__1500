@@ -5,6 +5,8 @@ import 'package:yjeek_app/core/constants/app_colors.dart';
 import 'package:yjeek_app/core/constants/app_strings.dart';
 import 'package:yjeek_app/core/constants/app_text_styles.dart';
 import 'package:yjeek_app/core/constants/navigation_strings.dart';
+import 'package:yjeek_app/core/providers/app_providers.dart';
+import 'package:yjeek_app/features/navigation/model/user_repository.dart';
 import 'package:yjeek_app/l10n/locale_controller.dart';
 
 class LanguageToggle extends ConsumerWidget {
@@ -14,15 +16,32 @@ class LanguageToggle extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final locale = ref.watch(localeControllerProvider);
-    final code = locale.languageCode.toLowerCase() == 'ar' ? 'ar' : 'en';
+    final localeState = ref.watch(localeControllerProvider);
+    final code =
+        localeState.locale.languageCode.toLowerCase() == 'ar' ? 'ar' : 'en';
+    final languages =
+        ref.watch(appLanguagesProvider).valueOrNull ?? AppLanguageOption.fallback;
+    final codes = languages.map((l) => l.code).toList();
     // Show the language you can switch TO.
-    final label = code == 'ar' ? NavigationStrings.english : AppStrings.arabic;
+    final nextCode = () {
+      if (codes.isEmpty) return code == 'ar' ? 'en' : 'ar';
+      final idx = codes.indexOf(code);
+      return codes[(idx < 0 ? 0 : idx + 1) % codes.length];
+    }();
+    AppLanguageOption? next;
+    for (final l in languages) {
+      if (l.code == nextCode) {
+        next = l;
+        break;
+      }
+    }
+    final label = next?.label ??
+        (nextCode == 'ar' ? AppStrings.arabic : NavigationStrings.english);
 
     return GestureDetector(
       onTap: onTap ??
           () {
-            ref.read(localeControllerProvider.notifier).toggle();
+            ref.read(localeControllerProvider.notifier).cycleNext(codes);
           },
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),

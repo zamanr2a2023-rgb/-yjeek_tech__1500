@@ -5,8 +5,16 @@ import 'package:yjeek_app/l10n/translations_ar.dart';
 ///
 /// [AppStrings] / [NavigationStrings] / feature `*Strings` classes call
 /// [tr] so existing call sites keep working without BuildContext.
+///
+/// Priority for a given language:
+/// 1. Remote catalog from `GET /content/translations?lang=`
+/// 2. Bundled Arabic map (offline fallback)
+/// 3. English source key
 abstract final class L10n {
   static String _code = AppLocales.defaultCode;
+
+  /// Remote overlays keyed by language code.
+  static final Map<String, Map<String, String>> _remoteByLang = {};
 
   static String get code => _code;
 
@@ -14,14 +22,43 @@ abstract final class L10n {
 
   static bool get isEnglish => _code == 'en';
 
+  static bool hasRemote(String code) =>
+      (_remoteByLang[code.toLowerCase()]?.isNotEmpty ?? false);
+
   static void load(String code) {
-    _code = AppLocales.isSupported(code) ? code.toLowerCase() : AppLocales.defaultCode;
+    _code = AppLocales.isSupported(code)
+        ? code.toLowerCase()
+        : AppLocales.defaultCode;
+  }
+
+  /// Replace / merge remote strings for [lang] (from backend).
+  static void setRemoteTranslations(String lang, Map<String, String> strings) {
+    final code = lang.toLowerCase();
+    if (strings.isEmpty) {
+      _remoteByLang.remove(code);
+      return;
+    }
+    _remoteByLang[code] = Map<String, String>.from(strings);
+  }
+
+  static void clearRemoteTranslations([String? lang]) {
+    if (lang == null) {
+      _remoteByLang.clear();
+      return;
+    }
+    _remoteByLang.remove(lang.toLowerCase());
   }
 
   /// Translate an English UI string. Falls back to [english] when missing.
   static String tr(String english) {
-    if (_code != 'ar') return english;
-    return kArabicTranslations[english] ?? english;
+    final remote = _remoteByLang[_code];
+    final fromRemote = remote?[english];
+    if (fromRemote != null && fromRemote.isNotEmpty) return fromRemote;
+
+    if (_code == 'ar') {
+      return kArabicTranslations[english] ?? english;
+    }
+    return english;
   }
 
   /// Replace `{name}` placeholders after translation.

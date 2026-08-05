@@ -2,6 +2,7 @@ import 'package:yjeek_app/core/network/api_client.dart';
 import 'package:yjeek_app/core/services/storage_service.dart';
 import 'package:yjeek_app/features/navigation/model/kyc_models.dart';
 import 'package:yjeek_app/features/navigation/model/user_me.dart';
+import 'package:yjeek_app/l10n/app_locales.dart';
 
 class DeliveryCountry {
   const DeliveryCountry({
@@ -24,6 +25,37 @@ class DeliveryCountry {
     DeliveryCountry(code: 'JO', name: 'Jordan'),
     DeliveryCountry(code: 'EG', name: 'Egypt'),
     DeliveryCountry(code: 'IQ', name: 'Iraq'),
+  ];
+}
+
+class AppLanguageOption {
+  const AppLanguageOption({
+    required this.code,
+    required this.name,
+    required this.nativeName,
+    this.rtl = false,
+  });
+
+  final String code;
+  final String name;
+  final String nativeName;
+  final bool rtl;
+
+  /// Label shown in Language settings (native name preferred).
+  String get label => nativeName.isNotEmpty ? nativeName : name;
+
+  static const fallback = <AppLanguageOption>[
+    AppLanguageOption(
+      code: 'en',
+      name: 'English',
+      nativeName: 'English',
+    ),
+    AppLanguageOption(
+      code: 'ar',
+      name: 'Arabic',
+      nativeName: 'العربية',
+      rtl: true,
+    ),
   ];
 }
 
@@ -161,5 +193,33 @@ class UserRepository {
       );
     }
     return out.isEmpty ? DeliveryCountry.fallback : out;
+  }
+
+  /// GET /content/languages — admin localization settings (customer-facing).
+  Future<List<AppLanguageOption>> fetchLanguages() async {
+    final response = await _apiClient.getJson('/content/languages');
+    final data = response?['data'];
+    if (data is! Map<String, dynamic>) return AppLanguageOption.fallback;
+    final rows = data['languages'];
+    if (rows is! List) return AppLanguageOption.fallback;
+    final out = <AppLanguageOption>[];
+    for (final raw in rows) {
+      if (raw is! Map<String, dynamic>) continue;
+      final code = raw['code']?.toString().trim().toLowerCase() ?? '';
+      if (code.isEmpty) continue;
+      final name = raw['name']?.toString() ?? code.toUpperCase();
+      final nativeName = raw['nativeName']?.toString() ?? name;
+      out.add(
+        AppLanguageOption(
+          code: code,
+          name: name,
+          nativeName: nativeName,
+          rtl: raw['rtl'] == true || code == 'ar',
+        ),
+      );
+    }
+    // App currently ships EN/AR UI strings only.
+    final supported = out.where((l) => AppLocales.isSupported(l.code)).toList();
+    return supported.isEmpty ? AppLanguageOption.fallback : supported;
   }
 }

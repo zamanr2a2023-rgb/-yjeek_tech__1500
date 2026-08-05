@@ -13,6 +13,7 @@ import 'package:yjeek_app/features/browse/model/food_vendors_repository.dart';
 import 'package:yjeek_app/features/browse/view/widgets/browse_widgets.dart';
 import 'package:yjeek_app/features/cart/view/widgets/cart_flow_widgets.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/navigation_widgets.dart';
+import 'package:yjeek_app/l10n/locale_controller.dart';
 import 'package:yjeek_app/routes/app_router.dart';
 
 class VendorMenuScreen extends ConsumerStatefulWidget {
@@ -125,6 +126,8 @@ class _VendorMenuScreenState extends ConsumerState<VendorMenuScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Rebuild menu labels when app language changes (nameAr / descriptionAr).
+    ref.watch(localeControllerProvider);
     return Scaffold(
       backgroundColor: AppColors.background,
       body: Column(

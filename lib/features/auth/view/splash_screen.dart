@@ -7,6 +7,7 @@ import 'package:yjeek_app/core/constants/app_strings.dart';
 import 'package:yjeek_app/core/constants/app_text_styles.dart';
 import 'package:yjeek_app/core/providers/app_providers.dart';
 import 'package:yjeek_app/features/auth/view/widgets/auth_widgets.dart';
+import 'package:yjeek_app/l10n/locale_controller.dart';
 import 'package:yjeek_app/routes/app_router.dart';
 import 'package:yjeek_app/routes/route_names.dart';
 
@@ -46,9 +47,27 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
 
     final storage = ref.read(storageServiceProvider);
     if (storage.hasSession) {
+      try {
+        final me = await ref.read(userRepositoryProvider).fetchMe();
+        final lang = me?.profile.language;
+        if (lang != null && lang.isNotEmpty) {
+          await ref.read(localeControllerProvider.notifier).setLanguage(lang);
+        } else {
+          await ref
+              .read(localeControllerProvider.notifier)
+              .ensureTranslationsLoaded(force: true);
+        }
+      } catch (_) {
+        await ref
+            .read(localeControllerProvider.notifier)
+            .ensureTranslationsLoaded(force: true);
+      }
       if (!mounted) return;
       context.goHome();
     } else {
+      await ref
+          .read(localeControllerProvider.notifier)
+          .ensureTranslationsLoaded(force: true);
       // Stale "logged in" flag without a token causes 401s on /orders and /cart.
       if (storage.isLoggedIn) {
         await storage.clearSession();
