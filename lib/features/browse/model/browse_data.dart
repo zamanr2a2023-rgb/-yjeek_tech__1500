@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'package:yjeek_app/l10n/l10n.dart';
+
 class BrowseRestaurant {
   const BrowseRestaurant({
     required this.id,
@@ -42,14 +44,36 @@ class BrowseMenuItem {
     required this.price,
     required this.section,
     this.imageUrl,
+    this.nameAr,
+    this.descriptionAr,
   });
 
   final String id;
   final String name;
+  final String? nameAr;
   final String description;
+  final String? descriptionAr;
   final String price;
   final String section;
   final String? imageUrl;
+
+  /// Active-locale product title (AR when set and locale is Arabic).
+  String get localizedName {
+    if (L10n.isArabic) {
+      final ar = nameAr?.trim();
+      if (ar != null && ar.isNotEmpty) return ar;
+    }
+    return name;
+  }
+
+  /// Active-locale product description.
+  String get localizedDescription {
+    if (L10n.isArabic) {
+      final ar = descriptionAr?.trim();
+      if (ar != null && ar.isNotEmpty) return ar;
+    }
+    return description;
+  }
 }
 
 class BrowseSizeOption {

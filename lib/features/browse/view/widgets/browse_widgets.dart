@@ -1017,14 +1017,14 @@ class BrowseMenuItemRow extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    item.name,
+                    item.localizedName,
                     style: AppTextStyles.labelMedium(
                       color: AppColors.textPrimary,
                     ).copyWith(fontWeight: FontWeight.w700, fontSize: 15.sp),
                   ),
                   SizedBox(height: 2.h),
                   Text(
-                    item.description,
+                    item.localizedDescription,
                     style: AppTextStyles.caption(
                       color: AppColors.textSecondary,
                     ).copyWith(fontSize: 12.sp),

@@ -31,6 +31,7 @@ class _FoodBrowseScreenState extends ConsumerState<FoodBrowseScreen> {
   List<BrowseRestaurant> _restaurants = BrowseData.restaurants;
   bool _loading = true;
   bool _locationDenied = false;
+  bool _outsideDeliveryArea = false;
 
   @override
   void initState() {
@@ -45,14 +46,29 @@ class _FoodBrowseScreenState extends ConsumerState<FoodBrowseScreen> {
       final position = await const LocationService().currentPosition();
       final filters = await repo.fetchCuisineFilters();
       final hasLocation = position != null;
-      final vendors = await repo.fetchVendors(
+      final sort = hasLocation && _sort == 'rating' ? 'distance' : _sort;
+      var vendors = await repo.fetchVendors(
         cuisine: _selectedFilter,
         freeDelivery: _freeDeliveryOnly,
-        sort: hasLocation && _sort == 'rating' ? 'distance' : _sort,
+        sort: sort,
         latitude: position?.lat,
         longitude: position?.lng,
         withinDeliveryRadius: hasLocation,
       );
+      // GPS outside Bahrain (or far from vendors) → radius filter is empty.
+      // Fall back to the full catalog so Food is never a blank page.
+      var outsideArea = false;
+      if (hasLocation && vendors.isEmpty) {
+        vendors = await repo.fetchVendors(
+          cuisine: _selectedFilter,
+          freeDelivery: _freeDeliveryOnly,
+          sort: _sort,
+          latitude: position?.lat,
+          longitude: position?.lng,
+          withinDeliveryRadius: false,
+        );
+        outsideArea = vendors.isNotEmpty;
+      }
       if (!mounted) return;
       setState(() {
         _cuisineFilters = filters;
@@ -61,12 +77,14 @@ class _FoodBrowseScreenState extends ConsumerState<FoodBrowseScreen> {
         }
         _restaurants = vendors;
         _locationDenied = !hasLocation;
+        _outsideDeliveryArea = outsideArea;
         _loading = false;
       });
     } catch (_) {
       if (!mounted) return;
       setState(() {
         _restaurants = const [];
+        _outsideDeliveryArea = false;
         _loading = false;
       });
     }
@@ -124,6 +142,16 @@ class _FoodBrowseScreenState extends ConsumerState<FoodBrowseScreen> {
                       padding: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 0),
                       child: Text(
                         'Enable location to see restaurants that deliver to you.',
+                        style: AppTextStyles.caption(
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    )
+                  else if (_outsideDeliveryArea)
+                    Padding(
+                      padding: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 0),
+                      child: Text(
+                        'No restaurants deliver to your current location. Showing all Food vendors.',
                         style: AppTextStyles.caption(
                           color: AppColors.textSecondary,
                         ),

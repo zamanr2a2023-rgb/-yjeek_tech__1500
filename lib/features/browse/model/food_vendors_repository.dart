@@ -3,6 +3,7 @@ import 'package:yjeek_app/core/network/api_client.dart';
 import 'package:yjeek_app/core/services/storage_service.dart';
 import 'package:yjeek_app/features/browse/model/browse_data.dart';
 import 'package:yjeek_app/features/home/model/home_ui_mapper.dart';
+import 'package:yjeek_app/l10n/l10n.dart';
 
 class FoodVendorMenu {
   const FoodVendorMenu({
@@ -23,13 +24,23 @@ class FoodProductDetail {
     required this.options,
     required this.addons,
     this.imageUrl,
+    this.descriptionAr,
   });
 
   final BrowseMenuItem item;
   final String description;
+  final String? descriptionAr;
   final List<BrowseSizeOption> options;
   final List<BrowseAddonOption> addons;
   final String? imageUrl;
+
+  String get localizedDescription {
+    if (L10n.isArabic) {
+      final ar = descriptionAr?.trim();
+      if (ar != null && ar.isNotEmpty) return ar;
+    }
+    return description;
+  }
 }
 
 class FoodCartSummary {
@@ -260,7 +271,11 @@ class FoodVendorsRepository {
       for (final addon in addonsRaw) {
         if (addon is! Map<String, dynamic>) continue;
         final id = addon['id']?.toString();
-        final name = addon['name'] as String? ?? 'Add-on';
+        final nameEn = addon['name'] as String? ?? 'Add-on';
+        final nameAr = (addon['nameAr'] as String?)?.trim();
+        final name = (L10n.isArabic && nameAr != null && nameAr.isNotEmpty)
+            ? nameAr
+            : nameEn;
         final price = addon['price'];
         final priceNum = price is num ? price.toDouble() : 0.0;
         addons.add(
@@ -273,11 +288,14 @@ class FoodVendorsRepository {
       }
     }
 
+    final descEn = (data['description'] as String?)?.trim() ?? '';
+    final descAr = (data['descriptionAr'] as String?)?.trim() ?? '';
+    final description = descEn.isNotEmpty ? descEn : item.description;
+
     return FoodProductDetail(
       item: item,
-      description: (data['description'] as String?)?.trim().isNotEmpty == true
-          ? data['description'] as String
-          : item.description,
+      description: description.isNotEmpty ? description : item.description,
+      descriptionAr: descAr.isNotEmpty ? descAr : item.descriptionAr,
       options: options.isNotEmpty ? options : BrowseData.mezzeSizes,
       addons: addons.isNotEmpty ? addons : BrowseData.mezzeAddons,
       imageUrl: (data['imageUrl'] as String?)?.trim(),
@@ -467,12 +485,17 @@ BrowseMenuItem? browseMenuItemFromProductJson(
       ? price.toStringAsFixed(3)
       : (price?.toString() ?? '0.000');
   final description = (json['description'] as String?)?.trim() ?? '';
+  final nameAr = (json['nameAr'] as String?)?.trim();
+  final descriptionAr = (json['descriptionAr'] as String?)?.trim();
   final imageUrl = (json['imageUrl'] as String?)?.trim();
 
   return BrowseMenuItem(
     id: id,
     name: name,
+    nameAr: (nameAr != null && nameAr.isNotEmpty) ? nameAr : null,
     description: description.isNotEmpty ? description : '___',
+    descriptionAr:
+        (descriptionAr != null && descriptionAr.isNotEmpty) ? descriptionAr : null,
     price: priceStr,
     section: section,
     imageUrl: (imageUrl != null && imageUrl.isNotEmpty) ? imageUrl : null,

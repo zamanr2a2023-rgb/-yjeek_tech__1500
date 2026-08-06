@@ -245,7 +245,7 @@ class CartSnapshot {
   final DateTime? serviceScheduledAt;
   final String? promoCode;
 
-  /// Age-restricted / vape delivery cart (no cutlery prefs).
+  /// Vape / nicotine store cart (scheduled delivery tiers). Not the same as ageRestricted.
   final bool isVape;
 
   /// Raw order total from API (for tip math on checkout).
@@ -939,7 +939,9 @@ CartSnapshot cartSnapshotFromJson(
     )?.toLocal(),
     promoCode: json['promoCode'] as String?,
     isVape: json['isVape'] == true ||
-        (vendor is Map<String, dynamic> && vendor['ageRestricted'] == true),
+        (vendor is Map<String, dynamic> &&
+            ((vendor['storeType'] as Map?)?['slug']?.toString().toLowerCase() ?? '')
+                .contains('vape')),
     totalAmount: totalNum,
     storeTypeSlug: vendor is Map<String, dynamic>
         ? ((vendor['storeType'] as Map?)?['slug']?.toString())

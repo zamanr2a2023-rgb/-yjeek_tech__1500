@@ -201,4 +201,22 @@ class ContentRepository {
     if (data is! Map<String, dynamic>) return null;
     return HelpContent.fromJson(data);
   }
+
+  /// GET /content/translations?lang= — full UI string catalog from backend.
+  Future<Map<String, String>> fetchTranslations(String lang) async {
+    final code = Uri.encodeQueryComponent(lang.trim().toLowerCase());
+    final response = await _apiClient.getJson('/content/translations?lang=$code');
+    final data = response?['data'];
+    if (data is! Map<String, dynamic>) return const {};
+    final strings = data['strings'];
+    if (strings is! Map) return const {};
+    final out = <String, String>{};
+    strings.forEach((key, value) {
+      if (key is! String) return;
+      if (value is String && value.isNotEmpty) {
+        out[key] = value;
+      }
+    });
+    return out;
+  }
 }

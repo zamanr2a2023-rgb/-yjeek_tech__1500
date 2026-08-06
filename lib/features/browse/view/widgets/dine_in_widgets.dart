@@ -642,7 +642,7 @@ class DineInMenuItemRow extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    item.name,
+                    item.localizedName,
                     style: AppTextStyles.labelMedium(color: AppColors.white).copyWith(
                       fontWeight: FontWeight.w700,
                       fontSize: 15.sp,
@@ -651,7 +651,7 @@ class DineInMenuItemRow extends StatelessWidget {
                   ),
                   SizedBox(height: 4.h),
                   Text(
-                    item.description,
+                    item.localizedDescription,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: AppTextStyles.caption(color: AppColors.white).copyWith(

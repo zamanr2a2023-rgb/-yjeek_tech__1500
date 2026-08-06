@@ -15,7 +15,7 @@ class YjeekApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final locale = ref.watch(localeControllerProvider);
+    final localeState = ref.watch(localeControllerProvider);
 
     return ScreenUtilInit(
       designSize: AppDesign.size,
@@ -26,7 +26,7 @@ class YjeekApp extends ConsumerWidget {
           title: 'Yjeek',
           debugShowCheckedModeBanner: false,
           theme: AppTheme.light,
-          locale: locale,
+          locale: localeState.locale,
           supportedLocales: AppLocales.supported,
           localizationsDelegates: const [
             GlobalMaterialLocalizations.delegate,

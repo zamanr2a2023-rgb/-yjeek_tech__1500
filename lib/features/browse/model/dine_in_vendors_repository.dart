@@ -5,6 +5,7 @@ import 'package:yjeek_app/features/browse/model/browse_data.dart';
 import 'package:yjeek_app/features/browse/model/dine_in_data.dart';
 import 'package:yjeek_app/features/browse/model/food_vendors_repository.dart';
 import 'package:yjeek_app/features/home/model/home_ui_mapper.dart';
+import 'package:yjeek_app/l10n/l10n.dart';
 
 class DineInVendorMenu {
   const DineInVendorMenu({
@@ -250,7 +251,11 @@ class DineInVendorsRepository {
       for (final addon in addonsRaw) {
         if (addon is! Map<String, dynamic>) continue;
         final id = addon['id']?.toString();
-        final name = addon['name'] as String? ?? 'Add-on';
+        final nameEn = addon['name'] as String? ?? 'Add-on';
+        final nameAr = (addon['nameAr'] as String?)?.trim();
+        final name = (L10n.isArabic && nameAr != null && nameAr.isNotEmpty)
+            ? nameAr
+            : nameEn;
         final price = addon['price'];
         final priceNum = price is num ? price.toDouble() : 0.0;
         addons.add(
@@ -268,6 +273,7 @@ class DineInVendorsRepository {
       description: (data['description'] as String?)?.trim().isNotEmpty == true
           ? data['description'] as String
           : item.description,
+      // Keep EN description on detail; UI picks AR via item.descriptionAr.
       options: options.isNotEmpty ? options : DineInData.mezzeSizes,
       addons: addons.isNotEmpty ? addons : DineInData.mezzeAddons,
       imageUrl: (data['imageUrl'] as String?)?.trim(),

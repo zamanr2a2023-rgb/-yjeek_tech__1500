@@ -200,6 +200,11 @@ final userMeProvider = FutureProvider<UserMe?>((ref) {
   return ref.watch(userRepositoryProvider).fetchMe();
 });
 
+/// GET /content/languages — enabled languages from admin localization.
+final appLanguagesProvider = FutureProvider<List<AppLanguageOption>>((ref) {
+  return ref.watch(userRepositoryProvider).fetchLanguages();
+});
+
 final contentRepositoryProvider = Provider<ContentRepository>(
   (ref) => ContentRepository(ref.watch(apiClientProvider)),
 );

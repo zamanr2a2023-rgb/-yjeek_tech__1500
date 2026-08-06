@@ -70,13 +70,23 @@ class _FoodSearchScreenState extends ConsumerState<FoodSearchScreen> {
   Future<void> _search(String value) async {
     setState(() => _loading = true);
     final pos = _position;
-    final results = await ref.read(foodVendorsRepositoryProvider).fetchVendors(
-          query: value,
-          sort: pos != null ? 'distance' : 'rating',
-          latitude: pos?.lat,
-          longitude: pos?.lng,
-          withinDeliveryRadius: pos != null,
-        );
+    final repo = ref.read(foodVendorsRepositoryProvider);
+    var results = await repo.fetchVendors(
+      query: value,
+      sort: pos != null ? 'distance' : 'rating',
+      latitude: pos?.lat,
+      longitude: pos?.lng,
+      withinDeliveryRadius: pos != null,
+    );
+    if (pos != null && results.isEmpty) {
+      results = await repo.fetchVendors(
+        query: value,
+        sort: 'rating',
+        latitude: pos.lat,
+        longitude: pos.lng,
+        withinDeliveryRadius: false,
+      );
+    }
     if (!mounted) return;
     setState(() {
       _results = results;
