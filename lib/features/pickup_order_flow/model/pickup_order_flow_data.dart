@@ -37,6 +37,8 @@ abstract final class PickupOrderFlowStrings {
   static String get subtotal => L10n.tr('Subtotal');
   static String get pickupDiscount => L10n.tr('Pickup discount (15%)');
   static String get serviceFee => L10n.tr('Service fee');
+  static String get deliveryFee => L10n.tr('Delivery fee');
+  static String get tip => L10n.tr('Tip');
   static String get totalToPay => L10n.tr('Total to pay');
   static String get pay => L10n.tr('Pay');
   static String get payIn => L10n.tr('PAY IN');

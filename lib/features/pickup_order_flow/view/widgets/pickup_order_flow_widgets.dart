@@ -209,9 +209,15 @@ class PickupAcceptedBanner extends StatelessWidget {
 }
 
 class PickupPayTimerCard extends StatelessWidget {
-  const PickupPayTimerCard({super.key, required this.timerLabel});
+  const PickupPayTimerCard({
+    super.key,
+    required this.timerLabel,
+    this.hint,
+  });
 
   final String timerLabel;
+  /// Defaults to pickup 2-minute copy; food delivery passes 5-minute hint.
+  final String? hint;
 
   @override
   Widget build(BuildContext context) {
@@ -242,7 +248,7 @@ class PickupPayTimerCard extends StatelessWidget {
           ),
           SizedBox(height: 14.h),
           Text(
-            PickupOrderFlowStrings.payWithinHint,
+            hint ?? PickupOrderFlowStrings.payWithinHint,
             textAlign: TextAlign.center,
             style: AppTextStyles.bodySmall(
               color: AppColors.white,
@@ -269,7 +275,7 @@ class PickupPayMethodCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final label = methodLabel ?? PickupOrderFlowStrings.yjeekWallet;
-    final balance = balanceLabel ?? PickupOrderFlowData.walletBalance;
+    final balance = balanceLabel ?? 'Balance BHD 0.000';
     return OrderFlowCard(
       child: Row(
         children: [
@@ -332,7 +338,9 @@ class PickupPayBreakdownCard extends StatelessWidget {
     this.subtotal,
     this.discountLabel,
     this.discountValue,
+    this.deliveryFee,
     this.serviceFee,
+    this.tip,
     this.total,
   });
 
@@ -340,13 +348,18 @@ class PickupPayBreakdownCard extends StatelessWidget {
   /// When null/empty, the discount row is hidden (live API: amount ≤ 0).
   final String? discountLabel;
   final String? discountValue;
+  final String? deliveryFee;
   final String? serviceFee;
+  final String? tip;
   final String? total;
 
   @override
   Widget build(BuildContext context) {
     final showDiscount =
         discountValue != null && discountValue!.trim().isNotEmpty;
+    final showDelivery =
+        deliveryFee != null && deliveryFee!.trim().isNotEmpty;
+    final showTip = tip != null && tip!.trim().isNotEmpty;
     return OrderFlowCard(
       child: Column(
         children: [
@@ -362,11 +375,19 @@ class PickupPayBreakdownCard extends StatelessWidget {
               isDiscount: true,
             ),
           ],
+          if (showDelivery) ...[
+            SizedBox(height: 8.h),
+            _row(PickupOrderFlowStrings.deliveryFee, deliveryFee!),
+          ],
           SizedBox(height: 8.h),
           _row(
             PickupOrderFlowStrings.serviceFee,
             serviceFee ?? PickupOrderFlowData.payServiceFee,
           ),
+          if (showTip) ...[
+            SizedBox(height: 8.h),
+            _row(PickupOrderFlowStrings.tip, tip!),
+          ],
           Divider(height: 20.h, color: AppColors.border),
           _row(
             PickupOrderFlowStrings.totalToPay,

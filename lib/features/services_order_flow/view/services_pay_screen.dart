@@ -7,9 +7,12 @@ import 'package:yjeek_app/core/providers/app_providers.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/features/order_flow/model/order_api_mappers.dart';
 import 'package:yjeek_app/features/order_flow/view/widgets/order_flow_widgets.dart';
+import 'package:yjeek_app/features/payments/model/benefit_pay_models.dart';
+import 'package:yjeek_app/features/payments/pay_now_helper.dart';
 import 'package:yjeek_app/features/services_order_flow/model/services_order_flow_data.dart';
 import 'package:yjeek_app/features/services_order_flow/services_order_flow_routes.dart';
 import 'package:yjeek_app/features/services_order_flow/view/widgets/services_order_flow_widgets.dart';
+import 'package:yjeek_app/routes/route_names.dart';
 
 class ServicesPayScreen extends ConsumerStatefulWidget {
   const ServicesPayScreen({super.key, this.orderId});
@@ -26,20 +29,33 @@ class _ServicesPayScreenState extends ConsumerState<ServicesPayScreen> {
   late int _secondsLeft;
   Timer? _timer;
   bool _paying = false;
+  bool _expiring = false;
+  bool _expired = false;
+  bool _methodBusy = false;
+  DateTime? _payArmedAt;
   String _vendor = ServicesOrderFlowData.providerName;
-  String _method = ServicesOrderFlowStrings.yjeekWallet;
-  String _balance = ServicesOrderFlowData.walletBalance;
+  String _method = 'BenefitPay';
+  String _methodApi = 'BENEFIT_PAY';
+  String _balance = 'Balance BHD 0.000';
+  num _totalAmount = 0;
   String _subtotal = ServicesOrderFlowData.subtotalAmount;
   String _serviceFee = ServicesOrderFlowData.serviceFeeAmount;
   String _total = ServicesOrderFlowData.payTotal;
+  List<(String, String)> _paymentOptions =
+      List.of(PayNowHelper.defaultPaymentOptions);
+
+  PayNowHelper get _payHelper => PayNowHelper(ref, context);
 
   @override
   void initState() {
     super.initState();
     _secondsLeft = _defaultSeconds;
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (!mounted) return;
-      if (_secondsLeft <= 0) return;
+      if (!mounted || _expired || _expiring) return;
+      if (_secondsLeft <= 0) {
+        unawaited(_onPaymentWindowExpired());
+        return;
+      }
       setState(() => _secondsLeft--);
     });
     WidgetsBinding.instance.addPostFrameCallback((_) => _hydrate());
@@ -63,13 +79,6 @@ class _ServicesPayScreenState extends ConsumerState<ServicesPayScreen> {
     return '${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
   }
 
-  bool _isPaidOrCash(String? method, String? paymentStatus) {
-    final m = (method ?? '').toUpperCase();
-    final p = (paymentStatus ?? '').toUpperCase();
-    if (p == 'PAID' || p == 'AUTHORIZED') return true;
-    return m == 'CASH' || m == 'COD' || m == 'CASH_ON_DELIVERY';
-  }
-
   Future<void> _hydrate() async {
     final orderId = widget.orderId;
     if (orderId == null || orderId.isEmpty) return;
@@ -80,11 +89,8 @@ class _ServicesPayScreenState extends ConsumerState<ServicesPayScreen> {
     final wallet = await walletFuture;
     if (!mounted) return;
 
-    final balanceText = wallet.balance != null
-        ? 'Balance ${formatBhd(wallet.balance)}'
-        : (wallet.balanceLabel.isNotEmpty && wallet.balanceLabel != '___'
-            ? 'Balance ${wallet.balanceLabel}'
-            : _balance);
+    final balanceNum = wallet.balance ?? parseMoney(wallet.balanceLabel) ?? 0;
+    final balanceText = 'Balance ${formatBhd(balanceNum)}';
 
     if (order == null) {
       setState(() => _balance = balanceText);
@@ -94,110 +100,129 @@ class _ServicesPayScreenState extends ConsumerState<ServicesPayScreen> {
     final vendor = order['vendor'];
     final vendorName = vendor is Map ? vendor['name']?.toString() : null;
     final method = order['paymentMethod']?.toString() ?? '';
-    final paymentStatus = order['paymentStatus']?.toString() ??
-        (order['payment'] is Map
-            ? (order['payment'] as Map)['status']?.toString()
-            : null);
+    final paymentStatus = PayNowHelper.paymentStatusOf(order);
+    final status = (order['status']?.toString() ?? '').toUpperCase();
     final deadline =
         DateTime.tryParse(order['paymentDeadline']?.toString() ?? '')
             ?.toLocal();
     final left = deadline?.difference(DateTime.now()).inSeconds;
+    final options = PayNowHelper.parsePayNowOptions(
+      order['availablePaymentMethods'],
+    );
+    final totalNum = parseMoney(order['totalAmount']) ?? 0;
 
     setState(() {
       _balance = balanceText;
+      _paymentOptions = options;
+      _totalAmount = totalNum;
       if (vendorName != null && vendorName.isNotEmpty) _vendor = vendorName;
-      _method = formatPaymentMethod(method);
+      if (method.isNotEmpty) {
+        _methodApi = method.toUpperCase();
+        _method = formatPaymentMethod(method);
+      }
       _subtotal = formatBhd(order['subtotal']);
       _serviceFee = formatBhd(order['serviceFee']);
-      _total = formatBhd(order['totalAmount']);
-      if (left != null && left > 0) _secondsLeft = left;
+      _total = formatBhd(totalNum);
+      if (left != null) {
+        if (left > 0) {
+          _secondsLeft = left;
+        } else if (!PayNowHelper.isSettled(paymentStatus) &&
+            !PayNowHelper.isCashMethod(method)) {
+          _secondsLeft = 0;
+        }
+      }
     });
 
-    if (_isPaidOrCash(method, paymentStatus)) {
+    if (PayNowHelper.isSettled(paymentStatus)) {
       _timer?.cancel();
-      context.pushReplacement(
-        ServicesOrderFlowRoutes.confirmedFor(orderId),
-      );
+      context.pushReplacement(ServicesOrderFlowRoutes.confirmedFor(orderId));
+      return;
     }
+
+    if (status == 'CANCELLED' ||
+        status == 'EXPIRED' ||
+        (left != null && left <= 0)) {
+      await _onPaymentWindowExpired(alreadyCancelled: status == 'CANCELLED');
+    }
+  }
+
+  Future<void> _onPaymentWindowExpired({bool alreadyCancelled = false}) async {
+    if (_expiring || _expired || _paying) return;
+    _expiring = true;
+    _timer?.cancel();
+    final orderId = widget.orderId;
+    if (!alreadyCancelled && orderId != null && orderId.isNotEmpty) {
+      await ref.read(ordersRepositoryProvider).cancel(
+            orderId,
+            reason: 'Payment window expired',
+          );
+    }
+    if (!mounted) return;
+    setState(() {
+      _expired = true;
+      _secondsLeft = 0;
+      _expiring = false;
+    });
+    _payHelper.snack(
+      'Payment window expired — order cancelled',
+      color: const Color(0xFFB42318),
+    );
+    context.go('${RouteNames.home}?tab=1');
   }
 
   Future<void> _changePayment() async {
+    if (_expired || _methodBusy || _paying) return;
     final orderId = widget.orderId;
     if (orderId == null || orderId.isEmpty) return;
-    const options = <(String, String)>[
-      ('YJEEK_WALLET', 'Yjeek Wallet'),
-      ('CARD', 'Card'),
-      ('BENEFIT_PAY', 'BenefitPay'),
-      ('CASH', 'Cash'),
-    ];
-    final selected = await showModalBottomSheet<String>(
-      context: context,
-      builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            for (final opt in options)
-              ListTile(
-                title: Text(opt.$2),
-                onTap: () => Navigator.pop(ctx, opt.$1),
-              ),
-          ],
-        ),
-      ),
-    );
-    if (selected == null || !mounted) return;
-    final ok = await ref
-        .read(ordersRepositoryProvider)
-        .changePaymentMethod(orderId, selected);
-    if (!mounted) return;
-    if (!ok) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not change payment method')),
+
+    setState(() => _methodBusy = true);
+    try {
+      final selected = await _payHelper.showMethodSheet(
+        options: _paymentOptions,
+        currentApi: _methodApi,
+        balanceLabel: _balance,
       );
-      return;
+      await Future<void>.delayed(const Duration(milliseconds: 350));
+      if (!mounted) return;
+      if (selected == null) return;
+      if (selected == _methodApi) {
+        _payArmedAt = DateTime.now().add(const Duration(milliseconds: 400));
+        return;
+      }
+      final ok = await _payHelper.changeMethod(
+        orderIds: [orderId],
+        selected: selected,
+      );
+      if (!ok || !mounted) return;
+      setState(() {
+        _methodApi = selected;
+        _method = formatPaymentMethod(selected);
+        _payArmedAt = DateTime.now().add(const Duration(milliseconds: 400));
+      });
+    } finally {
+      if (mounted) setState(() => _methodBusy = false);
     }
-    setState(() => _method = formatPaymentMethod(selected));
   }
 
   Future<void> _pay() async {
+    if (_paying || _expired || _methodBusy || _secondsLeft <= 0) return;
+    final armed = _payArmedAt;
+    if (armed != null && DateTime.now().isBefore(armed)) return;
     final orderId = widget.orderId;
     if (orderId == null || orderId.isEmpty) {
-      context.pushReplacement(ServicesOrderFlowRoutes.confirmed);
+      _payHelper.snack('Order not found', color: const Color(0xFFB42318));
       return;
     }
-    if (_paying) return;
     setState(() => _paying = true);
     try {
-      final initiated =
-          await ref.read(ordersRepositoryProvider).initiatePayment(orderId);
-      final gatewayRef = initiated?['gatewayRef']?.toString();
-      var ok = await ref.read(ordersRepositoryProvider).confirmPayment(
-            orderId,
-            status: 'PAID',
-            gatewayRef: gatewayRef,
-          );
-      if (!ok) {
-        final order = await ref.read(ordersRepositoryProvider).getOrder(orderId);
-        final paymentStatus = order?['paymentStatus']?.toString() ??
-            (order?['payment'] is Map
-                ? (order!['payment'] as Map)['status']?.toString()
-                : null);
-        ok = paymentStatus == 'PAID' || paymentStatus == 'AUTHORIZED';
-      }
-      if (!mounted) return;
-      if (!ok) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Payment failed. Try again.')),
-        );
-        return;
-      }
+      final ok = await _payHelper.pay(
+        orderIds: [orderId],
+        methodApi: _methodApi,
+        totalAmount: _totalAmount,
+      );
+      if (!ok || !mounted) return;
       _timer?.cancel();
       context.pushReplacement(ServicesOrderFlowRoutes.confirmedFor(orderId));
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
-      );
     } finally {
       if (mounted) setState(() => _paying = false);
     }
@@ -218,8 +243,9 @@ class _ServicesPayScreenState extends ConsumerState<ServicesPayScreen> {
           SizedBox(height: 14.h),
           ServicesPayMethodCard(
             methodLabel: _method,
-            balanceLabel: _balance,
-            onChange: _changePayment,
+            balanceLabel:
+                PayNowHelper.subtitleForMethod(_methodApi, _balance),
+            onChange: _expired ? null : _changePayment,
           ),
           SizedBox(height: 14.h),
           ServicesPayBreakdownCard(
@@ -232,7 +258,9 @@ class _ServicesPayScreenState extends ConsumerState<ServicesPayScreen> {
       bottom: ServicesPayStickyFooter(
         timerLabel: _footerTimerLabel,
         payAmount: _total,
-        onPay: _paying ? () {} : _pay,
+        onPay: (_paying || _expired || _methodBusy || _secondsLeft <= 0)
+            ? () {}
+            : _pay,
       ),
     );
   }

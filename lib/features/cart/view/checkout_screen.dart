@@ -24,12 +24,13 @@ class CheckoutScreen extends ConsumerStatefulWidget {
 class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   int _dropOffIndex = 0;
   int _tipIndex = 0;
-  String _paymentId = 'cod';
+  /// Deferred charge: online default so vendor accept → pay-now screen.
+  String _paymentId = 'benefitpay';
   bool _saveDropOff = false;
   CartSnapshot? _cart;
   DeliveryAddressSnapshot? _address;
   CheckoutPaymentMethods _payments =
-      CheckoutPaymentMethods.fallback(defaultId: 'cod');
+      CheckoutPaymentMethods.fallback(defaultId: 'benefitpay');
   String? _phone;
   bool _loading = true;
   bool _placing = false;
@@ -52,7 +53,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
           await ref.read(addressesRepositoryProvider).defaultAddress();
       final payments = await ref
           .read(paymentMethodsRepositoryProvider)
-          .fetchCheckoutMethods(preferredDefaultId: 'cod');
+          .fetchCheckoutMethods(preferredDefaultId: 'benefitpay');
       final UserMe? me = await ref.read(userRepositoryProvider).fetchMe();
       if (!mounted) return;
       setState(() {

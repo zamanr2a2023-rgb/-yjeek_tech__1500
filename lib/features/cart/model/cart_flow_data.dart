@@ -239,6 +239,7 @@ abstract final class CartFlowData {
       id: 'benefitpay',
       label: 'BenefitPay',
       iconAsset: AppAssets.payBenefitPay,
+      selected: true,
     ),
     PaymentOption(
       id: 'apple',
@@ -269,7 +270,6 @@ abstract final class CartFlowData {
       id: 'cod',
       label: CartFlowStrings.cashOnDelivery,
       iconAsset: AppAssets.payCash,
-      selected: true,
     ),
   ];
 

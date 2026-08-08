@@ -152,7 +152,16 @@ class _OrderWaitingScreenState extends ConsumerState<OrderWaitingScreen> {
     if (status != null && _accepted.contains(status)) {
       _pollTimer?.cancel();
       _tickTimer?.cancel();
-      final needsPay = !_isPaidOrCash(paymentMethod, paymentStatus);
+      final statusKey = status.toUpperCase();
+      final alreadySettled = _isPaidOrCash(paymentMethod, paymentStatus) &&
+          ((paymentStatus ?? '').toUpperCase() == 'PAID' ||
+              (paymentStatus ?? '').toUpperCase() == 'AUTHORIZED');
+      final cash =
+          _isPaidOrCash(paymentMethod, paymentStatus) && !alreadySettled;
+      // Always open pay-now while server says payment is required.
+      final needsPay = statusKey == 'AWAITING_PAYMENT' ||
+          order['needsPayment'] == true ||
+          (!alreadySettled && !cash);
       if (needsPay) {
         context.pushReplacement(OrderFlowRoutes.payFor(orderId));
       } else {

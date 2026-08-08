@@ -7,10 +7,13 @@ import 'package:yjeek_app/core/providers/app_providers.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/features/order_flow/model/order_api_mappers.dart';
 import 'package:yjeek_app/features/order_flow/view/widgets/order_flow_widgets.dart';
+import 'package:yjeek_app/features/payments/model/benefit_pay_models.dart';
+import 'package:yjeek_app/features/payments/pay_now_helper.dart';
 import 'package:yjeek_app/features/scheduled_order_flow/model/scheduled_order_api_mappers.dart';
 import 'package:yjeek_app/features/scheduled_order_flow/model/scheduled_order_flow_data.dart';
 import 'package:yjeek_app/features/scheduled_order_flow/scheduled_order_flow_routes.dart';
 import 'package:yjeek_app/features/scheduled_order_flow/view/widgets/scheduled_order_flow_widgets.dart';
+import 'package:yjeek_app/routes/route_names.dart';
 
 class ScheduledPayScreen extends ConsumerStatefulWidget {
   const ScheduledPayScreen({super.key, this.orderIds = const []});
@@ -27,24 +30,35 @@ class _ScheduledPayScreenState extends ConsumerState<ScheduledPayScreen> {
   late int _secondsLeft;
   Timer? _timer;
   bool _paying = false;
+  bool _expiring = false;
+  bool _expired = false;
+  bool _methodBusy = false;
+  DateTime? _payArmedAt;
   String _vendor = '—';
-  String _method = '—';
+  String _method = 'BenefitPay';
+  String _methodApi = 'BENEFIT_PAY';
+  String _balance = 'Balance BHD 0.000';
+  num _totalAmount = 0;
   String _subtotal = '—';
   String _delivery = '—';
   String _deliveryLabel = ScheduledOrderFlowStrings.sameDayDelivery;
   String _total = '—';
   int _windowSeconds = _defaultSeconds;
+  List<(String, String)> _paymentOptions =
+      List.of(PayNowHelper.defaultPaymentOptions);
 
-  String? get _primaryId =>
-      widget.orderIds.isEmpty ? null : widget.orderIds.first;
+  PayNowHelper get _payHelper => PayNowHelper(ref, context);
 
   @override
   void initState() {
     super.initState();
     _secondsLeft = _defaultSeconds;
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (!mounted) return;
-      if (_secondsLeft <= 0) return;
+      if (!mounted || _expired || _expiring) return;
+      if (_secondsLeft <= 0) {
+        unawaited(_onPaymentWindowExpired());
+        return;
+      }
       setState(() => _secondsLeft--);
     });
     WidgetsBinding.instance.addPostFrameCallback((_) => _hydrate());
@@ -68,16 +82,13 @@ class _ScheduledPayScreenState extends ConsumerState<ScheduledPayScreen> {
     return '${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
   }
 
-  bool _isPaidOrCash(String? method, String? paymentStatus) {
-    final m = (method ?? '').toUpperCase();
-    final p = (paymentStatus ?? '').toUpperCase();
-    if (p == 'PAID' || p == 'AUTHORIZED') return true;
-    return m == 'CASH' || m == 'COD' || m == 'CASH_ON_DELIVERY';
-  }
-
   Future<void> _hydrate() async {
     final ids = widget.orderIds;
     if (ids.isEmpty) return;
+
+    final wallet = await ref.read(walletRepositoryProvider).fetchWallet();
+    final balanceNum = wallet.balance ?? parseMoney(wallet.balanceLabel) ?? 0;
+    final balanceText = 'Balance ${formatBhd(balanceNum)}';
 
     var total = 0.0;
     var subtotal = 0.0;
@@ -87,23 +98,24 @@ class _ScheduledPayScreenState extends ConsumerState<ScheduledPayScreen> {
     String? deliverySpeed;
     DateTime? minDeadline;
     var allPaid = true;
+    dynamic availableMethods;
+    var anyUnpaidExpired = false;
 
     for (final id in ids) {
       final order = await ref.read(ordersRepositoryProvider).getOrder(id);
       if (order == null) continue;
-      total += (order['totalAmount'] as num?)?.toDouble() ?? 0;
-      subtotal += (order['subtotal'] as num?)?.toDouble() ?? 0;
-      delivery += (order['deliveryFee'] as num?)?.toDouble() ?? 0;
+      total += (parseMoney(order['totalAmount']) ?? 0).toDouble();
+      subtotal += (parseMoney(order['subtotal']) ?? 0).toDouble();
+      delivery += (parseMoney(order['deliveryFee']) ?? 0).toDouble();
       vendorName ??= (order['vendor'] is Map)
           ? (order['vendor'] as Map)['name']?.toString()
           : null;
       method ??= order['paymentMethod']?.toString();
       deliverySpeed ??= order['deliverySpeed']?.toString();
-      final paymentStatus = order['paymentStatus']?.toString() ??
-          (order['payment'] is Map
-              ? (order['payment'] as Map)['status']?.toString()
-              : null);
-      if (!_isPaidOrCash(method, paymentStatus)) allPaid = false;
+      availableMethods ??= order['availablePaymentMethods'];
+      final paymentStatus = PayNowHelper.paymentStatusOf(order);
+      if (!PayNowHelper.isSettled(paymentStatus)) allPaid = false;
+      final status = (order['status']?.toString() ?? '').toUpperCase();
       final deadline =
           DateTime.tryParse(order['paymentDeadline']?.toString() ?? '')
               ?.toLocal();
@@ -111,12 +123,24 @@ class _ScheduledPayScreenState extends ConsumerState<ScheduledPayScreen> {
           (minDeadline == null || deadline.isBefore(minDeadline))) {
         minDeadline = deadline;
       }
+      if (!PayNowHelper.isSettled(paymentStatus) &&
+          (status == 'CANCELLED' ||
+              status == 'EXPIRED' ||
+              (deadline != null && deadline.isBefore(DateTime.now())))) {
+        anyUnpaidExpired = true;
+      }
     }
 
     if (!mounted) return;
     setState(() {
+      _balance = balanceText;
+      _totalAmount = total;
+      _paymentOptions = PayNowHelper.parsePayNowOptions(availableMethods);
       if (vendorName != null && vendorName.isNotEmpty) _vendor = vendorName;
-      if (method != null) _method = formatPaymentMethod(method);
+      if (method != null && method.isNotEmpty) {
+        _methodApi = method.toUpperCase();
+        _method = formatPaymentMethod(method);
+      }
       if (deliverySpeed != null) {
         _deliveryLabel = scheduledDeliveryFeeLabel(deliverySpeed);
       }
@@ -128,6 +152,8 @@ class _ScheduledPayScreenState extends ConsumerState<ScheduledPayScreen> {
         if (left > 0) {
           _secondsLeft = left;
           _windowSeconds = left;
+        } else if (!allPaid) {
+          _secondsLeft = 0;
         }
       }
     });
@@ -137,90 +163,90 @@ class _ScheduledPayScreenState extends ConsumerState<ScheduledPayScreen> {
       context.pushReplacement(
         ScheduledOrderFlowRoutes.confirmedFor(widget.orderIds),
       );
+      return;
     }
+
+    if (anyUnpaidExpired || _secondsLeft <= 0) {
+      await _onPaymentWindowExpired();
+    }
+  }
+
+  Future<void> _onPaymentWindowExpired({bool alreadyCancelled = false}) async {
+    if (_expiring || _expired || _paying) return;
+    _expiring = true;
+    _timer?.cancel();
+    if (!alreadyCancelled) {
+      for (final id in widget.orderIds) {
+        await ref.read(ordersRepositoryProvider).cancel(
+              id,
+              reason: 'Payment window expired',
+            );
+      }
+    }
+    if (!mounted) return;
+    setState(() {
+      _expired = true;
+      _secondsLeft = 0;
+      _expiring = false;
+    });
+    _payHelper.snack(
+      'Payment window expired — order cancelled',
+      color: const Color(0xFFB42318),
+    );
+    context.go('${RouteNames.home}?tab=1');
   }
 
   Future<void> _changePayment() async {
-    final orderId = _primaryId;
-    if (orderId == null) return;
-    const options = <(String, String)>[
-      ('YJEEK_WALLET', 'Yjeek Wallet'),
-      ('CARD', 'Card'),
-      ('BENEFIT_PAY', 'BenefitPay'),
-      ('APPLE_PAY', 'Apple Pay'),
-      ('CASH', 'Cash'),
-    ];
-    final selected = await showModalBottomSheet<String>(
-      context: context,
-      builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            for (final opt in options)
-              ListTile(
-                title: Text(opt.$2),
-                onTap: () => Navigator.pop(ctx, opt.$1),
-              ),
-          ],
-        ),
-      ),
-    );
-    if (selected == null || !mounted) return;
-    for (final id in widget.orderIds) {
-      await ref
-          .read(ordersRepositoryProvider)
-          .changePaymentMethod(id, selected);
+    if (_expired || _methodBusy || _paying || widget.orderIds.isEmpty) return;
+
+    setState(() => _methodBusy = true);
+    try {
+      final selected = await _payHelper.showMethodSheet(
+        options: _paymentOptions,
+        currentApi: _methodApi,
+        balanceLabel: _balance,
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 350));
+      if (!mounted) return;
+      if (selected == null) return;
+      if (selected == _methodApi) {
+        _payArmedAt = DateTime.now().add(const Duration(milliseconds: 400));
+        return;
+      }
+      final ok = await _payHelper.changeMethod(
+        orderIds: widget.orderIds,
+        selected: selected,
+      );
+      if (!ok || !mounted) return;
+      setState(() {
+        _methodApi = selected;
+        _method = formatPaymentMethod(selected);
+        _payArmedAt = DateTime.now().add(const Duration(milliseconds: 400));
+      });
+    } finally {
+      if (mounted) setState(() => _methodBusy = false);
     }
-    if (!mounted) return;
-    setState(() => _method = formatPaymentMethod(selected));
   }
 
   Future<void> _pay() async {
-    if (_paying) return;
+    if (_paying || _expired || _methodBusy || _secondsLeft <= 0) return;
+    final armed = _payArmedAt;
+    if (armed != null && DateTime.now().isBefore(armed)) return;
     final ids = widget.orderIds;
     if (ids.isEmpty) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Order not found')),
-      );
+      _payHelper.snack('Order not found', color: const Color(0xFFB42318));
       return;
     }
     setState(() => _paying = true);
     try {
-      var allOk = true;
-      for (final id in ids) {
-        final initiated =
-            await ref.read(ordersRepositoryProvider).initiatePayment(id);
-        final gatewayRef = initiated?['gatewayRef']?.toString();
-        var ok = await ref.read(ordersRepositoryProvider).confirmPayment(
-              id,
-              status: 'PAID',
-              gatewayRef: gatewayRef,
-            );
-        if (!ok) {
-          final order = await ref.read(ordersRepositoryProvider).getOrder(id);
-          final paymentStatus = order?['paymentStatus']?.toString() ??
-              (order?['payment'] is Map
-                  ? (order!['payment'] as Map)['status']?.toString()
-                  : null);
-          ok = paymentStatus == 'PAID' || paymentStatus == 'AUTHORIZED';
-        }
-        if (!ok) allOk = false;
-      }
-      if (!mounted) return;
-      if (!allOk) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Payment failed. Try again.')),
-        );
-        return;
-      }
+      final ok = await _payHelper.pay(
+        orderIds: ids,
+        methodApi: _methodApi,
+        totalAmount: _totalAmount,
+      );
+      if (!ok || !mounted) return;
       _timer?.cancel();
       context.pushReplacement(ScheduledOrderFlowRoutes.confirmedFor(ids));
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
-      );
     } finally {
       if (mounted) setState(() => _paying = false);
     }
@@ -247,7 +273,10 @@ class _ScheduledPayScreenState extends ConsumerState<ScheduledPayScreen> {
           SizedBox(height: 14.h),
           ScheduledPayMethodCard(
             methodLabel: _method,
-            onChange: _changePayment,
+            balanceLabel:
+                PayNowHelper.subtitleForMethod(_methodApi, _balance),
+            isWallet: PayNowHelper.isWallet(_methodApi),
+            onChange: _expired ? null : _changePayment,
           ),
           SizedBox(height: 14.h),
           ScheduledPayBreakdownCard(
@@ -261,7 +290,9 @@ class _ScheduledPayScreenState extends ConsumerState<ScheduledPayScreen> {
       bottom: ScheduledPayStickyFooter(
         timerLabel: _footerTimerLabel,
         payAmount: _total,
-        onPay: _paying ? () {} : _pay,
+        onPay: (_paying || _expired || _methodBusy || _secondsLeft <= 0)
+            ? () {}
+            : _pay,
       ),
     );
   }

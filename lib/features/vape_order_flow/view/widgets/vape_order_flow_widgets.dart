@@ -364,15 +364,23 @@ class VapePayMethodCard extends StatelessWidget {
   const VapePayMethodCard({
     super.key,
     this.methodLabel,
+    this.balanceLabel,
+    this.isWallet = false,
     this.onChange,
   });
 
   final String? methodLabel;
+  final String? balanceLabel;
+  final bool isWallet;
   final VoidCallback? onChange;
 
   @override
   Widget build(BuildContext context) {
-    final label = methodLabel ?? VapeOrderFlowStrings.applePay;
+    final label = methodLabel ?? 'BenefitPay';
+    final subtitle = balanceLabel ??
+        (isWallet
+            ? 'Balance BHD 0.000'
+            : VapeOrderFlowStrings.tapPayToComplete);
     // Figma: "Pay with" title outside · green 2px card · mint icon tile · Change.
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -404,7 +412,13 @@ class VapePayMethodCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(9.r),
                 ),
                 alignment: Alignment.center,
-                child: Icon(Icons.apple, size: 20.sp, color: const Color(0xFF0F4D27)),
+                child: Icon(
+                  isWallet
+                      ? Icons.account_balance_wallet_outlined
+                      : Icons.payment_outlined,
+                  size: 20.sp,
+                  color: const Color(0xFF0F4D27),
+                ),
               ),
               SizedBox(width: 12.w),
               Expanded(
@@ -423,7 +437,7 @@ class VapePayMethodCard extends StatelessWidget {
                     ),
                     SizedBox(height: 2.h),
                     Text(
-                      VapeOrderFlowStrings.tapPayToComplete,
+                      subtitle,
                       style: AppTextStyles.caption(
                         color: const Color(0xFF6B7B6E),
                       ).copyWith(
@@ -435,17 +449,18 @@ class VapePayMethodCard extends StatelessWidget {
                   ],
                 ),
               ),
-              GestureDetector(
-                onTap: onChange,
-                child: Text(
-                  VapeOrderFlowStrings.change,
-                  style: AppTextStyles.labelSmall(color: const Color(0xFF4CAF50)).copyWith(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 13.sp,
-                    height: 1.32,
+              if (onChange != null)
+                GestureDetector(
+                  onTap: onChange,
+                  child: Text(
+                    VapeOrderFlowStrings.change,
+                    style: AppTextStyles.labelSmall(color: const Color(0xFF4CAF50)).copyWith(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 13.sp,
+                      height: 1.32,
+                    ),
                   ),
                 ),
-              ),
             ],
           ),
         ),
