@@ -14,6 +14,7 @@ import 'package:yjeek_app/features/browse/view/widgets/vape_widgets.dart';
 import 'package:yjeek_app/features/cart/view/widgets/cart_flow_widgets.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/navigation_widgets.dart';
 import 'package:yjeek_app/routes/app_router.dart';
+import 'package:yjeek_app/features/ui_content/view/ui_banner_widgets.dart';
 
 class VapeStoreScreen extends ConsumerStatefulWidget {
   const VapeStoreScreen({
@@ -160,6 +161,10 @@ class _VapeStoreScreenState extends ConsumerState<VapeStoreScreen> {
                 : ListView(
                     padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 8.h),
                     children: [
+                      const UiPlacementBanner(
+                        placementKey: 'store_top',
+                        padding: EdgeInsets.only(bottom: 14),
+                      ),
                       const VapeAgeBanner(),
                       SizedBox(height: 14.h),
                       BrowseFilterChips(
@@ -173,6 +178,10 @@ class _VapeStoreScreenState extends ConsumerState<VapeStoreScreen> {
                         },
                       ),
                       SizedBox(height: 12.h),
+                      const UiPlacementBanner(
+                        placementKey: 'store_mid',
+                        padding: EdgeInsets.only(bottom: 12),
+                      ),
                       ..._products.map(
                         (product) => VapeProductRow(
                           product: product,

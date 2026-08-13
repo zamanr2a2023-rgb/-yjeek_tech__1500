@@ -128,8 +128,12 @@ class OrdersRepository {
     return PaymentInitiateResult(
       ok: true,
       gatewayRef: data['gatewayRef']?.toString(),
+      paymentId: data['paymentId']?.toString(),
+      paymentUrl: data['paymentUrl']?.toString(),
       sdkPayload: sdk,
       verificationConfigured: data['verificationConfigured'] == true,
+      clientIdConfigured: data['clientIdConfigured'] == true,
+      hostedInitError: data['hostedInitError']?.toString(),
       raw: data,
     );
   }

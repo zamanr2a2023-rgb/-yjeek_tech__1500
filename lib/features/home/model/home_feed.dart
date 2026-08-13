@@ -1,3 +1,4 @@
+import 'package:yjeek_app/core/constants/home_strings.dart';
 import 'package:yjeek_app/features/home/model/category_item.dart';
 import 'package:yjeek_app/features/home/model/home_data.dart';
 import 'package:yjeek_app/features/home/model/home_ui_mapper.dart';
@@ -238,24 +239,23 @@ class HomeFeed {
       deliverTo: deliverTo,
       deliverToLabel: (deliverTo?.label.isNotEmpty ?? false)
           ? deliverTo!.label
-          : HomeData.deliveryLocation,
+          : HomeStrings.chooseLocation,
       activeOrder: activeOrder,
       categories: categories.isNotEmpty ? categories : HomeData.homeCategories,
-      reorderVendors:
-          vendors.isNotEmpty ? vendors : HomeData.orderAgainBrands,
+      reorderVendors: vendors,
       exclusiveOffers:
           offers.isNotEmpty ? offers : HomeData.exclusiveOffers,
       spotlight: spotlight,
     );
   }
 
-  /// Offline / error fallback — keeps current hardcode look.
+  /// Offline / error fallback — no fake logged-in identity.
   factory HomeFeed.fallback() {
-    return const HomeFeed(
-      greeting: 'Hello, Asmaa 👋',
-      deliverToLabel: HomeData.deliveryLocation,
+    return HomeFeed(
+      greeting: HomeStrings.hello,
+      deliverToLabel: HomeStrings.chooseLocation,
       categories: HomeData.homeCategories,
-      reorderVendors: HomeData.orderAgainBrands,
+      reorderVendors: const [],
       exclusiveOffers: HomeData.exclusiveOffers,
     );
   }

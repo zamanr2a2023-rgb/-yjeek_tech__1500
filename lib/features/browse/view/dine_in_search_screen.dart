@@ -12,6 +12,7 @@ import 'package:yjeek_app/features/browse/model/dine_in_data.dart';
 import 'package:yjeek_app/features/browse/view/widgets/browse_widgets.dart';
 import 'package:yjeek_app/features/browse/view/widgets/dine_in_widgets.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/navigation_widgets.dart';
+import 'package:yjeek_app/features/ui_content/view/ui_banner_widgets.dart';
 
 class DineInSearchScreen extends ConsumerStatefulWidget {
   const DineInSearchScreen({
@@ -98,6 +99,10 @@ class _DineInSearchScreenState extends ConsumerState<DineInSearchScreen> {
                 onChanged: _onQueryChanged,
                 onCancel: () => context.pop(),
               ),
+            ),
+            Padding(
+              padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 0),
+              child: const UiPlacementBanner(placementKey: 'search_top'),
             ),
             Padding(
               padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 8.h),

@@ -27,6 +27,8 @@ import 'package:yjeek_app/features/navigation/model/user_repository.dart';
 import 'package:yjeek_app/features/navigation/model/wallet_repository.dart';
 import 'package:yjeek_app/features/help/model/support_repository.dart';
 import 'package:yjeek_app/features/order_flow/model/order_chat_repository.dart';
+import 'package:yjeek_app/features/ui_content/model/banner_models.dart';
+import 'package:yjeek_app/features/ui_content/model/banners_repository.dart';
 
 final storageServiceProvider = Provider<StorageService>(
   (ref) => Get.find<StorageService>(),
@@ -82,6 +84,26 @@ final homeRepositoryProvider = Provider<HomeRepository>(
 final homeFeedProvider = FutureProvider<HomeFeed>((ref) {
   return ref.watch(homeRepositoryProvider).fetchHome();
 });
+
+final bannersRepositoryProvider = Provider<BannersRepository>(
+  (ref) => BannersRepository(
+    ref.watch(apiClientProvider),
+    ref.watch(storageServiceProvider),
+  ),
+);
+
+/// Per-placement CMS banners. No long-lived disk cache — refetch on invalidate.
+final cmsBannersProvider =
+    FutureProvider.family<List<UiBanner>, String>((ref, placementKey) {
+  return ref.watch(bannersRepositoryProvider).fetchBanners(
+        placementKey: placementKey,
+      );
+    });
+
+/// Invalidate all placement banner fetches (pull-to-refresh / app resume).
+void invalidateCmsBanners(WidgetRef ref) {
+  ref.invalidate(cmsBannersProvider);
+}
 
 final categoriesRepositoryProvider = Provider<CategoriesRepository>(
   (ref) => CategoriesRepository(ref.watch(apiClientProvider)),

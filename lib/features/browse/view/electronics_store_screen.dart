@@ -11,6 +11,7 @@ import 'package:yjeek_app/features/browse/model/electronics_data.dart';
 import 'package:yjeek_app/features/browse/view/widgets/browse_widgets.dart';
 import 'package:yjeek_app/features/browse/view/widgets/electronics_widgets.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/navigation_widgets.dart';
+import 'package:yjeek_app/features/ui_content/view/ui_banner_widgets.dart';
 
 class ElectronicsStoreScreen extends ConsumerStatefulWidget {
   const ElectronicsStoreScreen({
@@ -119,6 +120,10 @@ class _ElectronicsStoreScreenState
                 : ListView(
                     padding: EdgeInsets.fromLTRB(20.w, 8.h, 20.w, 24.h),
                     children: [
+                      const UiPlacementBanner(
+                        placementKey: 'store_top',
+                        padding: EdgeInsets.only(bottom: 14),
+                      ),
                       BrowseSearchBar(
                         hint: ElectronicsData.searchHint,
                         value: _query,
@@ -135,6 +140,10 @@ class _ElectronicsStoreScreenState
                         },
                       ),
                       SizedBox(height: 14.h),
+                      const UiPlacementBanner(
+                        placementKey: 'store_mid',
+                        padding: EdgeInsets.only(bottom: 14),
+                      ),
                       ..._products.map(
                         (product) => Padding(
                           padding: EdgeInsets.only(bottom: 10.h),

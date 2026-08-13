@@ -1,7 +1,8 @@
 import 'package:yjeek_app/l10n/l10n.dart';
 abstract final class HomeStrings {
-  static String get hello => L10n.tr('Hello, Asmaa 👋');
+  static String get hello => L10n.tr('Hello 👋');
   static String get deliverTo => L10n.tr('Deliver to');
+  static String get chooseLocation => L10n.tr('Choose location');
   static String get searchHome => L10n.tr('Search for restaurants, groceries…');
   static String get searchCategories => L10n.tr('Search categories & vendors…');
   static String get preparingOrder => L10n.tr('Preparing your order');

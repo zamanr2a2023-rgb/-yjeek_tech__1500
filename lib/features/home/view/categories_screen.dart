@@ -10,6 +10,7 @@ import 'package:yjeek_app/features/home/model/category_item.dart';
 import 'package:yjeek_app/features/home/model/category_navigation.dart';
 import 'package:yjeek_app/features/home/model/home_data.dart';
 import 'package:yjeek_app/features/home/view/widgets/home_widgets.dart';
+import 'package:yjeek_app/features/ui_content/view/ui_banner_widgets.dart';
 import 'package:yjeek_app/routes/app_router.dart';
 
 class CategoriesScreen extends ConsumerStatefulWidget {
@@ -41,7 +42,11 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
         color: AppColors.primary,
         onRefresh: () async {
           ref.invalidate(categoriesProvider);
-          await ref.read(categoriesProvider.future);
+          invalidateCmsBanners(ref);
+          await Future.wait([
+            ref.read(categoriesProvider.future),
+            ref.read(cmsBannersProvider('category_top').future),
+          ]);
         },
         child: CustomScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
@@ -130,6 +135,10 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
                       onTap: () => context.push(BrowseRoutes.foodSearch()),
                     ),
                   ),
+                  const Padding(
+                    padding: EdgeInsets.fromLTRB(20, 14, 20, 0),
+                    child: UiPlacementBanner(placementKey: 'category_top'),
+                  ),
                   Padding(
                     padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
                     child: Row(
@@ -208,10 +217,6 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
                         childCount: categories.length,
                       ),
                     ),
-            ),
-            const SliverPadding(
-              padding: EdgeInsets.fromLTRB(20, 20, 20, 24),
-              sliver: SliverToBoxAdapter(child: WeeklySpotlightBanner()),
             ),
           ],
         ),

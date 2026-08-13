@@ -1,16 +1,28 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:yjeek_app/core/constants/app_strings.dart';
 import 'package:yjeek_app/core/constants/app_text_styles.dart';
+import 'package:yjeek_app/core/providers/app_providers.dart';
 import 'package:yjeek_app/features/auth/view/widgets/auth_widgets.dart';
 import 'package:yjeek_app/routes/app_router.dart';
 import 'package:yjeek_app/routes/route_names.dart';
 
-class WelcomeScreen extends StatelessWidget {
+class WelcomeScreen extends ConsumerWidget {
   const WelcomeScreen({super.key});
 
+  Future<void> _browseAsGuest(BuildContext context, WidgetRef ref) async {
+    // Drop any previous login so home does not show that user's name/address.
+    await ref.read(storageServiceProvider).clearSession();
+    ref.invalidate(userMeProvider);
+    ref.invalidate(homeFeedProvider);
+    ref.invalidate(walletSnapshotProvider);
+    if (!context.mounted) return;
+    context.goHome();
+  }
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return AuthScreenScaffold(
       showLanguageToggle: true,
       body: Column(
@@ -23,7 +35,7 @@ class WelcomeScreen extends StatelessWidget {
           WelcomeActionCard(
             title: AppStrings.browseAsGuest,
             icon: const Icon(Icons.explore_outlined, color: Color(0xFF4CAF50), size: 28),
-            onTap: () => context.goHome(),
+            onTap: () => _browseAsGuest(context, ref),
           ),
           const SizedBox(height: 12),
           WelcomeActionCard(
@@ -32,8 +44,7 @@ class WelcomeScreen extends StatelessWidget {
             icon: const Icon(Icons.login_rounded, color: Color(0xFF4CAF50), size: 28),
             onTap: () => context.push(RouteNames.phoneLogin),
           ),
-          // const SizedBox(height: 40),
-          Spacer(),
+          const Spacer(),
         ],
       ),
     );

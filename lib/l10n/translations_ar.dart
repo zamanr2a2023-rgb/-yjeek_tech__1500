@@ -338,6 +338,8 @@ const Map<String, String> kArabicTranslations = {
   'Haircut & styling · Booking \$bookingId': 'قص وتصفيف · حجز \$bookingId',
   'Have a promo code?': 'لديك رمز ترويجي؟',
   'Hello, Asmaa 👋': 'مرحباً، أسماء 👋',
+  'Hello 👋': 'مرحباً 👋',
+  'Choose location': 'اختر الموقع',
   'Help': 'مساعدة',
   'Help & Support': 'المساعدة والدعم',
   'Home': 'الرئيسية',

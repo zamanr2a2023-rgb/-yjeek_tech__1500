@@ -13,6 +13,7 @@ import 'package:yjeek_app/features/cart/view/widgets/cart_flow_widgets.dart';
 import 'package:yjeek_app/features/navigation/model/user_me.dart';
 import 'package:yjeek_app/features/navigation/model/navigation_data.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/navigation_widgets.dart';
+import 'package:yjeek_app/features/ui_content/view/ui_banner_widgets.dart';
 
 class CheckoutScreen extends ConsumerStatefulWidget {
   const CheckoutScreen({super.key});
@@ -168,8 +169,11 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                 ),
                 SizedBox(height: 18.h),
                 CartSectionTitle(CartFlowStrings.billSummary),
-                CartZoodPromoBanner(
-                  onTap: () => context.push(CartRoutes.zoodWaitingList),
+                UiPlacementBanner(
+                  placementKey: 'checkout_banner',
+                  fallbackWhenEmpty: CartZoodPromoBanner(
+                    onTap: () => context.push(CartRoutes.zoodWaitingList),
+                  ),
                 ),
                 SizedBox(height: 12.h),
                 BillSummaryCard(

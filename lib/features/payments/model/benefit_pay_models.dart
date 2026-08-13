@@ -87,18 +87,31 @@ class PaymentInitiateResult {
   const PaymentInitiateResult({
     this.ok = false,
     this.gatewayRef,
+    this.paymentId,
+    this.paymentUrl,
     this.sdkPayload,
     this.verificationConfigured = false,
+    this.clientIdConfigured = false,
+    this.hostedInitError,
     this.errorMessage,
     this.raw,
   });
 
   final bool ok;
   final String? gatewayRef;
+  final String? paymentId;
+  final String? paymentUrl;
   final BenefitPaySdkPayload? sdkPayload;
   final bool verificationConfigured;
+  final bool clientIdConfigured;
+  final String? hostedInitError;
   final String? errorMessage;
   final Map<String, dynamic>? raw;
+
+  /// Prefer hosted PaymentURL; fall back to FOO sdkPayload when present.
+  bool get canOpenCheckout =>
+      (paymentUrl != null && paymentUrl!.isNotEmpty) ||
+      (sdkPayload != null && sdkPayload!.isComplete);
 }
 
 class PaymentConfirmResult {

@@ -36,8 +36,7 @@ class OfferItem {
 }
 
 abstract final class HomeData {
-  static const String userName = 'Asmaa';
-  static const String deliveryLocation = 'Seef, Manama';
+  static const String deliveryLocation = 'Choose location';
 
   static const List<CategoryItem> homeCategories = [
     CategoryItem(

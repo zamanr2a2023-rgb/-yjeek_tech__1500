@@ -218,16 +218,23 @@ class PayNowHelper {
       }
       if (!initiated.verificationConfigured) {
         snack(
-          'BenefitPay is not configured on the server (missing CLIENT_ID).',
+          'BenefitPay is not configured on the server (missing CHECK_STATUS_URL / merchant credentials).',
           color: const Color(0xFFB42318),
         );
         return false;
       }
-      final payload = initiated.sdkPayload;
       final gatewayRef = initiated.gatewayRef;
-      if (payload == null || !payload.isComplete || gatewayRef == null) {
+      if (gatewayRef == null || gatewayRef.isEmpty) {
         snack(
-          'Invalid BenefitPay checkout payload from server',
+          'Missing payment reference from server',
+          color: const Color(0xFFB42318),
+        );
+        return false;
+      }
+      if (!initiated.canOpenCheckout) {
+        snack(
+          initiated.hostedInitError ??
+              'Invalid BenefitPay checkout (no PaymentURL or sdkPayload)',
           color: const Color(0xFFB42318),
         );
         return false;
@@ -238,7 +245,15 @@ class PayNowHelper {
           await Navigator.of(context).push<BenefitPayCheckoutResult>(
         MaterialPageRoute(
           fullscreenDialog: true,
-          builder: (_) => BenefitPayCheckoutScreen(sdkPayload: payload),
+          builder: (_) => BenefitPayCheckoutScreen(
+            paymentUrl: initiated.paymentUrl,
+            paymentId: initiated.paymentId,
+            referenceNumber: gatewayRef,
+            amountLabel: initiated.sdkPayload?.transactionAmount,
+            sdkPayload: initiated.paymentUrl == null || initiated.paymentUrl!.isEmpty
+                ? initiated.sdkPayload
+                : null,
+          ),
         ),
       );
       if (!context.mounted) return false;

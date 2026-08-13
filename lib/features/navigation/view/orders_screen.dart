@@ -12,6 +12,7 @@ import 'package:yjeek_app/features/dine_in_order_flow/dine_in_order_flow_routes.
 import 'package:yjeek_app/features/order_flow/order_flow_routes.dart';
 import 'package:yjeek_app/routes/app_router.dart';
 import 'package:yjeek_app/routes/route_names.dart';
+import 'package:yjeek_app/features/ui_content/view/ui_banner_widgets.dart';
 
 class OrdersScreen extends ConsumerStatefulWidget {
   const OrdersScreen({super.key, this.onReorder});
@@ -59,6 +60,7 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
   Future<void> _load() async {
     setState(() => _loading = true);
     try {
+      invalidateCmsBanners(ref);
       final items = await ref
           .read(ordersRepositoryProvider)
           .listOrders(status: _statusQuery, category: _category);
@@ -153,6 +155,10 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
                   _load();
                 },
               ),
+            ),
+            const Padding(
+              padding: EdgeInsets.fromLTRB(20, 14, 20, 0),
+              child: UiPlacementBanner(placementKey: 'orders_banner'),
             ),
             Expanded(
               child: RefreshIndicator(

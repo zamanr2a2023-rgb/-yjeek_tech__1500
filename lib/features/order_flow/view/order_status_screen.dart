@@ -15,6 +15,7 @@ import 'package:yjeek_app/features/order_flow/model/order_api_mappers.dart';
 import 'package:yjeek_app/features/order_flow/model/order_flow_data.dart';
 import 'package:yjeek_app/features/order_flow/order_flow_routes.dart';
 import 'package:yjeek_app/features/order_flow/view/widgets/order_flow_widgets.dart';
+import 'package:yjeek_app/features/ui_content/view/ui_banner_widgets.dart';
 
 class OrderStatusScreen extends ConsumerStatefulWidget {
   const OrderStatusScreen({super.key, this.orderId});
@@ -291,6 +292,8 @@ class _OrderStatusScreenState extends ConsumerState<OrderStatusScreen> {
           : ListView(
               padding: EdgeInsets.fromLTRB(20.w, 8.h, 20.w, 24.h),
               children: [
+                const UiPlacementBanner(placementKey: 'tracking_banner'),
+                SizedBox(height: 12.h),
                 // Spec: live map only after driver/champ is assigned.
                 if (_hasChamp)
                   AppLiveTrackingMap(

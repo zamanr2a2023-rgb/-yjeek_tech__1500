@@ -15,6 +15,7 @@ import 'package:yjeek_app/features/cart/view/widgets/cart_flow_widgets.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/navigation_widgets.dart';
 import 'package:yjeek_app/l10n/locale_controller.dart';
 import 'package:yjeek_app/routes/app_router.dart';
+import 'package:yjeek_app/features/ui_content/view/ui_banner_widgets.dart';
 
 class VendorMenuScreen extends ConsumerStatefulWidget {
   const VendorMenuScreen({
@@ -141,6 +142,10 @@ class _VendorMenuScreenState extends ConsumerState<VendorMenuScreen> {
                 : ListView(
                     padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 8.h),
                     children: [
+                      const UiPlacementBanner(
+                        placementKey: 'store_top',
+                        padding: EdgeInsets.only(bottom: 14),
+                      ),
                       BrowseSearchBar(
                         hint: 'Search this menu…',
                         onChanged: _onMenuQueryChanged,
@@ -148,6 +153,10 @@ class _VendorMenuScreenState extends ConsumerState<VendorMenuScreen> {
                       SizedBox(height: 14.h),
                       _VendorStatsCard(restaurant: _restaurant),
                       SizedBox(height: 14.h),
+                      const UiPlacementBanner(
+                        placementKey: 'store_mid',
+                        padding: EdgeInsets.only(bottom: 14),
+                      ),
                       if (_sections.isNotEmpty)
                         BrowseFilterChips(
                           options: _sections,

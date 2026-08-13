@@ -5,18 +5,28 @@ import 'package:yjeek_app/core/constants/app_text_styles.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/features/payments/model/benefit_pay_models.dart';
 
-/// BenefitPay checkout host blocks embedding in WebView
-/// (`net::ERR_BLOCKED_BY_RESPONSE` / X-Frame-Options).
-/// Open the official checkout URL in the system browser, then confirm on return.
+/// Opens Benefit hosted PaymentURL (preferred) or FOO Web Checkout via sdkPayload.
+/// Host checkout pages often block WebView embedding — use the system browser.
 class BenefitPayCheckoutScreen extends StatefulWidget {
   const BenefitPayCheckoutScreen({
     super.key,
-    required this.sdkPayload,
+    this.sdkPayload,
+    this.paymentUrl,
+    this.paymentId,
+    this.referenceNumber,
+    this.amountLabel,
     this.title = 'BenefitPay',
     this.useLiveSdk = false,
-  });
+  }) : assert(
+          paymentUrl != null || sdkPayload != null,
+          'Provide paymentUrl or sdkPayload',
+        );
 
-  final BenefitPaySdkPayload sdkPayload;
+  final BenefitPaySdkPayload? sdkPayload;
+  final String? paymentUrl;
+  final String? paymentId;
+  final String? referenceNumber;
+  final String? amountLabel;
   final String title;
   final bool useLiveSdk;
 
@@ -32,8 +42,30 @@ class _BenefitPayCheckoutScreenState extends State<BenefitPayCheckoutScreen>
   bool _launching = false;
   String? _status;
 
-  Uri get _checkoutUri =>
-      buildBenefitPayCheckoutUri(widget.sdkPayload, live: widget.useLiveSdk);
+  Uri get _checkoutUri {
+    final url = widget.paymentUrl?.trim();
+    if (url != null && url.isNotEmpty) {
+      return Uri.parse(url);
+    }
+    return buildBenefitPayCheckoutUri(
+      widget.sdkPayload!,
+      live: widget.useLiveSdk,
+    );
+  }
+
+  String get _refLabel {
+    final fromWidget = widget.referenceNumber?.trim();
+    if (fromWidget != null && fromWidget.isNotEmpty) return fromWidget;
+    final fromPayload = widget.sdkPayload?.referenceNumber;
+    if (fromPayload != null && fromPayload.isNotEmpty) return fromPayload;
+    return widget.paymentId ?? '—';
+  }
+
+  String get _amount {
+    final fromWidget = widget.amountLabel?.trim();
+    if (fromWidget != null && fromWidget.isNotEmpty) return fromWidget;
+    return widget.sdkPayload?.transactionAmount ?? '—';
+  }
 
   @override
   void initState() {
@@ -50,7 +82,6 @@ class _BenefitPayCheckoutScreenState extends State<BenefitPayCheckoutScreen>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    // Returning from BenefitPay browser — user can tap "I've paid".
     if (state == AppLifecycleState.resumed && _opened && mounted) {
       setState(() {
         _status ??=
@@ -101,7 +132,6 @@ class _BenefitPayCheckoutScreenState extends State<BenefitPayCheckoutScreen>
 
   @override
   Widget build(BuildContext context) {
-    final amount = widget.sdkPayload.transactionAmount;
     return Scaffold(
       backgroundColor: AppColors.white,
       appBar: AppBar(
@@ -138,23 +168,32 @@ class _BenefitPayCheckoutScreenState extends State<BenefitPayCheckoutScreen>
             ),
             SizedBox(height: 8.h),
             Text(
-              'BenefitPay opens in your browser. If you see “Sorry, you have been blocked” on test-benefitpay.bh, that is Cloudflare blocking your network — not a Yjeek bug. Ask FOO to whitelist your IP, or pay with Yjeek Wallet meanwhile.',
+              widget.paymentUrl != null
+                  ? 'Benefit opens the official Payment URL in your browser. After you finish, return here and tap “I’ve paid”.'
+                  : 'BenefitPay opens in your browser. If you see “Sorry, you have been blocked”, that is Cloudflare on Benefit’s side — ask FOO/Benefit to allowlist your IP, or pay with Yjeek Wallet.',
               style: AppTextStyles.bodySmall(
                 color: AppColors.textSecondary,
               ).copyWith(height: 1.4, fontSize: 13.sp),
             ),
             SizedBox(height: 20.h),
             Text(
-              'BHD $amount',
+              'BHD $_amount',
               style: AppTextStyles.titleMedium(
                 color: const Color(0xFF0F4D27),
               ).copyWith(fontWeight: FontWeight.w800, fontSize: 28.sp),
             ),
             SizedBox(height: 6.h),
             Text(
-              'Ref ${widget.sdkPayload.referenceNumber}',
+              'Ref $_refLabel',
               style: AppTextStyles.caption(color: AppColors.textSecondary),
             ),
+            if (widget.paymentId != null && widget.paymentId!.isNotEmpty) ...[
+              SizedBox(height: 4.h),
+              Text(
+                'Payment ID ${widget.paymentId}',
+                style: AppTextStyles.caption(color: AppColors.textSecondary),
+              ),
+            ],
             SizedBox(height: 20.h),
             if (_status != null)
               Container(
@@ -200,8 +239,9 @@ class _BenefitPayCheckoutScreenState extends State<BenefitPayCheckoutScreen>
                             outcome: BenefitPayCheckoutOutcome.success,
                             message: 'User returned from BenefitPay',
                             raw: {
-                              'referenceNumber':
-                                  widget.sdkPayload.referenceNumber,
+                              'referenceNumber': _refLabel,
+                              'paymentId': widget.paymentId,
+                              'paymentUrl': widget.paymentUrl,
                               'openedExternally': true,
                             },
                           ),
@@ -243,7 +283,7 @@ class _BenefitPayCheckoutScreenState extends State<BenefitPayCheckoutScreen>
   }
 }
 
-/// Official FOO / BenefitPay hosted checkout (sandbox vs live).
+/// Official FOO / BenefitPay hosted checkout (sandbox vs live) — fallback when PaymentURL is absent.
 Uri buildBenefitPayCheckoutUri(
   BenefitPaySdkPayload payload, {
   bool live = false,
@@ -256,7 +296,6 @@ Uri buildBenefitPayCheckoutUri(
     for (final e in data.entries)
       if (e.value != null) e.key: e.value.toString(),
   };
-  // Hosted app reads params from the hash route: #/home?key=value
   final fragmentQuery = Uri(queryParameters: query).query;
   return Uri(
     scheme: 'https',

@@ -14,6 +14,7 @@ import 'package:yjeek_app/features/home/model/home_feed.dart';
 import 'package:yjeek_app/features/home/view/widgets/home_widgets.dart';
 import 'package:yjeek_app/features/navigation/model/user_me.dart';
 import 'package:yjeek_app/features/order_flow/order_flow_routes.dart';
+import 'package:yjeek_app/features/ui_content/view/ui_banner_widgets.dart';
 import 'package:yjeek_app/routes/app_router.dart';
 import 'package:yjeek_app/routes/route_names.dart';
 
@@ -21,7 +22,10 @@ class HomeScreen extends ConsumerWidget {
   static const routeName = '/home';
   const HomeScreen({super.key});
 
-  String _greetingFor(UserMe? user, String apiGreeting) {
+  String _greetingFor(UserMe? user, String apiGreeting, {required bool loggedIn}) {
+    if (!loggedIn) {
+      return HomeStrings.hello;
+    }
     final first = user?.profile.firstName?.trim();
     if (first != null && first.isNotEmpty) {
       return 'Hello, $first 👋';
@@ -31,7 +35,8 @@ class HomeScreen extends ConsumerWidget {
       final firstWord = display.split(RegExp(r'\s+')).first;
       return 'Hello, $firstWord 👋';
     }
-    if (apiGreeting.isNotEmpty) {
+    if (apiGreeting.isNotEmpty &&
+        !apiGreeting.toLowerCase().contains('asmaa')) {
       return apiGreeting.contains('👋') ? apiGreeting : '$apiGreeting 👋';
     }
     return HomeStrings.hello;
@@ -133,8 +138,14 @@ class HomeScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final homeAsync = ref.watch(homeFeedProvider);
     final feed = homeAsync.valueOrNull ?? HomeFeed.fallback();
-    final user = ref.watch(userMeProvider).valueOrNull;
-    final greeting = _greetingFor(user, feed.greeting);
+    final loggedIn = ref.watch(storageServiceProvider).hasSession;
+    final user = loggedIn ? ref.watch(userMeProvider).valueOrNull : null;
+    final greeting = _greetingFor(user, feed.greeting, loggedIn: loggedIn);
+    final deliverTo = loggedIn
+        ? feed.deliverToLabel
+        : (feed.deliverTo?.label.isNotEmpty ?? false)
+            ? feed.deliverToLabel
+            : HomeStrings.chooseLocation;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -143,9 +154,13 @@ class HomeScreen extends ConsumerWidget {
         onRefresh: () async {
           ref.invalidate(homeFeedProvider);
           ref.invalidate(userMeProvider);
+          invalidateCmsBanners(ref);
           await Future.wait([
             ref.read(homeFeedProvider.future),
             ref.read(userMeProvider.future),
+            ref.read(cmsBannersProvider('home_top').future),
+            ref.read(cmsBannersProvider('home_mid').future),
+            ref.read(cmsBannersProvider('home_below_picks').future),
           ]);
         },
         child: CustomScrollView(
@@ -158,7 +173,7 @@ class HomeScreen extends ConsumerWidget {
                   children: [
                     HomeGreetingHeader(
                       greeting: greeting,
-                      deliveryLocation: feed.deliverToLabel,
+                      deliveryLocation: deliverTo,
                     ),
                     const SizedBox(height: 14),
                     HomeSearchBar(
@@ -183,6 +198,10 @@ class HomeScreen extends ConsumerWidget {
                     ),
                     const SizedBox(height: 18),
                   ],
+                  const UiPlacementBanner(
+                    placementKey: 'home_top',
+                    padding: EdgeInsets.only(bottom: 18),
+                  ),
                   SectionHeader(
                     title: HomeStrings.categories,
                     onSeeAll: () => context.push(RouteNames.categories),
@@ -194,25 +213,31 @@ class HomeScreen extends ConsumerWidget {
                         openHomeCategory(context, category),
                   ),
                   const SizedBox(height: 18),
-                  SectionHeader(
-                    title: HomeStrings.orderAgain,
-                    onSeeAll: () {},
+                  const UiPlacementBanner(
+                    placementKey: 'home_mid',
+                    padding: EdgeInsets.only(bottom: 18),
                   ),
-                  const SizedBox(height: 14),
-                  SizedBox(
-                    height: 104,
-                    child: ListView.separated(
-                      scrollDirection: Axis.horizontal,
-                      itemCount: feed.reorderVendors.length,
-                      separatorBuilder: (_, _) => const SizedBox(width: 16),
-                      itemBuilder: (context, index) {
-                        return BrandAvatar(
-                          brand: feed.reorderVendors[index],
-                        );
-                      },
+                  if (loggedIn && feed.reorderVendors.isNotEmpty) ...[
+                    SectionHeader(
+                      title: HomeStrings.orderAgain,
+                      onSeeAll: () {},
                     ),
-                  ),
-                  const SizedBox(height: 18),
+                    const SizedBox(height: 14),
+                    SizedBox(
+                      height: 104,
+                      child: ListView.separated(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: feed.reorderVendors.length,
+                        separatorBuilder: (_, _) => const SizedBox(width: 16),
+                        itemBuilder: (context, index) {
+                          return BrandAvatar(
+                            brand: feed.reorderVendors[index],
+                          );
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+                  ],
                   SectionHeader(
                     title: HomeStrings.exclusiveOffers,
                     onSeeAll: () => context.push(RouteNames.exclusiveOffers),
@@ -234,11 +259,7 @@ class HomeScreen extends ConsumerWidget {
                     ),
                   ),
                   const SizedBox(height: 18),
-                  WeeklySpotlightBanner(
-                    title: feed.spotlight?.title,
-                    ctaLabel: feed.spotlight?.ctaLabel,
-                    eyebrow: feed.spotlight?.subtitle,
-                  ),
+                  const UiPlacementBanner(placementKey: 'home_below_picks'),
                 ]),
               ),
             ),
