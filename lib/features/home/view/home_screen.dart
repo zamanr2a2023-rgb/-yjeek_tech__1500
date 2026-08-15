@@ -28,12 +28,12 @@ class HomeScreen extends ConsumerWidget {
     }
     final first = user?.profile.firstName?.trim();
     if (first != null && first.isNotEmpty) {
-      return 'Hello, $first 👋';
+      return HomeStrings.helloNamed(first);
     }
     final display = user?.profile.displayName?.trim();
     if (display != null && display.isNotEmpty && display != 'Customer') {
       final firstWord = display.split(RegExp(r'\s+')).first;
-      return 'Hello, $firstWord 👋';
+      return HomeStrings.helloNamed(firstWord);
     }
     if (apiGreeting.isNotEmpty &&
         !apiGreeting.toLowerCase().contains('asmaa')) {

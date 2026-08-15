@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:yjeek_app/core/constants/app_colors.dart';
 import 'package:yjeek_app/core/constants/app_text_styles.dart';
+import 'package:yjeek_app/core/constants/browse_strings.dart';
 import 'package:yjeek_app/core/providers/app_providers.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/features/help/help_routes.dart';
@@ -83,7 +84,7 @@ class _HelpFaqScreenState extends ConsumerState<HelpFaqScreen> {
                 physics: const AlwaysScrollableScrollPhysics(),
                 padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 24.h),
                 children: [
-                  const HelpSearchField(hint: 'Search questions…'),
+                  HelpSearchField(hint: BrowseStrings.searchQuestions),
                   SizedBox(height: 14.h),
                   SizedBox(
                     height: 36.h,

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:yjeek_app/core/constants/app_colors.dart';
 import 'package:yjeek_app/core/constants/app_text_styles.dart';
+import 'package:yjeek_app/core/constants/navigation_strings.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/features/payments/model/benefit_pay_models.dart';
 
@@ -270,7 +271,7 @@ class _BenefitPayCheckoutScreenState extends State<BenefitPayCheckoutScreen>
                 ),
               ),
               child: Text(
-                'Cancel',
+                NavigationStrings.cancel,
                 style: AppTextStyles.labelSmall(
                   color: AppColors.textSecondary,
                 ),

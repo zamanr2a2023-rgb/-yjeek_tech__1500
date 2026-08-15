@@ -27,6 +27,7 @@ import 'package:yjeek_app/features/navigation/model/user_repository.dart';
 import 'package:yjeek_app/features/navigation/model/wallet_repository.dart';
 import 'package:yjeek_app/features/help/model/support_repository.dart';
 import 'package:yjeek_app/features/order_flow/model/order_chat_repository.dart';
+import 'package:yjeek_app/features/payments/model/wallet_pay_repository.dart';
 import 'package:yjeek_app/features/ui_content/model/banner_models.dart';
 import 'package:yjeek_app/features/ui_content/model/banners_repository.dart';
 
@@ -190,6 +191,13 @@ final orderChatRepositoryProvider = Provider<OrderChatRepository>(
 
 final paymentMethodsRepositoryProvider = Provider<PaymentMethodsRepository>(
   (ref) => PaymentMethodsRepository(
+    ref.watch(apiClientProvider),
+    ref.watch(storageServiceProvider),
+  ),
+);
+
+final walletPayRepositoryProvider = Provider<WalletPayRepository>(
+  (ref) => WalletPayRepository(
     ref.watch(apiClientProvider),
     ref.watch(storageServiceProvider),
   ),

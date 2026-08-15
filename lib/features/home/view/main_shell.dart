@@ -11,6 +11,7 @@ import 'package:yjeek_app/features/navigation/view/cart_screen.dart';
 import 'package:yjeek_app/features/navigation/view/orders_screen.dart';
 import 'package:yjeek_app/features/navigation/view/wallet_screen.dart';
 import 'package:yjeek_app/features/ui_content/view/ui_banner_widgets.dart';
+import 'package:yjeek_app/l10n/locale_controller.dart';
 
 class MainShell extends ConsumerStatefulWidget {
   const MainShell({
@@ -96,6 +97,7 @@ class _MainShellState extends ConsumerState<MainShell>
   @override
   Widget build(BuildContext context) {
     final shell = ref.watch(shellProvider);
+    ref.watch(localeControllerProvider);
     final notifier = ref.read(shellProvider.notifier);
 
     final pages = [

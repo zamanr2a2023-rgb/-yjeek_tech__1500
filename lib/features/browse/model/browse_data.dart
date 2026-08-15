@@ -103,7 +103,7 @@ class BrowseAddonOption {
 }
 
 abstract final class BrowseData {
-  static const category = 'Food';
+  static String get category => L10n.tr('Food');
 
   static const cuisineFilters = [
     'All',

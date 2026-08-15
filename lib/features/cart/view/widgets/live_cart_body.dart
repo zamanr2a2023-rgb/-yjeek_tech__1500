@@ -1719,7 +1719,7 @@ class _KitchenNoteDialogState extends State<_KitchenNoteDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+          child: Text(NavigationStrings.cancel),
         ),
         TextButton(
           onPressed: () {
@@ -1727,7 +1727,7 @@ class _KitchenNoteDialogState extends State<_KitchenNoteDialog> {
             _focusNode.unfocus();
             Navigator.of(context).pop(text);
           },
-          child: const Text('Save'),
+          child: Text(NavigationStrings.save),
         ),
       ],
     );

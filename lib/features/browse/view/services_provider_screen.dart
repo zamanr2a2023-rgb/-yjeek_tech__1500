@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:yjeek_app/core/constants/app_colors.dart';
+import 'package:yjeek_app/core/constants/browse_strings.dart';
 import 'package:yjeek_app/core/providers/app_providers.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/features/browse/browse_routes.dart';
@@ -11,6 +12,7 @@ import 'package:yjeek_app/features/browse/model/services_data.dart';
 import 'package:yjeek_app/features/browse/model/services_vendors_repository.dart';
 import 'package:yjeek_app/features/browse/view/widgets/browse_widgets.dart';
 import 'package:yjeek_app/features/browse/view/widgets/services_widgets.dart';
+import 'package:yjeek_app/features/auth/utils/require_login.dart';
 import 'package:yjeek_app/features/cart/view/widgets/cart_flow_widgets.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/navigation_widgets.dart';
 import 'package:yjeek_app/features/services_booking/services_booking_routes.dart';
@@ -110,6 +112,8 @@ class _ServicesProviderScreenState
   }
 
   Future<void> _addService(ServiceMenuItem item) async {
+    if (!await requireLogin(context, ref)) return;
+
     final cartVendorId = _cart.vendorId;
     final needsReplace = cartVendorId != null &&
         cartVendorId.isNotEmpty &&
@@ -132,6 +136,9 @@ class _ServicesProviderScreenState
           context,
           onConfirm: () => doAdd(replace: true),
         );
+        return;
+      }
+      if (await redirectToLoginIfAuthError(context, ref, result.message)) {
         return;
       }
       ScaffoldMessenger.of(context).showSnackBar(
@@ -191,7 +198,7 @@ class _ServicesProviderScreenState
                     padding: EdgeInsets.fromLTRB(20.w, 16.w, 20.w, 16.w),
                     children: [
                       BrowseSearchBar(
-                        hint: 'Search services…',
+                        hint: BrowseStrings.searchServices,
                         value: _menuQuery,
                         autofocus: false,
                         onChanged: _onMenuQueryChanged,

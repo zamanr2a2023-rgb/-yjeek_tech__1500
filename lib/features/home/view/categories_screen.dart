@@ -199,7 +199,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
                                     ),
                                     const SizedBox(width: 12),
                                     Text(
-                                      category.name,
+                                      category.localizedName,
                                       style: AppTextStyles.titleSmall()
                                           .copyWith(fontSize: 15),
                                     ),

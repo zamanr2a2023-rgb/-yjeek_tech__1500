@@ -12,12 +12,13 @@ import 'package:yjeek_app/features/order_flow/model/order_flow_data.dart';
 import 'package:yjeek_app/features/order_flow/order_flow_routes.dart';
 import 'package:yjeek_app/features/order_flow/view/widgets/order_flow_widgets.dart';
 import 'package:yjeek_app/features/payments/model/benefit_pay_models.dart';
+import 'package:yjeek_app/features/payments/pay_now_helper.dart';
 import 'package:yjeek_app/features/payments/view/benefit_pay_checkout_screen.dart';
 import 'package:yjeek_app/features/pickup_order_flow/view/widgets/pickup_order_flow_widgets.dart';
 import 'package:yjeek_app/routes/route_names.dart';
 
 /// Food delivery: pay after vendor accept (5 min window).
-/// Payment options: Yjeek Wallet + BenefitPay (Web Checkout SDK).
+/// Payment options: Wallet, BenefitPay, Apple Pay (iOS), Google Pay (Android).
 class OrderPayScreen extends ConsumerStatefulWidget {
   const OrderPayScreen({super.key, this.orderId});
 
@@ -100,23 +101,11 @@ class _OrderPayScreenState extends ConsumerState<OrderPayScreen> {
   }
 
   String _subtitleForMethod(String methodApi) {
-    final key = methodApi.toUpperCase();
-    if (key == 'YJEEK_WALLET' || key == 'WALLET') return _balance;
-    if (key == 'BENEFIT_PAY' || key == 'BENEFITPAY' || key == 'BENEFIT') {
-      return 'Pay securely with BenefitPay';
-    }
-    return formatPaymentMethod(methodApi);
+    return PayNowHelper.subtitleForMethod(methodApi, _balance);
   }
 
   List<(String, String)> _parsePayNowOptions(dynamic raw) {
-    if (raw is! List || raw.isEmpty) return List.of(_defaultPaymentOptions);
-    final parsed = <(String, String)>[];
-    for (final entry in raw) {
-      final api = entry?.toString().toUpperCase() ?? '';
-      if (api.isEmpty) continue;
-      parsed.add((api, formatPaymentMethod(api)));
-    }
-    return parsed.isEmpty ? List.of(_defaultPaymentOptions) : parsed;
+    return PayNowHelper.parsePayNowOptions(raw);
   }
 
   void _snack(String message, {Color? color}) {
@@ -498,13 +487,15 @@ class _OrderPayScreenState extends ConsumerState<OrderPayScreen> {
     try {
       final canPay = await _ensureAwaitingPayment(orderId);
       if (!canPay || !mounted) return;
-      if (_isWallet) {
-        await _payWithWallet(orderId);
-      } else if (_isBenefitPay) {
-        await _payWithBenefitPay(orderId);
-      } else {
-        _snack('Unsupported payment method: $_method');
-      }
+      final helper = PayNowHelper(ref, context);
+      final ok = await helper.pay(
+        orderIds: [orderId],
+        methodApi: _methodApi,
+        totalAmount: _totalAmount,
+      );
+      if (!ok || !mounted) return;
+      _timer?.cancel();
+      context.pushReplacement(OrderFlowRoutes.confirmedFor(orderId));
     } finally {
       if (mounted) setState(() => _paying = false);
     }

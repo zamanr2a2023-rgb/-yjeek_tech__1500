@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:yjeek_app/l10n/l10n.dart';
 
 class ElectronicsStore {
   const ElectronicsStore({
@@ -85,12 +86,12 @@ class ElectronicsColorOption {
 }
 
 abstract final class ElectronicsData {
-  static const homeTitle = 'Electronics';
-  static const searchHint = 'Search devices, brands…';
-  static const storesSectionTitle = 'Stores near you';
+  static String get homeTitle => L10n.tr('Electronics');
+  static String get searchHint => L10n.tr('Search devices, brands…');
+  static String get storesSectionTitle => L10n.tr('Stores near you');
 
   static String titleForCategory(String category) {
-    return switch (category.toLowerCase()) {
+    return L10n.tr(switch (category.toLowerCase()) {
       'fashion' => 'Fashion',
       'grocery' || 'groceries' => 'Groceries',
       'prosthetics' => 'Prosthetics',
@@ -101,12 +102,12 @@ abstract final class ElectronicsData {
       'stationery' => 'Stationery',
       'baby-kids' || 'baby_kids' => 'Baby & Kids',
       'sports' || 'sport' => 'Sports',
-      _ => homeTitle,
-    };
+      _ => 'Electronics',
+    });
   }
 
   static String searchHintForCategory(String category) {
-    return switch (category.toLowerCase()) {
+    return L10n.tr(switch (category.toLowerCase()) {
       'fashion' => 'Search brands, styles…',
       'grocery' || 'groceries' => 'Search groceries, stores…',
       'prosthetics' => 'Search products, brands…',
@@ -117,8 +118,8 @@ abstract final class ElectronicsData {
       'stationery' => 'Search stationery, stores…',
       'baby-kids' || 'baby_kids' => 'Search baby & kids…',
       'sports' || 'sport' => 'Search sports, brands…',
-      _ => searchHint,
-    };
+      _ => 'Search devices, brands…',
+    });
   }
 
   static String categoryFallbackLabel(String category) {

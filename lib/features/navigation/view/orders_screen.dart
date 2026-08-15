@@ -29,18 +29,18 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
   List<OrderHistoryItem> _orders = [];
   bool _loading = true;
 
-  static final _timeFilters = [
-    NavigationStrings.filterAll,
-    NavigationStrings.filterActive,
-    NavigationStrings.filterPast,
-  ];
+  List<String> get _timeFilters => [
+        NavigationStrings.filterAll,
+        NavigationStrings.filterActive,
+        NavigationStrings.filterPast,
+      ];
 
-  static final _categoryFilters = [
-    NavigationStrings.categoryOrders,
-    NavigationStrings.categoryServices,
-    NavigationStrings.categoryDineIn,
-    NavigationStrings.categoryPickup,
-  ];
+  List<String> get _categoryFilters => [
+        NavigationStrings.categoryOrders,
+        NavigationStrings.categoryServices,
+        NavigationStrings.categoryDineIn,
+        NavigationStrings.categoryPickup,
+      ];
 
   String get _statusQuery => switch (_timeFilterIndex) {
     1 => 'active',

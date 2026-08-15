@@ -181,7 +181,7 @@ class SavedAddressesScreen extends ConsumerWidget {
                     actions: [
                       TextButton(
                         onPressed: () => Navigator.pop(dCtx, false),
-                        child: const Text('Cancel'),
+                        child: Text(NavigationStrings.cancel),
                       ),
                       TextButton(
                         onPressed: () => Navigator.pop(dCtx, true),

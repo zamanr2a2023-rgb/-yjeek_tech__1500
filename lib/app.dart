@@ -6,6 +6,7 @@ import 'package:yjeek_app/core/theme/app_theme.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/l10n/app_locales.dart';
 import 'package:yjeek_app/l10n/locale_controller.dart';
+import 'package:yjeek_app/l10n/locale_rebuild.dart';
 import 'package:yjeek_app/routes/app_router.dart';
 
 final _router = AppRouter.create();
@@ -41,7 +42,9 @@ class YjeekApp extends ConsumerWidget {
                 statusBarIconBrightness: Brightness.dark,
               ),
             );
-            return child ?? const SizedBox.shrink();
+            return LocaleTreeRebuilder(
+              child: child ?? const SizedBox.shrink(),
+            );
           },
         );
       },

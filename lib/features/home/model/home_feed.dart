@@ -66,19 +66,19 @@ class HomeActiveOrder {
     switch (status) {
       case 'PLACED':
       case 'CONFIRMED':
-        return 'Order confirmed';
+        return HomeStrings.orderConfirmedStatus;
       case 'PREPARING':
       case 'READY':
-        return 'Preparing your order';
+        return HomeStrings.preparingOrder;
       case 'SEARCHING_DRIVER':
       case 'DRIVER_ASSIGNED':
-        return 'Finding your Champ';
+        return HomeStrings.findingChamp;
       case 'PICKED_UP':
       case 'IN_TRANSIT':
       case 'ON_THE_WAY':
-        return 'On the way';
+        return HomeStrings.onTheWay;
       default:
-        return 'Order in progress';
+        return HomeStrings.orderInProgress;
     }
   }
 

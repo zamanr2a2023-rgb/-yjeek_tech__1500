@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:yjeek_app/core/constants/app_colors.dart';
 import 'package:yjeek_app/core/constants/app_text_styles.dart';
+import 'package:yjeek_app/core/constants/browse_strings.dart';
 import 'package:yjeek_app/core/providers/app_providers.dart';
 import 'package:yjeek_app/core/providers/shell_provider.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
@@ -141,7 +142,7 @@ class _DineInMenuScreenState extends ConsumerState<DineInMenuScreen> {
                     padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 8.h),
                     children: [
                       BrowseSearchBar(
-                        hint: 'Search this menu…',
+                        hint: BrowseStrings.searchThisMenu,
                         onChanged: _onMenuQueryChanged,
                       ),
                       SizedBox(height: 14.h),

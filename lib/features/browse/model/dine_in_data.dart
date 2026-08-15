@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:yjeek_app/features/browse/model/browse_data.dart';
+import 'package:yjeek_app/l10n/l10n.dart';
 
 enum DineInVenueStatus { open, closed, bookable }
 
@@ -62,7 +63,7 @@ class DineInVisit {
 }
 
 abstract final class DineInData {
-  static const category = 'Dine-in';
+  static String get category => L10n.tr('Dine-in');
 
   static const cuisineFilters = ['All', 'Lebanese', 'Grills', 'Seafood', 'Italian'];
 

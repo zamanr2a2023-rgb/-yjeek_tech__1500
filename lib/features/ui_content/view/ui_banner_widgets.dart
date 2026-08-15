@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yjeek_app/core/constants/app_colors.dart';
 import 'package:yjeek_app/core/providers/app_providers.dart';
 import 'package:yjeek_app/core/widgets/app_network_image.dart';
+import 'package:yjeek_app/features/home/model/category_item.dart';
 import 'package:yjeek_app/features/ui_content/model/banner_models.dart';
 import 'package:yjeek_app/features/ui_content/model/banner_tap_router.dart';
 
@@ -31,10 +32,19 @@ class UiPlacementBanner extends ConsumerWidget {
         if (banners.isEmpty) {
           return fallbackWhenEmpty ?? const SizedBox.shrink();
         }
+        final loadCategories = () => ref.read(categoriesProvider.future);
         final scroll = banners.any((b) => b.isScroll) || banners.length > 1;
         final child = scroll
-            ? UiBannerCarousel(banners: banners, height: height)
-            : UiStaticBanner(banner: banners.first, height: height);
+            ? UiBannerCarousel(
+                banners: banners,
+                height: height,
+                loadCategories: loadCategories,
+              )
+            : UiStaticBanner(
+                banner: banners.first,
+                height: height,
+                loadCategories: loadCategories,
+              );
         if (padding == EdgeInsets.zero) return child;
         return Padding(padding: padding, child: child);
       },
@@ -49,17 +59,23 @@ class UiStaticBanner extends StatelessWidget {
     super.key,
     required this.banner,
     this.height = 124,
+    this.loadCategories,
   });
 
   final UiBanner banner;
   final double height;
+  final Future<List<CategoryItem>> Function()? loadCategories;
 
   @override
   Widget build(BuildContext context) {
     return _BannerCard(
       banner: banner,
       height: height,
-      onTap: () => handleUiBannerTap(context, banner),
+      onTap: () => handleUiBannerTap(
+        context,
+        banner,
+        loadCategories: loadCategories,
+      ),
     );
   }
 }
@@ -69,10 +85,12 @@ class UiBannerCarousel extends StatefulWidget {
     super.key,
     required this.banners,
     this.height = 124,
+    this.loadCategories,
   });
 
   final List<UiBanner> banners;
   final double height;
+  final Future<List<CategoryItem>> Function()? loadCategories;
 
   @override
   State<UiBannerCarousel> createState() => _UiBannerCarouselState();
@@ -112,7 +130,11 @@ class _UiBannerCarouselState extends State<UiBannerCarousel> {
     final banners = widget.banners;
     if (banners.isEmpty) return const SizedBox.shrink();
     if (banners.length == 1) {
-      return UiStaticBanner(banner: banners.first, height: widget.height);
+      return UiStaticBanner(
+        banner: banners.first,
+        height: widget.height,
+        loadCategories: widget.loadCategories,
+      );
     }
 
     return Column(
@@ -131,7 +153,11 @@ class _UiBannerCarouselState extends State<UiBannerCarousel> {
                 child: _BannerCard(
                   banner: banner,
                   height: widget.height,
-                  onTap: () => handleUiBannerTap(context, banner),
+                  onTap: () => handleUiBannerTap(
+                    context,
+                    banner,
+                    loadCategories: widget.loadCategories,
+                  ),
                 ),
               );
             },
@@ -386,7 +412,12 @@ class _UiAppOpenPopupHostState extends ConsumerState<UiAppOpenPopupHost> {
                       FilledButton(
                         onPressed: () {
                           Navigator.of(ctx).pop();
-                          handleUiBannerTap(context, banner);
+                          handleUiBannerTap(
+                            context,
+                            banner,
+                            loadCategories: () =>
+                                ref.read(categoriesProvider.future),
+                          );
                         },
                         style: FilledButton.styleFrom(
                           backgroundColor: AppColors.primary,

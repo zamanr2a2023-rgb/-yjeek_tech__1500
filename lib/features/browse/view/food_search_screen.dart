@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:yjeek_app/core/constants/app_colors.dart';
 import 'package:yjeek_app/core/constants/app_text_styles.dart';
+import 'package:yjeek_app/core/constants/browse_strings.dart';
 import 'package:yjeek_app/core/providers/app_providers.dart';
 import 'package:yjeek_app/core/services/location_service.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
@@ -106,7 +107,7 @@ class _FoodSearchScreenState extends ConsumerState<FoodSearchScreen> {
             Padding(
               padding: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 0),
               child: BrowseSearchBar(
-                hint: 'Search in Food…',
+                hint: BrowseStrings.searchInFood,
                 value: _query,
                 showCancel: true,
                 onChanged: _onQueryChanged,
@@ -120,7 +121,7 @@ class _FoodSearchScreenState extends ConsumerState<FoodSearchScreen> {
             Padding(
               padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 8.h),
               child: Text(
-                'Recent searches',
+                BrowseStrings.recentSearches,
                 style: AppTextStyles.labelSmall(
                   color: AppColors.textSecondary,
                 ).copyWith(fontWeight: FontWeight.w600, fontSize: 12.sp),

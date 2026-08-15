@@ -7,6 +7,7 @@ import 'package:yjeek_app/core/providers/app_providers.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/features/browse/model/browse_data.dart';
 import 'package:yjeek_app/features/browse/view/widgets/browse_widgets.dart';
+import 'package:yjeek_app/features/auth/utils/require_login.dart';
 import 'package:yjeek_app/features/cart/view/widgets/cart_flow_widgets.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/navigation_widgets.dart';
 import 'package:yjeek_app/l10n/locale_controller.dart';
@@ -107,6 +108,8 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
 
   Future<void> _addToCart({bool replaceCart = false}) async {
     if (_adding) return;
+    if (!await requireLogin(context, ref)) return;
+
     setState(() => _adding = true);
     final optionIds = <String>[];
     if (_selectedSize >= 0 &&
@@ -150,6 +153,10 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
         context,
         onConfirm: () => _addToCart(replaceCart: true),
       );
+      return;
+    }
+
+    if (await redirectToLoginIfAuthError(context, ref, result.message)) {
       return;
     }
 

@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:yjeek_app/core/constants/app_colors.dart';
 import 'package:yjeek_app/core/constants/app_text_styles.dart';
+import 'package:yjeek_app/core/constants/browse_strings.dart';
 import 'package:yjeek_app/core/providers/app_providers.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/features/browse/browse_routes.dart';
@@ -145,7 +146,7 @@ class _PickupBrowseScreenState extends ConsumerState<PickupBrowseScreen> {
                 ),
                 Padding(
                   padding: EdgeInsets.fromLTRB(16.w, 14.h, 16.w, 0),
-                  child: const PickupSectionHeader(
+                  child: PickupSectionHeader(
                     title: PickupData.readyNearYou,
                   ),
                 ),
@@ -164,7 +165,7 @@ class _PickupBrowseScreenState extends ConsumerState<PickupBrowseScreen> {
               hasScrollBody: false,
               child: Center(
                 child: Text(
-                  'No pickup spots found',
+                  BrowseStrings.noPickupSpots,
                   style: AppTextStyles.bodyMedium(
                     color: const Color(0xFF737873),
                   ),

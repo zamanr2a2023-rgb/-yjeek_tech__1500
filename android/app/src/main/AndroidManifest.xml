@@ -10,6 +10,10 @@
         <meta-data
             android:name="com.google.android.geo.API_KEY"
             android:value="AIzaSyC7BXis0DYkbNBdzeXQV6VWPPcSj6aL-PM"/>
+        <!-- Google Pay (pay package) -->
+        <meta-data
+            android:name="com.google.android.gms.wallet.api.enabled"
+            android:value="true"/>
         <activity
             android:name=".MainActivity"
             android:exported="true"

@@ -6,6 +6,7 @@ import 'package:yjeek_app/core/providers/app_providers.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/features/order_flow/model/order_api_mappers.dart';
 import 'package:yjeek_app/features/payments/model/benefit_pay_models.dart';
+import 'package:yjeek_app/features/payments/model/native_wallet_pay.dart';
 import 'package:yjeek_app/features/payments/view/benefit_pay_checkout_screen.dart';
 
 /// Shared Pay-now options + wallet / BenefitPay confirm flow (food reference).
@@ -54,9 +55,11 @@ class PayNowHelper {
     for (final entry in raw) {
       final api = entry?.toString().toUpperCase() ?? '';
       if (api.isEmpty) continue;
-      // Pay-now online options only — no COD / Apple Pay / Card stubs.
+      // Pay-now online options only — no COD / Card stubs.
       if (isCashMethod(api)) continue;
-      if (api == 'APPLE_PAY' || api == 'GOOGLE_PAY' || api == 'CARD') continue;
+      if (api == 'CARD') continue;
+      if (api == 'APPLE_PAY' && !supportsApplePayNative) continue;
+      if (api == 'GOOGLE_PAY' && !supportsGooglePayNative) continue;
       parsed.add((api, formatPaymentMethod(api)));
     }
     return parsed.isEmpty ? List.of(defaultPaymentOptions) : parsed;
@@ -65,6 +68,8 @@ class PayNowHelper {
   static String subtitleForMethod(String methodApi, String balanceLabel) {
     if (isWallet(methodApi)) return balanceLabel;
     if (isBenefitPay(methodApi)) return 'Pay securely with BenefitPay';
+    if (isApplePayMethod(methodApi)) return 'Pay with Apple Pay';
+    if (isGooglePayMethod(methodApi)) return 'Pay with Google Pay';
     return formatPaymentMethod(methodApi);
   }
 
@@ -280,6 +285,70 @@ class PayNowHelper {
     return true;
   }
 
+  Future<bool> payWithNativeWallet({
+    required List<String> orderIds,
+    required String methodApi,
+  }) async {
+    final method = methodApi.toUpperCase();
+    for (final orderId in orderIds) {
+      final session =
+          await ref.read(walletPayRepositoryProvider).createSession(orderId);
+      if (session == null) {
+        snack(
+          'Could not start ${formatPaymentMethod(method)}',
+          color: const Color(0xFFB42318),
+        );
+        return false;
+      }
+      if (session.gatewayRef.isEmpty) {
+        snack(
+          'Missing payment reference from server',
+          color: const Color(0xFFB42318),
+        );
+        return false;
+      }
+
+      Object? token;
+      try {
+        token = await presentNativeWalletSheet(session);
+      } catch (e) {
+        snack(
+          e.toString().replaceFirst('Bad state: ', '').replaceFirst('StateError: ', ''),
+          color: const Color(0xFFB42318),
+        );
+        return false;
+      }
+      if (token == null) {
+        snack('Payment cancelled');
+        return false;
+      }
+
+      final confirmed = await ref.read(walletPayRepositoryProvider).confirm(
+            orderId: orderId,
+            paymentMethod: method,
+            gatewayRef: session.gatewayRef,
+            paymentToken: token,
+          );
+      if (!confirmed.ok) {
+        snack(
+          confirmed.errorMessage ?? 'Payment failed — try again',
+          color: const Color(0xFFB42318),
+        );
+        return false;
+      }
+
+      final order = await ref.read(ordersRepositoryProvider).getOrder(orderId);
+      if (!isSettled(paymentStatusOf(order))) {
+        snack(
+          'Payment was not authorized — try again',
+          color: const Color(0xFFB42318),
+        );
+        return false;
+      }
+    }
+    return true;
+  }
+
   Future<bool> pay({
     required List<String> orderIds,
     required String methodApi,
@@ -302,6 +371,9 @@ class PayNowHelper {
     }
     if (isBenefitPay(methodApi)) {
       return payWithBenefitPay(orderIds: unpaid);
+    }
+    if (isNativeWalletMethod(methodApi)) {
+      return payWithNativeWallet(orderIds: unpaid, methodApi: methodApi);
     }
     snack('Unsupported payment method: ${formatPaymentMethod(methodApi)}');
     return false;

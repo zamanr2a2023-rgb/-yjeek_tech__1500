@@ -431,12 +431,12 @@ class _CartCategoryTabsState extends State<CartCategoryTabs> {
   final List<GlobalKey> _tabKeys =
       List.generate(CartTab.values.length, (_) => GlobalKey());
 
-  static final _labels = [
-    NavigationStrings.cartTabOrders,
-    NavigationStrings.cartTabDineIn,
-    NavigationStrings.cartTabPickup,
-    NavigationStrings.cartTabServices,
-  ];
+  List<String> get _labels => [
+        NavigationStrings.cartTabOrders,
+        NavigationStrings.cartTabDineIn,
+        NavigationStrings.cartTabPickup,
+        NavigationStrings.cartTabServices,
+      ];
 
   static const _tabMinWidths = [70.0, 73.0, 70.0, 81.0];
 
@@ -747,15 +747,15 @@ class OrderHistoryCard extends StatelessWidget {
             ],
             if (order.actions.isNotEmpty) ...[
               SizedBox(height: 12.h),
-              Row(
+              Wrap(
+                spacing: 8.w,
+                runSpacing: 8.h,
                 children: [
-                  for (var i = 0; i < order.actions.length; i++) ...[
-                    if (i > 0) SizedBox(width: 8.w),
+                  for (final action in order.actions)
                     _OrderActionButton(
-                      label: order.actions[i],
-                      onTap: () => onAction?.call(order.actions[i]),
+                      label: action,
+                      onTap: () => onAction?.call(action),
                     ),
-                  ],
                 ],
               ),
             ],
@@ -779,7 +779,7 @@ class _OrderActionButton extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 13.w, vertical: 7.h),
+        padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 7.h),
         decoration: BoxDecoration(
           color: _isPrimary ? AppColors.cartTabActive : AppColors.white,
           borderRadius: BorderRadius.circular(16.r),
@@ -790,6 +790,8 @@ class _OrderActionButton extends StatelessWidget {
         ),
         child: Text(
           label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
           style: AppTextStyles.labelSmall(
             color: _isPrimary ? AppColors.white : AppColors.textPrimary,
           ).copyWith(fontWeight: FontWeight.w600),

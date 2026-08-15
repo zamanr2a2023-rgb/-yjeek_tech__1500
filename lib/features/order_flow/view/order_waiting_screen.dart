@@ -54,6 +54,9 @@ class _OrderWaitingScreenState extends ConsumerState<OrderWaitingScreen> {
   @override
   void initState() {
     super.initState();
+    // Start a local countdown immediately so a failed first poll cannot freeze the ring at ~3m.
+    _deadline = DateTime.now().add(_defaultAcceptWindow);
+    _windowStart = DateTime.now();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _poll();
       _pollTimer = Timer.periodic(const Duration(seconds: 2), (_) => _poll());

@@ -2,6 +2,7 @@ import 'package:yjeek_app/core/constants/app_assets.dart';
 import 'package:yjeek_app/core/network/api_client.dart';
 import 'package:yjeek_app/core/services/storage_service.dart';
 import 'package:yjeek_app/features/cart/model/cart_flow_data.dart';
+import 'package:yjeek_app/features/payments/model/native_wallet_pay.dart';
 
 class CheckoutPaymentMethods {
   const CheckoutPaymentMethods({
@@ -14,13 +15,27 @@ class CheckoutPaymentMethods {
   final String defaultId;
   final double walletBalance;
 
+  static List<PaymentOption> platformFiltered(List<PaymentOption> options) {
+    return filterWalletMethodsForPlatform(options, (o) {
+      if (o.id == 'apple') return 'APPLE_PAY';
+      if (o.id == 'google') return 'GOOGLE_PAY';
+      return o.id;
+    });
+  }
+
   static CheckoutPaymentMethods fallback({
     List<PaymentOption>? base,
     String defaultId = 'benefitpay',
   }) {
+    final options = platformFiltered(
+      List<PaymentOption>.from(base ?? CartFlowData.paymentOptions),
+    );
+    final preferred = options.any((o) => o.id == defaultId)
+        ? defaultId
+        : (options.isNotEmpty ? options.first.id : defaultId);
     return CheckoutPaymentMethods(
-      options: List<PaymentOption>.from(base ?? CartFlowData.paymentOptions),
-      defaultId: defaultId,
+      options: options,
+      defaultId: preferred,
     );
   }
 }
@@ -89,14 +104,22 @@ class PaymentMethodsRepository {
         );
       }
 
+      final filtered = CheckoutPaymentMethods.platformFiltered(options);
+      if (filtered.isEmpty) {
+        return CheckoutPaymentMethods.fallback(
+          base: base,
+          defaultId: preferredDefaultId ?? 'benefitpay',
+        );
+      }
+
       final apiDefault = data['defaultMethodId']?.toString();
-      final preferred = preferredDefaultId ?? apiDefault ?? options.first.id;
+      final preferred = preferredDefaultId ?? apiDefault ?? filtered.first.id;
       final walletBalance = (data['walletBalance'] as num?)?.toDouble() ?? 0;
       return CheckoutPaymentMethods(
-        options: options,
-        defaultId: options.any((o) => o.id == preferred)
+        options: filtered,
+        defaultId: filtered.any((o) => o.id == preferred)
             ? preferred
-            : options.first.id,
+            : filtered.first.id,
         walletBalance: walletBalance,
       );
     } catch (_) {

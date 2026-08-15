@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/core/constants/app_assets.dart';
 import 'package:yjeek_app/core/constants/app_colors.dart';
@@ -7,6 +8,7 @@ import 'package:yjeek_app/core/constants/home_strings.dart';
 import 'package:yjeek_app/core/widgets/app_network_image.dart';
 import 'package:yjeek_app/features/home/model/category_item.dart';
 import 'package:yjeek_app/features/home/model/home_data.dart';
+import 'package:yjeek_app/l10n/locale_controller.dart';
 
 class HomeGreenHeader extends StatelessWidget {
   const HomeGreenHeader({
@@ -367,7 +369,7 @@ class CategoryIconTile extends StatelessWidget {
           ),
           const SizedBox(height: 7),
           Text(
-            category.name,
+            category.localizedName,
             textAlign: TextAlign.center,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
@@ -636,7 +638,7 @@ class WeeklySpotlightBanner extends StatelessWidget {
   }
 }
 
-class HomeBottomNavBar extends StatelessWidget {
+class HomeBottomNavBar extends ConsumerWidget {
   const HomeBottomNavBar({
     super.key,
     required this.currentIndex,
@@ -646,37 +648,38 @@ class HomeBottomNavBar extends StatelessWidget {
   final int currentIndex;
   final ValueChanged<int> onTap;
 
-  static final _items = [
-    _NavItem(
-      activeAsset: AppAssets.navHomeActive,
-      inactiveAsset: AppAssets.navHomeInactive,
-      label: HomeStrings.navHome,
-    ),
-    _NavItem(
-      activeAsset: AppAssets.navOrdersActive,
-      inactiveAsset: AppAssets.navOrdersInactive,
-      label: HomeStrings.navOrders,
-    ),
-    _NavItem(
-      activeAsset: AppAssets.navCartActive,
-      inactiveAsset: AppAssets.navCartInactive,
-      label: HomeStrings.navCart,
-    ),
-    _NavItem(
-      activeAsset: AppAssets.navWalletActive,
-      inactiveAsset: AppAssets.navWalletInactive,
-      label: HomeStrings.navWallet,
-      tintWhenActive: true,
-    ),
-    _NavItem(
-      activeAsset: AppAssets.navAccountActive,
-      inactiveAsset: AppAssets.navAccountInactive,
-      label: HomeStrings.navAccount,
-    ),
-  ];
-
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    ref.watch(localeControllerProvider);
+    final items = [
+      _NavItem(
+        activeAsset: AppAssets.navHomeActive,
+        inactiveAsset: AppAssets.navHomeInactive,
+        label: HomeStrings.navHome,
+      ),
+      _NavItem(
+        activeAsset: AppAssets.navOrdersActive,
+        inactiveAsset: AppAssets.navOrdersInactive,
+        label: HomeStrings.navOrders,
+      ),
+      _NavItem(
+        activeAsset: AppAssets.navCartActive,
+        inactiveAsset: AppAssets.navCartInactive,
+        label: HomeStrings.navCart,
+      ),
+      _NavItem(
+        activeAsset: AppAssets.navWalletActive,
+        inactiveAsset: AppAssets.navWalletInactive,
+        label: HomeStrings.navWallet,
+        tintWhenActive: true,
+      ),
+      _NavItem(
+        activeAsset: AppAssets.navAccountActive,
+        inactiveAsset: AppAssets.navAccountInactive,
+        label: HomeStrings.navAccount,
+      ),
+    ];
+
     return Container(
       decoration: BoxDecoration(
         color: AppColors.white,
@@ -694,9 +697,9 @@ class HomeBottomNavBar extends StatelessWidget {
           padding: const EdgeInsets.symmetric(vertical: 8),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: List.generate(_items.length, (index) {
+            children: List.generate(items.length, (index) {
               final active = index == currentIndex;
-              final item = _items[index];
+              final item = items[index];
               return GestureDetector(
                 onTap: () => onTap(index),
                 behavior: HitTestBehavior.opaque,

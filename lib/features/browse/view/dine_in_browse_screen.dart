@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:yjeek_app/core/constants/app_colors.dart';
+import 'package:yjeek_app/core/constants/browse_strings.dart';
 import 'package:yjeek_app/core/providers/app_providers.dart';
 import 'package:yjeek_app/core/providers/shell_provider.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
@@ -94,8 +95,8 @@ class _DineInBrowseScreenState extends ConsumerState<DineInBrowseScreen> {
                     padding: EdgeInsets.fromLTRB(20.w, 6.h, 20.w, 0),
                     child: BrowseSearchBar(
                       hint: _isGridView
-                          ? 'Search in Dine In…'
-                          : 'Search dine-in restaurants…',
+                          ? BrowseStrings.searchInDineIn
+                          : BrowseStrings.searchDineInRestaurants,
                       onTap: () => context.push(BrowseRoutes.dineInSearch()),
                     ),
                   ),
