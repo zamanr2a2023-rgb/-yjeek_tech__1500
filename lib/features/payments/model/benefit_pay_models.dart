@@ -89,6 +89,7 @@ class PaymentInitiateResult {
     this.gatewayRef,
     this.paymentId,
     this.paymentUrl,
+    this.amountLabel,
     this.sdkPayload,
     this.verificationConfigured = false,
     this.clientIdConfigured = false,
@@ -101,6 +102,7 @@ class PaymentInitiateResult {
   final String? gatewayRef;
   final String? paymentId;
   final String? paymentUrl;
+  final String? amountLabel;
   final BenefitPaySdkPayload? sdkPayload;
   final bool verificationConfigured;
   final bool clientIdConfigured;
@@ -108,10 +110,9 @@ class PaymentInitiateResult {
   final String? errorMessage;
   final Map<String, dynamic>? raw;
 
-  /// Prefer hosted PaymentURL; fall back to FOO sdkPayload when present.
+  /// Hosted BENEFIT flow: a PaymentURL from Hosted Init is required.
   bool get canOpenCheckout =>
-      (paymentUrl != null && paymentUrl!.isNotEmpty) ||
-      (sdkPayload != null && sdkPayload!.isComplete);
+      paymentUrl != null && paymentUrl!.trim().isNotEmpty;
 }
 
 class PaymentConfirmResult {
@@ -130,4 +131,27 @@ num? parseMoney(dynamic value) {
   if (value == null) return null;
   if (value is num) return value;
   return num.tryParse(value.toString().replaceAll(',', '').trim());
+}
+
+const kBenefitSuccessCallbackPath = '/payments/benefit/success';
+const kBenefitErrorCallbackPath = '/payments/benefit/error';
+
+enum BenefitHostedCallbackKind { success, error }
+
+/// Detects BENEFIT merchant success/error return URLs inside WebView navigation.
+BenefitHostedCallbackKind? benefitHostedCallbackKind(String url) {
+  final uri = Uri.tryParse(url.trim());
+  if (uri == null || uri.host.isEmpty) return null;
+  var path = uri.path;
+  if (path.length > 1 && path.endsWith('/')) {
+    path = path.substring(0, path.length - 1);
+  }
+  final lower = path.toLowerCase();
+  if (lower.endsWith(kBenefitSuccessCallbackPath)) {
+    return BenefitHostedCallbackKind.success;
+  }
+  if (lower.endsWith(kBenefitErrorCallbackPath)) {
+    return BenefitHostedCallbackKind.error;
+  }
+  return null;
 }

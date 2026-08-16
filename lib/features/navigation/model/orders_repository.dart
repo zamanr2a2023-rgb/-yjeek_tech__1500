@@ -130,6 +130,7 @@ class OrdersRepository {
       gatewayRef: data['gatewayRef']?.toString(),
       paymentId: data['paymentId']?.toString(),
       paymentUrl: data['paymentUrl']?.toString(),
+      amountLabel: data['amount']?.toString(),
       sdkPayload: sdk,
       verificationConfigured: data['verificationConfigured'] == true,
       clientIdConfigured: data['clientIdConfigured'] == true,

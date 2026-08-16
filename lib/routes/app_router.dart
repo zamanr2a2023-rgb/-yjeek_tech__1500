@@ -68,6 +68,7 @@ import 'package:yjeek_app/features/navigation/view/id_verification_screen.dart';
 import 'package:yjeek_app/features/navigation/view/language_screen.dart';
 import 'package:yjeek_app/features/navigation/view/order_details_screen.dart';
 import 'package:yjeek_app/features/navigation/view/personal_info_screen.dart';
+import 'package:yjeek_app/features/notifications/view/notifications_screen.dart';
 import 'package:yjeek_app/features/help/model/help_data.dart';
 import 'package:yjeek_app/features/help/model/help_phase2_data.dart';
 import 'package:yjeek_app/features/help/view/help_chat_screen.dart';
@@ -127,8 +128,10 @@ List<String> _scheduledOrderIds(GoRouterState state) {
 }
 
 class AppRouter {
+  static GoRouter? instance;
+
   static GoRouter create() {
-    return GoRouter(
+    return instance ??= GoRouter(
       initialLocation: RouteNames.splash,
       routes: [
         GoRoute(
@@ -512,6 +515,10 @@ class AppRouter {
         GoRoute(
           path: RouteNames.personalInfo,
           builder: (_, _) => const PersonalInfoScreen(),
+        ),
+        GoRoute(
+          path: RouteNames.notifications,
+          builder: (_, _) => const NotificationsScreen(),
         ),
         GoRoute(
           path: RouteNames.editPersonalInfo,

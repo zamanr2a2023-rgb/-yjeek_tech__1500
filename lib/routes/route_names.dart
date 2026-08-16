@@ -64,6 +64,7 @@ abstract final class RouteNames {
   static const String walletCashback = '/wallet/cashback';
   static const String walletRefunds = '/wallet/refunds';
   static const String withdrawBank = '/wallet/withdraw';
+  static const String notifications = '/account/notifications';
   static const String editProfile = '/account/edit-profile';
   static const String personalInfo = '/account/personal-info';
   static const String editPersonalInfo = '/account/edit-personal-info';

@@ -20,6 +20,7 @@ import 'package:yjeek_app/features/home/model/category_item.dart';
 import 'package:yjeek_app/features/home/model/home_feed.dart';
 import 'package:yjeek_app/features/home/model/home_repository.dart';
 import 'package:yjeek_app/features/navigation/model/content_repository.dart';
+import 'package:yjeek_app/features/notifications/model/notifications_repository.dart';
 import 'package:yjeek_app/features/navigation/model/offers_repository.dart';
 import 'package:yjeek_app/features/navigation/model/orders_repository.dart';
 import 'package:yjeek_app/features/navigation/model/user_me.dart';
@@ -223,6 +224,19 @@ final userRepositoryProvider = Provider<UserRepository>(
     ref.watch(storageServiceProvider),
   ),
 );
+
+final notificationsRepositoryProvider = Provider<NotificationsRepository>(
+  (ref) => NotificationsRepository(
+    ref.watch(apiClientProvider),
+    ref.watch(storageServiceProvider),
+  ),
+);
+
+final notificationsUnreadCountProvider = FutureProvider<int>((ref) {
+  final storage = ref.watch(storageServiceProvider);
+  if (!storage.hasSession) return Future.value(0);
+  return ref.watch(notificationsRepositoryProvider).fetchUnreadCount();
+});
 
 final userMeProvider = FutureProvider<UserMe?>((ref) {
   final storage = ref.watch(storageServiceProvider);

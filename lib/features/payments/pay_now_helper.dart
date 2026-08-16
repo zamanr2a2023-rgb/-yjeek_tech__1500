@@ -221,13 +221,6 @@ class PayNowHelper {
         );
         return false;
       }
-      if (!initiated.verificationConfigured) {
-        snack(
-          'BenefitPay is not configured on the server (missing CHECK_STATUS_URL / merchant credentials).',
-          color: const Color(0xFFB42318),
-        );
-        return false;
-      }
       final gatewayRef = initiated.gatewayRef;
       if (gatewayRef == null || gatewayRef.isEmpty) {
         snack(
@@ -236,10 +229,11 @@ class PayNowHelper {
         );
         return false;
       }
-      if (!initiated.canOpenCheckout) {
+      final paymentUrl = initiated.paymentUrl?.trim();
+      if (paymentUrl == null || paymentUrl.isEmpty) {
         snack(
           initiated.hostedInitError ??
-              'Invalid BenefitPay checkout (no PaymentURL or sdkPayload)',
+              'Benefit Hosted Init failed (no PaymentURL)',
           color: const Color(0xFFB42318),
         );
         return false;
@@ -251,17 +245,26 @@ class PayNowHelper {
         MaterialPageRoute(
           fullscreenDialog: true,
           builder: (_) => BenefitPayCheckoutScreen(
-            paymentUrl: initiated.paymentUrl,
+            paymentUrl: paymentUrl,
             paymentId: initiated.paymentId,
             referenceNumber: gatewayRef,
-            amountLabel: initiated.sdkPayload?.transactionAmount,
-            sdkPayload: initiated.paymentUrl == null || initiated.paymentUrl!.isEmpty
-                ? initiated.sdkPayload
-                : null,
+            amountLabel: initiated.amountLabel,
           ),
         ),
       );
       if (!context.mounted) return false;
+      final settled = await _refreshUntilBenefitSettled(orderId);
+      if (settled) {
+        snack('Payment successful');
+        var ok = await confirmAuthorized(
+          orderId: orderId,
+          paymentMethod: 'BENEFIT_PAY',
+          gatewayRef: gatewayRef,
+        );
+        if (!ok) ok = await isOrderSettled(orderId);
+        if (!ok) return false;
+        continue;
+      }
       if (checkout == null ||
           checkout.outcome == BenefitPayCheckoutOutcome.closed) {
         snack(checkout?.message ?? 'Payment cancelled');
@@ -269,20 +272,35 @@ class PayNowHelper {
       }
       if (checkout.outcome != BenefitPayCheckoutOutcome.success) {
         snack(
-          checkout.message ?? 'BenefitPay failed',
+          'Payment failed or cancelled',
           color: const Color(0xFFB42318),
         );
         return false;
       }
 
-      final ok = await confirmAuthorized(
+      snack('Payment successful');
+      var ok = await confirmAuthorized(
         orderId: orderId,
         paymentMethod: 'BENEFIT_PAY',
         gatewayRef: gatewayRef,
       );
+      if (!ok) {
+        ok = await isOrderSettled(orderId);
+      }
       if (!ok) return false;
     }
     return true;
+  }
+
+  /// BENEFIT often hits /error after a real CAPTURED success. Trust PAID on the order.
+  Future<bool> _refreshUntilBenefitSettled(String orderId) async {
+    for (var attempt = 0; attempt < 4; attempt++) {
+      if (attempt > 0) {
+        await Future<void>.delayed(const Duration(milliseconds: 400));
+      }
+      if (await isOrderSettled(orderId)) return true;
+    }
+    return false;
   }
 
   Future<bool> payWithNativeWallet({

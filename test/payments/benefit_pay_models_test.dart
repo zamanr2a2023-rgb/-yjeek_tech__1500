@@ -27,4 +27,70 @@ void main() {
     expect(parseMoney('12.450'), 12.450);
     expect(parseMoney(null), isNull);
   });
+
+  test('canOpenCheckout requires hosted PaymentURL not sdkPayload', () {
+    final payload = BenefitPaySdkPayload.fromJson({
+      'merchantId': '3430',
+      'appId': '1',
+      'transactionAmount': '1.000',
+      'transactionCurrency': 'BHD',
+      'referenceNumber': 'bp_1',
+      'secure_hash': 'abc',
+    });
+    expect(
+      PaymentInitiateResult(
+        ok: true,
+        paymentUrl: 'https://www.test.benefit-gateway.bh/pay',
+        sdkPayload: payload,
+      ).canOpenCheckout,
+      isTrue,
+    );
+    expect(
+      PaymentInitiateResult(
+        ok: true,
+        paymentUrl: null,
+        sdkPayload: payload,
+        hostedInitError: 'Benefit hosted init failed',
+      ).canOpenCheckout,
+      isFalse,
+    );
+  });
+
+  test('hosted PaymentURL is opened verbatim, not a FOO checkout host', () {
+    const hosted =
+        'https://www.test.benefit-gateway.bh/payment/paymentpage.htm?PaymentID=99';
+    final result = PaymentInitiateResult(ok: true, paymentUrl: hosted);
+    expect(result.canOpenCheckout, isTrue);
+    final uri = Uri.parse(result.paymentUrl!.trim());
+    expect(uri.host, 'www.test.benefit-gateway.bh');
+    expect(uri.host.contains('benefit-checkout'), isFalse);
+    expect(uri.host.contains('test-benefitpay.bh'), isFalse);
+  });
+
+  test('benefitHostedCallbackKind intercepts success and error URLs', () {
+    expect(
+      benefitHostedCallbackKind(
+        'https://api.yjeektech.com/payments/benefit/success',
+      ),
+      BenefitHostedCallbackKind.success,
+    );
+    expect(
+      benefitHostedCallbackKind(
+        'https://api.yjeektech.com/payments/benefit/success?trandata=abc',
+      ),
+      BenefitHostedCallbackKind.success,
+    );
+    expect(
+      benefitHostedCallbackKind(
+        'https://api.yjeektech.com/payments/benefit/error',
+      ),
+      BenefitHostedCallbackKind.error,
+    );
+    expect(
+      benefitHostedCallbackKind(
+        'https://test.benefit-gateway.bh/payment/paymentpage.htm?PaymentID=1',
+      ),
+      isNull,
+    );
+  });
 }

@@ -4,6 +4,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yjeek_app/core/theme/app_theme.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
+import 'package:yjeek_app/features/notifications/service/push_notification_service.dart';
 import 'package:yjeek_app/l10n/app_locales.dart';
 import 'package:yjeek_app/l10n/locale_controller.dart';
 import 'package:yjeek_app/l10n/locale_rebuild.dart';
@@ -26,6 +27,7 @@ class YjeekApp extends ConsumerWidget {
         return MaterialApp.router(
           title: 'Yjeek',
           debugShowCheckedModeBanner: false,
+          scaffoldMessengerKey: rootScaffoldMessengerKey,
           theme: AppTheme.light,
           locale: localeState.locale,
           supportedLocales: AppLocales.supported,

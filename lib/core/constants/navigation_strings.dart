@@ -60,6 +60,16 @@ abstract final class NavigationStrings {
   static String get delivery => L10n.tr('DELIVERY');
 
   static String get account => L10n.tr('Account');
+  static String get notifications => L10n.tr('Notifications');
+  static String get markAllNotifications => L10n.tr('Mark all');
+  static String get notificationsToday => L10n.tr('TODAY');
+  static String get notificationsEarlier => L10n.tr('EARLIER');
+  static String get notificationsEmpty => L10n.tr('No notifications yet');
+  static String get retry => L10n.tr('Retry');
+  static String get notificationsLoadError =>
+      L10n.tr('Failed to load notifications');
+  static String get notificationsMarkAllError =>
+      L10n.tr('Failed to mark notifications as read');
   static String get editProfile => L10n.tr('Edit');
   static String get yjeekWallet => L10n.tr('Yjeek Wallet');
   static String get cashback => L10n.tr('Cashback');
@@ -79,6 +89,14 @@ abstract final class NavigationStrings {
   static String get cancel => L10n.tr('Cancel');
   static String get bahrain => L10n.tr('Bahrain');
   static String get appVersion => L10n.tr('Yjeek v1.0.0 · yjeek.com');
+  static String get accountDeletion => L10n.tr('Account deletion');
+  static String get deleteAccountConfirmTitle => L10n.tr('Delete account?');
+  static String get deleteAccountConfirmBody => L10n.tr(
+        'This permanently deletes your account. Active orders must be finished first.',
+      );
+  static String get deleting => L10n.tr('Deleting...');
+  static String get delete => L10n.tr('Delete');
+  static String get couldNotDeleteAccount => L10n.tr('Could not delete account');
 
   static String get walletTitle => L10n.tr('Yjeek Wallet');
   static String get walletTitleShort => L10n.tr('Wallet');

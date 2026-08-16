@@ -10,6 +10,7 @@ import 'package:yjeek_app/core/providers/app_providers.dart';
 import 'package:yjeek_app/core/widgets/custom_button.dart';
 import 'package:yjeek_app/features/auth/view/widgets/auth_widgets.dart';
 import 'package:yjeek_app/features/auth/view/widgets/otp_input.dart';
+import 'package:yjeek_app/features/notifications/service/push_notification_service.dart';
 import 'package:yjeek_app/l10n/locale_controller.dart';
 import 'package:yjeek_app/routes/app_router.dart';
 
@@ -47,8 +48,8 @@ class _OtpVerifyScreenState extends ConsumerState<OtpVerifyScreen> {
   String get _apiPhone => widget.phoneDigits.isNotEmpty
       ? widget.phoneDigits
       : widget.phoneNumber
-          .replaceAll(AppStrings.countryCode, '')
-          .replaceAll(RegExp(r'\D'), '');
+            .replaceAll(AppStrings.countryCode, '')
+            .replaceAll(RegExp(r'\D'), '');
 
   @override
   void initState() {
@@ -110,7 +111,9 @@ class _OtpVerifyScreenState extends ConsumerState<OtpVerifyScreen> {
     }
     setState(() => _verifying = true);
 
-    final result = await ref.read(authApiProvider).verifyOtp(
+    final result = await ref
+        .read(authApiProvider)
+        .verifyOtp(
           phone: _apiPhone,
           countryCode: AppStrings.countryCode,
           code: code,
@@ -144,24 +147,27 @@ class _OtpVerifyScreenState extends ConsumerState<OtpVerifyScreen> {
       } catch (_) {}
       if (!mounted) return;
       context.goHome();
+      PushNotificationService.instance.syncToken();
+      PushNotificationService.instance.consumePendingOpen();
       return;
     }
 
     if (result.isNetworkError) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(result.error ?? 'Network error.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(result.error ?? 'Network error.')));
       return;
     }
 
     final message = result.error ?? 'Verification failed. Please try again.';
-    final isTooManyAttempts =
-        message.toLowerCase().contains('too many attempts');
+    final isTooManyAttempts = message.toLowerCase().contains(
+      'too many attempts',
+    );
     final timeMatch = RegExp(r'(\d{1,2}):(\d{2})').firstMatch(message);
     final blockSeconds = timeMatch == null
         ? 300
         : (int.parse(timeMatch.group(1)!) * 60) +
-            int.parse(timeMatch.group(2)!);
+              int.parse(timeMatch.group(2)!);
 
     setState(() {
       _responseMessage = message;
@@ -178,10 +184,9 @@ class _OtpVerifyScreenState extends ConsumerState<OtpVerifyScreen> {
   Future<void> _resendCode() async {
     if (_resendSeconds > 0 || _state == OtpScreenState.blocked) return;
 
-    final result = await ref.read(authApiProvider).resendOtp(
-          phone: _apiPhone,
-          countryCode: AppStrings.countryCode,
-        );
+    final result = await ref
+        .read(authApiProvider)
+        .resendOtp(phone: _apiPhone, countryCode: AppStrings.countryCode);
 
     if (!mounted) return;
 
