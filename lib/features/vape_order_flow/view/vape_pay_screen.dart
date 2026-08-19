@@ -44,7 +44,7 @@ class _VapePayScreenState extends ConsumerState<VapePayScreen> {
   String _deliveryLabel = VapeOrderFlowStrings.sameDayDelivery;
   String _total = '—';
   int _windowSeconds = _defaultSeconds;
-  List<(String, String)> _paymentOptions =
+  List<PayNowOption> _paymentOptions =
       List.of(PayNowHelper.defaultPaymentOptions);
 
   PayNowHelper get _payHelper => PayNowHelper(ref, context);
@@ -135,7 +135,10 @@ class _VapePayScreenState extends ConsumerState<VapePayScreen> {
     setState(() {
       _balance = balanceText;
       _totalAmount = total;
-      _paymentOptions = PayNowHelper.parsePayNowOptions(availableMethods);
+      _paymentOptions = PayNowHelper.parsePayNowOptions(
+        availableMethods,
+        orderPaymentMethod: method,
+      );
       if (vendorName != null && vendorName.isNotEmpty) _vendor = vendorName;
       if (method != null && method.isNotEmpty) {
         _methodApi = method.toUpperCase();
@@ -209,7 +212,7 @@ class _VapePayScreenState extends ConsumerState<VapePayScreen> {
       await Future<void>.delayed(const Duration(milliseconds: 350));
       if (!mounted) return;
       if (selected == null) return;
-      if (selected == _methodApi) {
+      if (PayNowHelper.methodsMatch(selected, _methodApi)) {
         _payArmedAt = DateTime.now().add(const Duration(milliseconds: 400));
         return;
       }

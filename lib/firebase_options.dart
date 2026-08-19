@@ -57,18 +57,20 @@ class DefaultFirebaseOptions {
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyDXOCiAKHOn3Hj52hJhXe9HspnpHSf78nQ',
-    appId: '1:325226809073:android:06aba97a954280a24b0b50',
-    messagingSenderId: '325226809073',
-    projectId: 'truckfix-f840b',
-    storageBucket: 'truckfix-f840b.firebasestorage.app',
+    apiKey: 'AIzaSyDEa3x1Yu5g9gHOnU8ohgNkGkSDHFl5c20',
+    appId: '1:345308459087:android:f812a364816667c8f83a3a',
+    messagingSenderId: '345308459087',
+    projectId: 'delivery-app-frontend-key',
+    storageBucket: 'delivery-app-frontend-key.firebasestorage.app',
   );
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyD8tHRUuj5UgMrETEgudL_QFAh6dZobq48',
-    appId: '1:325226809073:ios:28aa3396a5b070624b0b50',
-    messagingSenderId: '325226809073',
-    projectId: 'truckfix-f840b',
-    storageBucket: 'truckfix-f840b.firebasestorage.app',
+    apiKey: 'AIzaSyAM7YtvFJCwm7juGsY1hAONd8Ubqdcgyx8',
+    appId: '1:345308459087:ios:68c7ad4d55bdd6b9f83a3a',
+    messagingSenderId: '345308459087',
+    projectId: 'delivery-app-frontend-key',
+    storageBucket: 'delivery-app-frontend-key.firebasestorage.app',
+    iosClientId:
+        '345308459087-uuskhgtblkuggulv315mjfelu6ofdmfa.apps.googleusercontent.com',
     iosBundleId: 'bh.yjeek.customer',
   );
 }

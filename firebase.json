@@ -1,1 +1,30 @@
-{"flutter":{"platforms":{"android":{"default":{"projectId":"truckfix-f840b","appId":"1:325226809073:android:06aba97a954280a24b0b50","fileOutput":"android/app/google-services.json"}},"dart":{"lib/firebase_options.dart":{"projectId":"truckfix-f840b","configurations":{"android":"1:325226809073:android:06aba97a954280a24b0b50","ios":"1:325226809073:ios:28aa3396a5b070624b0b50"}}}}}}
+{
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "delivery-app-frontend-key",
+          "appId": "1:345308459087:android:f812a364816667c8f83a3a",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "ios": {
+        "default": {
+          "projectId": "delivery-app-frontend-key",
+          "appId": "1:345308459087:ios:68c7ad4d55bdd6b9f83a3a",
+          "uploadDebugSymbols": false,
+          "fileOutput": "ios/Runner/GoogleService-Info.plist"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "delivery-app-frontend-key",
+          "configurations": {
+            "android": "1:345308459087:android:f812a364816667c8f83a3a",
+            "ios": "1:345308459087:ios:68c7ad4d55bdd6b9f83a3a"
+          }
+        }
+      }
+    }
+  }
+}

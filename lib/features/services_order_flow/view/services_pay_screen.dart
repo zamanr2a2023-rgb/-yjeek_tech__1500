@@ -41,7 +41,7 @@ class _ServicesPayScreenState extends ConsumerState<ServicesPayScreen> {
   String _subtotal = ServicesOrderFlowData.subtotalAmount;
   String _serviceFee = ServicesOrderFlowData.serviceFeeAmount;
   String _total = ServicesOrderFlowData.payTotal;
-  List<(String, String)> _paymentOptions =
+  List<PayNowOption> _paymentOptions =
       List.of(PayNowHelper.defaultPaymentOptions);
 
   PayNowHelper get _payHelper => PayNowHelper(ref, context);
@@ -108,6 +108,7 @@ class _ServicesPayScreenState extends ConsumerState<ServicesPayScreen> {
     final left = deadline?.difference(DateTime.now()).inSeconds;
     final options = PayNowHelper.parsePayNowOptions(
       order['availablePaymentMethods'],
+      orderPaymentMethod: method.isNotEmpty ? method : null,
     );
     final totalNum = parseMoney(order['totalAmount']) ?? 0;
 
@@ -185,7 +186,7 @@ class _ServicesPayScreenState extends ConsumerState<ServicesPayScreen> {
       await Future<void>.delayed(const Duration(milliseconds: 350));
       if (!mounted) return;
       if (selected == null) return;
-      if (selected == _methodApi) {
+      if (PayNowHelper.methodsMatch(selected, _methodApi)) {
         _payArmedAt = DateTime.now().add(const Duration(milliseconds: 400));
         return;
       }

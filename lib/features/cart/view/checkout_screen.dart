@@ -57,11 +57,14 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
           .fetchCheckoutMethods(preferredDefaultId: 'benefitpay');
       final UserMe? me = await ref.read(userRepositoryProvider).fetchMe();
       if (!mounted) return;
+      final previousPaymentId = _paymentId;
       setState(() {
         _cart = cart;
         _address = address;
         _payments = payments;
-        _paymentId = payments.defaultId;
+        _paymentId = payments.options.any((o) => o.id == previousPaymentId)
+            ? previousPaymentId
+            : payments.defaultId;
         _phone = address?.phone ?? me?.formattedPhone;
         _dropOffIndex = dropOffIndexFromPrefs(address?.dropOffPreferences);
         _loading = false;

@@ -3,8 +3,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:yjeek_app/core/constants/app_colors.dart';
-import 'package:yjeek_app/core/constants/app_text_styles.dart';
 import 'package:yjeek_app/core/providers/app_providers.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/features/order_flow/model/order_api_mappers.dart';
@@ -13,7 +11,6 @@ import 'package:yjeek_app/features/order_flow/order_flow_routes.dart';
 import 'package:yjeek_app/features/order_flow/view/widgets/order_flow_widgets.dart';
 import 'package:yjeek_app/features/payments/model/benefit_pay_models.dart';
 import 'package:yjeek_app/features/payments/pay_now_helper.dart';
-import 'package:yjeek_app/features/payments/view/benefit_pay_checkout_screen.dart';
 import 'package:yjeek_app/features/pickup_order_flow/view/widgets/pickup_order_flow_widgets.dart';
 import 'package:yjeek_app/routes/route_names.dart';
 
@@ -31,11 +28,6 @@ class OrderPayScreen extends ConsumerStatefulWidget {
 class _OrderPayScreenState extends ConsumerState<OrderPayScreen> {
   static const _defaultSeconds = 299;
 
-  static const _defaultPaymentOptions = <(String, String)>[
-    ('YJEEK_WALLET', 'Yjeek Wallet'),
-    ('BENEFIT_PAY', 'BenefitPay'),
-  ];
-
   late int _secondsLeft;
   Timer? _timer;
   bool _paying = false;
@@ -47,7 +39,6 @@ class _OrderPayScreenState extends ConsumerState<OrderPayScreen> {
   String _method = 'BenefitPay';
   String _methodApi = 'BENEFIT_PAY';
   String _balance = 'Balance BHD 0.000';
-  num _walletBalance = 0;
   num _totalAmount = 0;
   String _subtotal = 'BHD —';
   String? _discountLabel;
@@ -55,8 +46,10 @@ class _OrderPayScreenState extends ConsumerState<OrderPayScreen> {
   String? _deliveryFee;
   String _serviceFee = 'BHD —';
   String? _tip;
+  String? _vat;
   String _total = 'BHD —';
-  List<(String, String)> _paymentOptions = List.of(_defaultPaymentOptions);
+  List<PayNowOption> _paymentOptions =
+      List.of(PayNowHelper.defaultPaymentOptions);
 
   @override
   void initState() {
@@ -85,14 +78,6 @@ class _OrderPayScreenState extends ConsumerState<OrderPayScreen> {
     return '${m.toString()}:${s.toString().padLeft(2, '0')}';
   }
 
-  bool get _isWallet =>
-      _methodApi == 'YJEEK_WALLET' || _methodApi == 'WALLET';
-
-  bool get _isBenefitPay =>
-      _methodApi == 'BENEFIT_PAY' ||
-      _methodApi == 'BENEFITPAY' ||
-      _methodApi == 'BENEFIT';
-
   bool _isPaidOrCash(String? method, String? paymentStatus) {
     final m = (method ?? '').toUpperCase();
     final p = (paymentStatus ?? '').toUpperCase();
@@ -104,8 +89,14 @@ class _OrderPayScreenState extends ConsumerState<OrderPayScreen> {
     return PayNowHelper.subtitleForMethod(methodApi, _balance);
   }
 
-  List<(String, String)> _parsePayNowOptions(dynamic raw) {
-    return PayNowHelper.parsePayNowOptions(raw);
+  List<PayNowOption> _parsePayNowOptions(
+    dynamic raw, {
+    String? orderPaymentMethod,
+  }) {
+    return PayNowHelper.parsePayNowOptions(
+      raw,
+      orderPaymentMethod: orderPaymentMethod,
+    );
   }
 
   void _snack(String message, {Color? color}) {
@@ -134,7 +125,6 @@ class _OrderPayScreenState extends ConsumerState<OrderPayScreen> {
 
     if (order == null) {
       setState(() {
-        _walletBalance = balanceNum;
         _balance = balanceText;
       });
       return;
@@ -143,24 +133,28 @@ class _OrderPayScreenState extends ConsumerState<OrderPayScreen> {
     final vendor = order['vendor'];
     final vendorName = vendor is Map ? vendor['name']?.toString() : null;
     final method = order['paymentMethod']?.toString() ?? '';
-    final paymentStatus = order['paymentStatus']?.toString() ??
+    final paymentStatus =
+        order['paymentStatus']?.toString() ??
         (order['payment'] is Map
             ? (order['payment'] as Map)['status']?.toString()
             : null);
     final status = (order['status']?.toString() ?? '').toUpperCase();
-    final deadline =
-        DateTime.tryParse(order['paymentDeadline']?.toString() ?? '')
-            ?.toLocal();
+    final deadline = DateTime.tryParse(
+      order['paymentDeadline']?.toString() ?? '',
+    )?.toLocal();
     final left = deadline?.difference(DateTime.now()).inSeconds;
-    final options = _parsePayNowOptions(order['availablePaymentMethods']);
+    final options = _parsePayNowOptions(
+      order['availablePaymentMethods'],
+      orderPaymentMethod: method.isNotEmpty ? method : null,
+    );
     final totalNum = parseMoney(order['totalAmount']) ?? 0;
     final discountNum = parseMoney(order['discountAmount']) ?? 0;
     final pickupDiscountNum = parseMoney(order['pickupDiscountAmount']) ?? 0;
     final deliveryNum = parseMoney(order['deliveryFee']) ?? 0;
     final tipNum = parseMoney(order['tipAmount']) ?? 0;
+    final vatNum = parseMoney(order['vatAmount']) ?? 0;
 
     setState(() {
-      _walletBalance = balanceNum;
       _balance = balanceText;
       _paymentOptions = options;
       _totalAmount = totalNum;
@@ -184,6 +178,7 @@ class _OrderPayScreenState extends ConsumerState<OrderPayScreen> {
       }
       _deliveryFee = deliveryNum > 0 ? formatBhd(deliveryNum) : null;
       _tip = tipNum > 0 ? formatBhd(tipNum) : null;
+      _vat = vatNum > 0 ? formatBhd(vatNum) : null;
       if (left != null) {
         if (left > 0) {
           _secondsLeft = left;
@@ -214,10 +209,9 @@ class _OrderPayScreenState extends ConsumerState<OrderPayScreen> {
     _timer?.cancel();
     final orderId = widget.orderId;
     if (!alreadyCancelled && orderId != null && orderId.isNotEmpty) {
-      await ref.read(ordersRepositoryProvider).cancel(
-            orderId,
-            reason: 'Payment window expired',
-          );
+      await ref
+          .read(ordersRepositoryProvider)
+          .cancel(orderId, reason: 'Payment window expired');
     }
     if (!mounted) return;
     setState(() {
@@ -239,47 +233,16 @@ class _OrderPayScreenState extends ConsumerState<OrderPayScreen> {
 
     setState(() => _methodBusy = true);
     try {
-      final selected = await showModalBottomSheet<String>(
-        context: context,
-        isDismissible: true,
-        enableDrag: true,
-        builder: (ctx) => SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Padding(
-                padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 4.h),
-                child: Text(
-                  'Pay with',
-                  style: AppTextStyles.labelMedium(color: AppColors.textPrimary)
-                      .copyWith(fontWeight: FontWeight.w700),
-                ),
-              ),
-              for (final opt in _paymentOptions)
-                ListTile(
-                  leading: Icon(
-                    opt.$1 == 'YJEEK_WALLET'
-                        ? Icons.account_balance_wallet_outlined
-                        : Icons.payment_outlined,
-                    color: AppColors.primary,
-                  ),
-                  title: Text(opt.$2),
-                  subtitle: opt.$1 == 'YJEEK_WALLET' ? Text(_balance) : null,
-                  trailing: _methodApi == opt.$1
-                      ? const Icon(Icons.check, color: AppColors.primary)
-                      : null,
-                  onTap: () => Navigator.pop(ctx, opt.$1),
-                ),
-              SizedBox(height: 8.h),
-            ],
-          ),
-        ),
+      final selected = await PayNowHelper(ref, context).showMethodSheet(
+        options: _paymentOptions,
+        currentApi: _methodApi,
+        balanceLabel: _balance,
       );
       // Absorb sheet-close tap bleed into the Pay button.
       await Future<void>.delayed(const Duration(milliseconds: 350));
       if (!mounted) return;
       if (selected == null) return;
-      if (selected == _methodApi) {
+      if (PayNowHelper.methodsMatch(selected, _methodApi)) {
         _payArmedAt = DateTime.now().add(const Duration(milliseconds: 400));
         return;
       }
@@ -308,11 +271,11 @@ class _OrderPayScreenState extends ConsumerState<OrderPayScreen> {
       _snack('Order not found', color: const Color(0xFFB42318));
       return false;
     }
-    final paymentStatus = order['paymentStatus']?.toString() ??
+    final paymentStatus =
+        order['paymentStatus']?.toString() ??
         (order['payment'] is Map
             ? (order['payment'] as Map)['status']?.toString()
             : null);
-    final status = (order['status']?.toString() ?? '').toUpperCase();
     final settled = (paymentStatus ?? '').toUpperCase();
     if (settled == 'PAID' || settled == 'AUTHORIZED') {
       _timer?.cancel();
@@ -321,7 +284,7 @@ class _OrderPayScreenState extends ConsumerState<OrderPayScreen> {
       }
       return false;
     }
-    if (status != 'AWAITING_PAYMENT' && order['needsPayment'] != true) {
+    if (!PayNowHelper.canCollectPayment(order)) {
       _snack(
         'This order is not awaiting payment',
         color: const Color(0xFFB42318),
@@ -336,130 +299,6 @@ class _OrderPayScreenState extends ConsumerState<OrderPayScreen> {
       });
     }
     return true;
-  }
-
-  Future<bool> _confirmAuthorized({
-    required String orderId,
-    required String paymentMethod,
-    String? gatewayRef,
-  }) async {
-    final confirmed =
-        await ref.read(ordersRepositoryProvider).confirmPaymentDetailed(
-              orderId,
-              status: 'AUTHORIZED',
-              gatewayRef: gatewayRef,
-              paymentMethod: paymentMethod,
-            );
-    if (!confirmed.ok) {
-      _snack(
-        confirmed.errorMessage ?? 'Payment failed — try again',
-        color: const Color(0xFFB42318),
-      );
-      return false;
-    }
-
-    // Trust only server state after confirm — never navigate on client optimism.
-    final order = await ref.read(ordersRepositoryProvider).getOrder(orderId);
-    final paymentStatus = order?['paymentStatus']?.toString() ??
-        (order?['payment'] is Map
-            ? (order!['payment'] as Map)['status']?.toString()
-            : null);
-    final settled = (paymentStatus ?? '').toUpperCase();
-    if (settled == 'PAID' || settled == 'AUTHORIZED') return true;
-
-    _snack(
-      'Payment was not authorized — try again',
-      color: const Color(0xFFB42318),
-    );
-    return false;
-  }
-
-  Future<void> _payWithWallet(String orderId) async {
-    final wallet = await ref.read(walletRepositoryProvider).fetchWallet();
-    final balance = wallet.balance ?? parseMoney(wallet.balanceLabel) ?? 0;
-    if (!mounted) return;
-    setState(() {
-      _walletBalance = balance;
-      _balance = 'Balance ${formatBhd(balance)}';
-    });
-    if (_walletBalance < _totalAmount) {
-      _snack(
-        'Insufficient wallet balance. Top up or switch to BenefitPay.',
-        color: const Color(0xFFB42318),
-      );
-      return;
-    }
-    final ok = await _confirmAuthorized(
-      orderId: orderId,
-      paymentMethod: 'YJEEK_WALLET',
-    );
-    if (!ok || !mounted) return;
-    _timer?.cancel();
-    context.pushReplacement(OrderFlowRoutes.confirmedFor(orderId));
-  }
-
-  Future<void> _payWithBenefitPay(String orderId) async {
-    final initiated =
-        await ref.read(ordersRepositoryProvider).initiatePaymentDetailed(orderId);
-    if (!initiated.ok) {
-      _snack(
-        initiated.errorMessage ?? 'Could not start BenefitPay',
-        color: const Color(0xFFB42318),
-      );
-      return;
-    }
-    final gatewayRef = initiated.gatewayRef;
-    if (gatewayRef == null || gatewayRef.isEmpty) {
-      _snack(
-        'Missing payment reference from server',
-        color: const Color(0xFFB42318),
-      );
-      return;
-    }
-    final paymentUrl = initiated.paymentUrl?.trim();
-    if (paymentUrl == null || paymentUrl.isEmpty) {
-      _snack(
-        initiated.hostedInitError ??
-            'Benefit Hosted Init failed (no PaymentURL)',
-        color: const Color(0xFFB42318),
-      );
-      return;
-    }
-
-    if (!mounted) return;
-    final checkout = await Navigator.of(context).push<BenefitPayCheckoutResult>(
-      MaterialPageRoute(
-        fullscreenDialog: true,
-        builder: (_) => BenefitPayCheckoutScreen(
-          paymentUrl: paymentUrl,
-          paymentId: initiated.paymentId,
-          referenceNumber: gatewayRef,
-          amountLabel: initiated.amountLabel,
-        ),
-      ),
-    );
-    if (!mounted) return;
-    if (checkout == null ||
-        checkout.outcome == BenefitPayCheckoutOutcome.closed) {
-      _snack(checkout?.message ?? 'Payment cancelled');
-      return;
-    }
-    if (checkout.outcome != BenefitPayCheckoutOutcome.success) {
-      _snack(
-        checkout.message ?? 'BenefitPay failed',
-        color: const Color(0xFFB42318),
-      );
-      return;
-    }
-
-    final ok = await _confirmAuthorized(
-      orderId: orderId,
-      paymentMethod: 'BENEFIT_PAY',
-      gatewayRef: gatewayRef,
-    );
-    if (!ok || !mounted) return;
-    _timer?.cancel();
-    context.pushReplacement(OrderFlowRoutes.confirmedFor(orderId));
   }
 
   Future<void> _pay() async {
@@ -520,6 +359,7 @@ class _OrderPayScreenState extends ConsumerState<OrderPayScreen> {
             discountValue: _discountValue,
             deliveryFee: _deliveryFee,
             serviceFee: _serviceFee,
+            vat: _vat,
             tip: _tip,
             total: _total,
           ),

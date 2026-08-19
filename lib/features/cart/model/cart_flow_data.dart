@@ -126,6 +126,7 @@ class PaymentOption {
   const PaymentOption({
     required this.id,
     required this.label,
+    this.subtitle,
     this.icon,
     this.iconAsset,
     this.selected = false,
@@ -133,6 +134,7 @@ class PaymentOption {
 
   final String id;
   final String label;
+  final String? subtitle;
   final IconData? icon;
   final String? iconAsset;
   final bool selected;
@@ -240,6 +242,7 @@ abstract final class CartFlowData {
     PaymentOption(
       id: 'benefitpay',
       label: 'BenefitPay',
+      subtitle: 'Forwarded to BenefitPay',
       iconAsset: AppAssets.payBenefitPay,
       selected: true,
     ),
@@ -256,6 +259,7 @@ abstract final class CartFlowData {
     PaymentOption(
       id: 'benefit',
       label: 'Benefit',
+      subtitle: 'Forwarded to Benefit',
       iconAsset: AppAssets.payBenefit,
     ),
     PaymentOption(

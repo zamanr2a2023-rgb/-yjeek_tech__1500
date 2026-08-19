@@ -340,6 +340,7 @@ class PickupPayBreakdownCard extends StatelessWidget {
     this.discountValue,
     this.deliveryFee,
     this.serviceFee,
+    this.vat,
     this.tip,
     this.total,
   });
@@ -350,6 +351,7 @@ class PickupPayBreakdownCard extends StatelessWidget {
   final String? discountValue;
   final String? deliveryFee;
   final String? serviceFee;
+  final String? vat;
   final String? tip;
   final String? total;
 
@@ -384,6 +386,10 @@ class PickupPayBreakdownCard extends StatelessWidget {
             PickupOrderFlowStrings.serviceFee,
             serviceFee ?? PickupOrderFlowData.payServiceFee,
           ),
+          if (vat != null && vat!.trim().isNotEmpty) ...[
+            SizedBox(height: 8.h),
+            _row(PickupOrderFlowStrings.vat, vat!),
+          ],
           if (showTip) ...[
             SizedBox(height: 8.h),
             _row(PickupOrderFlowStrings.tip, tip!),

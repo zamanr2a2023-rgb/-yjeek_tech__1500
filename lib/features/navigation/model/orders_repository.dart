@@ -2,6 +2,7 @@ import 'package:yjeek_app/core/constants/navigation_strings.dart';
 import 'package:yjeek_app/core/network/api_client.dart';
 import 'package:yjeek_app/core/services/storage_service.dart';
 import 'package:yjeek_app/features/navigation/model/navigation_data.dart';
+import 'package:yjeek_app/features/payments/benefit_pay_native.dart';
 import 'package:yjeek_app/features/payments/model/benefit_pay_models.dart';
 
 class OrdersRepository {
@@ -105,6 +106,32 @@ class OrdersRepository {
     return response.ok;
   }
 
+  /// POST /orders/:orderId/payments/benefitpay/native-session
+  Future<BenefitPayNativeSessionResult> fetchBenefitPayNativeSession(
+    String orderId,
+  ) async {
+    final response = await _apiClient.postJson(
+      '/orders/$orderId/payments/benefitpay/native-session',
+      const {},
+      bearerToken: _token,
+    );
+    if (!response.ok) {
+      return BenefitPayNativeSessionResult(
+        errorMessage: response.message ?? 'Could not start BenefitPay',
+      );
+    }
+    final data = response.data;
+    if (data == null) {
+      return const BenefitPayNativeSessionResult(
+        errorMessage: 'Empty BenefitPay session response',
+      );
+    }
+    return BenefitPayNativeSessionResult(
+      ok: true,
+      session: BenefitPayNativeSession.fromJson(data),
+    );
+  }
+
   /// POST /orders/:orderId/payments/initiate
   Future<PaymentInitiateResult> initiatePaymentDetailed(String orderId) async {
     final response = await _apiClient.postJson(
@@ -134,7 +161,9 @@ class OrdersRepository {
       sdkPayload: sdk,
       verificationConfigured: data['verificationConfigured'] == true,
       clientIdConfigured: data['clientIdConfigured'] == true,
-      hostedInitError: data['hostedInitError']?.toString(),
+      hostedInitError: sanitizeBenefitHostedInitError(
+        data['hostedInitError']?.toString(),
+      ),
       raw: data,
     );
   }

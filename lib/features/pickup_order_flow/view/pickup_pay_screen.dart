@@ -43,8 +43,9 @@ class _PickupPayScreenState extends ConsumerState<PickupPayScreen> {
   String? _discountLabel;
   String? _discountValue;
   String _serviceFee = PickupOrderFlowData.payServiceFee;
+  String? _vat;
   String _total = PickupOrderFlowData.payTotal;
-  List<(String, String)> _paymentOptions =
+  List<PayNowOption> _paymentOptions =
       List.of(PayNowHelper.defaultPaymentOptions);
 
   PayNowHelper get _payHelper => PayNowHelper(ref, context);
@@ -105,9 +106,11 @@ class _PickupPayScreenState extends ConsumerState<PickupPayScreen> {
     final left = deadline?.difference(DateTime.now()).inSeconds;
     final options = PayNowHelper.parsePayNowOptions(
       order['availablePaymentMethods'],
+      orderPaymentMethod: method.isNotEmpty ? method : null,
     );
     final totalNum = parseMoney(order['totalAmount']) ?? 0;
     final pickupNum = parseMoney(order['pickupDiscountAmount']) ?? 0;
+    final vatNum = parseMoney(order['vatAmount']) ?? 0;
 
     setState(() {
       _balance = balanceText;
@@ -121,6 +124,7 @@ class _PickupPayScreenState extends ConsumerState<PickupPayScreen> {
       _subtotal = formatBhd(order['subtotal']);
       _serviceFee = formatBhd(order['serviceFee']);
       _total = formatBhd(totalNum);
+      _vat = vatNum > 0 ? formatBhd(vatNum) : null;
       if (pickupNum > 0) {
         _discountLabel = pickupDiscountLabelFromOrder(order);
         _discountValue = '− ${formatBhd(pickupNum)}';
@@ -190,7 +194,7 @@ class _PickupPayScreenState extends ConsumerState<PickupPayScreen> {
       await Future<void>.delayed(const Duration(milliseconds: 350));
       if (!mounted) return;
       if (selected == null) return;
-      if (selected == _methodApi) {
+      if (PayNowHelper.methodsMatch(selected, _methodApi)) {
         _payArmedAt = DateTime.now().add(const Duration(milliseconds: 400));
         return;
       }
@@ -258,6 +262,7 @@ class _PickupPayScreenState extends ConsumerState<PickupPayScreen> {
             discountLabel: _discountLabel,
             discountValue: _discountValue,
             serviceFee: _serviceFee,
+            vat: _vat,
             total: _total,
           ),
         ],

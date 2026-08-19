@@ -45,13 +45,27 @@ class _BenefitPayCheckoutScreenState extends State<BenefitPayCheckoutScreen> {
       ..setNavigationDelegate(
         NavigationDelegate(
           onNavigationRequest: (request) {
-            if (_intercept(request.url)) {
+            final kind = benefitHostedCallbackKind(request.url);
+            if (kind == BenefitHostedCallbackKind.error) {
+              // Let /error load so BENEFIT can complete the CANCELED notification cycle.
+              _armErrorFinish(request.url);
+              return NavigationDecision.navigate;
+            }
+            if (_interceptSuccess(request.url)) {
               return NavigationDecision.prevent;
             }
             return NavigationDecision.navigate;
           },
           onPageStarted: (url) {
-            if (_intercept(url)) return;
+            final kind = benefitHostedCallbackKind(url);
+            if (kind == BenefitHostedCallbackKind.success) {
+              _interceptSuccess(url);
+              return;
+            }
+            if (kind == BenefitHostedCallbackKind.error) {
+              _armErrorFinish(url);
+              return;
+            }
             if (mounted) setState(() => _loading = true);
           },
           onPageFinished: (_) {
@@ -73,26 +87,29 @@ class _BenefitPayCheckoutScreenState extends State<BenefitPayCheckoutScreen> {
     super.dispose();
   }
 
-  bool _intercept(String url) {
+  bool _interceptSuccess(String url) {
     if (_finished) return true;
-    final kind = benefitHostedCallbackKind(url);
-    if (kind == null) return false;
-    if (kind == BenefitHostedCallbackKind.success) {
-      _errorHold?.cancel();
-      _finish(
-        BenefitPayCheckoutResult(
-          outcome: BenefitPayCheckoutOutcome.success,
-          message: 'Payment successful',
-          raw: {
-            'callbackUrl': url,
-            'paymentId': widget.paymentId,
-            'referenceNumber': widget.referenceNumber,
-          },
-        ),
-      );
-      return true;
+    if (benefitHostedCallbackKind(url) != BenefitHostedCallbackKind.success) {
+      return false;
     }
-    // Hold error briefly: BENEFIT often navigates /error after a real CAPTURED /success.
+    _errorHold?.cancel();
+    _finish(
+      BenefitPayCheckoutResult(
+        outcome: BenefitPayCheckoutOutcome.success,
+        message: 'Payment successful',
+        raw: {
+          'callbackUrl': url,
+          'paymentId': widget.paymentId,
+          'referenceNumber': widget.referenceNumber,
+        },
+      ),
+    );
+    return true;
+  }
+
+  /// Cancel/decline hits errorURL. Do not block the request — BENEFIT needs it.
+  void _armErrorFinish(String url) {
+    if (_finished) return;
     _errorHold?.cancel();
     _errorHold = Timer(const Duration(milliseconds: 500), () {
       if (_finished || !mounted) return;
@@ -108,7 +125,6 @@ class _BenefitPayCheckoutScreenState extends State<BenefitPayCheckoutScreen> {
         ),
       );
     });
-    return true;
   }
 
   void _finish(BenefitPayCheckoutResult result) {

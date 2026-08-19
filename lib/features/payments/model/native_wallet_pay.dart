@@ -21,7 +21,7 @@ bool isGooglePayMethod(String methodApi) =>
 bool isNativeWalletMethod(String methodApi) =>
     isApplePayMethod(methodApi) || isGooglePayMethod(methodApi);
 
-/// Filter checkout / pay-now options by OS capability.
+/// Filter pay-now options by OS capability (checkout list shows all methods).
 List<T> filterWalletMethodsForPlatform<T>(
   Iterable<T> items,
   String Function(T) apiOf,

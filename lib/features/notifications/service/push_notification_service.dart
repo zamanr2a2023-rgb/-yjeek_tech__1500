@@ -114,7 +114,7 @@ class PushNotificationService {
     appLogger.i('FCM permission=${settings.authorizationStatus}');
     if (settings.authorizationStatus == AuthorizationStatus.denied) {
       appLogger.w(
-        'Notification permission denied — Android Settings → Apps → Yjeek → Notifications',
+        'Notification permission denied — enable it in device settings for Yjeek',
       );
     }
 
@@ -137,13 +137,16 @@ class PushNotificationService {
     }
 
     await syncToken();
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.iOS) {
+      Future<void>.delayed(const Duration(seconds: 2), syncToken);
+    }
   }
 
   Future<void> syncToken() async {
     final storage = _storage;
     if (storage == null || !storage.hasSession) return;
     try {
-      final token = await FirebaseMessaging.instance.getToken();
+      final token = await _readFcmToken();
       if (token != null && token.isNotEmpty) {
         await _register(token);
       }
@@ -219,6 +222,22 @@ class PushNotificationService {
     openFromData(const {'screen': 'notifications'});
   }
 
+  Future<String?> _readFcmToken() async {
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.iOS) {
+      String? apns;
+      for (var attempt = 0; attempt < 12; attempt++) {
+        apns = await FirebaseMessaging.instance.getAPNSToken();
+        if (apns != null && apns.isNotEmpty) break;
+        await Future<void>.delayed(const Duration(milliseconds: 250));
+      }
+      if (apns == null || apns.isEmpty) {
+        appLogger.w('FCM skipped — APNs token not ready yet');
+        return null;
+      }
+    }
+    return FirebaseMessaging.instance.getToken();
+  }
+
   Future<void> _register(String token) async {
     final repo = _repo;
     final storage = _storage;
@@ -236,6 +255,13 @@ class PushNotificationService {
   }
 
   void _onForeground(RemoteMessage message) {
+    // iOS already presents notification payloads via APNs when
+    // setForegroundNotificationPresentationOptions is enabled.
+    if (!kIsWeb &&
+        defaultTargetPlatform == TargetPlatform.iOS &&
+        message.notification != null) {
+      return;
+    }
     unawaited(
       showYjeekTrayNotification(message).catchError((error, stack) {
         appLogger.e('Local notification failed', error: error, stackTrace: stack);

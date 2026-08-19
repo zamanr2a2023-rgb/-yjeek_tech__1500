@@ -88,9 +88,29 @@ void main() {
     );
     expect(
       benefitHostedCallbackKind(
+        'https://api.yjeektech.com/payments/benefit/error?ErrorText=Transaction%20cancelled%20by%20user&paymentid=1',
+      ),
+      BenefitHostedCallbackKind.error,
+    );
+    expect(
+      benefitHostedCallbackKind(
         'https://test.benefit-gateway.bh/payment/paymentpage.htm?PaymentID=1',
       ),
       isNull,
+    );
+  });
+
+  test('sanitizeBenefitHostedInitError hides Cloudflare HTML', () {
+    final sanitized = sanitizeBenefitHostedInitError(
+      'Benefit hosted init HTTP 403: <!DOCTYPE html><html lang="en-US"><head><title>Just a moment...</title>',
+    );
+    expect(sanitized, contains('HTTP 403'));
+    expect(sanitized, isNot(contains('<!DOCTYPE')));
+    expect(sanitized, isNot(contains('Just a moment')));
+    expect(sanitizeBenefitHostedInitError(null), isNull);
+    expect(
+      sanitizeBenefitHostedInitError('Benefit hosted gateway is not configured'),
+      'Benefit hosted gateway is not configured',
     );
   });
 }

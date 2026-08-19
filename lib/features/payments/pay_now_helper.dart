@@ -5,20 +5,37 @@ import 'package:yjeek_app/core/constants/app_text_styles.dart';
 import 'package:yjeek_app/core/providers/app_providers.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/features/order_flow/model/order_api_mappers.dart';
+import 'package:yjeek_app/features/payments/benefit_pay_native.dart';
 import 'package:yjeek_app/features/payments/model/benefit_pay_models.dart';
 import 'package:yjeek_app/features/payments/model/native_wallet_pay.dart';
 import 'package:yjeek_app/features/payments/view/benefit_pay_checkout_screen.dart';
 
 /// Shared Pay-now options + wallet / BenefitPay confirm flow (food reference).
+class PayNowOption {
+  const PayNowOption({
+    required this.api,
+    required this.label,
+    required this.enabled,
+  });
+
+  final String api;
+  final String label;
+  final bool enabled;
+}
+
 class PayNowHelper {
   PayNowHelper(this.ref, this.context);
 
   final WidgetRef ref;
   final BuildContext context;
 
-  static const defaultPaymentOptions = <(String, String)>[
-    ('YJEEK_WALLET', 'Yjeek Wallet'),
-    ('BENEFIT_PAY', 'BenefitPay'),
+  static const defaultPaymentOptions = <PayNowOption>[
+    PayNowOption(api: 'YJEEK_WALLET', label: 'Yjeek Wallet', enabled: true),
+    PayNowOption(api: 'BENEFIT_PAY', label: 'BenefitPay', enabled: true),
+    PayNowOption(api: 'APPLE_PAY', label: 'Apple Pay', enabled: false),
+    PayNowOption(api: 'GOOGLE_PAY', label: 'Google Pay', enabled: false),
+    PayNowOption(api: 'BENEFIT', label: 'Benefit', enabled: false),
+    PayNowOption(api: 'CARD', label: 'Add new card', enabled: false),
   ];
 
   static bool isWallet(String methodApi) {
@@ -26,14 +43,46 @@ class PayNowHelper {
     return key == 'YJEEK_WALLET' || key == 'WALLET';
   }
 
-  static bool isBenefitPay(String methodApi) {
+  static bool isBenefitPayNative(String methodApi) {
     final key = methodApi.toUpperCase();
-    return key == 'BENEFIT_PAY' || key == 'BENEFITPAY' || key == 'BENEFIT';
+    return key == 'BENEFIT_PAY' || key == 'BENEFITPAY';
+  }
+
+  static bool isBenefitHosted(String methodApi) {
+    return methodApi.toUpperCase() == 'BENEFIT';
   }
 
   static bool isSettled(String? paymentStatus) {
     final p = (paymentStatus ?? '').toUpperCase();
     return p == 'PAID' || p == 'AUTHORIZED';
+  }
+
+  static bool _flagTrue(dynamic value) {
+    if (value == true || value == 1) return true;
+    return value?.toString().toLowerCase() == 'true';
+  }
+
+  static const _terminalStatuses = {
+    'CANCELLED',
+    'REJECTED',
+    'EXPIRED',
+    'DELIVERED',
+    'COMPLETED',
+    'COLLECTED',
+  };
+
+  static const _beforeVendorAccept = {'PLACED', 'PENDING_VENDOR_ACCEPT'};
+
+  /// Unpaid online order after vendor accept can still be collected.
+  static bool canCollectPayment(Map<String, dynamic>? order) {
+    if (order == null) return false;
+    if (isSettled(paymentStatusOf(order))) return false;
+    if (isCashMethod(order['paymentMethod']?.toString())) return false;
+    final status = (order['status']?.toString() ?? '').toUpperCase();
+    if (_terminalStatuses.contains(status)) return false;
+    if (_beforeVendorAccept.contains(status)) return false;
+    if (_flagTrue(order['needsPayment'])) return true;
+    return status.isNotEmpty;
   }
 
   static bool isCashMethod(String? method) {
@@ -49,28 +98,56 @@ class PayNowHelper {
             : '');
   }
 
-  static List<(String, String)> parsePayNowOptions(dynamic raw) {
-    if (raw is! List || raw.isEmpty) return List.of(defaultPaymentOptions);
-    final parsed = <(String, String)>[];
-    for (final entry in raw) {
-      final api = entry?.toString().toUpperCase() ?? '';
-      if (api.isEmpty) continue;
-      // Pay-now online options only — no COD / Card stubs.
-      if (isCashMethod(api)) continue;
-      if (api == 'CARD') continue;
-      if (api == 'APPLE_PAY' && !supportsApplePayNative) continue;
-      if (api == 'GOOGLE_PAY' && !supportsGooglePayNative) continue;
-      parsed.add((api, formatPaymentMethod(api)));
+  static bool isMethodEnabledOnThisDevice(String api) {
+    if (isApplePayMethod(api)) return supportsApplePayNative;
+    if (isGooglePayMethod(api)) return supportsGooglePayNative;
+    return true;
+  }
+
+  static bool methodsMatch(String a, String b) {
+    return a.toUpperCase() == b.toUpperCase();
+  }
+
+  static List<PayNowOption> parsePayNowOptions(
+    dynamic raw, {
+    String? orderPaymentMethod,
+  }) {
+    final available = <String>{};
+    if (raw is List) {
+      for (final entry in raw) {
+        final api = entry?.toString().toUpperCase() ?? '';
+        if (api.isEmpty || isCashMethod(api)) continue;
+        available.add(api);
+      }
     }
-    return parsed.isEmpty ? List.of(defaultPaymentOptions) : parsed;
+    final orderApi = orderPaymentMethod?.toUpperCase();
+
+    return defaultPaymentOptions.map((option) {
+      final isAvailable = available.isEmpty
+          ? option.enabled
+          : available.contains(option.api) || option.api == orderApi;
+      final enabled = isAvailable && isMethodEnabledOnThisDevice(option.api);
+      return PayNowOption(
+        api: option.api,
+        label: option.label,
+        enabled: enabled,
+      );
+    }).toList();
   }
 
   static String subtitleForMethod(String methodApi, String balanceLabel) {
     if (isWallet(methodApi)) return balanceLabel;
-    if (isBenefitPay(methodApi)) return 'Pay securely with BenefitPay';
+    if (isBenefitPayNative(methodApi)) return 'Pay securely with BenefitPay';
+    if (isBenefitHosted(methodApi)) return 'Forwarded to Benefit';
     if (isApplePayMethod(methodApi)) return 'Pay with Apple Pay';
     if (isGooglePayMethod(methodApi)) return 'Pay with Google Pay';
     return formatPaymentMethod(methodApi);
+  }
+
+  static String? subtitleForOption(PayNowOption option, String balanceLabel) {
+    if (!option.enabled) return 'Coming soon';
+    if (isWallet(option.api)) return balanceLabel;
+    return subtitleForMethod(option.api, balanceLabel);
   }
 
   void snack(String message, {Color? color}) {
@@ -85,7 +162,7 @@ class PayNowHelper {
   }
 
   Future<String?> showMethodSheet({
-    required List<(String, String)> options,
+    required List<PayNowOption> options,
     required String currentApi,
     required String balanceLabel,
   }) async {
@@ -93,37 +170,61 @@ class PayNowHelper {
       context: context,
       isDismissible: true,
       enableDrag: true,
-      builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Padding(
-              padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 4.h),
-              child: Text(
-                'Pay with',
-                style: AppTextStyles.labelMedium(color: AppColors.textPrimary)
-                    .copyWith(fontWeight: FontWeight.w700),
-              ),
-            ),
-            for (final opt in options)
-              ListTile(
-                leading: Icon(
-                  isWallet(opt.$1)
-                      ? Icons.account_balance_wallet_outlined
-                      : Icons.payment_outlined,
-                  color: AppColors.primary,
+      builder: (ctx) {
+        final maxHeight = MediaQuery.sizeOf(ctx).height * 0.72;
+        return SafeArea(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxHeight: maxHeight),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Padding(
+                  padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 4.h),
+                  child: Text(
+                    'Pay with',
+                    style: AppTextStyles.labelMedium(
+                      color: AppColors.textPrimary,
+                    ).copyWith(fontWeight: FontWeight.w700),
+                  ),
                 ),
-                title: Text(opt.$2),
-                subtitle: isWallet(opt.$1) ? Text(balanceLabel) : null,
-                trailing: currentApi == opt.$1
-                    ? const Icon(Icons.check, color: AppColors.primary)
-                    : null,
-                onTap: () => Navigator.pop(ctx, opt.$1),
-              ),
-            SizedBox(height: 8.h),
-          ],
-        ),
-      ),
+                Flexible(
+                  child: ListView(
+                    shrinkWrap: true,
+                    children: [
+                      for (final opt in options)
+                        ListTile(
+                          leading: Icon(
+                            isWallet(opt.api)
+                                ? Icons.account_balance_wallet_outlined
+                                : Icons.payment_outlined,
+                            color: AppColors.primary,
+                          ),
+                          title: Text(
+                            opt.label,
+                            style: TextStyle(
+                              color: opt.enabled ? null : AppColors.textSecondary,
+                            ),
+                          ),
+                          subtitle: (() {
+                            final subtitle = subtitleForOption(opt, balanceLabel);
+                            return subtitle == null ? null : Text(subtitle);
+                          })(),
+                          trailing: methodsMatch(currentApi, opt.api)
+                              ? const Icon(Icons.check, color: AppColors.primary)
+                              : null,
+                          onTap: opt.enabled
+                              ? () => Navigator.pop(ctx, opt.api)
+                              : null,
+                        ),
+                    ],
+                  ),
+                ),
+                SizedBox(height: 8.h),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -140,8 +241,7 @@ class PayNowHelper {
       return false;
     }
     if (isSettled(paymentStatusOf(order))) return false;
-    final status = (order['status']?.toString() ?? '').toUpperCase();
-    if (status != 'AWAITING_PAYMENT' && order['needsPayment'] != true) {
+    if (!canCollectPayment(order)) {
       snack(
         'This order is not awaiting payment',
         color: const Color(0xFFB42318),
@@ -156,13 +256,14 @@ class PayNowHelper {
     required String paymentMethod,
     String? gatewayRef,
   }) async {
-    final confirmed =
-        await ref.read(ordersRepositoryProvider).confirmPaymentDetailed(
-              orderId,
-              status: 'AUTHORIZED',
-              gatewayRef: gatewayRef,
-              paymentMethod: paymentMethod,
-            );
+    final confirmed = await ref
+        .read(ordersRepositoryProvider)
+        .confirmPaymentDetailed(
+          orderId,
+          status: 'AUTHORIZED',
+          gatewayRef: gatewayRef,
+          paymentMethod: paymentMethod,
+        );
     if (!confirmed.ok) {
       snack(
         confirmed.errorMessage ?? 'Payment failed — try again',
@@ -208,15 +309,14 @@ class PayNowHelper {
     return true;
   }
 
-  Future<bool> payWithBenefitPay({
-    required List<String> orderIds,
-  }) async {
+  Future<bool> payWithBenefitHosted({required List<String> orderIds}) async {
     for (final orderId in orderIds) {
-      final initiated =
-          await ref.read(ordersRepositoryProvider).initiatePaymentDetailed(orderId);
+      final initiated = await ref
+          .read(ordersRepositoryProvider)
+          .initiatePaymentDetailed(orderId);
       if (!initiated.ok) {
         snack(
-          initiated.errorMessage ?? 'Could not start BenefitPay',
+          initiated.errorMessage ?? 'Could not start Benefit payment',
           color: const Color(0xFFB42318),
         );
         return false;
@@ -240,25 +340,26 @@ class PayNowHelper {
       }
 
       if (!context.mounted) return false;
-      final checkout =
-          await Navigator.of(context).push<BenefitPayCheckoutResult>(
-        MaterialPageRoute(
-          fullscreenDialog: true,
-          builder: (_) => BenefitPayCheckoutScreen(
-            paymentUrl: paymentUrl,
-            paymentId: initiated.paymentId,
-            referenceNumber: gatewayRef,
-            amountLabel: initiated.amountLabel,
-          ),
-        ),
-      );
+      final checkout = await Navigator.of(context)
+          .push<BenefitPayCheckoutResult>(
+            MaterialPageRoute(
+              fullscreenDialog: true,
+              builder: (_) => BenefitPayCheckoutScreen(
+                paymentUrl: paymentUrl,
+                paymentId: initiated.paymentId,
+                referenceNumber: gatewayRef,
+                amountLabel: initiated.amountLabel,
+                title: 'Benefit',
+              ),
+            ),
+          );
       if (!context.mounted) return false;
       final settled = await _refreshUntilBenefitSettled(orderId);
       if (settled) {
         snack('Payment successful');
         var ok = await confirmAuthorized(
           orderId: orderId,
-          paymentMethod: 'BENEFIT_PAY',
+          paymentMethod: 'BENEFIT',
           gatewayRef: gatewayRef,
         );
         if (!ok) ok = await isOrderSettled(orderId);
@@ -271,23 +372,85 @@ class PayNowHelper {
         return false;
       }
       if (checkout.outcome != BenefitPayCheckoutOutcome.success) {
-        snack(
-          'Payment failed or cancelled',
-          color: const Color(0xFFB42318),
-        );
+        snack('Payment failed or cancelled', color: const Color(0xFFB42318));
         return false;
       }
 
       snack('Payment successful');
       var ok = await confirmAuthorized(
         orderId: orderId,
-        paymentMethod: 'BENEFIT_PAY',
+        paymentMethod: 'BENEFIT',
         gatewayRef: gatewayRef,
       );
       if (!ok) {
         ok = await isOrderSettled(orderId);
       }
       if (!ok) return false;
+    }
+    return true;
+  }
+
+  Future<bool> payWithBenefitPayNative({required List<String> orderIds}) async {
+    for (final orderId in orderIds) {
+      final sessionResult = await ref
+          .read(ordersRepositoryProvider)
+          .fetchBenefitPayNativeSession(orderId);
+      if (!sessionResult.ok || sessionResult.session == null) {
+        snack(
+          sessionResult.errorMessage ?? 'Could not start BenefitPay',
+          color: const Color(0xFFB42318),
+        );
+        return false;
+      }
+      final session = sessionResult.session!;
+      final gatewayRef = session.gatewayRef;
+      if (gatewayRef.isEmpty) {
+        snack(
+          'Missing payment reference from server',
+          color: const Color(0xFFB42318),
+        );
+        return false;
+      }
+
+      final available = await BenefitPayNative.isAvailable();
+      if (!available) {
+        snack(
+          'BenefitPay app is not installed on this device',
+          color: const Color(0xFFB42318),
+        );
+        return false;
+      }
+
+      final native = await BenefitPayNative.pay(session);
+      if (native.isUnavailable) {
+        snack(
+          native.message ?? 'BenefitPay is not available',
+          color: const Color(0xFFB42318),
+        );
+        return false;
+      }
+      if (native.isCancelled) {
+        snack(native.message ?? 'Payment cancelled');
+        return false;
+      }
+      if (!native.isSuccess) {
+        snack(
+          native.message ?? 'Payment failed or cancelled',
+          color: const Color(0xFFB42318),
+        );
+        return false;
+      }
+
+      snack('Payment successful');
+      final ok = await confirmAuthorized(
+        orderId: orderId,
+        paymentMethod: 'BENEFIT_PAY',
+        gatewayRef: gatewayRef,
+      );
+      if (!ok) {
+        final settled = await isOrderSettled(orderId);
+        if (!settled) return false;
+      }
     }
     return true;
   }
@@ -309,8 +472,9 @@ class PayNowHelper {
   }) async {
     final method = methodApi.toUpperCase();
     for (final orderId in orderIds) {
-      final session =
-          await ref.read(walletPayRepositoryProvider).createSession(orderId);
+      final session = await ref
+          .read(walletPayRepositoryProvider)
+          .createSession(orderId);
       if (session == null) {
         snack(
           'Could not start ${formatPaymentMethod(method)}',
@@ -331,7 +495,10 @@ class PayNowHelper {
         token = await presentNativeWalletSheet(session);
       } catch (e) {
         snack(
-          e.toString().replaceFirst('Bad state: ', '').replaceFirst('StateError: ', ''),
+          e
+              .toString()
+              .replaceFirst('Bad state: ', '')
+              .replaceFirst('StateError: ', ''),
           color: const Color(0xFFB42318),
         );
         return false;
@@ -341,7 +508,9 @@ class PayNowHelper {
         return false;
       }
 
-      final confirmed = await ref.read(walletPayRepositoryProvider).confirm(
+      final confirmed = await ref
+          .read(walletPayRepositoryProvider)
+          .confirm(
             orderId: orderId,
             paymentMethod: method,
             gatewayRef: session.gatewayRef,
@@ -384,11 +553,18 @@ class PayNowHelper {
       unpaid.add(id);
     }
     if (unpaid.isEmpty) return true;
+    if (!isMethodEnabledOnThisDevice(methodApi)) {
+      snack('Coming soon');
+      return false;
+    }
     if (isWallet(methodApi)) {
       return payWithWallet(orderIds: unpaid, totalAmount: totalAmount);
     }
-    if (isBenefitPay(methodApi)) {
-      return payWithBenefitPay(orderIds: unpaid);
+    if (isBenefitHosted(methodApi)) {
+      return payWithBenefitHosted(orderIds: unpaid);
+    }
+    if (isBenefitPayNative(methodApi)) {
+      return payWithBenefitPayNative(orderIds: unpaid);
     }
     if (isNativeWalletMethod(methodApi)) {
       return payWithNativeWallet(orderIds: unpaid, methodApi: methodApi);

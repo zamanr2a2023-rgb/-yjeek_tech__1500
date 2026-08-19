@@ -69,18 +69,18 @@ class BenefitPaySdkPayload {
       secureHash.isNotEmpty;
 
   Map<String, dynamic> toRequestData() => {
-        'merchantId': merchantId,
-        'appId': appId,
-        'transactionAmount': transactionAmount,
-        'transactionCurrency': transactionCurrency,
-        'referenceNumber': referenceNumber,
-        'secure_hash': secureHash,
-        if (hashedString != null && hashedString!.isNotEmpty)
-          'hashedString': hashedString,
-        'showResult': showResult,
-        'hideMobileQR': hideMobileQr,
-        if (qrTimeoutMs != null) 'qr_timeout': qrTimeoutMs,
-      };
+    'merchantId': merchantId,
+    'appId': appId,
+    'transactionAmount': transactionAmount,
+    'transactionCurrency': transactionCurrency,
+    'referenceNumber': referenceNumber,
+    'secure_hash': secureHash,
+    if (hashedString != null && hashedString!.isNotEmpty)
+      'hashedString': hashedString,
+    'showResult': showResult,
+    'hideMobileQR': hideMobileQr,
+    if (qrTimeoutMs != null) 'qr_timeout': qrTimeoutMs,
+  };
 }
 
 class PaymentInitiateResult {
@@ -115,12 +115,29 @@ class PaymentInitiateResult {
       paymentUrl != null && paymentUrl!.trim().isNotEmpty;
 }
 
+/// Cloudflare/WAF HTML must never be shown as a payment error.
+String? sanitizeBenefitHostedInitError(String? raw) {
+  final text = raw?.trim() ?? '';
+  if (text.isEmpty) return null;
+  final lower = text.toLowerCase();
+  final looksLikeHtml =
+      lower.contains('<!doctype') ||
+      lower.contains('<html') ||
+      lower.contains('just a moment');
+  if (looksLikeHtml || (lower.contains('http 403') && lower.contains('cloudflare'))) {
+    return 'Benefit payment could not start (HTTP 403). '
+        'The gateway is blocking the Yjeek API server. '
+        'Ask BENEFIT to allowlist the api.yjeektech.com public IP '
+        'for test.benefit-gateway.bh on HTTPS 443.';
+  }
+  if (text.contains('<') || text.length > 220) {
+    return 'Benefit payment could not start. Please try again.';
+  }
+  return text;
+}
+
 class PaymentConfirmResult {
-  const PaymentConfirmResult({
-    required this.ok,
-    this.errorMessage,
-    this.raw,
-  });
+  const PaymentConfirmResult({required this.ok, this.errorMessage, this.raw});
 
   final bool ok;
   final String? errorMessage;
