@@ -32,7 +32,7 @@ class FoodSearchScreen extends ConsumerStatefulWidget {
 class _FoodSearchScreenState extends ConsumerState<FoodSearchScreen> {
   late String _query;
   List<BrowseRestaurant> _results = const [];
-  List<String> _recent = BrowseData.recentSearches;
+  List<String> _recent = const [];
   Timer? _debounce;
   bool _loading = false;
   ({double lat, double lng})? _position;

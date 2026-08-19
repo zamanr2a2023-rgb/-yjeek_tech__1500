@@ -8,7 +8,6 @@ import 'package:yjeek_app/core/providers/app_providers.dart';
 import 'package:yjeek_app/features/browse/browse_routes.dart';
 import 'package:yjeek_app/features/home/model/category_item.dart';
 import 'package:yjeek_app/features/home/model/category_navigation.dart';
-import 'package:yjeek_app/features/home/model/home_data.dart';
 import 'package:yjeek_app/features/home/view/widgets/home_widgets.dart';
 import 'package:yjeek_app/features/ui_content/view/ui_banner_widgets.dart';
 import 'package:yjeek_app/routes/app_router.dart';
@@ -30,11 +29,12 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
   @override
   Widget build(BuildContext context) {
     final categoriesAsync = ref.watch(categoriesProvider);
-    final categories =
-        categoriesAsync.valueOrNull ?? HomeData.allCategories;
+    final isInitialLoading =
+        categoriesAsync.isLoading && categoriesAsync.valueOrNull == null;
+    final categories = categoriesAsync.valueOrNull ?? const <CategoryItem>[];
     final home = ref.watch(homeFeedProvider).valueOrNull;
     final deliverTo =
-        home?.deliverToLabel ?? HomeData.deliveryLocation;
+        home?.deliverToLabel ?? HomeStrings.chooseLocation;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -160,7 +160,15 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
                 ],
               ),
             ),
-            SliverPadding(
+            if (isInitialLoading)
+              const SliverFillRemaining(
+                hasScrollBody: false,
+                child: Center(
+                  child: CircularProgressIndicator(color: AppColors.primary),
+                ),
+              )
+            else
+              SliverPadding(
               padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
               sliver: _isGridView
                   ? SliverGridCategories(

@@ -154,6 +154,18 @@ class _ServicesItemDetailScreenState
 
   @override
   Widget build(BuildContext context) {
+    if (_loading) {
+      return Scaffold(
+        backgroundColor: AppColors.background,
+        body: const Center(
+          child: CircularProgressIndicator(color: AppColors.primary),
+        ),
+        bottomNavigationBar: ShellBottomNavBar(
+          currentIndex: widget.bottomNavIndex,
+        ),
+      );
+    }
+
     final topInset = MediaQuery.paddingOf(context).top;
     // Design hero is 260; scale with width so title stays on-screen (260.h was too tall).
     final heroHeight = topInset + 200.w;
@@ -197,11 +209,7 @@ class _ServicesItemDetailScreenState
             ),
           ),
           Expanded(
-            child: _loading
-                ? const Center(
-                    child: CircularProgressIndicator(color: AppColors.primary),
-                  )
-                : ListView(
+            child: ListView(
                     padding: EdgeInsets.fromLTRB(20.w, 18.w, 20.w, 8.w),
                     children: [
                       Row(

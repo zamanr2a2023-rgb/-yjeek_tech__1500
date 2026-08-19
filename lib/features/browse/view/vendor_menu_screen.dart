@@ -43,6 +43,7 @@ class _VendorMenuScreenState extends ConsumerState<VendorMenuScreen> {
   String _menuQuery = '';
   FoodCartSummary _cart = FoodCartSummary.empty;
   bool _loading = true;
+  bool _loadedOnce = false;
   Timer? _searchDebounce;
 
   List<BrowseMenuItem> get _items => _allItems
@@ -52,7 +53,6 @@ class _VendorMenuScreenState extends ConsumerState<VendorMenuScreen> {
   @override
   void initState() {
     super.initState();
-    _restaurant = BrowseData.restaurantById(widget.vendorId);
     WidgetsBinding.instance.addPostFrameCallback((_) => _load());
   }
 
@@ -91,10 +91,14 @@ class _VendorMenuScreenState extends ConsumerState<VendorMenuScreen> {
         }
         _cart = cart;
         _loading = false;
+        _loadedOnce = true;
       });
     } catch (_) {
       if (!mounted) return;
-      setState(() => _loading = false);
+      setState(() {
+        _loading = false;
+        _loadedOnce = true;
+      });
     }
   }
 
@@ -130,6 +134,17 @@ class _VendorMenuScreenState extends ConsumerState<VendorMenuScreen> {
   Widget build(BuildContext context) {
     // Rebuild menu labels when app language changes (nameAr / descriptionAr).
     ref.watch(localeControllerProvider);
+    if (!_loadedOnce && _loading) {
+      return Scaffold(
+        backgroundColor: AppColors.background,
+        body: const Center(
+          child: CircularProgressIndicator(color: AppColors.primary),
+        ),
+        bottomNavigationBar: ShellBottomNavBar(
+          currentIndex: widget.bottomNavIndex,
+        ),
+      );
+    }
     return Scaffold(
       backgroundColor: AppColors.background,
       body: Column(

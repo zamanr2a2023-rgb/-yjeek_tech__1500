@@ -756,10 +756,8 @@ class BrowseOrderAgainRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final items = brands ??
-        BrowseData.orderAgainBrands
-            .map<(String, Color, String?)>((e) => (e.$1, e.$2, null))
-            .toList();
+    final items = brands ?? const <(String, Color, String?)>[];
+    if (items.isEmpty) return const SizedBox.shrink();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

@@ -35,14 +35,12 @@ class _ElectronicsStoreScreenState
   ElectronicsStore _store = ElectronicsData.stores.first;
   List<ElectronicsProduct> _products = const [];
   bool _loading = true;
+  bool _loadedOnce = false;
   Timer? _debounce;
 
   @override
   void initState() {
     super.initState();
-    try {
-      _store = ElectronicsData.storeById(widget.storeId);
-    } catch (_) {}
     WidgetsBinding.instance.addPostFrameCallback((_) => _load());
   }
 
@@ -86,18 +84,31 @@ class _ElectronicsStoreScreenState
         );
         _products = products;
         _loading = false;
+        _loadedOnce = true;
       });
     } catch (_) {
       if (!mounted) return;
       setState(() {
         _products = const [];
         _loading = false;
+        _loadedOnce = true;
       });
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    if (!_loadedOnce && _loading) {
+      return Scaffold(
+        backgroundColor: const Color(0xFFF2F7F2),
+        body: const Center(
+          child: CircularProgressIndicator(color: AppColors.primary),
+        ),
+        bottomNavigationBar: ShellBottomNavBar(
+          currentIndex: widget.bottomNavIndex,
+        ),
+      );
+    }
     return Scaffold(
       backgroundColor: const Color(0xFFF2F7F2),
       body: Column(

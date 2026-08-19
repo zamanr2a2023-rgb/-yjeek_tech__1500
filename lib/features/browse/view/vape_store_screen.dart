@@ -38,14 +38,12 @@ class _VapeStoreScreenState extends ConsumerState<VapeStoreScreen> {
   List<VapeProduct> _products = const [];
   VapeCartSummary _cart = VapeCartSummary.empty;
   bool _loading = true;
+  bool _loadedOnce = false;
   bool _adding = false;
 
   @override
   void initState() {
     super.initState();
-    try {
-      _store = VapeData.storeById(widget.storeId);
-    } catch (_) {}
     WidgetsBinding.instance.addPostFrameCallback((_) => _load());
   }
 
@@ -65,12 +63,14 @@ class _VapeStoreScreenState extends ConsumerState<VapeStoreScreen> {
         _products = products;
         _cart = cart;
         _loading = false;
+        _loadedOnce = true;
       });
     } catch (_) {
       if (!mounted) return;
       setState(() {
         _products = const [];
         _loading = false;
+        _loadedOnce = true;
       });
     }
   }
@@ -145,6 +145,17 @@ class _VapeStoreScreenState extends ConsumerState<VapeStoreScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (!_loadedOnce && _loading) {
+      return Scaffold(
+        backgroundColor: AppColors.background,
+        body: const Center(
+          child: CircularProgressIndicator(color: AppColors.primary),
+        ),
+        bottomNavigationBar: ShellBottomNavBar(
+          currentIndex: widget.bottomNavIndex,
+        ),
+      );
+    }
     return Scaffold(
       backgroundColor: AppColors.background,
       body: Column(

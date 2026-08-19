@@ -26,10 +26,10 @@ class _DineInBrowseScreenState extends ConsumerState<DineInBrowseScreen> {
   bool _isGridView = true;
   bool _bookableOnly = false;
   bool _offersOnly = false;
-  String _selectedFilter = DineInData.cuisineFilters.first;
+  String _selectedFilter = 'All';
   String _sort = 'rating';
-  List<String> _cuisineFilters = DineInData.cuisineFilters;
-  List<DineInRestaurant> _restaurants = DineInData.restaurants;
+  List<String> _cuisineFilters = const ['All'];
+  List<DineInRestaurant> _restaurants = const [];
   bool _loading = true;
 
   /// Design: `rgba(44, 107, 71, 0.55)` over white → sage green.

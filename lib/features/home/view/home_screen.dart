@@ -10,7 +10,6 @@ import 'package:yjeek_app/features/cart/model/cart_repository.dart';
 import 'package:yjeek_app/features/cart/view/widgets/cart_flow_widgets.dart';
 import 'package:yjeek_app/features/home/model/category_navigation.dart';
 import 'package:yjeek_app/features/home/model/home_data.dart';
-import 'package:yjeek_app/features/home/model/home_feed.dart';
 import 'package:yjeek_app/features/home/view/widgets/home_widgets.dart';
 import 'package:yjeek_app/features/navigation/model/user_me.dart';
 import 'package:yjeek_app/features/order_flow/order_flow_routes.dart';
@@ -137,14 +136,20 @@ class HomeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final homeAsync = ref.watch(homeFeedProvider);
-    final feed = homeAsync.valueOrNull ?? HomeFeed.fallback();
+    final isInitialLoading =
+        homeAsync.isLoading && homeAsync.valueOrNull == null;
+    final feed = homeAsync.valueOrNull;
     final loggedIn = ref.watch(storageServiceProvider).hasSession;
     final user = loggedIn ? ref.watch(userMeProvider).valueOrNull : null;
-    final greeting = _greetingFor(user, feed.greeting, loggedIn: loggedIn);
+    final greeting = _greetingFor(
+      user,
+      feed?.greeting ?? HomeStrings.hello,
+      loggedIn: loggedIn,
+    );
     final deliverTo = loggedIn
-        ? feed.deliverToLabel
-        : (feed.deliverTo?.label.isNotEmpty ?? false)
-            ? feed.deliverToLabel
+        ? (feed?.deliverToLabel ?? HomeStrings.chooseLocation)
+        : (feed?.deliverTo?.label.isNotEmpty ?? false)
+            ? feed!.deliverToLabel
             : HomeStrings.chooseLocation;
 
     return Scaffold(
@@ -184,7 +189,15 @@ class HomeScreen extends ConsumerWidget {
                 ),
               ),
             ),
-            SliverPadding(
+            if (isInitialLoading)
+              const SliverFillRemaining(
+                hasScrollBody: false,
+                child: Center(
+                  child: CircularProgressIndicator(color: AppColors.primary),
+                ),
+              )
+            else if (feed != null)
+              SliverPadding(
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
               sliver: SliverList(
                 delegate: SliverChildListDelegate([

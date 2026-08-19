@@ -28,8 +28,8 @@ class _FoodBrowseScreenState extends ConsumerState<FoodBrowseScreen> {
   bool _freeDeliveryOnly = false;
   String _selectedFilter = 'All';
   String _sort = 'rating';
-  List<String> _cuisineFilters = BrowseData.cuisineFilters;
-  List<BrowseRestaurant> _restaurants = BrowseData.restaurants;
+  List<String> _cuisineFilters = const ['All'];
+  List<BrowseRestaurant> _restaurants = const [];
   bool _loading = true;
   bool _locationDenied = false;
   bool _outsideDeliveryArea = false;
@@ -92,11 +92,10 @@ class _FoodBrowseScreenState extends ConsumerState<FoodBrowseScreen> {
   }
 
   List<(String, Color, String?)> get _orderAgainBrands {
+    if (_loading) return const [];
     final vendors = ref.watch(homeFeedProvider).valueOrNull?.reorderVendors;
     if (vendors == null || vendors.isEmpty) {
-      return BrowseData.orderAgainBrands
-          .map<(String, Color, String?)>((e) => (e.$1, e.$2, null))
-          .toList();
+      return const [];
     }
     return vendors
         .map(

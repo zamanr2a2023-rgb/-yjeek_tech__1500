@@ -40,6 +40,7 @@ class _ServicesProviderScreenState
   ServiceProvider _provider = ServicesData.popularProviders.first;
   ServicesCartSummary _cart = ServicesCartSummary.empty;
   bool _loading = true;
+  bool _loadedOnce = false;
   String _menuQuery = '';
   Timer? _searchDebounce;
 
@@ -61,7 +62,6 @@ class _ServicesProviderScreenState
   @override
   void initState() {
     super.initState();
-    _provider = ServicesData.providerById(widget.providerId);
     WidgetsBinding.instance.addPostFrameCallback((_) => _load());
   }
 
@@ -93,10 +93,14 @@ class _ServicesProviderScreenState
         _applyMenu(menu);
         _cart = cart;
         _loading = false;
+        _loadedOnce = true;
       });
     } catch (_) {
       if (!mounted) return;
-      setState(() => _loading = false);
+      setState(() {
+        _loading = false;
+        _loadedOnce = true;
+      });
     }
   }
 
@@ -183,6 +187,17 @@ class _ServicesProviderScreenState
   @override
   Widget build(BuildContext context) {
     final showBar = _cart.itemCount > 0;
+    if (!_loadedOnce && _loading) {
+      return Scaffold(
+        backgroundColor: AppColors.background,
+        body: const Center(
+          child: CircularProgressIndicator(color: AppColors.primary),
+        ),
+        bottomNavigationBar: ShellBottomNavBar(
+          currentIndex: widget.bottomNavIndex,
+        ),
+      );
+    }
     return Scaffold(
       backgroundColor: AppColors.background,
       body: Column(
