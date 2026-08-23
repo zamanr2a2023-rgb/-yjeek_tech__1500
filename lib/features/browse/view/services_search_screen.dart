@@ -98,6 +98,7 @@ class _ServicesSearchScreenState extends ConsumerState<ServicesSearchScreen> {
               child: BrowseSearchBar(
                 hint: ServicesData.searchHint,
                 value: _query,
+                autofocus: true,
                 showCancel: true,
                 onChanged: _onQueryChanged,
                 onCancel: () => context.pop(),

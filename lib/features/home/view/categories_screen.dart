@@ -29,9 +29,10 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
   @override
   Widget build(BuildContext context) {
     final categoriesAsync = ref.watch(categoriesProvider);
-    final isInitialLoading =
-        categoriesAsync.isLoading && categoriesAsync.valueOrNull == null;
-    final categories = categoriesAsync.valueOrNull ?? const <CategoryItem>[];
+    final categoriesLoading = categoriesAsync.isLoading;
+    final categories = categoriesLoading
+        ? const <CategoryItem>[]
+        : (categoriesAsync.valueOrNull ?? const <CategoryItem>[]);
     final home = ref.watch(homeFeedProvider).valueOrNull;
     final deliverTo =
         home?.deliverToLabel ?? HomeStrings.chooseLocation;
@@ -160,12 +161,17 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
                 ],
               ),
             ),
-            if (isInitialLoading)
+            if (categoriesLoading)
               const SliverFillRemaining(
                 hasScrollBody: false,
                 child: Center(
                   child: CircularProgressIndicator(color: AppColors.primary),
                 ),
+              )
+            else if (categories.isEmpty)
+              const SliverFillRemaining(
+                hasScrollBody: false,
+                child: SizedBox.shrink(),
               )
             else
               SliverPadding(
@@ -260,7 +266,7 @@ class SliverGridCategories extends StatelessWidget {
         crossAxisCount: 4,
         mainAxisSpacing: 8,
         crossAxisSpacing: 0,
-        mainAxisExtent: 90,
+        mainAxisExtent: 96,
       ),
       delegate: SliverChildBuilderDelegate(
         (context, index) => GestureDetector(

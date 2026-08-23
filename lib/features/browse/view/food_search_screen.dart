@@ -109,6 +109,7 @@ class _FoodSearchScreenState extends ConsumerState<FoodSearchScreen> {
               child: BrowseSearchBar(
                 hint: BrowseStrings.searchInFood,
                 value: _query,
+                autofocus: true,
                 showCancel: true,
                 onChanged: _onQueryChanged,
                 onCancel: () => context.pop(),

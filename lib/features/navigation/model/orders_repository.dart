@@ -2,6 +2,7 @@ import 'package:yjeek_app/core/constants/navigation_strings.dart';
 import 'package:yjeek_app/core/network/api_client.dart';
 import 'package:yjeek_app/core/services/storage_service.dart';
 import 'package:yjeek_app/features/navigation/model/navigation_data.dart';
+import 'package:yjeek_app/features/order_flow/model/order_api_mappers.dart';
 import 'package:yjeek_app/features/payments/benefit_pay_native.dart';
 import 'package:yjeek_app/features/payments/model/benefit_pay_models.dart';
 
@@ -379,14 +380,15 @@ OrderHistoryItem? orderHistoryItemFromJson(Map<String, dynamic> json) {
 
   final badge = _badgeFor(statusRaw, orderType, isActive);
   final status = _mapStatus(statusRaw, isActive);
+  final pastActions = <String>[
+    NavigationStrings.receipt,
+    if (orderCanRate(json)) NavigationStrings.rate,
+    NavigationStrings.reorder,
+    NavigationStrings.getHelp,
+  ];
   final actions = isActive
       ? [NavigationStrings.trackOrder, NavigationStrings.getHelp]
-      : [
-          NavigationStrings.receipt,
-          NavigationStrings.rate,
-          NavigationStrings.reorder,
-          NavigationStrings.getHelp,
-        ];
+      : pastActions;
 
   return OrderHistoryItem(
     id: id,

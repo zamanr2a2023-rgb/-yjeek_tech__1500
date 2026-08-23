@@ -300,8 +300,48 @@ class HomeCategoriesGrid extends StatelessWidget {
   }
 }
 
+/// Placeholder grid while home categories load from the API.
+class HomeCategoriesGridShimmer extends StatelessWidget {
+  const HomeCategoriesGridShimmer({super.key, this.count = 4});
+
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.start,
+      children: [
+        for (var i = 0; i < count; i++) ...[
+          if (i > 0) const SizedBox(width: _CategoryRow._gap),
+          SizedBox(
+            width: _CategoryRow._itemWidth,
+            child: Column(
+              children: [
+                ShimmerBox(
+                  width: 58,
+                  height: 58,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                const SizedBox(height: 6),
+                ShimmerBox(
+                  width: 48,
+                  height: 10,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
 class _CategoryRow extends StatelessWidget {
   const _CategoryRow({required this.items, this.onCategoryTap});
+
+  static const _itemWidth = 60.0;
+  static const _gap = 16.0;
 
   final List<CategoryItem> items;
   final ValueChanged<CategoryItem>? onCategoryTap;
@@ -309,20 +349,22 @@ class _CategoryRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: items
-          .map(
-            (category) => SizedBox(
-              width: 60,
-              child: GestureDetector(
-                onTap: onCategoryTap != null
-                    ? () => onCategoryTap!(category)
-                    : null,
-                child: CategoryIconTile(category: category),
-              ),
+      mainAxisAlignment: MainAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (var i = 0; i < items.length; i++) ...[
+          if (i > 0) const SizedBox(width: _gap),
+          SizedBox(
+            width: _itemWidth,
+            child: GestureDetector(
+              onTap: onCategoryTap != null
+                  ? () => onCategoryTap!(items[i])
+                  : null,
+              child: CategoryIconTile(category: items[i]),
             ),
-          )
-          .toList(),
+          ),
+        ],
+      ],
     );
   }
 }
@@ -343,7 +385,7 @@ class CategoryIconTile extends StatelessWidget {
     final iconSize = compact ? 28.0 : 26.0;
 
     return SizedBox(
-      height: compact ? 90 : 80,
+      height: compact ? 96 : 93,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -368,17 +410,20 @@ class CategoryIconTile extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 7),
-          Text(
-            category.localizedName,
-            textAlign: TextAlign.center,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: AppTextStyles.labelSmall(color: AppColors.textPrimary)
-                .copyWith(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 11.5,
-                  height: 1.2,
-                ),
+          SizedBox(
+            width: size,
+            child: Text(
+              category.displayName,
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: AppTextStyles.labelSmall(color: AppColors.textPrimary)
+                  .copyWith(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 11.5,
+                    height: 1.15,
+                  ),
+            ),
           ),
         ],
       ),
@@ -387,9 +432,10 @@ class CategoryIconTile extends StatelessWidget {
 }
 
 class BrandAvatar extends StatelessWidget {
-  const BrandAvatar({super.key, required this.brand});
+  const BrandAvatar({super.key, required this.brand, this.onTap});
 
   final BrandItem brand;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -397,51 +443,55 @@ class BrandAvatar extends StatelessWidget {
     final initial = label.isNotEmpty ? label[0] : '';
     final logoUrl = brand.logoUrl;
 
-    return SizedBox(
-      width: 72,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 64,
-            height: 64,
-            decoration: BoxDecoration(
-              color: brand.color,
-              shape: BoxShape.circle,
-              border: Border.all(color: AppColors.border),
-            ),
-            clipBehavior: Clip.antiAlias,
-            alignment: Alignment.center,
-            child: logoUrl != null && logoUrl.isNotEmpty
-                ? AppNetworkImage(
-                    url: logoUrl,
-                    width: 64,
-                    height: 64,
-                    fit: BoxFit.cover,
-                  )
-                : Text(
-                    initial,
-                    style: const TextStyle(
-                      color: AppColors.white,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 20,
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: SizedBox(
+        width: 72,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 64,
+              height: 64,
+              decoration: BoxDecoration(
+                color: brand.color,
+                shape: BoxShape.circle,
+                border: Border.all(color: AppColors.border),
+              ),
+              clipBehavior: Clip.antiAlias,
+              alignment: Alignment.center,
+              child: logoUrl != null && logoUrl.isNotEmpty
+                  ? AppNetworkImage(
+                      url: logoUrl,
+                      width: 64,
+                      height: 64,
+                      fit: BoxFit.cover,
+                    )
+                  : Text(
+                      initial,
+                      style: const TextStyle(
+                        color: AppColors.white,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 20,
+                      ),
                     ),
-                  ),
-          ),
-          const SizedBox(height: 8),
-          SizedBox(
-            height: 28,
-            child: Text(
-              label,
-              textAlign: TextAlign.center,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: AppTextStyles.labelSmall(
-                color: AppColors.textPrimary,
-              ).copyWith(fontWeight: FontWeight.w600, fontSize: 11),
             ),
-          ),
-        ],
+            const SizedBox(height: 8),
+            SizedBox(
+              height: 28,
+              child: Text(
+                label,
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: AppTextStyles.labelSmall(
+                  color: AppColors.textPrimary,
+                ).copyWith(fontWeight: FontWeight.w600, fontSize: 11),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

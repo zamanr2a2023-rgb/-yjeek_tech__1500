@@ -136,9 +136,8 @@ class HomeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final homeAsync = ref.watch(homeFeedProvider);
-    final isInitialLoading =
-        homeAsync.isLoading && homeAsync.valueOrNull == null;
     final feed = homeAsync.valueOrNull;
+    final categoriesLoading = homeAsync.isLoading;
     final loggedIn = ref.watch(storageServiceProvider).hasSession;
     final user = loggedIn ? ref.watch(userMeProvider).valueOrNull : null;
     final greeting = _greetingFor(
@@ -189,21 +188,13 @@ class HomeScreen extends ConsumerWidget {
                 ),
               ),
             ),
-            if (isInitialLoading)
-              const SliverFillRemaining(
-                hasScrollBody: false,
-                child: Center(
-                  child: CircularProgressIndicator(color: AppColors.primary),
-                ),
-              )
-            else if (feed != null)
-              SliverPadding(
+            SliverPadding(
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
               sliver: SliverList(
                 delegate: SliverChildListDelegate([
-                  if (feed.activeOrder != null) ...[
+                  if (!categoriesLoading && feed?.activeOrder != null) ...[
                     OrderStatusCard(
-                      title: feed.activeOrder!.title,
+                      title: feed!.activeOrder!.title,
                       subtitle: feed.activeOrder!.subtitle,
                       onTrack: () => context.push(
                         OrderFlowRoutes.statusFor(feed.activeOrder!.id),
@@ -220,20 +211,25 @@ class HomeScreen extends ConsumerWidget {
                     onSeeAll: () => context.push(RouteNames.categories),
                   ),
                   const SizedBox(height: 14),
-                  HomeCategoriesGrid(
-                    categories: feed.categories.take(8).toList(),
-                    onCategoryTap: (category) =>
-                        openHomeCategory(context, category),
-                  ),
+                  if (categoriesLoading)
+                    const HomeCategoriesGridShimmer()
+                  else if (feed != null && feed.categories.isNotEmpty)
+                    HomeCategoriesGrid(
+                      categories: feed.categories.take(8).toList(),
+                      onCategoryTap: (category) =>
+                          openHomeCategory(context, category),
+                    ),
                   const SizedBox(height: 18),
                   const UiPlacementBanner(
                     placementKey: 'home_mid',
                     padding: EdgeInsets.only(bottom: 18),
                   ),
-                  if (loggedIn && feed.reorderVendors.isNotEmpty) ...[
+                  if (!categoriesLoading &&
+                      feed != null &&
+                      feed.reorderVendors.isNotEmpty) ...[
                     SectionHeader(
                       title: HomeStrings.orderAgain,
-                      onSeeAll: () {},
+                      onSeeAll: () => context.goHome(tab: 1),
                     ),
                     const SizedBox(height: 14),
                     SizedBox(
@@ -243,8 +239,18 @@ class HomeScreen extends ConsumerWidget {
                         itemCount: feed.reorderVendors.length,
                         separatorBuilder: (_, _) => const SizedBox(width: 16),
                         itemBuilder: (context, index) {
+                          final brand = feed.reorderVendors[index];
                           return BrandAvatar(
-                            brand: feed.reorderVendors[index],
+                            brand: brand,
+                            onTap: () {
+                              final vendorId = brand.id;
+                              if (vendorId == null || vendorId.isEmpty) {
+                                return;
+                              }
+                              context.push(
+                                BrowseRoutes.vendorMenu(vendorId: vendorId),
+                              );
+                            },
                           );
                         },
                       ),
@@ -256,21 +262,31 @@ class HomeScreen extends ConsumerWidget {
                     onSeeAll: () => context.push(RouteNames.exclusiveOffers),
                   ),
                   const SizedBox(height: 14),
-                  SizedBox(
-                    height: 165,
-                    child: ListView.separated(
-                      scrollDirection: Axis.horizontal,
-                      itemCount: feed.exclusiveOffers.length,
-                      separatorBuilder: (_, _) => const SizedBox(width: 12),
-                      itemBuilder: (context, index) {
-                        final offer = feed.exclusiveOffers[index];
-                        return OfferProductCard(
-                          offer: offer,
-                          onTap: () => _addHomeOffer(context, ref, offer),
-                        );
-                      },
+                  if (categoriesLoading)
+                    const SizedBox(
+                      height: 165,
+                      child: Center(
+                        child: CircularProgressIndicator(
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    )
+                  else if (feed != null && feed.exclusiveOffers.isNotEmpty)
+                    SizedBox(
+                      height: 165,
+                      child: ListView.separated(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: feed.exclusiveOffers.length,
+                        separatorBuilder: (_, _) => const SizedBox(width: 12),
+                        itemBuilder: (context, index) {
+                          final offer = feed.exclusiveOffers[index];
+                          return OfferProductCard(
+                            offer: offer,
+                            onTap: () => _addHomeOffer(context, ref, offer),
+                          );
+                        },
+                      ),
                     ),
-                  ),
                   const SizedBox(height: 18),
                   const UiPlacementBanner(placementKey: 'home_below_picks'),
                 ]),

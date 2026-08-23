@@ -26,5 +26,30 @@ class CategoryItem {
         return L10n.tr(name);
     }
   }
+
+  /// Label for compact tiles — short aliases where needed, else [localizedName].
+  String get displayName {
+    final key = (slug ?? name)
+        .trim()
+        .toLowerCase()
+        .replaceAll('-', '_')
+        .replaceAll(' ', '_');
+    switch (key) {
+      case 'technology':
+      case 'technologies':
+        return L10n.tr('Tech');
+      case 'electronics':
+        return L10n.tr('Electronics');
+      case 'prosthetics':
+        return L10n.tr('Prosthetics');
+      case 'stationery':
+        return L10n.tr('Stationery');
+      case 'baby_kids':
+      case 'baby_kid':
+        return L10n.tr('Baby & Kids');
+      default:
+        return localizedName;
+    }
+  }
 }
 

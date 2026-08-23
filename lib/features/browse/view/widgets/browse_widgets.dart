@@ -160,7 +160,7 @@ class _BrowseSearchBarState extends State<BrowseSearchBar> {
           Expanded(
             child: widget.onChanged != null
                 ? TextField(
-                    autofocus: widget.autofocus ?? true,
+                    autofocus: widget.autofocus ?? false,
                     controller: _controller,
                     focusNode: _focusNode,
                     onChanged: widget.onChanged,

@@ -96,6 +96,7 @@ class _DineInSearchScreenState extends ConsumerState<DineInSearchScreen> {
               child: BrowseSearchBar(
                 hint: BrowseStrings.searchInDineIn,
                 value: _query,
+                autofocus: true,
                 showCancel: true,
                 onChanged: _onQueryChanged,
                 onCancel: () => context.pop(),

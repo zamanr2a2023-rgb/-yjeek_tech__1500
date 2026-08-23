@@ -241,10 +241,9 @@ class HomeFeed {
           ? deliverTo!.label
           : HomeStrings.chooseLocation,
       activeOrder: activeOrder,
-      categories: categories.isNotEmpty ? categories : HomeData.homeCategories,
+      categories: categories,
       reorderVendors: vendors,
-      exclusiveOffers:
-          offers.isNotEmpty ? offers : HomeData.exclusiveOffers,
+      exclusiveOffers: offers,
       spotlight: spotlight,
     );
   }
@@ -254,9 +253,9 @@ class HomeFeed {
     return HomeFeed(
       greeting: HomeStrings.hello,
       deliverToLabel: HomeStrings.chooseLocation,
-      categories: HomeData.homeCategories,
+      categories: const [],
       reorderVendors: const [],
-      exclusiveOffers: HomeData.exclusiveOffers,
+      exclusiveOffers: const [],
     );
   }
 }
