@@ -627,8 +627,13 @@ class AppRouter {
         GoRoute(
           path: RouteNames.helpFaq,
           builder: (_, state) {
-            final tab = int.tryParse(state.uri.queryParameters['tab'] ?? '') ?? 0;
-            return HelpFaqScreen(bottomNavIndex: tab);
+            final tab =
+                int.tryParse(state.uri.queryParameters['tab'] ?? '') ?? 0;
+            final question = state.uri.queryParameters['q'];
+            return HelpFaqScreen(
+              bottomNavIndex: tab,
+              initialQuestion: question,
+            );
           },
         ),
         GoRoute(

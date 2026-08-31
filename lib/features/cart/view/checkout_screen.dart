@@ -9,6 +9,7 @@ import 'package:yjeek_app/features/cart/model/cart_flow_data.dart';
 import 'package:yjeek_app/features/cart/model/cart_repository.dart';
 import 'package:yjeek_app/features/cart/model/checkout_helpers.dart';
 import 'package:yjeek_app/features/cart/model/payment_methods_repository.dart';
+import 'package:yjeek_app/features/cart/model/pending_checkout.dart';
 import 'package:yjeek_app/features/cart/view/widgets/cart_flow_widgets.dart';
 import 'package:yjeek_app/features/navigation/model/user_me.dart';
 import 'package:yjeek_app/features/navigation/model/navigation_data.dart';
@@ -34,7 +35,6 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       CheckoutPaymentMethods.fallback(defaultId: 'benefitpay');
   String? _phone;
   bool _loading = true;
-  bool _placing = false;
 
   double get _tipAmount => tipAmountFrom(CartFlowData.tipOptions, _tipIndex);
 
@@ -57,6 +57,10 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
           .fetchCheckoutMethods(preferredDefaultId: 'benefitpay');
       final UserMe? me = await ref.read(userRepositoryProvider).fetchMe();
       if (!mounted) return;
+      if (!cart.hasItems) {
+        leaveCheckoutIfCartEmpty(context, cart: cart);
+        return;
+      }
       final previousPaymentId = _paymentId;
       setState(() {
         _cart = cart;
@@ -75,8 +79,12 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     }
   }
 
-  Future<void> _placeOrder() async {
-    if (_placing) return;
+  void _goToReview() {
+    final cart = _cart;
+    if (cart == null || !cart.hasItems) {
+      showEmptyCartSnackBar(context);
+      return;
+    }
     final addressId = _address?.id;
     if (addressId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -84,28 +92,15 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       );
       return;
     }
-    setState(() => _placing = true);
-    try {
-      final dropOff = dropOffApiValue(_dropOffIndex);
-      final order = await ref.read(cartRepositoryProvider).checkout(
-            type: CartOrderType.delivery,
-            paymentMethod: paymentMethodApiValue(_paymentId),
-            tipAmount: _tipAmount,
-            addressId: addressId,
-            dropOffPreferences: dropOff == null ? null : [dropOff],
-            saveDropOffPreferences: _saveDropOff,
-          );
-      if (!mounted) return;
-      final orderId = order?['id']?.toString();
-      context.pushReplacement(CartRoutes.reviewFor(orderId));
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
-      );
-    } finally {
-      if (mounted) setState(() => _placing = false);
-    }
+    // Order is placed on Review & confirm (Confirm now / auto-timer), not here.
+    ref.read(pendingCheckoutProvider.notifier).state = PendingCheckout(
+      paymentId: _paymentId,
+      tipAmount: _tipAmount,
+      addressId: addressId,
+      dropOffIndex: _dropOffIndex,
+      saveDropOff: _saveDropOff,
+    );
+    context.pushReplacement(CartRoutes.review);
   }
 
   @override
@@ -188,8 +183,8 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
             ),
       bottom: CartStickyFooter(
         total: total,
-        buttonLabel: _placing ? '…' : CartFlowStrings.placeOrder,
-        onPressed: _placing || _loading ? () {} : _placeOrder,
+        buttonLabel: CartFlowStrings.placeOrder,
+        onPressed: _loading ? () {} : _goToReview,
       ),
     );
   }

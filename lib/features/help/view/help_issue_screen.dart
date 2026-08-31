@@ -244,6 +244,8 @@ class _HelpIssueScreenState extends ConsumerState<HelpIssueScreen> {
     final url = await ref.read(userRepositoryProvider).uploadFile(
           file.path,
           filename: file.name,
+          // Public CUSTOMER category already live on api.yjeektech.com.
+          category: 'address-photos',
         );
     if (!mounted) return;
     setState(() => _uploadingPhoto = false);

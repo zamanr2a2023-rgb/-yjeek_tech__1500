@@ -8,10 +8,11 @@ import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/features/cart/cart_routes.dart';
 import 'package:yjeek_app/features/cart/model/cart_repository.dart';
 import 'package:yjeek_app/features/cart/model/checkout_helpers.dart';
+import 'package:yjeek_app/features/cart/model/pending_checkout.dart';
 import 'package:yjeek_app/features/cart/view/widgets/cart_flow_widgets.dart';
+import 'package:yjeek_app/features/dine_in_cart/dine_in_cart_routes.dart';
 import 'package:yjeek_app/features/dine_in_cart/model/dine_in_cart_data.dart';
 import 'package:yjeek_app/features/dine_in_cart/view/widgets/dine_in_cart_widgets.dart';
-import 'package:yjeek_app/features/dine_in_order_flow/dine_in_order_flow_routes.dart';
 import 'package:yjeek_app/features/navigation/model/navigation_data.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/navigation_widgets.dart';
 
@@ -35,7 +36,6 @@ class _DineInCheckoutScreenState extends ConsumerState<DineInCheckoutScreen> {
   DineInSlotsSnapshot? _slots;
   List<PaymentOption> _paymentOptions = DineInCartData.paymentOptions;
   bool _loading = true;
-  bool _placing = false;
 
   @override
   void initState() {
@@ -185,9 +185,8 @@ class _DineInCheckoutScreenState extends ConsumerState<DineInCheckoutScreen> {
     }
   }
 
-  Future<void> _placeOrder() async {
-    if (_placing) return;
-    setState(() => _placing = true);
+  Future<void> _goToReview() async {
+    // Persist prep prefs first; order is placed on Review (Confirm / timer).
     try {
       final isArrival = _prepMode == DineInPrepMode.prepareOnArrival;
       await ref.read(cartRepositoryProvider).updatePreferences(
@@ -197,21 +196,22 @@ class _DineInCheckoutScreenState extends ConsumerState<DineInCheckoutScreen> {
             scheduledDineInAt: isArrival ? _cart?.scheduledDineInAt : null,
             clearScheduledDineInAt: !isArrival,
           );
-      final order = await ref.read(cartRepositoryProvider).checkout(
-            type: CartOrderType.dineIn,
-            paymentMethod: paymentMethodApiValue(_paymentId),
-          );
-      if (!mounted) return;
-      final orderId = order?['id']?.toString();
-      context.pushReplacement(DineInOrderFlowRoutes.waitingFor(orderId));
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
       );
-    } finally {
-      if (mounted) setState(() => _placing = false);
+      return;
     }
+    if (!mounted) return;
+    ref.read(pendingDineInCheckoutProvider.notifier).state =
+        PendingDineInCheckout(
+      paymentId: _paymentId,
+      prepMode: _prepMode,
+    );
+    context.pushReplacement(
+      DineInCartRoutes.reviewFor(_prepMode),
+    );
   }
 
   @override
@@ -355,8 +355,8 @@ class _DineInCheckoutScreenState extends ConsumerState<DineInCheckoutScreen> {
             ),
       bottom: CartStickyFooter(
         total: total,
-        buttonLabel: _placing ? '…' : DineInCartStrings.placeOrder,
-        onPressed: _placing || _loading ? () {} : _placeOrder,
+        buttonLabel: DineInCartStrings.placeOrder,
+        onPressed: _loading ? () {} : _goToReview,
       ),
     );
   }

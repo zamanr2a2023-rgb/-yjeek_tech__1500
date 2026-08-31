@@ -29,11 +29,14 @@ class _HelpChatScreenState extends ConsumerState<HelpChatScreen> {
   List<HelpChatMessage> _messages = const [];
   bool _loading = true;
   bool _sending = false;
+  String? _ticketId;
+  String? _error;
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _load());
+    _ticketId = widget.ticketId;
+    WidgetsBinding.instance.addPostFrameCallback((_) => _bootstrap());
   }
 
   @override
@@ -43,17 +46,42 @@ class _HelpChatScreenState extends ConsumerState<HelpChatScreen> {
     super.dispose();
   }
 
-  Future<void> _load() async {
-    final ticketId = widget.ticketId;
+  Future<void> _bootstrap() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+
+    var ticketId = _ticketId?.trim();
     if (ticketId == null || ticketId.isEmpty) {
-      setState(() {
-        _messages = HelpPhase2Data.messagesFor(widget.variant);
-        _loading = false;
-      });
-      return;
+      // Ensure every Support chat session is backed by a real ticket.
+      String? orderId;
+      final recent = await ref.read(ordersRepositoryProvider).listOrders();
+      if (recent.isNotEmpty) orderId = recent.first.id;
+
+      final ticket = await ref.read(supportRepositoryProvider).createTicket(
+            subject: 'General support · Care chat',
+            remark: 'Customer opened Care chat.',
+            orderId: orderId,
+            issueType: 'other',
+          );
+      if (!mounted) return;
+      if (ticket == null || ticket.id.isEmpty) {
+        setState(() {
+          _loading = false;
+          _error = 'Could not start support chat';
+          _messages = const [];
+        });
+        return;
+      }
+      ticketId = ticket.id;
+      _ticketId = ticketId;
     }
 
-    setState(() => _loading = true);
+    await _loadMessages(ticketId);
+  }
+
+  Future<void> _loadMessages(String ticketId) async {
     final rows =
         await ref.read(supportRepositoryProvider).listMessages(ticketId);
     if (!mounted) return;
@@ -83,6 +111,7 @@ class _HelpChatScreenState extends ConsumerState<HelpChatScreen> {
               ),
             ];
       _loading = false;
+      _error = null;
     });
     _scrollToEnd();
   }
@@ -100,18 +129,8 @@ class _HelpChatScreenState extends ConsumerState<HelpChatScreen> {
 
   Future<void> _send() async {
     final text = _input.text.trim();
-    final ticketId = widget.ticketId;
-    if (text.isEmpty || _sending) return;
-
-    if (ticketId == null || ticketId.isEmpty) {
-      setState(() {
-        _messages = [
-          ..._messages,
-          HelpChatMessage(text: text, isUser: true),
-        ];
-        _input.clear();
-      });
-      _scrollToEnd();
+    final ticketId = _ticketId;
+    if (text.isEmpty || _sending || ticketId == null || ticketId.isEmpty) {
       return;
     }
 
@@ -132,11 +151,12 @@ class _HelpChatScreenState extends ConsumerState<HelpChatScreen> {
       return;
     }
     _input.clear();
-    await _load();
+    await _loadMessages(ticketId);
   }
 
   @override
   Widget build(BuildContext context) {
+    final hasTicket = _ticketId != null && _ticketId!.isNotEmpty;
     return HelpScreenScaffold(
       title: HelpPhase2Data.chatTitleFor(widget.variant),
       bottomNavIndex: widget.bottomNavIndex,
@@ -148,26 +168,49 @@ class _HelpChatScreenState extends ConsumerState<HelpChatScreen> {
                 ? const Center(
                     child: CircularProgressIndicator(color: AppColors.primary),
                   )
-                : ListView(
-                    controller: _scroll,
-                    padding: EdgeInsets.fromLTRB(14.w, 14.h, 14.w, 16.h),
-                    children: [
-                      _ChatStatusRow(
-                        label: widget.ticketId != null
-                            ? 'Care · ticket open · replies usually within minutes'
-                            : HelpPhase2Data.chatStatusFor(widget.variant),
+                : _error != null
+                    ? Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(24.w),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                _error!,
+                                textAlign: TextAlign.center,
+                                style: AppTextStyles.labelMedium(
+                                  color: const Color(0xFFB42318),
+                                ),
+                              ),
+                              SizedBox(height: 12.h),
+                              TextButton(
+                                onPressed: _bootstrap,
+                                child: const Text('Try again'),
+                              ),
+                            ],
+                          ),
+                        ),
+                      )
+                    : ListView(
+                        controller: _scroll,
+                        padding: EdgeInsets.fromLTRB(14.w, 14.h, 14.w, 16.h),
+                        children: [
+                          _ChatStatusRow(
+                            label: hasTicket
+                                ? 'Care · ticket open · replies usually within minutes'
+                                : HelpPhase2Data.chatStatusFor(widget.variant),
+                          ),
+                          SizedBox(height: 12.h),
+                          for (final message in _messages) ...[
+                            HelpChatBubble(message: message),
+                          ],
+                        ],
                       ),
-                      SizedBox(height: 12.h),
-                      for (final message in _messages) ...[
-                        HelpChatBubble(message: message),
-                      ],
-                    ],
-                  ),
           ),
           HelpChatInputBar(
             controller: _input,
             onSend: _send,
-            enabled: !_sending,
+            enabled: !_sending && !_loading && hasTicket && _error == null,
           ),
         ],
       ),

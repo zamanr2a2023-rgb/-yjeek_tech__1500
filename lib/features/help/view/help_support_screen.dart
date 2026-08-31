@@ -10,7 +10,6 @@ import 'package:yjeek_app/features/help/model/help_data.dart';
 import 'package:yjeek_app/features/help/view/widgets/help_widgets.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/account_widgets.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/navigation_widgets.dart';
-import 'package:yjeek_app/routes/route_names.dart';
 
 class HelpSupportScreen extends ConsumerStatefulWidget {
   const HelpSupportScreen({
@@ -27,9 +26,11 @@ class HelpSupportScreen extends ConsumerStatefulWidget {
 }
 
 class _HelpSupportScreenState extends ConsumerState<HelpSupportScreen> {
-  late HelpOrder _order = HelpData.contextForOrderId(widget.orderId).order;
+  HelpOrder? _order;
+  String? _resolvedOrderId;
   List<String> _popularTopics = HelpData.popularTopics;
   bool _loadingTopics = true;
+  bool _loadingOrder = true;
 
   @override
   void initState() {
@@ -41,41 +42,80 @@ class _HelpSupportScreenState extends ConsumerState<HelpSupportScreen> {
   }
 
   Future<void> _hydrateOrder() async {
-    final orderId = widget.orderId;
-    if (orderId == null || orderId.isEmpty) return;
-    final order = await ref.read(ordersRepositoryProvider).getOrder(orderId);
-    if (!mounted || order == null) return;
+    setState(() => _loadingOrder = true);
+    try {
+      var orderId = widget.orderId?.trim();
+      if (orderId == null || orderId.isEmpty || orderId == HelpData.defaultOrderId) {
+        final recent = await ref.read(ordersRepositoryProvider).listOrders();
+        if (recent.isNotEmpty) {
+          orderId = recent.first.id;
+        } else {
+          orderId = null;
+        }
+      }
 
-    final vendor = order['vendor'];
-    final vendorName = vendor is Map<String, dynamic>
-        ? (vendor['name'] as String? ?? _order.vendorName)
-        : _order.vendorName;
-    final itemCount = (order['itemCount'] as num?)?.toInt() ??
-        ((order['items'] is List) ? (order['items'] as List).length : 0);
-    final total = order['totalAmount'];
-    final totalStr = total is num ? total.toStringAsFixed(3) : '0.000';
-    final orderNumber = order['orderNumber']?.toString() ?? orderId;
-    final status = (order['status'] as String?)?.replaceAll('_', ' ') ??
-        _order.statusLabel;
-    final shortId = orderNumber.length > 6
-        ? '#YJK-…${orderNumber.substring(orderNumber.length - 2)}'
-        : '#$orderNumber';
+      if (orderId == null || orderId.isEmpty) {
+        if (!mounted) return;
+        setState(() {
+          _order = null;
+          _resolvedOrderId = null;
+          _loadingOrder = false;
+        });
+        return;
+      }
 
-    setState(() {
-      _order = HelpOrder(
-        vendorName: vendorName,
-        orderId: orderId,
-        shortId: shortId,
-        statusLabel: status,
-        itemCount: itemCount,
-        totalBhd: totalStr,
-        deliveredAt: status,
-        compactSubtitle: '$shortId · $status',
-      );
-    });
+      final order = await ref.read(ordersRepositoryProvider).getOrder(orderId);
+      if (!mounted) return;
+      if (order == null) {
+        setState(() {
+          _order = null;
+          _resolvedOrderId = null;
+          _loadingOrder = false;
+        });
+        return;
+      }
+
+      final vendor = order['vendor'];
+      final vendorName = vendor is Map<String, dynamic>
+          ? (vendor['name'] as String? ?? 'Order')
+          : 'Order';
+      final itemCount = (order['itemCount'] as num?)?.toInt() ??
+          ((order['items'] is List) ? (order['items'] as List).length : 0);
+      final total = order['totalAmount'];
+      final totalStr = total is num ? total.toStringAsFixed(3) : '0.000';
+      final orderNumber = order['orderNumber']?.toString() ?? orderId;
+      final status = (order['status'] as String?)?.replaceAll('_', ' ') ?? '';
+      final shortId = orderNumber.length > 6
+          ? '#YJK-…${orderNumber.substring(orderNumber.length - 2)}'
+          : '#$orderNumber';
+      final realId = order['id']?.toString() ?? orderId;
+
+      setState(() {
+        _resolvedOrderId = realId;
+        _order = HelpOrder(
+          vendorName: vendorName,
+          orderId: realId,
+          shortId: shortId,
+          statusLabel: status,
+          itemCount: itemCount,
+          totalBhd: totalStr,
+          deliveredAt: status,
+          compactSubtitle: '$shortId · $status',
+        );
+        _loadingOrder = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _order = null;
+        _resolvedOrderId = null;
+        _loadingOrder = false;
+      });
+    }
   }
 
   Future<void> _loadTopics() async {
+    // GET /content/help — FAQ questions power the popular topics list.
     final help = await ref.read(contentRepositoryProvider).fetchHelp();
     if (!mounted) return;
     final labels = help?.popularTopicLabels ?? const <String>[];
@@ -84,11 +124,6 @@ class _HelpSupportScreenState extends ConsumerState<HelpSupportScreen> {
       _loadingTopics = false;
     });
   }
-
-  String get _resolvedOrderId =>
-      widget.orderId?.isNotEmpty == true
-          ? widget.orderId!
-          : HelpData.defaultOrderId;
 
   @override
   Widget build(BuildContext context) {
@@ -103,16 +138,43 @@ class _HelpSupportScreenState extends ConsumerState<HelpSupportScreen> {
               children: [
                 const HelpSectionTitle(label: 'Help with an order'),
                 SizedBox(height: 10.h),
-                HelpOrderCompactCard(
-                  order: _order,
-                  actionLabel: NavigationStrings.getHelp,
-                  onAction: () => context.push(
-                    HelpRoutes.orderHelp(
-                      orderId: _resolvedOrderId,
-                      tab: widget.bottomNavIndex,
+                if (_loadingOrder)
+                  const HelpCard(
+                    child: Padding(
+                      padding: EdgeInsets.all(18),
+                      child: Center(
+                        child: CircularProgressIndicator(
+                          color: AppColors.primary,
+                          strokeWidth: 2,
+                        ),
+                      ),
+                    ),
+                  )
+                else if (_order != null && _resolvedOrderId != null)
+                  HelpOrderCompactCard(
+                    order: _order!,
+                    actionLabel: NavigationStrings.getHelp,
+                    onAction: () => context.push(
+                      HelpRoutes.orderHelp(
+                        orderId: _resolvedOrderId,
+                        tab: widget.bottomNavIndex,
+                      ),
+                    ),
+                  )
+                else
+                  HelpCard(
+                    child: Padding(
+                      padding: EdgeInsets.all(14.w),
+                      child: Text(
+                        'No recent orders yet. Place an order, then get help from here.',
+                        style: TextStyle(
+                          color: const Color(0xFF6B7B6E),
+                          fontSize: 13.sp,
+                          height: 1.35,
+                        ),
+                      ),
                     ),
                   ),
-                ),
                 SizedBox(height: 16.h),
                 const HelpSectionTitle(label: 'Popular help topics'),
                 SizedBox(height: 10.h),
@@ -165,26 +227,14 @@ class _HelpSupportScreenState extends ConsumerState<HelpSupportScreen> {
     );
   }
 
+  /// Topics come from GET /content/help FAQ — open FAQ with that Q expanded.
   void _openPopularTopic(BuildContext context, int index) {
-    final label = _popularTopics[index].toLowerCase();
-    if (label.contains('wallet') || label.contains('withdraw')) {
-      context.push(RouteNames.withdrawBank);
-      return;
-    }
-    if (label.contains('delay') || label.contains('late')) {
-      context.push(
-        HelpRoutes.helpIssue(
-          type: HelpIssueType.orderLate,
-          orderId: _resolvedOrderId,
-          tab: widget.bottomNavIndex,
-        ),
-      );
-      return;
-    }
-    if (label.contains('payment') || label.contains('pay')) {
-      context.push(HelpRoutes.helpChat(tab: widget.bottomNavIndex));
-      return;
-    }
-    context.push(HelpRoutes.helpFaq(tab: widget.bottomNavIndex));
+    final question = _popularTopics[index];
+    context.push(
+      HelpRoutes.helpFaq(
+        tab: widget.bottomNavIndex,
+        question: question,
+      ),
+    );
   }
 }

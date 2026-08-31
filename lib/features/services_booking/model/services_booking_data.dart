@@ -65,6 +65,7 @@ abstract final class ServicesBookingStrings {
   static String get providerLabel => L10n.tr('Provider');
   static String get location => L10n.tr('Location');
   static String get confirmBooking => L10n.tr('Confirm booking');
+  static String get editOrder => L10n.tr('Edit order');
   static String get apply => L10n.tr('Apply');
   static String get customTip => L10n.tr('Custom');
 }

@@ -6,13 +6,16 @@ import 'package:go_router/go_router.dart';
 import 'package:yjeek_app/core/constants/app_colors.dart';
 import 'package:yjeek_app/core/providers/app_providers.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
+import 'package:yjeek_app/features/cart/model/cart_repository.dart';
 import 'package:yjeek_app/features/cart/model/checkout_helpers.dart';
+import 'package:yjeek_app/features/cart/model/pending_checkout.dart';
 import 'package:yjeek_app/features/cart/view/widgets/cart_flow_widgets.dart';
 import 'package:yjeek_app/features/navigation/model/navigation_data.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/account_widgets.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/navigation_widgets.dart';
 import 'package:yjeek_app/features/order_flow/model/order_api_mappers.dart';
 import 'package:yjeek_app/features/services_booking/model/services_booking_data.dart';
+import 'package:yjeek_app/features/services_booking/services_booking_routes.dart';
 import 'package:yjeek_app/features/services_booking/view/widgets/services_booking_widgets.dart';
 import 'package:yjeek_app/features/services_order_flow/model/services_order_api_mappers.dart';
 import 'package:yjeek_app/features/services_order_flow/services_order_flow_routes.dart';
@@ -33,6 +36,7 @@ class _ServicesReviewScreenState extends ConsumerState<ServicesReviewScreen> {
   late int _secondsLeft;
   Timer? _timer;
   bool _leaving = false;
+  bool _placing = false;
 
   String _vendor = ServicesBookingStrings.provider;
   String _service = ServicesBookingData.mainService;
@@ -41,21 +45,18 @@ class _ServicesReviewScreenState extends ConsumerState<ServicesReviewScreen> {
   String _people = ServicesBookingData.peopleCount;
   List<BillLine> _bill = ServicesBookingData.reviewBillLines;
 
+  bool get _hasExistingOrder =>
+      widget.orderId != null && widget.orderId!.isNotEmpty;
+
   @override
   void initState() {
     super.initState();
     _secondsLeft = _initialSeconds;
-    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (!mounted || _leaving) return;
-      if (_secondsLeft <= 1) {
-        _timer?.cancel();
-        setState(() => _secondsLeft = 0);
-        _goWaiting();
-        return;
-      }
-      setState(() => _secondsLeft--);
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await _hydrate();
+      if (!mounted) return;
+      _startTimer();
     });
-    WidgetsBinding.instance.addPostFrameCallback((_) => _hydrate());
   }
 
   @override
@@ -64,11 +65,31 @@ class _ServicesReviewScreenState extends ConsumerState<ServicesReviewScreen> {
     super.dispose();
   }
 
+  void _startTimer() {
+    _timer?.cancel();
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted || _leaving || _placing) return;
+      if (_secondsLeft <= 1) {
+        _timer?.cancel();
+        setState(() => _secondsLeft = 0);
+        _confirmAndPlace();
+        return;
+      }
+      setState(() => _secondsLeft--);
+    });
+  }
+
   double get _progress => _secondsLeft / _initialSeconds;
 
   Future<void> _hydrate() async {
-    final id = widget.orderId;
-    if (id == null || id.isEmpty) return;
+    if (_hasExistingOrder) {
+      await _hydrateFromOrder(widget.orderId!);
+      return;
+    }
+    await _hydrateFromCart();
+  }
+
+  Future<void> _hydrateFromOrder(String id) async {
     final order = await ref.read(ordersRepositoryProvider).getOrder(id);
     if (!mounted || order == null) return;
 
@@ -136,33 +157,129 @@ class _ServicesReviewScreenState extends ConsumerState<ServicesReviewScreen> {
     });
   }
 
-  Future<void> _goWaiting() async {
-    if (_leaving) return;
-    _leaving = true;
-    _timer?.cancel();
+  Future<void> _hydrateFromCart() async {
+    final pending = ref.read(pendingServiceCheckoutProvider);
+    final cart = await ref
+        .read(cartRepositoryProvider)
+        .fetchCart(CartOrderType.service);
     if (!mounted) return;
-    context.pushReplacement(
-      ServicesOrderFlowRoutes.waitingFor(widget.orderId),
-    );
+
+    final tip = pending?.tipAmount ?? 0;
+    final serviceName = cart.items.isNotEmpty
+        ? (cart.items.length > 1
+            ? '${cart.items.first.name} +${cart.items.length - 1}'
+            : cart.items.first.name)
+        : _service;
+    final when = cart.serviceScheduledAt != null
+        ? formatPickupTimeLabel(cart.serviceScheduledAt)
+        : _when;
+    final location = cart.serviceMode == 'AT_HOME'
+        ? 'At home'
+        : 'At venue · ${cart.vendorName.isNotEmpty ? cart.vendorName : _vendor}';
+    final people = (cart.partySize ?? 1) == 1
+        ? '1 person'
+        : '${cart.partySize} people';
+
+    setState(() {
+      if (cart.vendorName.isNotEmpty) _vendor = cart.vendorName;
+      _service = serviceName;
+      _when = when;
+      _location = location;
+      _people = people;
+      _bill = billLinesWithTip(cart, tip);
+    });
   }
 
-  Future<void> _cancel() async {
-    final id = widget.orderId;
+  Future<void> _confirmAndPlace() async {
+    if (_leaving || _placing) return;
     _timer?.cancel();
-    if (id != null && id.isNotEmpty) {
-      await ref.read(ordersRepositoryProvider).cancel(id, reason: 'Changed mind');
+
+    if (_hasExistingOrder) {
+      _leaving = true;
+      if (!mounted) return;
+      context.pushReplacement(
+        ServicesOrderFlowRoutes.waitingFor(widget.orderId),
+      );
+      return;
     }
-    if (!mounted) return;
-    context.pop();
+
+    final pending = ref.read(pendingServiceCheckoutProvider);
+    if (pending == null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Checkout session expired. Try again.')),
+      );
+      context.go(ServicesBookingRoutes.checkout);
+      return;
+    }
+
+    setState(() => _placing = true);
+    try {
+      final cart = await ref
+          .read(cartRepositoryProvider)
+          .fetchCart(CartOrderType.service);
+      final duration = cart.items
+          .map(
+            (i) =>
+                int.tryParse(
+                  i.durationLabel?.replaceAll(RegExp(r'\D'), '') ?? '',
+                ) ??
+                0,
+          )
+          .fold<int>(0, (a, b) => a + b);
+      final result = await ref.read(cartRepositoryProvider).checkout(
+            type: CartOrderType.service,
+            paymentMethod: paymentMethodApiValue(pending.paymentId),
+            tipAmount: pending.tipAmount,
+            serviceFulfillmentMode: cart.serviceMode ?? 'IN_SALON',
+            serviceStaffId: pending.specialistId,
+            servicePeopleCount: cart.partySize ?? 1,
+            serviceDurationMin: duration >= 15 ? duration : 45,
+          );
+      if (!mounted) return;
+      _leaving = true;
+      ref.read(pendingServiceCheckoutProvider.notifier).state = null;
+      final orderId = result?['id']?.toString() ??
+          result?['orderId']?.toString() ??
+          (result?['order'] is Map
+              ? (result!['order'] as Map)['id']?.toString()
+              : null);
+      context.pushReplacement(ServicesOrderFlowRoutes.waitingFor(orderId));
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _placing = false;
+        _secondsLeft = _initialSeconds;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
+      );
+      _startTimer();
+    }
+  }
+
+  /// Same route as editing booking details — back to checkout.
+  void _editOrder() {
+    if (_leaving || _placing) return;
+    _timer?.cancel();
+    _leaving = true;
+    if (_hasExistingOrder) {
+      final id = widget.orderId!;
+      ref.read(ordersRepositoryProvider).cancel(id, reason: 'Changed mind');
+    }
+    ref.read(pendingServiceCheckoutProvider.notifier).state = null;
+    context.go(ServicesBookingRoutes.checkout);
   }
 
   @override
   Widget build(BuildContext context) {
+    final busy = _leaving || _placing;
     return CartFlowScaffold(
       title: ServicesBookingStrings.reviewConfirm,
       subtitle: _vendor,
       lightHeader: true,
       bottomNavIndex: 0,
+      onBack: busy ? null : _editOrder,
       body: ListView(
         padding: EdgeInsets.fromLTRB(20.w, 8.h, 20.w, 16.h),
         children: [
@@ -183,22 +300,37 @@ class _ServicesReviewScreenState extends ConsumerState<ServicesReviewScreen> {
           SizedBox(height: 14.h),
           CartSectionTitle(ServicesBookingStrings.billSummary),
           BillSummaryCard(lines: _bill),
-          SizedBox(height: 10.h),
-          TextButton(
-            onPressed: _leaving ? null : _cancel,
-            child: const Text('Cancel / edit'),
-          ),
         ],
       ),
       bottom: SafeArea(
         top: false,
-        child: Padding(
-          padding: EdgeInsets.fromLTRB(20.w, 0, 20.w, 12.h),
-          child: PrimaryGreenButton(
-            label: ServicesBookingStrings.confirmBooking,
-            backgroundColor: AppColors.cartTabActive,
-            height: 52,
-            onPressed: _leaving ? null : _goWaiting,
+        child: Container(
+          padding: EdgeInsets.fromLTRB(20.w, 12.h, 20.w, 12.h),
+          decoration: const BoxDecoration(
+            color: AppColors.white,
+            border: Border(top: BorderSide(color: AppColors.border)),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: CartOutlineButton(
+                  label: ServicesBookingStrings.editOrder,
+                  onPressed: busy ? () {} : _editOrder,
+                ),
+              ),
+              SizedBox(width: 12.w),
+              Expanded(
+                child: PrimaryGreenButton(
+                  label: _placing
+                      ? '…'
+                      : ServicesBookingStrings.confirmBooking,
+                  backgroundColor: AppColors.cartTabActive,
+                  height: 52,
+                  enabled: !busy,
+                  onPressed: _confirmAndPlace,
+                ),
+              ),
+            ],
           ),
         ),
       ),

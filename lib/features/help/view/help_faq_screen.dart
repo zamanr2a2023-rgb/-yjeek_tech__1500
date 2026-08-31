@@ -11,9 +11,14 @@ import 'package:yjeek_app/features/help/model/help_phase2_data.dart';
 import 'package:yjeek_app/features/help/view/widgets/help_widgets.dart';
 
 class HelpFaqScreen extends ConsumerStatefulWidget {
-  const HelpFaqScreen({super.key, this.bottomNavIndex = 4});
+  const HelpFaqScreen({
+    super.key,
+    this.bottomNavIndex = 4,
+    this.initialQuestion,
+  });
 
   final int bottomNavIndex;
+  final String? initialQuestion;
 
   @override
   ConsumerState<HelpFaqScreen> createState() => _HelpFaqScreenState();
@@ -21,6 +26,7 @@ class HelpFaqScreen extends ConsumerStatefulWidget {
 
 class _HelpFaqScreenState extends ConsumerState<HelpFaqScreen> {
   bool _loading = true;
+  bool _openingChat = false;
   List<HelpFaqItem> _apiItems = const [];
   String _category = 'All';
   int? _expandedIndex = 0;
@@ -39,12 +45,29 @@ class _HelpFaqScreenState extends ConsumerState<HelpFaqScreen> {
             .map((e) => HelpFaqItem(category: 'All', question: e.q, answer: e.a))
             .toList() ??
         const <HelpFaqItem>[];
+    final needle = widget.initialQuestion?.trim().toLowerCase() ?? '';
+    int? expanded = apiItems.isNotEmpty || HelpPhase2Data.faqItems.isNotEmpty
+        ? 0
+        : null;
+    if (needle.isNotEmpty) {
+      final source = apiItems.isNotEmpty ? apiItems : HelpPhase2Data.faqItems;
+      final idx = source.indexWhere(
+        (item) => item.question.trim().toLowerCase() == needle,
+      );
+      if (idx >= 0) {
+        expanded = idx;
+      } else {
+        final soft = source.indexWhere(
+          (item) => item.question.toLowerCase().contains(needle) ||
+              needle.contains(item.question.toLowerCase()),
+        );
+        if (soft >= 0) expanded = soft;
+      }
+    }
     setState(() {
       _apiItems = apiItems;
       _loading = false;
-      _expandedIndex = apiItems.isNotEmpty || HelpPhase2Data.faqItems.isNotEmpty
-          ? 0
-          : null;
+      _expandedIndex = expanded;
     });
   }
 
@@ -64,6 +87,43 @@ class _HelpFaqScreenState extends ConsumerState<HelpFaqScreen> {
       return _apiItems.isNotEmpty ? _apiItems : staticItems;
     }
     return staticItems.where((item) => item.category == _category).toList();
+  }
+
+  /// Creates a Care ticket then opens Support chat (POST /support/tickets).
+  Future<void> _reportIssue() async {
+    if (_openingChat) return;
+    setState(() => _openingChat = true);
+    try {
+      String? orderId;
+      final recent = await ref.read(ordersRepositoryProvider).listOrders();
+      if (recent.isNotEmpty) orderId = recent.first.id;
+
+      final ticket = await ref.read(supportRepositoryProvider).createTicket(
+            subject: 'General support · FAQ',
+            remark: 'Customer opened Care chat from FAQ (didn’t find an answer).',
+            orderId: orderId,
+            issueType: 'other',
+          );
+      if (!mounted) return;
+      if (ticket == null || ticket.id.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Could not start support chat'),
+            backgroundColor: Color(0xFFB42318),
+          ),
+        );
+        return;
+      }
+      await context.push(
+        HelpRoutes.helpChat(
+          variant: HelpChatVariant.support,
+          ticketId: ticket.id,
+          tab: widget.bottomNavIndex,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _openingChat = false);
+    }
   }
 
   @override
@@ -180,9 +240,7 @@ class _HelpFaqScreenState extends ConsumerState<HelpFaqScreen> {
                   ),
                   SizedBox(height: 14.h),
                   GestureDetector(
-                    onTap: () => context.push(
-                      HelpRoutes.helpChat(variant: HelpChatVariant.support),
-                    ),
+                    onTap: _openingChat ? null : _reportIssue,
                     child: Container(
                       width: double.infinity,
                       padding: EdgeInsets.all(14.w),
@@ -192,15 +250,27 @@ class _HelpFaqScreenState extends ConsumerState<HelpFaqScreen> {
                       ),
                       child: Row(
                         children: [
-                          Icon(
-                            Icons.chat_bubble_outline,
-                            size: 18.sp,
-                            color: const Color(0xFF2E7D32),
-                          ),
+                          if (_openingChat)
+                            SizedBox(
+                              width: 18.sp,
+                              height: 18.sp,
+                              child: const CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Color(0xFF2E7D32),
+                              ),
+                            )
+                          else
+                            Icon(
+                              Icons.chat_bubble_outline,
+                              size: 18.sp,
+                              color: const Color(0xFF2E7D32),
+                            ),
                           SizedBox(width: 10.w),
                           Expanded(
                             child: Text(
-                              'Didn’t find it? Report your issue — most are resolved instantly',
+                              _openingChat
+                                  ? 'Opening Care chat…'
+                                  : 'Didn’t find it? Report your issue — most are resolved instantly',
                               style: AppTextStyles.labelSmall(
                                 color: const Color(0xFF2E7D32),
                               ).copyWith(
