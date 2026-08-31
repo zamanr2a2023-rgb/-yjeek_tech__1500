@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:yjeek_app/core/constants/app_colors.dart';
 import 'package:yjeek_app/core/constants/app_text_styles.dart';
+import 'package:yjeek_app/core/constants/browse_strings.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/features/browse/browse_routes.dart';
 import 'package:yjeek_app/features/browse/model/dine_in_data.dart';
@@ -30,11 +31,11 @@ class _DineInOrderAgainScreenState extends State<DineInOrderAgainScreen> {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          BrowseTopBar(title: 'Order again'),
+          BrowseTopBar(title: BrowseStrings.orderAgain),
           Padding(
             padding: EdgeInsets.fromLTRB(16.w, 4.h, 16.w, 0),
             child: Text(
-              'Your recent dine-in visits',
+              BrowseStrings.recentDineInVisits,
               style: AppTextStyles.bodySmall(color: AppColors.textSecondary).copyWith(
                 fontSize: 13.sp,
               ),

@@ -11,6 +11,7 @@ import 'package:yjeek_app/features/browse/model/electronics_data.dart';
 import 'package:yjeek_app/features/browse/view/widgets/browse_widgets.dart';
 import 'package:yjeek_app/features/browse/view/widgets/electronics_widgets.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/navigation_widgets.dart';
+import 'package:yjeek_app/features/ui_content/view/ui_banner_widgets.dart';
 
 class ElectronicsStoreScreen extends ConsumerStatefulWidget {
   const ElectronicsStoreScreen({
@@ -34,14 +35,12 @@ class _ElectronicsStoreScreenState
   ElectronicsStore _store = ElectronicsData.stores.first;
   List<ElectronicsProduct> _products = const [];
   bool _loading = true;
+  bool _loadedOnce = false;
   Timer? _debounce;
 
   @override
   void initState() {
     super.initState();
-    try {
-      _store = ElectronicsData.storeById(widget.storeId);
-    } catch (_) {}
     WidgetsBinding.instance.addPostFrameCallback((_) => _load());
   }
 
@@ -85,18 +84,31 @@ class _ElectronicsStoreScreenState
         );
         _products = products;
         _loading = false;
+        _loadedOnce = true;
       });
     } catch (_) {
       if (!mounted) return;
       setState(() {
         _products = const [];
         _loading = false;
+        _loadedOnce = true;
       });
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    if (!_loadedOnce && _loading) {
+      return Scaffold(
+        backgroundColor: const Color(0xFFF2F7F2),
+        body: const Center(
+          child: CircularProgressIndicator(color: AppColors.primary),
+        ),
+        bottomNavigationBar: ShellBottomNavBar(
+          currentIndex: widget.bottomNavIndex,
+        ),
+      );
+    }
     return Scaffold(
       backgroundColor: const Color(0xFFF2F7F2),
       body: Column(
@@ -119,6 +131,10 @@ class _ElectronicsStoreScreenState
                 : ListView(
                     padding: EdgeInsets.fromLTRB(20.w, 8.h, 20.w, 24.h),
                     children: [
+                      const UiPlacementBanner(
+                        placementKey: 'store_top',
+                        padding: EdgeInsets.only(bottom: 14),
+                      ),
                       BrowseSearchBar(
                         hint: ElectronicsData.searchHint,
                         value: _query,
@@ -135,6 +151,10 @@ class _ElectronicsStoreScreenState
                         },
                       ),
                       SizedBox(height: 14.h),
+                      const UiPlacementBanner(
+                        placementKey: 'store_mid',
+                        padding: EdgeInsets.only(bottom: 14),
+                      ),
                       ..._products.map(
                         (product) => Padding(
                           padding: EdgeInsets.only(bottom: 10.h),

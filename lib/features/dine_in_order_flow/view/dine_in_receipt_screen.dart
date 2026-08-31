@@ -154,10 +154,8 @@ class _DineInReceiptScreenState extends ConsumerState<DineInReceiptScreen> {
         .map((e) => DineInReceiptItem(name: e.name, price: e.price))
         .toList();
     final billLines = dineInReceiptBillFromTotals(totalsMap);
-    final badgeRaw = receipt?['statusBadge']?.toString();
-    final badgeLabel = badgeRaw != null && badgeRaw.isNotEmpty
-        ? '✓ ${badgeRaw.replaceAll('_', ' ').toUpperCase()}'
-        : null;
+    final badge = receiptBadgeLabel(receipt);
+    final badgeLabel = badge != null ? '✓ $badge' : null;
     final subtitle = orderNumber != null && orderNumber.isNotEmpty
         ? '#$orderNumber'
         : DineInOrderFlowData.receiptHeaderSubtitle;

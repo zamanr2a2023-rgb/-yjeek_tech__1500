@@ -9,6 +9,7 @@ import 'package:yjeek_app/features/cart/model/cart_repository.dart';
 import 'package:yjeek_app/features/dine_in_cart/model/dine_in_cart_data.dart';
 import 'package:yjeek_app/features/dine_in_cart/view/widgets/dine_in_cart_widgets.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/navigation_widgets.dart';
+import 'package:yjeek_app/features/ui_content/view/ui_banner_widgets.dart';
 
 /// Live cart body — Food-cart visual language, API-driven (no mock items).
 class LiveCartBody extends StatefulWidget {
@@ -384,6 +385,8 @@ class _LiveCartBodyState extends State<LiveCartBody> {
                 ),
                 const SizedBox(height: 10),
               ],
+              const UiPlacementBanner(placementKey: 'cart_banner'),
+              const SizedBox(height: 10),
               BillSummaryCard(
                 lines: cart.billLines,
                 showCashback: !widget.showElectronicsCart,
@@ -1716,7 +1719,7 @@ class _KitchenNoteDialogState extends State<_KitchenNoteDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+          child: Text(NavigationStrings.cancel),
         ),
         TextButton(
           onPressed: () {
@@ -1724,7 +1727,7 @@ class _KitchenNoteDialogState extends State<_KitchenNoteDialog> {
             _focusNode.unfocus();
             Navigator.of(context).pop(text);
           },
-          child: const Text('Save'),
+          child: Text(NavigationStrings.save),
         ),
       ],
     );

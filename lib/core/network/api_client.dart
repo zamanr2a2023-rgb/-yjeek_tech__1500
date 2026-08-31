@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 import 'package:yjeek_app/core/constants/api_constants.dart';
 import 'package:yjeek_app/core/services/storage_service.dart';
 import 'package:yjeek_app/core/utils/app_logger.dart';
@@ -204,6 +205,7 @@ class ApiClient {
     required String filePath,
     String fieldName = 'file',
     String? filename,
+    String? contentType,
     String? bearerToken,
   }) async {
     final uri = Uri.parse('${ApiConstants.baseUrl}$path');
@@ -213,11 +215,16 @@ class ApiClient {
       final request = http.MultipartRequest('POST', uri);
       request.headers['Accept'] = 'application/json';
       if (token != null) request.headers['Authorization'] = 'Bearer $token';
+      final resolvedName = filename ?? filePath.split(RegExp(r'[\\/]')).last;
+      final mediaType = contentType != null
+          ? MediaType.parse(contentType)
+          : _guessImageMediaType(resolvedName);
       request.files.add(
         await http.MultipartFile.fromPath(
           fieldName,
           filePath,
-          filename: filename,
+          filename: resolvedName,
+          contentType: mediaType,
         ),
       );
       final streamed = await _client.send(request);
@@ -238,4 +245,15 @@ class ApiClient {
       return const ApiResponse(statusCode: 0);
     }
   }
+}
+
+MediaType _guessImageMediaType(String filename) {
+  final lower = filename.toLowerCase();
+  if (lower.endsWith('.png')) return MediaType('image', 'png');
+  if (lower.endsWith('.webp')) return MediaType('image', 'webp');
+  if (lower.endsWith('.jpg') || lower.endsWith('.jpeg')) {
+    return MediaType('image', 'jpeg');
+  }
+  // image_picker with imageQuality usually yields JPEG bytes.
+  return MediaType('image', 'jpeg');
 }

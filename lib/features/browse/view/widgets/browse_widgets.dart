@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:yjeek_app/core/constants/app_colors.dart';
 import 'package:yjeek_app/core/constants/app_text_styles.dart';
+import 'package:yjeek_app/core/constants/browse_strings.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/core/widgets/app_network_image.dart';
 import 'package:yjeek_app/features/browse/model/browse_data.dart';
 import 'package:yjeek_app/features/home/view/widgets/home_widgets.dart';
+import 'package:yjeek_app/l10n/l10n.dart';
 
 class BrowseTopBar extends StatelessWidget {
   const BrowseTopBar({
@@ -158,7 +160,7 @@ class _BrowseSearchBarState extends State<BrowseSearchBar> {
           Expanded(
             child: widget.onChanged != null
                 ? TextField(
-                    autofocus: widget.autofocus ?? true,
+                    autofocus: widget.autofocus ?? false,
                     controller: _controller,
                     focusNode: _focusNode,
                     onChanged: widget.onChanged,
@@ -210,7 +212,7 @@ class _BrowseSearchBarState extends State<BrowseSearchBar> {
           GestureDetector(
             onTap: widget.onCancel,
             child: Text(
-              'Cancel',
+              BrowseStrings.cancel,
               style: AppTextStyles.labelMedium(
                 color: AppColors.primary,
               ).copyWith(fontWeight: FontWeight.w600, fontSize: 14.sp),
@@ -262,7 +264,7 @@ class BrowseFilterChips extends StatelessWidget {
                 border: Border.all(color: active ? selectedColor : idleBorder),
               ),
               child: Text(
-                option,
+                L10n.tr(option),
                 style: AppTextStyles.labelSmall(
                   color: active ? AppColors.white : AppColors.textPrimary,
                 ).copyWith(fontWeight: FontWeight.w600, fontSize: 13.sp),
@@ -293,17 +295,17 @@ class BrowseSortBar extends StatelessWidget {
   final String sort;
   final ValueChanged<String>? onSortChanged;
 
-  static const _options = <(String value, String label)>[
-    ('rating', 'Top rated'),
-    ('popular', 'Most Popular'),
-    ('fastest', 'Fastest Delivery'),
-  ];
+  List<(String value, String label)> get _options => [
+        ('rating', BrowseStrings.topRated),
+        ('popular', BrowseStrings.mostPopular),
+        ('fastest', BrowseStrings.fastestDelivery),
+      ];
 
   String get _sortLabel {
     for (final option in _options) {
       if (option.$1 == sort) return option.$2;
     }
-    return 'Top rated';
+    return BrowseStrings.topRated;
   }
 
   @override
@@ -344,7 +346,7 @@ class BrowseSortBar extends StatelessWidget {
             child: Row(
               children: [
                 Text(
-                  'Sort: $_sortLabel',
+                  BrowseStrings.sortWith(_sortLabel),
                   style: AppTextStyles.labelSmall(
                     color: AppColors.textPrimary,
                   ).copyWith(fontWeight: FontWeight.w600, fontSize: 12.sp),
@@ -370,7 +372,7 @@ class BrowseSortBar extends StatelessWidget {
               ),
             ),
             child: Text(
-              'Free delivery',
+              BrowseStrings.freeDelivery,
               style: AppTextStyles.labelSmall(
                 color: freeDeliveryOnly
                     ? AppColors.primary
@@ -399,7 +401,7 @@ class BrowseRestaurantGridCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final promoLabel =
-        restaurant.badge ?? (restaurant.freeDelivery ? 'Free delivery' : null);
+        restaurant.badge ?? (restaurant.freeDelivery ? BrowseStrings.freeDelivery : null);
 
     return GestureDetector(
       onTap: onTap,
@@ -754,10 +756,8 @@ class BrowseOrderAgainRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final items = brands ??
-        BrowseData.orderAgainBrands
-            .map<(String, Color, String?)>((e) => (e.$1, e.$2, null))
-            .toList();
+    final items = brands ?? const <(String, Color, String?)>[];
+    if (items.isEmpty) return const SizedBox.shrink();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -766,7 +766,7 @@ class BrowseOrderAgainRow extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              'Order again',
+              BrowseStrings.orderAgain,
               style: AppTextStyles.titleSmall().copyWith(
                 fontWeight: FontWeight.w700,
                 fontSize: 18.sp,
@@ -776,7 +776,7 @@ class BrowseOrderAgainRow extends StatelessWidget {
             GestureDetector(
               onTap: onSeeAll,
               child: Text(
-                'See all',
+                BrowseStrings.seeAll,
                 style: AppTextStyles.labelSmall(color: AppColors.primary)
                     .copyWith(
                       fontWeight: FontWeight.w600,

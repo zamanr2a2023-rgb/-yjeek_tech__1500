@@ -346,7 +346,7 @@ class ServicesPayMethodCard extends StatelessWidget {
                     ),
                     Text(
                       balanceLabel ??
-                          'Balance ${ServicesOrderFlowData.walletBalance}',
+                          'Balance BHD 0.000',
                       style: AppTextStyles.caption(color: _muted).copyWith(
                         fontWeight: FontWeight.w400,
                         fontSize: 12.sp,

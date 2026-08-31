@@ -27,12 +27,12 @@ class _ExclusiveOffersScreenState extends ConsumerState<ExclusiveOffersScreen> {
   String? _error;
   String? _addingProductId;
 
-  static final _filters = [
-    NavigationStrings.filterAll,
-    NavigationStrings.filterFood,
-    NavigationStrings.filterGroceries,
-    NavigationStrings.filterFashion,
-  ];
+  List<String> get _filters => [
+        NavigationStrings.filterAll,
+        NavigationStrings.filterFood,
+        NavigationStrings.filterGroceries,
+        NavigationStrings.filterFashion,
+      ];
 
   /// Maps UI chips → GET /offers?category= slug.
   static const _categorySlugs = <String?>[

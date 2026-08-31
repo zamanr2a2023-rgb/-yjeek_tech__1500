@@ -146,6 +146,8 @@ class _IdVerificationScreenState extends ConsumerState<IdVerificationScreen> {
     final url = await ref.read(userRepositoryProvider).uploadFile(
           file.path,
           filename: file.name,
+          // Prefer documents once backend allows CUSTOMER; avatars is allowed today.
+          category: 'avatars',
         );
     if (!mounted) return;
     if (url == null) {

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:yjeek_app/l10n/l10n.dart';
 
 class VapeStore {
   const VapeStore({
@@ -53,11 +54,12 @@ class VapeProduct {
 }
 
 abstract final class VapeData {
-  static const homeTitle = 'Vape';
-  static const searchHint = 'Search vape stores & products…';
-  static const storesSectionTitle = 'Stores near you';
-  static const ageBannerShort = '18+ only · your ID is checked on delivery';
-  static const nicotineStrengthLabel = 'Nicotine strength';
+  static String get homeTitle => L10n.tr('Vape');
+  static String get searchHint => L10n.tr('Search vape stores & products…');
+  static String get storesSectionTitle => L10n.tr('Stores near you');
+  static String get ageBannerShort =>
+      L10n.tr('18+ only · your ID is checked on delivery');
+  static String get nicotineStrengthLabel => L10n.tr('Nicotine strength');
 
   static const categories = [
     'Disposables',

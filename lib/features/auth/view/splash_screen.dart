@@ -7,6 +7,7 @@ import 'package:yjeek_app/core/constants/app_strings.dart';
 import 'package:yjeek_app/core/constants/app_text_styles.dart';
 import 'package:yjeek_app/core/providers/app_providers.dart';
 import 'package:yjeek_app/features/auth/view/widgets/auth_widgets.dart';
+import 'package:yjeek_app/features/notifications/service/push_notification_service.dart';
 import 'package:yjeek_app/l10n/locale_controller.dart';
 import 'package:yjeek_app/routes/app_router.dart';
 import 'package:yjeek_app/routes/route_names.dart';
@@ -64,6 +65,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
       }
       if (!mounted) return;
       context.goHome();
+      PushNotificationService.instance.syncToken();
+      PushNotificationService.instance.consumePendingOpen();
     } else {
       await ref
           .read(localeControllerProvider.notifier)

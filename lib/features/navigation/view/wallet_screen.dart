@@ -11,6 +11,7 @@ import 'package:yjeek_app/features/navigation/view/widgets/account_widgets.dart'
 import 'package:yjeek_app/features/navigation/view/widgets/navigation_widgets.dart';
 import 'package:yjeek_app/routes/app_router.dart';
 import 'package:yjeek_app/routes/route_names.dart';
+import 'package:yjeek_app/features/ui_content/view/ui_banner_widgets.dart';
 
 class WalletScreen extends ConsumerWidget {
   const WalletScreen({super.key, this.showBottomNav = false});
@@ -44,12 +45,20 @@ class WalletScreen extends ConsumerWidget {
               color: AppColors.primary,
               onRefresh: () async {
                 ref.invalidate(walletSnapshotProvider);
-                await ref.read(walletSnapshotProvider.future);
+                invalidateCmsBanners(ref);
+                await Future.wait([
+                  ref.read(walletSnapshotProvider.future),
+                  ref.read(cmsBannersProvider('wallet_top').future),
+                ]);
               },
               child: ListView(
                 physics: const AlwaysScrollableScrollPhysics(),
                 padding: EdgeInsets.fromLTRB(20.w, 0, 20.w, 24.h),
                 children: [
+                  const UiPlacementBanner(
+                    placementKey: 'wallet_top',
+                    padding: EdgeInsets.only(bottom: 14),
+                  ),
                   if (walletAsync.isLoading && walletAsync.valueOrNull == null)
                     Padding(
                       padding: EdgeInsets.only(top: 40.h),

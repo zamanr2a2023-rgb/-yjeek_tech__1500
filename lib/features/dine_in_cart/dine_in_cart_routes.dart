@@ -9,4 +9,9 @@ abstract final class DineInCartRoutes {
     final value = mode == DineInPrepMode.prepareOnArrival ? 'arrival' : 'now';
     return '$checkout?mode=$value';
   }
+
+  static String reviewFor(DineInPrepMode mode) {
+    final value = mode == DineInPrepMode.prepareOnArrival ? 'arrival' : 'now';
+    return '$review?mode=$value';
+  }
 }

@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:yjeek_app/core/constants/app_colors.dart';
 import 'package:yjeek_app/core/constants/app_text_styles.dart';
+import 'package:yjeek_app/core/constants/browse_strings.dart';
 import 'package:yjeek_app/core/providers/app_providers.dart';
 import 'package:yjeek_app/core/services/location_service.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
@@ -12,6 +13,7 @@ import 'package:yjeek_app/features/browse/browse_routes.dart';
 import 'package:yjeek_app/features/browse/model/browse_data.dart';
 import 'package:yjeek_app/features/browse/view/widgets/browse_widgets.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/navigation_widgets.dart';
+import 'package:yjeek_app/features/ui_content/view/ui_banner_widgets.dart';
 
 class FoodSearchScreen extends ConsumerStatefulWidget {
   const FoodSearchScreen({
@@ -30,7 +32,7 @@ class FoodSearchScreen extends ConsumerStatefulWidget {
 class _FoodSearchScreenState extends ConsumerState<FoodSearchScreen> {
   late String _query;
   List<BrowseRestaurant> _results = const [];
-  List<String> _recent = BrowseData.recentSearches;
+  List<String> _recent = const [];
   Timer? _debounce;
   bool _loading = false;
   ({double lat, double lng})? _position;
@@ -105,17 +107,22 @@ class _FoodSearchScreenState extends ConsumerState<FoodSearchScreen> {
             Padding(
               padding: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 0),
               child: BrowseSearchBar(
-                hint: 'Search in Food…',
+                hint: BrowseStrings.searchInFood,
                 value: _query,
+                autofocus: true,
                 showCancel: true,
                 onChanged: _onQueryChanged,
                 onCancel: () => context.pop(),
               ),
             ),
             Padding(
+              padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 0),
+              child: const UiPlacementBanner(placementKey: 'search_top'),
+            ),
+            Padding(
               padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 8.h),
               child: Text(
-                'Recent searches',
+                BrowseStrings.recentSearches,
                 style: AppTextStyles.labelSmall(
                   color: AppColors.textSecondary,
                 ).copyWith(fontWeight: FontWeight.w600, fontSize: 12.sp),

@@ -96,10 +96,18 @@ class UserRepository {
     return KycStatus.fromJson(data);
   }
 
-  /// POST /uploads — returns public file URL.
-  Future<String?> uploadFile(String filePath, {String? filename}) async {
+  /// POST /uploads?category=… — returns public file URL.
+  ///
+  /// [category] must match backend public upload categories, e.g.
+  /// `support-evidence`, `address-photos`, `avatars`, `documents`.
+  Future<String?> uploadFile(
+    String filePath, {
+    required String category,
+    String? filename,
+  }) async {
+    final encoded = Uri.encodeQueryComponent(category);
     final response = await _apiClient.postMultipartFile(
-      '/uploads',
+      '/uploads?category=$encoded',
       filePath: filePath,
       filename: filename,
       bearerToken: _token,

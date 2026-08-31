@@ -7,6 +7,7 @@ import 'package:yjeek_app/core/providers/app_providers.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/features/browse/model/services_data.dart';
 import 'package:yjeek_app/features/browse/view/widgets/services_widgets.dart';
+import 'package:yjeek_app/features/auth/utils/require_login.dart';
 import 'package:yjeek_app/features/cart/view/widgets/cart_flow_widgets.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/navigation_widgets.dart';
 import 'package:yjeek_app/features/services_booking/services_booking_routes.dart';
@@ -99,6 +100,8 @@ class _ServicesItemDetailScreenState
 
   Future<void> _addToBooking({bool replaceCart = false}) async {
     if (_adding) return;
+    if (!await requireLogin(context, ref)) return;
+
     setState(() => _adding = true);
 
     final optionIds = <String>[];
@@ -140,6 +143,10 @@ class _ServicesItemDetailScreenState
       return;
     }
 
+    if (await redirectToLoginIfAuthError(context, ref, result.message)) {
+      return;
+    }
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(result.message ?? 'Could not add to booking')),
     );
@@ -147,6 +154,18 @@ class _ServicesItemDetailScreenState
 
   @override
   Widget build(BuildContext context) {
+    if (_loading) {
+      return Scaffold(
+        backgroundColor: AppColors.background,
+        body: const Center(
+          child: CircularProgressIndicator(color: AppColors.primary),
+        ),
+        bottomNavigationBar: ShellBottomNavBar(
+          currentIndex: widget.bottomNavIndex,
+        ),
+      );
+    }
+
     final topInset = MediaQuery.paddingOf(context).top;
     // Design hero is 260; scale with width so title stays on-screen (260.h was too tall).
     final heroHeight = topInset + 200.w;
@@ -190,11 +209,7 @@ class _ServicesItemDetailScreenState
             ),
           ),
           Expanded(
-            child: _loading
-                ? const Center(
-                    child: CircularProgressIndicator(color: AppColors.primary),
-                  )
-                : ListView(
+            child: ListView(
                     padding: EdgeInsets.fromLTRB(20.w, 18.w, 20.w, 8.w),
                     children: [
                       Row(

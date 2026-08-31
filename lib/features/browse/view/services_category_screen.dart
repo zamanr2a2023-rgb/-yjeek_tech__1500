@@ -33,11 +33,11 @@ class _ServicesCategoryScreenState
   ServiceCategoryItem _category = ServicesData.categories.first;
   List<ServiceProvider> _providers = const [];
   bool _loading = true;
+  bool _loadedOnce = false;
 
   @override
   void initState() {
     super.initState();
-    _category = ServicesData.categoryById(widget.categoryId);
     WidgetsBinding.instance.addPostFrameCallback((_) => _load());
   }
 
@@ -57,18 +57,31 @@ class _ServicesCategoryScreenState
         _category = category;
         _providers = providers;
         _loading = false;
+        _loadedOnce = true;
       });
     } catch (_) {
       if (!mounted) return;
       setState(() {
         _providers = const [];
         _loading = false;
+        _loadedOnce = true;
       });
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    if (!_loadedOnce && _loading) {
+      return Scaffold(
+        backgroundColor: AppColors.background,
+        body: const Center(
+          child: CircularProgressIndicator(color: AppColors.primary),
+        ),
+        bottomNavigationBar: ShellBottomNavBar(
+          currentIndex: widget.bottomNavIndex,
+        ),
+      );
+    }
     return Scaffold(
       backgroundColor: AppColors.background,
       body: RefreshIndicator(

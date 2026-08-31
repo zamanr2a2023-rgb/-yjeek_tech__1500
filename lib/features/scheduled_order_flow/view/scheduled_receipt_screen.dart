@@ -135,10 +135,7 @@ class _ScheduledReceiptScreenState
       receipt?['items'] is List ? receipt!['items'] as List : null,
     );
     final billLines = receiptBillFromTotals(totalsMap);
-    final badgeRaw = receipt?['statusBadge']?.toString();
-    final badgeLabel = badgeRaw != null && badgeRaw.isNotEmpty
-        ? badgeRaw.replaceAll('_', ' ').toUpperCase()
-        : null;
+    final badgeLabel = receiptBadgeLabel(receipt);
     final placed = receipt?['placedAt'];
     final dateLabel = orderNumber == null
         ? null

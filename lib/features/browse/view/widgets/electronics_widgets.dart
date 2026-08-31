@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:yjeek_app/core/constants/app_colors.dart';
+import 'package:yjeek_app/core/constants/browse_strings.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/features/browse/model/electronics_data.dart';
 
@@ -32,17 +33,17 @@ class ElectronicsToolbar extends StatelessWidget {
   final String sort;
   final ValueChanged<String>? onSortChanged;
 
-  static const _sortOptions = <(String value, String label)>[
-    ('rating', 'Top rated'),
-    ('popular', 'Most Popular'),
-    ('name', 'Name'),
-  ];
+  List<(String value, String label)> get _sortOptions => [
+        ('rating', BrowseStrings.topRated),
+        ('popular', BrowseStrings.mostPopular),
+        ('name', BrowseStrings.nameSort),
+      ];
 
   String get _sortLabel {
     for (final option in _sortOptions) {
       if (option.$1 == sort) return option.$2;
     }
-    return 'Sort';
+    return BrowseStrings.sort;
   }
 
   @override
@@ -62,7 +63,7 @@ class ElectronicsToolbar extends StatelessWidget {
         GestureDetector(
           onTap: () => onFreeDeliveryChanged?.call(!freeDeliveryOnly),
           child: _chip(
-            'Free delivery',
+            BrowseStrings.freeDelivery,
             selected: freeDeliveryOnly,
           ),
         ),

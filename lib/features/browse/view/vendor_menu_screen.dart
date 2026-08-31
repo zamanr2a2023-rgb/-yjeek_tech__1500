@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:yjeek_app/core/constants/app_colors.dart';
 import 'package:yjeek_app/core/constants/app_text_styles.dart';
+import 'package:yjeek_app/core/constants/browse_strings.dart';
 import 'package:yjeek_app/core/providers/app_providers.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/features/browse/browse_routes.dart';
@@ -15,6 +16,7 @@ import 'package:yjeek_app/features/cart/view/widgets/cart_flow_widgets.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/navigation_widgets.dart';
 import 'package:yjeek_app/l10n/locale_controller.dart';
 import 'package:yjeek_app/routes/app_router.dart';
+import 'package:yjeek_app/features/ui_content/view/ui_banner_widgets.dart';
 
 class VendorMenuScreen extends ConsumerStatefulWidget {
   const VendorMenuScreen({
@@ -41,6 +43,7 @@ class _VendorMenuScreenState extends ConsumerState<VendorMenuScreen> {
   String _menuQuery = '';
   FoodCartSummary _cart = FoodCartSummary.empty;
   bool _loading = true;
+  bool _loadedOnce = false;
   Timer? _searchDebounce;
 
   List<BrowseMenuItem> get _items => _allItems
@@ -50,7 +53,6 @@ class _VendorMenuScreenState extends ConsumerState<VendorMenuScreen> {
   @override
   void initState() {
     super.initState();
-    _restaurant = BrowseData.restaurantById(widget.vendorId);
     WidgetsBinding.instance.addPostFrameCallback((_) => _load());
   }
 
@@ -89,10 +91,14 @@ class _VendorMenuScreenState extends ConsumerState<VendorMenuScreen> {
         }
         _cart = cart;
         _loading = false;
+        _loadedOnce = true;
       });
     } catch (_) {
       if (!mounted) return;
-      setState(() => _loading = false);
+      setState(() {
+        _loading = false;
+        _loadedOnce = true;
+      });
     }
   }
 
@@ -128,6 +134,17 @@ class _VendorMenuScreenState extends ConsumerState<VendorMenuScreen> {
   Widget build(BuildContext context) {
     // Rebuild menu labels when app language changes (nameAr / descriptionAr).
     ref.watch(localeControllerProvider);
+    if (!_loadedOnce && _loading) {
+      return Scaffold(
+        backgroundColor: AppColors.background,
+        body: const Center(
+          child: CircularProgressIndicator(color: AppColors.primary),
+        ),
+        bottomNavigationBar: ShellBottomNavBar(
+          currentIndex: widget.bottomNavIndex,
+        ),
+      );
+    }
     return Scaffold(
       backgroundColor: AppColors.background,
       body: Column(
@@ -141,13 +158,21 @@ class _VendorMenuScreenState extends ConsumerState<VendorMenuScreen> {
                 : ListView(
                     padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 8.h),
                     children: [
+                      const UiPlacementBanner(
+                        placementKey: 'store_top',
+                        padding: EdgeInsets.only(bottom: 14),
+                      ),
                       BrowseSearchBar(
-                        hint: 'Search this menu…',
+                        hint: BrowseStrings.searchThisMenu,
                         onChanged: _onMenuQueryChanged,
                       ),
                       SizedBox(height: 14.h),
                       _VendorStatsCard(restaurant: _restaurant),
                       SizedBox(height: 14.h),
+                      const UiPlacementBanner(
+                        placementKey: 'store_mid',
+                        padding: EdgeInsets.only(bottom: 14),
+                      ),
                       if (_sections.isNotEmpty)
                         BrowseFilterChips(
                           options: _sections,

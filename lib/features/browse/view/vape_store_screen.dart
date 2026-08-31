@@ -14,6 +14,7 @@ import 'package:yjeek_app/features/browse/view/widgets/vape_widgets.dart';
 import 'package:yjeek_app/features/cart/view/widgets/cart_flow_widgets.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/navigation_widgets.dart';
 import 'package:yjeek_app/routes/app_router.dart';
+import 'package:yjeek_app/features/ui_content/view/ui_banner_widgets.dart';
 
 class VapeStoreScreen extends ConsumerStatefulWidget {
   const VapeStoreScreen({
@@ -37,14 +38,12 @@ class _VapeStoreScreenState extends ConsumerState<VapeStoreScreen> {
   List<VapeProduct> _products = const [];
   VapeCartSummary _cart = VapeCartSummary.empty;
   bool _loading = true;
+  bool _loadedOnce = false;
   bool _adding = false;
 
   @override
   void initState() {
     super.initState();
-    try {
-      _store = VapeData.storeById(widget.storeId);
-    } catch (_) {}
     WidgetsBinding.instance.addPostFrameCallback((_) => _load());
   }
 
@@ -64,12 +63,14 @@ class _VapeStoreScreenState extends ConsumerState<VapeStoreScreen> {
         _products = products;
         _cart = cart;
         _loading = false;
+        _loadedOnce = true;
       });
     } catch (_) {
       if (!mounted) return;
       setState(() {
         _products = const [];
         _loading = false;
+        _loadedOnce = true;
       });
     }
   }
@@ -144,6 +145,17 @@ class _VapeStoreScreenState extends ConsumerState<VapeStoreScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (!_loadedOnce && _loading) {
+      return Scaffold(
+        backgroundColor: AppColors.background,
+        body: const Center(
+          child: CircularProgressIndicator(color: AppColors.primary),
+        ),
+        bottomNavigationBar: ShellBottomNavBar(
+          currentIndex: widget.bottomNavIndex,
+        ),
+      );
+    }
     return Scaffold(
       backgroundColor: AppColors.background,
       body: Column(
@@ -160,6 +172,10 @@ class _VapeStoreScreenState extends ConsumerState<VapeStoreScreen> {
                 : ListView(
                     padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 8.h),
                     children: [
+                      const UiPlacementBanner(
+                        placementKey: 'store_top',
+                        padding: EdgeInsets.only(bottom: 14),
+                      ),
                       const VapeAgeBanner(),
                       SizedBox(height: 14.h),
                       BrowseFilterChips(
@@ -173,6 +189,10 @@ class _VapeStoreScreenState extends ConsumerState<VapeStoreScreen> {
                         },
                       ),
                       SizedBox(height: 12.h),
+                      const UiPlacementBanner(
+                        placementKey: 'store_mid',
+                        padding: EdgeInsets.only(bottom: 12),
+                      ),
                       ..._products.map(
                         (product) => VapeProductRow(
                           product: product,

@@ -152,10 +152,8 @@ class _ServicesReceiptScreenState
     final totals = receipt?['totals'];
     final totalsMap = totals is Map ? Map<String, dynamic>.from(totals) : null;
     final billLines = servicesReceiptBillFromTotals(totalsMap);
-    final badgeRaw = receipt?['statusBadge']?.toString();
-    final badgeLabel = badgeRaw != null && badgeRaw.isNotEmpty
-        ? '✓ ${badgeRaw.replaceAll('_', ' ').toUpperCase()}'
-        : null;
+    final badge = receiptBadgeLabel(receipt);
+    final badgeLabel = badge != null ? '✓ $badge' : null;
     final subtitle = orderNumber != null && orderNumber.isNotEmpty
         ? '#$orderNumber'
         : '#${ServicesOrderFlowData.bookingId}';

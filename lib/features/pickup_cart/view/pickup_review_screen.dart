@@ -11,6 +11,7 @@ import 'package:yjeek_app/features/cart/view/widgets/cart_flow_widgets.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/account_widgets.dart';
 import 'package:yjeek_app/features/order_flow/model/order_api_mappers.dart';
 import 'package:yjeek_app/features/pickup_cart/model/pickup_cart_data.dart';
+import 'package:yjeek_app/features/pickup_cart/pickup_cart_routes.dart';
 import 'package:yjeek_app/features/pickup_cart/view/widgets/pickup_cart_widgets.dart';
 import 'package:yjeek_app/features/pickup_order_flow/pickup_order_flow_routes.dart';
 
@@ -102,6 +103,13 @@ class _PickupReviewScreenState extends ConsumerState<PickupReviewScreen> {
     }
   }
 
+  /// Same destination as editing checkout details (pickup time / payment).
+  void _editOrder() {
+    if (_finishing) return;
+    _timer?.cancel();
+    context.go(PickupCartRoutes.checkout);
+  }
+
   @override
   void dispose() {
     _timer?.cancel();
@@ -129,6 +137,7 @@ class _PickupReviewScreenState extends ConsumerState<PickupReviewScreen> {
       lightHeader: true,
       bottomNavIndex: 2,
       backgroundColor: const Color(0xFFF2F7F2),
+      onBack: _finishing ? null : _editOrder,
       body: Column(
         children: [
           Expanded(
@@ -177,12 +186,7 @@ class _PickupReviewScreenState extends ConsumerState<PickupReviewScreen> {
                 Expanded(
                   child: CartOutlineButton(
                     label: PickupCartStrings.editOrder,
-                    onPressed: _finishing
-                        ? () {}
-                        : () {
-                            _timer?.cancel();
-                            context.pop();
-                          },
+                    onPressed: _finishing ? () {} : _editOrder,
                   ),
                 ),
                 SizedBox(width: 12.w),

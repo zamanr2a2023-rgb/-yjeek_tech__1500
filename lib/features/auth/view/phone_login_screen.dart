@@ -38,7 +38,8 @@ class _PhoneLoginScreenState extends ConsumerState<PhoneLoginScreen> {
   bool get _canSendCode =>
       _termsAccepted && _phoneController.text.trim().length >= 8 && !_sending;
 
-  String get _phoneDigits => _phoneController.text.replaceAll(RegExp(r'\D'), '');
+  String get _phoneDigits =>
+      _phoneController.text.replaceAll(RegExp(r'\D'), '');
 
   String get _formattedPhone {
     final digits = _phoneDigits;
@@ -50,10 +51,9 @@ class _PhoneLoginScreenState extends ConsumerState<PhoneLoginScreen> {
     if (!_canSendCode) return;
     setState(() => _sending = true);
 
-    final result = await ref.read(authApiProvider).sendOtp(
-          phone: _phoneDigits,
-          countryCode: AppStrings.countryCode,
-        );
+    final result = await ref
+        .read(authApiProvider)
+        .sendOtp(phone: _phoneDigits, countryCode: AppStrings.countryCode);
 
     if (!mounted) return;
     setState(() => _sending = false);
@@ -67,9 +67,9 @@ class _PhoneLoginScreenState extends ConsumerState<PhoneLoginScreen> {
 
     // Dev backend echoes the OTP back; surface it while testing.
     if (kDebugMode && result.devCode != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Dev code: ${result.devCode}')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Dev code: ${result.devCode}')));
     }
 
     final phone = '${AppStrings.countryCode} $_formattedPhone';

@@ -417,7 +417,7 @@ class _AddAddressScreenState extends ConsumerState<AddAddressScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
+            child: Text(NavigationStrings.cancel),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),

@@ -128,7 +128,8 @@ class _PickupCheckoutScreenState extends ConsumerState<PickupCheckoutScreen> {
       );
       return;
     }
-    context.push(
+    // Order is placed on Review (Confirm / auto-timer), not here.
+    context.pushReplacement(
       PickupCartRoutes.reviewFor(
         paymentId: _paymentId,
         tipAmount: _tipAmount,

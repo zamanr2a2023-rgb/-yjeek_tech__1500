@@ -18,9 +18,13 @@ class CheckoutPaymentMethods {
     List<PaymentOption>? base,
     String defaultId = 'benefitpay',
   }) {
+    final options = List<PaymentOption>.from(base ?? CartFlowData.paymentOptions);
+    final preferred = options.any((o) => o.id == defaultId)
+        ? defaultId
+        : (options.isNotEmpty ? options.first.id : defaultId);
     return CheckoutPaymentMethods(
-      options: List<PaymentOption>.from(base ?? CartFlowData.paymentOptions),
-      defaultId: defaultId,
+      options: options,
+      defaultId: preferred,
     );
   }
 }
@@ -61,11 +65,13 @@ class PaymentMethodsRepository {
 
       final methodsRaw = data['methods'];
       final options = <PaymentOption>[];
+      final seenIds = <String>{};
       if (methodsRaw is List) {
         for (final raw in methodsRaw) {
           if (raw is! Map<String, dynamic>) continue;
           final id = raw['id']?.toString();
-          if (id == null || id.isEmpty) continue;
+          if (id == null || id.isEmpty || seenIds.contains(id)) continue;
+          seenIds.add(id);
           if (!includeCod && id == 'cod') continue;
           if (!includeWallet && id == 'wallet') continue;
           final label = raw['label']?.toString() ?? id;
@@ -73,9 +79,8 @@ class PaymentMethodsRepository {
           options.add(
             PaymentOption(
               id: id,
-              label: subtitle != null && subtitle.isNotEmpty
-                  ? '$label · $subtitle'
-                  : label,
+              label: label,
+              subtitle: subtitle != null && subtitle.isNotEmpty ? subtitle : null,
               iconAsset: _iconFor(id, raw['iconKey']?.toString()),
             ),
           );

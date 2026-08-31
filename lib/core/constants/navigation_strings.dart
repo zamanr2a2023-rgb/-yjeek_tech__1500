@@ -60,6 +60,16 @@ abstract final class NavigationStrings {
   static String get delivery => L10n.tr('DELIVERY');
 
   static String get account => L10n.tr('Account');
+  static String get notifications => L10n.tr('Notifications');
+  static String get markAllNotifications => L10n.tr('Mark all');
+  static String get notificationsToday => L10n.tr('TODAY');
+  static String get notificationsEarlier => L10n.tr('EARLIER');
+  static String get notificationsEmpty => L10n.tr('No notifications yet');
+  static String get retry => L10n.tr('Retry');
+  static String get notificationsLoadError =>
+      L10n.tr('Failed to load notifications');
+  static String get notificationsMarkAllError =>
+      L10n.tr('Failed to mark notifications as read');
   static String get editProfile => L10n.tr('Edit');
   static String get yjeekWallet => L10n.tr('Yjeek Wallet');
   static String get cashback => L10n.tr('Cashback');
@@ -76,8 +86,17 @@ abstract final class NavigationStrings {
   static String get english => L10n.tr('English');
   static String get arabic => L10n.tr('العربية');
   static String get apply => L10n.tr('Apply');
+  static String get cancel => L10n.tr('Cancel');
   static String get bahrain => L10n.tr('Bahrain');
   static String get appVersion => L10n.tr('Yjeek v1.0.0 · yjeek.com');
+  static String get accountDeletion => L10n.tr('Account deletion');
+  static String get deleteAccountConfirmTitle => L10n.tr('Delete account?');
+  static String get deleteAccountConfirmBody => L10n.tr(
+        'This permanently deletes your account. Active orders must be finished first.',
+      );
+  static String get deleting => L10n.tr('Deleting...');
+  static String get delete => L10n.tr('Delete');
+  static String get couldNotDeleteAccount => L10n.tr('Could not delete account');
 
   static String get walletTitle => L10n.tr('Yjeek Wallet');
   static String get walletTitleShort => L10n.tr('Wallet');
@@ -119,8 +138,8 @@ abstract final class NavigationStrings {
   static String get privacyFooter => L10n.tr('Your data is handled per the Yjeek Privacy Policy.');
   static String get editPersonalInfo => L10n.tr('Edit personal info');
   static String get phoneVerified => L10n.tr('Phone (verified)');
-  static const String changePhoneNote =
-      "To change your phone number, use 'Change phone number'.";
+  static String get changePhoneNote =>
+      L10n.tr("To change your phone number, use 'Change phone number'.");
   static String get defaultLabel => L10n.tr('Default');
   static String get addNewAddress => L10n.tr('Add new address');
   static String get addAddress => L10n.tr('Add address');
@@ -139,7 +158,8 @@ abstract final class NavigationStrings {
   static String get verified => L10n.tr('VERIFIED');
   static String get pending => L10n.tr('PENDING');
   static String get bankIban => L10n.tr('Bank (IBAN)');
-  static const String cprExpiryNote = "We'll remind you before it expires.";
+  static String get cprExpiryNote =>
+      L10n.tr("We'll remind you before it expires.");
   static String get idVerificationInfo => L10n.tr('Your CPR verifies your age for restricted items and your identity for wallet cash-out. IBAN details are used for withdrawals.');
   static String get save => L10n.tr('Save');
   static String get aboutYjeek => L10n.tr('About Yjeek');

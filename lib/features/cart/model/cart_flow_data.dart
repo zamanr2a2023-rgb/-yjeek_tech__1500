@@ -60,16 +60,18 @@ abstract final class CartFlowStrings {
   static String get phoneNumber => L10n.tr('Phone number');
   static String get saveAddress => L10n.tr('Save address');
   static String get outOfRangeTitle => L10n.tr('Out of range for this vendor');
-  static const String outOfRangeBody =
-      "We can't deliver to that location yet. Try another address or check back soon.";
+  static String get outOfRangeBody => L10n.tr(
+        "We can't deliver to that location yet. Try another address or check back soon.",
+      );
   static String get chooseAnotherAddress => L10n.tr('Choose another address');
   static String get editAddress => L10n.tr('Edit address');
   static String get updatePlaceSubtitle => L10n.tr('Update this saved place');
   static String get deleteAddress => L10n.tr('Delete address');
   static String get saveChanges => L10n.tr('Save changes');
   static String get deleteAddressTitle => L10n.tr('Delete this address?');
-  static const String deleteAddressBody =
-      "Are you sure you want to delete 'Home · Adliya'? This action can't be undone.";
+  static String get deleteAddressBody => L10n.tr(
+        "Are you sure you want to delete 'Home · Adliya'? This action can't be undone.",
+      );
   static String get cancel => L10n.tr('Cancel');
   static String get delete => L10n.tr('Delete');
   static String get zoodTitle => L10n.tr('Join the Zood waiting list?');
@@ -124,6 +126,7 @@ class PaymentOption {
   const PaymentOption({
     required this.id,
     required this.label,
+    this.subtitle,
     this.icon,
     this.iconAsset,
     this.selected = false,
@@ -131,6 +134,7 @@ class PaymentOption {
 
   final String id;
   final String label;
+  final String? subtitle;
   final IconData? icon;
   final String? iconAsset;
   final bool selected;
@@ -238,7 +242,9 @@ abstract final class CartFlowData {
     PaymentOption(
       id: 'benefitpay',
       label: 'BenefitPay',
+      subtitle: 'Forwarded to BenefitPay',
       iconAsset: AppAssets.payBenefitPay,
+      selected: true,
     ),
     PaymentOption(
       id: 'apple',
@@ -253,6 +259,7 @@ abstract final class CartFlowData {
     PaymentOption(
       id: 'benefit',
       label: 'Benefit',
+      subtitle: 'Forwarded to Benefit',
       iconAsset: AppAssets.payBenefit,
     ),
     PaymentOption(
@@ -269,7 +276,6 @@ abstract final class CartFlowData {
       id: 'cod',
       label: CartFlowStrings.cashOnDelivery,
       iconAsset: AppAssets.payCash,
-      selected: true,
     ),
   ];
 

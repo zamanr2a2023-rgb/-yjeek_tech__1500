@@ -382,8 +382,30 @@ class _CartScreenState extends ConsumerState<CartScreen> {
         }
         widget.onBrowseVendors();
       },
-      onCheckout: () {
+      onCheckout: () async {
         FocusManager.instance.primaryFocus?.unfocus();
+        if (isScheduledOnly) {
+          final fresh = await repo.fetchScheduledCart();
+          _setScheduled(fresh);
+          if (fresh == null || !fresh.hasItems) {
+            if (!mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(NavigationStrings.cartEmptyTitle)),
+            );
+            return;
+          }
+        } else {
+          final fresh = await repo.fetchCart(type);
+          await _setCart(type, fresh);
+          if (!fresh.hasItems) {
+            if (!mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(NavigationStrings.cartEmptyTitle)),
+            );
+            return;
+          }
+        }
+        if (!mounted) return;
         switch (tab) {
           case CartTab.dineIn:
             context.push(DineInCartRoutes.checkout);

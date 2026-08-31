@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:yjeek_app/core/constants/app_colors.dart';
 import 'package:yjeek_app/core/constants/app_text_styles.dart';
+import 'package:yjeek_app/core/constants/browse_strings.dart';
 import 'package:yjeek_app/core/providers/app_providers.dart';
 import 'package:yjeek_app/core/services/location_service.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
@@ -27,8 +28,8 @@ class _FoodBrowseScreenState extends ConsumerState<FoodBrowseScreen> {
   bool _freeDeliveryOnly = false;
   String _selectedFilter = 'All';
   String _sort = 'rating';
-  List<String> _cuisineFilters = BrowseData.cuisineFilters;
-  List<BrowseRestaurant> _restaurants = BrowseData.restaurants;
+  List<String> _cuisineFilters = const ['All'];
+  List<BrowseRestaurant> _restaurants = const [];
   bool _loading = true;
   bool _locationDenied = false;
   bool _outsideDeliveryArea = false;
@@ -91,11 +92,10 @@ class _FoodBrowseScreenState extends ConsumerState<FoodBrowseScreen> {
   }
 
   List<(String, Color, String?)> get _orderAgainBrands {
+    if (_loading) return const [];
     final vendors = ref.watch(homeFeedProvider).valueOrNull?.reorderVendors;
     if (vendors == null || vendors.isEmpty) {
-      return BrowseData.orderAgainBrands
-          .map<(String, Color, String?)>((e) => (e.$1, e.$2, null))
-          .toList();
+      return const [];
     }
     return vendors
         .map(
@@ -132,8 +132,8 @@ class _FoodBrowseScreenState extends ConsumerState<FoodBrowseScreen> {
                   ),
                   Padding(
                     padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 0),
-                    child: BrowseSearchBar(
-                      hint: 'Search in Food…',
+                    child:                     BrowseSearchBar(
+                      hint: BrowseStrings.searchInFood,
                       onTap: () => context.push(BrowseRoutes.foodSearch()),
                     ),
                   ),
@@ -141,7 +141,7 @@ class _FoodBrowseScreenState extends ConsumerState<FoodBrowseScreen> {
                     Padding(
                       padding: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 0),
                       child: Text(
-                        'Enable location to see restaurants that deliver to you.',
+                        BrowseStrings.enableLocationFood,
                         style: AppTextStyles.caption(
                           color: AppColors.textSecondary,
                         ),
@@ -151,7 +151,7 @@ class _FoodBrowseScreenState extends ConsumerState<FoodBrowseScreen> {
                     Padding(
                       padding: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 0),
                       child: Text(
-                        'No restaurants deliver to your current location. Showing all Food vendors.',
+                        BrowseStrings.noRestaurantsNearby,
                         style: AppTextStyles.caption(
                           color: AppColors.textSecondary,
                         ),

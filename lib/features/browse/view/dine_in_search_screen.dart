@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:yjeek_app/core/constants/app_colors.dart';
 import 'package:yjeek_app/core/constants/app_text_styles.dart';
+import 'package:yjeek_app/core/constants/browse_strings.dart';
 import 'package:yjeek_app/core/providers/app_providers.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/features/browse/browse_routes.dart';
@@ -12,6 +13,7 @@ import 'package:yjeek_app/features/browse/model/dine_in_data.dart';
 import 'package:yjeek_app/features/browse/view/widgets/browse_widgets.dart';
 import 'package:yjeek_app/features/browse/view/widgets/dine_in_widgets.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/navigation_widgets.dart';
+import 'package:yjeek_app/features/ui_content/view/ui_banner_widgets.dart';
 
 class DineInSearchScreen extends ConsumerStatefulWidget {
   const DineInSearchScreen({
@@ -92,17 +94,22 @@ class _DineInSearchScreenState extends ConsumerState<DineInSearchScreen> {
             Padding(
               padding: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 0),
               child: BrowseSearchBar(
-                hint: 'Search in Dine In…',
+                hint: BrowseStrings.searchInDineIn,
                 value: _query,
+                autofocus: true,
                 showCancel: true,
                 onChanged: _onQueryChanged,
                 onCancel: () => context.pop(),
               ),
             ),
             Padding(
+              padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 0),
+              child: const UiPlacementBanner(placementKey: 'search_top'),
+            ),
+            Padding(
               padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 8.h),
               child: Text(
-                'Recent searches',
+                BrowseStrings.recentSearches,
                 style: AppTextStyles.labelSmall(
                   color: AppColors.textSecondary,
                 ).copyWith(fontWeight: FontWeight.w600, fontSize: 12.sp),

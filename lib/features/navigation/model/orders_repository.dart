@@ -2,6 +2,9 @@ import 'package:yjeek_app/core/constants/navigation_strings.dart';
 import 'package:yjeek_app/core/network/api_client.dart';
 import 'package:yjeek_app/core/services/storage_service.dart';
 import 'package:yjeek_app/features/navigation/model/navigation_data.dart';
+import 'package:yjeek_app/features/order_flow/model/order_api_mappers.dart';
+import 'package:yjeek_app/features/payments/benefit_pay_native.dart';
+import 'package:yjeek_app/features/payments/model/benefit_pay_models.dart';
 
 class OrdersRepository {
   const OrdersRepository(this._apiClient, this._storage);
@@ -104,15 +107,99 @@ class OrdersRepository {
     return response.ok;
   }
 
+  /// POST /orders/:orderId/payments/benefitpay/native-session
+  Future<BenefitPayNativeSessionResult> fetchBenefitPayNativeSession(
+    String orderId,
+  ) async {
+    final response = await _apiClient.postJson(
+      '/orders/$orderId/payments/benefitpay/native-session',
+      const {},
+      bearerToken: _token,
+    );
+    if (!response.ok) {
+      return BenefitPayNativeSessionResult(
+        errorMessage: response.message ?? 'Could not start BenefitPay',
+      );
+    }
+    final data = response.data;
+    if (data == null) {
+      return const BenefitPayNativeSessionResult(
+        errorMessage: 'Empty BenefitPay session response',
+      );
+    }
+    return BenefitPayNativeSessionResult(
+      ok: true,
+      session: BenefitPayNativeSession.fromJson(data),
+    );
+  }
+
   /// POST /orders/:orderId/payments/initiate
-  Future<Map<String, dynamic>?> initiatePayment(String orderId) async {
+  Future<PaymentInitiateResult> initiatePaymentDetailed(String orderId) async {
     final response = await _apiClient.postJson(
       '/orders/$orderId/payments/initiate',
       const {},
       bearerToken: _token,
     );
-    if (!response.ok) return null;
-    return response.data;
+    if (!response.ok) {
+      return PaymentInitiateResult(
+        errorMessage: response.message ?? 'Could not start payment',
+      );
+    }
+    final data = response.data ?? const <String, dynamic>{};
+    final sdkRaw = data['sdkPayload'];
+    BenefitPaySdkPayload? sdk;
+    if (sdkRaw is Map<String, dynamic>) {
+      sdk = BenefitPaySdkPayload.fromJson(sdkRaw);
+    } else if (sdkRaw is Map) {
+      sdk = BenefitPaySdkPayload.fromJson(Map<String, dynamic>.from(sdkRaw));
+    }
+    return PaymentInitiateResult(
+      ok: true,
+      gatewayRef: data['gatewayRef']?.toString(),
+      paymentId: data['paymentId']?.toString(),
+      paymentUrl: data['paymentUrl']?.toString(),
+      amountLabel: data['amount']?.toString(),
+      sdkPayload: sdk,
+      verificationConfigured: data['verificationConfigured'] == true,
+      clientIdConfigured: data['clientIdConfigured'] == true,
+      hostedInitError: sanitizeBenefitHostedInitError(
+        data['hostedInitError']?.toString(),
+      ),
+      raw: data,
+    );
+  }
+
+  /// POST /orders/:orderId/payments/initiate
+  Future<Map<String, dynamic>?> initiatePayment(String orderId) async {
+    final detailed = await initiatePaymentDetailed(orderId);
+    return detailed.ok ? detailed.raw : null;
+  }
+
+  /// POST /orders/:orderId/payments/confirm
+  Future<PaymentConfirmResult> confirmPaymentDetailed(
+    String orderId, {
+    String status = 'AUTHORIZED',
+    String? gatewayRef,
+    String? paymentMethod,
+    num? walletAmount,
+  }) async {
+    final response = await _apiClient.postJson(
+      '/orders/$orderId/payments/confirm',
+      {
+        'status': status,
+        if (gatewayRef != null) 'gatewayRef': gatewayRef,
+        if (paymentMethod != null) 'paymentMethod': paymentMethod,
+        if (walletAmount != null) 'walletAmount': walletAmount,
+      },
+      bearerToken: _token,
+    );
+    return PaymentConfirmResult(
+      ok: response.ok,
+      errorMessage: response.ok
+          ? null
+          : (response.message ?? 'Payment confirmation failed'),
+      raw: response.data,
+    );
   }
 
   /// POST /orders/:orderId/payments/confirm
@@ -122,16 +209,13 @@ class OrdersRepository {
     String? gatewayRef,
     String? paymentMethod,
   }) async {
-    final response = await _apiClient.postJson(
-      '/orders/$orderId/payments/confirm',
-      {
-        'status': status,
-        if (gatewayRef != null) 'gatewayRef': gatewayRef,
-        if (paymentMethod != null) 'paymentMethod': paymentMethod,
-      },
-      bearerToken: _token,
+    final detailed = await confirmPaymentDetailed(
+      orderId,
+      status: status,
+      gatewayRef: gatewayRef,
+      paymentMethod: paymentMethod,
     );
-    return response.ok;
+    return detailed.ok;
   }
 
   /// POST /orders/:orderId/reviews
@@ -296,14 +380,15 @@ OrderHistoryItem? orderHistoryItemFromJson(Map<String, dynamic> json) {
 
   final badge = _badgeFor(statusRaw, orderType, isActive);
   final status = _mapStatus(statusRaw, isActive);
+  final pastActions = <String>[
+    NavigationStrings.receipt,
+    if (orderCanRate(json)) NavigationStrings.rate,
+    NavigationStrings.reorder,
+    NavigationStrings.getHelp,
+  ];
   final actions = isActive
       ? [NavigationStrings.trackOrder, NavigationStrings.getHelp]
-      : [
-          NavigationStrings.receipt,
-          NavigationStrings.rate,
-          NavigationStrings.reorder,
-          NavigationStrings.getHelp,
-        ];
+      : pastActions;
 
   return OrderHistoryItem(
     id: id,

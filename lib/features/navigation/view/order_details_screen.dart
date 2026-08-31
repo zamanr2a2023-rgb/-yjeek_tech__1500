@@ -41,6 +41,7 @@ class _OrderDetailsScreenState extends ConsumerState<OrderDetailsScreen> {
   bool _hasChamp = false;
   String _payment = '';
   String _orderType = 'DELIVERY';
+  bool _canRate = false;
 
   @override
   void initState() {
@@ -203,6 +204,7 @@ class _OrderDetailsScreenState extends ConsumerState<OrderDetailsScreen> {
         _hasChamp = hasChamp;
         _payment = formatPaymentMethod(data['paymentMethod'] as String?);
         _orderType = orderType;
+        _canRate = orderCanRate(data);
         _loading = false;
       });
     } catch (_) {
@@ -425,17 +427,19 @@ class _OrderDetailsScreenState extends ConsumerState<OrderDetailsScreen> {
                         ),
                       ),
                     ),
-                    SizedBox(width: 10.w),
-                    Expanded(
-                      child: _OutlineActionButton(
-                        label: NavigationStrings.rate,
-                        onTap: () => context.push(
-                          _orderType == 'DINE_IN'
-                              ? DineInOrderFlowRoutes.completeFor(orderId)
-                              : OrderFlowRoutes.deliveredFor(orderId),
+                    if (_canRate) ...[
+                      SizedBox(width: 10.w),
+                      Expanded(
+                        child: _OutlineActionButton(
+                          label: NavigationStrings.rate,
+                          onTap: () => context.push(
+                            _orderType == 'DINE_IN'
+                                ? DineInOrderFlowRoutes.completeFor(orderId)
+                                : OrderFlowRoutes.deliveredFor(orderId),
+                          ),
                         ),
                       ),
-                    ),
+                    ],
                     SizedBox(width: 10.w),
                     Expanded(
                       child: _OutlineActionButton(
