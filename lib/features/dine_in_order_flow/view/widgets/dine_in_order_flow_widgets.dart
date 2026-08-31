@@ -651,7 +651,7 @@ class DineInPayMethodCard extends StatelessWidget {
                 ),
                 SizedBox(height: 2.h),
                 Text(
-                  balanceLabel ?? 'Balance ${DineInOrderFlowData.walletBalance}',
+                  balanceLabel ?? 'Balance BHD 0.000',
                   style: AppTextStyles.caption(color: const Color(0xFF6B7A6E)).copyWith(
                     fontWeight: FontWeight.w400,
                     fontSize: 12.sp,

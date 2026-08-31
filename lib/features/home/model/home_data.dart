@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:yjeek_app/features/home/model/category_item.dart';
+import 'package:yjeek_app/l10n/l10n.dart';
 
 class BrandItem {
   const BrandItem({
@@ -36,8 +37,7 @@ class OfferItem {
 }
 
 abstract final class HomeData {
-  static const String userName = 'Asmaa';
-  static const String deliveryLocation = 'Seef, Manama';
+  static String get deliveryLocation => L10n.tr('Choose location');
 
   static const List<CategoryItem> homeCategories = [
     CategoryItem(

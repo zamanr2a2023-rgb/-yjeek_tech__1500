@@ -1,15 +1,31 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
     <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
     <application
-        android:label="yjeek_app"
+        android:label="Yjeek"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
-        android:usesCleartextTraffic="true">
+        android:usesCleartextTraffic="true"
+        tools:replace="android:label">
         <meta-data
             android:name="com.google.android.geo.API_KEY"
             android:value="AIzaSyC7BXis0DYkbNBdzeXQV6VWPPcSj6aL-PM"/>
+        <!-- Google Pay (pay package) -->
+        <meta-data
+            android:name="com.google.android.gms.wallet.api.enabled"
+            android:value="true"/>
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="yjeek_default"/>
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@drawable/ic_stat_yjeek"/>
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_color"
+            android:resource="@color/ic_launcher_background"/>
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -68,5 +84,10 @@
             <action android:name="android.intent.action.VIEW"/>
             <data android:scheme="geo"/>
         </intent>
+        <!-- BenefitPay in-app SDK -->
+        <package android:name="mobi.foo.benefitpay.pay"/>
+        <package android:name="mobi.foo.benefit"/>
+        <package android:name="mobi.foo.benefittest"/>
+        <package android:name="mobi.foo.benefitdev"/>
     </queries>
 </manifest>

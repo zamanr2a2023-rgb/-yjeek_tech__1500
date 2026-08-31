@@ -772,11 +772,13 @@ class OrderStarRatingCard extends StatefulWidget {
     required this.title,
     this.initialRating = 4,
     this.onChanged,
+    this.readOnly = false,
   });
 
   final String title;
   final int initialRating;
   final ValueChanged<int>? onChanged;
+  final bool readOnly;
 
   @override
   State<OrderStarRatingCard> createState() => _OrderStarRatingCardState();
@@ -787,6 +789,14 @@ class _OrderStarRatingCardState extends State<OrderStarRatingCard> {
 
   static const Color _starFilled = Color(0xFFD98C1A);
   static const Color _starEmpty = Color(0xFFE0E6E0);
+
+  @override
+  void didUpdateWidget(covariant OrderStarRatingCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.initialRating != oldWidget.initialRating) {
+      _rating = widget.initialRating;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -813,10 +823,12 @@ class _OrderStarRatingCardState extends State<OrderStarRatingCard> {
             children: List.generate(5, (index) {
               final filled = index < _rating;
               return GestureDetector(
-                onTap: () {
-                  setState(() => _rating = index + 1);
-                  widget.onChanged?.call(_rating);
-                },
+                onTap: widget.readOnly
+                    ? null
+                    : () {
+                        setState(() => _rating = index + 1);
+                        widget.onChanged?.call(_rating);
+                      },
                 child: Padding(
                   padding: EdgeInsets.only(right: index < 4 ? 6.w : 0),
                   child: Icon(
@@ -835,12 +847,23 @@ class _OrderStarRatingCardState extends State<OrderStarRatingCard> {
 }
 
 class OrderReviewField extends StatelessWidget {
-  const OrderReviewField({super.key, this.controller});
+  const OrderReviewField({
+    super.key,
+    this.controller,
+    this.readOnly = false,
+  });
 
   final TextEditingController? controller;
+  final bool readOnly;
 
   @override
   Widget build(BuildContext context) {
+    final textStyle = AppTextStyles.bodySmall(color: AppColors.textPrimary)
+        .copyWith(
+          fontWeight: FontWeight.w400,
+          fontSize: 13.sp,
+          height: 1.23,
+        );
     return Container(
       width: double.infinity,
       constraints: BoxConstraints(minHeight: 88.h),
@@ -850,28 +873,42 @@ class OrderReviewField extends StatelessWidget {
         borderRadius: BorderRadius.circular(12.r),
         border: Border.all(color: const Color(0xFFE0E6E0)),
       ),
-      child: TextField(
-        controller: controller,
-        maxLines: 4,
-        minLines: 3,
-        decoration: InputDecoration(
-          border: InputBorder.none,
-          hintText: OrderFlowStrings.reviewHint,
-          hintStyle: AppTextStyles.bodySmall(color: const Color(0xFF6B756E))
-              .copyWith(
-                fontWeight: FontWeight.w400,
-                fontSize: 13.sp,
-                height: 1.23,
+      child: readOnly
+          ? Padding(
+              padding: EdgeInsets.symmetric(vertical: 10.h),
+              child: Text(
+                controller?.text.isNotEmpty == true
+                    ? controller!.text
+                    : OrderFlowStrings.reviewHint,
+                style: textStyle.copyWith(
+                  color: controller?.text.isNotEmpty == true
+                      ? AppColors.textPrimary
+                      : const Color(0xFF6B756E),
+                  fontStyle: controller?.text.isNotEmpty == true
+                      ? FontStyle.normal
+                      : FontStyle.italic,
+                ),
               ),
-          isDense: true,
-          contentPadding: EdgeInsets.symmetric(vertical: 10.h),
-        ),
-        style: AppTextStyles.bodySmall(color: AppColors.textPrimary).copyWith(
-          fontWeight: FontWeight.w400,
-          fontSize: 13.sp,
-          height: 1.23,
-        ),
-      ),
+            )
+          : TextField(
+              controller: controller,
+              maxLines: 4,
+              minLines: 3,
+              decoration: InputDecoration(
+                border: InputBorder.none,
+                hintText: OrderFlowStrings.reviewHint,
+                hintStyle:
+                    AppTextStyles.bodySmall(color: const Color(0xFF6B756E))
+                        .copyWith(
+                          fontWeight: FontWeight.w400,
+                          fontSize: 13.sp,
+                          height: 1.23,
+                        ),
+                isDense: true,
+                contentPadding: EdgeInsets.symmetric(vertical: 10.h),
+              ),
+              style: textStyle,
+            ),
     );
   }
 }

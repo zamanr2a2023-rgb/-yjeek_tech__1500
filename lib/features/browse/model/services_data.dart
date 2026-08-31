@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:yjeek_app/l10n/l10n.dart';
 
 class ServiceCategoryItem {
   const ServiceCategoryItem({
@@ -99,10 +100,10 @@ class ServiceAddon {
 }
 
 abstract final class ServicesData {
-  static const String homeTitle = 'Services';
-  static const String searchHint = 'Search services or providers…';
-  static const String popularNearYou = 'Popular near you';
-  static const String seeAll = 'See all';
+  static String get homeTitle => L10n.tr('Services');
+  static String get searchHint => L10n.tr('Search services or providers…');
+  static String get popularNearYou => L10n.tr('Popular near you');
+  static String get seeAll => L10n.tr('See all');
 
   static const List<ServiceCategoryItem> categories = [
     ServiceCategoryItem(

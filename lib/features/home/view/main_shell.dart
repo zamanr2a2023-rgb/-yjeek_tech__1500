@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:yjeek_app/core/constants/app_colors.dart';
+import 'package:yjeek_app/core/providers/app_providers.dart';
 import 'package:yjeek_app/core/providers/shell_provider.dart';
 import 'package:yjeek_app/features/home/view/home_screen.dart';
 import 'package:yjeek_app/features/home/view/widgets/home_widgets.dart';
@@ -9,6 +10,8 @@ import 'package:yjeek_app/features/navigation/view/account_screen.dart';
 import 'package:yjeek_app/features/navigation/view/cart_screen.dart';
 import 'package:yjeek_app/features/navigation/view/orders_screen.dart';
 import 'package:yjeek_app/features/navigation/view/wallet_screen.dart';
+import 'package:yjeek_app/features/ui_content/view/ui_banner_widgets.dart';
+import 'package:yjeek_app/l10n/locale_controller.dart';
 
 class MainShell extends ConsumerStatefulWidget {
   const MainShell({
@@ -34,11 +37,27 @@ class MainShell extends ConsumerStatefulWidget {
   ConsumerState<MainShell> createState() => _MainShellState();
 }
 
-class _MainShellState extends ConsumerState<MainShell> {
+class _MainShellState extends ConsumerState<MainShell>
+    with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     Future.microtask(_applyInitialTab);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      invalidateCmsBanners(ref);
+      ref.invalidate(homeFeedProvider);
+    }
   }
 
   @override
@@ -78,6 +97,7 @@ class _MainShellState extends ConsumerState<MainShell> {
   @override
   Widget build(BuildContext context) {
     final shell = ref.watch(shellProvider);
+    ref.watch(localeControllerProvider);
     final notifier = ref.read(shellProvider.notifier);
 
     final pages = [
@@ -107,15 +127,17 @@ class _MainShellState extends ConsumerState<MainShell> {
       const AccountScreen(),
     ];
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: IndexedStack(
-        index: shell.currentIndex,
-        children: pages,
-      ),
-      bottomNavigationBar: HomeBottomNavBar(
-        currentIndex: shell.currentIndex,
-        onTap: notifier.setTab,
+    return UiAppOpenPopupHost(
+      child: Scaffold(
+        backgroundColor: AppColors.background,
+        body: IndexedStack(
+          index: shell.currentIndex,
+          children: pages,
+        ),
+        bottomNavigationBar: HomeBottomNavBar(
+          currentIndex: shell.currentIndex,
+          onTap: notifier.setTab,
+        ),
       ),
     );
   }

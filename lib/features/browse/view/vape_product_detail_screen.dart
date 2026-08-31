@@ -6,7 +6,7 @@ import 'package:yjeek_app/core/constants/app_text_styles.dart';
 import 'package:yjeek_app/core/providers/app_providers.dart';
 import 'package:yjeek_app/core/providers/shell_provider.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
-import 'package:yjeek_app/features/auth/view/widgets/checkout_login_sheet.dart';
+import 'package:yjeek_app/features/auth/utils/require_login.dart';
 import 'package:yjeek_app/features/browse/model/vape_data.dart';
 import 'package:yjeek_app/features/browse/view/widgets/vape_widgets.dart';
 import 'package:yjeek_app/features/cart/view/widgets/cart_flow_widgets.dart';
@@ -78,12 +78,7 @@ class _VapeProductDetailScreenState
 
   Future<void> _addToCart({bool replaceCart = false}) async {
     if (_adding) return;
-
-    final storage = ref.read(storageServiceProvider);
-    if (!storage.hasSession) {
-      await CheckoutLoginSheet.show(context);
-      return;
-    }
+    if (!await requireLogin(context, ref)) return;
 
     setState(() => _adding = true);
 
@@ -113,6 +108,10 @@ class _VapeProductDetailScreenState
         context,
         onConfirm: () => _addToCart(replaceCart: true),
       );
+      return;
+    }
+
+    if (await redirectToLoginIfAuthError(context, ref, result.message)) {
       return;
     }
 

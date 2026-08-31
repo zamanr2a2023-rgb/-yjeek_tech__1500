@@ -7,6 +7,8 @@ import 'package:yjeek_app/core/providers/app_providers.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/features/order_flow/model/order_api_mappers.dart';
 import 'package:yjeek_app/features/order_flow/view/widgets/order_flow_widgets.dart';
+import 'package:yjeek_app/features/payments/model/benefit_pay_models.dart';
+import 'package:yjeek_app/features/payments/pay_now_helper.dart';
 import 'package:yjeek_app/features/pickup_order_flow/model/pickup_order_api_mappers.dart';
 import 'package:yjeek_app/features/pickup_order_flow/model/pickup_order_flow_data.dart';
 import 'package:yjeek_app/features/pickup_order_flow/pickup_order_flow_routes.dart';
@@ -30,14 +32,23 @@ class _PickupPayScreenState extends ConsumerState<PickupPayScreen> {
   bool _paying = false;
   bool _expiring = false;
   bool _expired = false;
+  bool _methodBusy = false;
+  DateTime? _payArmedAt;
   String _vendor = PickupOrderFlowData.vendorName;
-  String _method = PickupOrderFlowStrings.yjeekWallet;
-  String _balance = PickupOrderFlowData.walletBalance;
+  String _method = 'BenefitPay';
+  String _methodApi = 'BENEFIT_PAY';
+  String _balance = 'Balance BHD 0.000';
+  num _totalAmount = 0;
   String _subtotal = PickupOrderFlowData.paySubtotal;
   String? _discountLabel;
   String? _discountValue;
   String _serviceFee = PickupOrderFlowData.payServiceFee;
+  String? _vat;
   String _total = PickupOrderFlowData.payTotal;
+  List<PayNowOption> _paymentOptions =
+      List.of(PayNowHelper.defaultPaymentOptions);
+
+  PayNowHelper get _payHelper => PayNowHelper(ref, context);
 
   @override
   void initState() {
@@ -66,13 +77,6 @@ class _PickupPayScreenState extends ConsumerState<PickupPayScreen> {
     return '${m.toString()}:${s.toString().padLeft(2, '0')}';
   }
 
-  bool _isPaidOrCash(String? method, String? paymentStatus) {
-    final m = (method ?? '').toUpperCase();
-    final p = (paymentStatus ?? '').toUpperCase();
-    if (p == 'PAID' || p == 'AUTHORIZED') return true;
-    return m == 'CASH' || m == 'COD' || m == 'CASH_ON_DELIVERY';
-  }
-
   Future<void> _hydrate() async {
     final orderId = widget.orderId;
     if (orderId == null || orderId.isEmpty) return;
@@ -83,11 +87,8 @@ class _PickupPayScreenState extends ConsumerState<PickupPayScreen> {
     final wallet = await walletFuture;
     if (!mounted) return;
 
-    final balanceText = wallet.balance != null
-        ? 'Balance ${formatBhd(wallet.balance)}'
-        : (wallet.balanceLabel.isNotEmpty && wallet.balanceLabel != '___'
-            ? 'Balance ${wallet.balanceLabel}'
-            : _balance);
+    final balanceNum = wallet.balance ?? parseMoney(wallet.balanceLabel) ?? 0;
+    final balanceText = 'Balance ${formatBhd(balanceNum)}';
 
     if (order == null) {
       setState(() => _balance = balanceText);
@@ -97,28 +98,33 @@ class _PickupPayScreenState extends ConsumerState<PickupPayScreen> {
     final vendor = order['vendor'];
     final vendorName = vendor is Map ? vendor['name']?.toString() : null;
     final method = order['paymentMethod']?.toString() ?? '';
-    final paymentStatus = order['paymentStatus']?.toString() ??
-        (order['payment'] is Map
-            ? (order['payment'] as Map)['status']?.toString()
-            : null);
+    final paymentStatus = PayNowHelper.paymentStatusOf(order);
     final status = (order['status']?.toString() ?? '').toUpperCase();
     final deadline =
         DateTime.tryParse(order['paymentDeadline']?.toString() ?? '')
             ?.toLocal();
     final left = deadline?.difference(DateTime.now()).inSeconds;
-
-    final pickupAmt = order['pickupDiscountAmount'];
-    final pickupNum = pickupAmt is num
-        ? pickupAmt.toDouble()
-        : double.tryParse(pickupAmt?.toString() ?? '') ?? 0;
+    final options = PayNowHelper.parsePayNowOptions(
+      order['availablePaymentMethods'],
+      orderPaymentMethod: method.isNotEmpty ? method : null,
+    );
+    final totalNum = parseMoney(order['totalAmount']) ?? 0;
+    final pickupNum = parseMoney(order['pickupDiscountAmount']) ?? 0;
+    final vatNum = parseMoney(order['vatAmount']) ?? 0;
 
     setState(() {
       _balance = balanceText;
+      _paymentOptions = options;
+      _totalAmount = totalNum;
       if (vendorName != null && vendorName.isNotEmpty) _vendor = vendorName;
-      _method = formatPaymentMethod(method);
+      if (method.isNotEmpty) {
+        _methodApi = method.toUpperCase();
+        _method = formatPaymentMethod(method);
+      }
       _subtotal = formatBhd(order['subtotal']);
       _serviceFee = formatBhd(order['serviceFee']);
-      _total = formatBhd(order['totalAmount']);
+      _total = formatBhd(totalNum);
+      _vat = vatNum > 0 ? formatBhd(vatNum) : null;
       if (pickupNum > 0) {
         _discountLabel = pickupDiscountLabelFromOrder(order);
         _discountValue = '− ${formatBhd(pickupNum)}';
@@ -129,19 +135,22 @@ class _PickupPayScreenState extends ConsumerState<PickupPayScreen> {
       if (left != null) {
         if (left > 0) {
           _secondsLeft = left;
-        } else if (!_isPaidOrCash(method, paymentStatus)) {
+        } else if (!PayNowHelper.isSettled(paymentStatus) &&
+            !PayNowHelper.isCashMethod(method)) {
           _secondsLeft = 0;
         }
       }
     });
 
-    if (_isPaidOrCash(method, paymentStatus)) {
+    if (PayNowHelper.isSettled(paymentStatus)) {
       _timer?.cancel();
       context.pushReplacement(PickupOrderFlowRoutes.confirmedFor(orderId));
       return;
     }
 
-    if (status == 'CANCELLED' || status == 'EXPIRED' || (left != null && left <= 0)) {
+    if (status == 'CANCELLED' ||
+        status == 'EXPIRED' ||
+        (left != null && left <= 0)) {
       await _onPaymentWindowExpired(alreadyCancelled: status == 'CANCELLED');
     }
   }
@@ -163,92 +172,69 @@ class _PickupPayScreenState extends ConsumerState<PickupPayScreen> {
       _secondsLeft = 0;
       _expiring = false;
     });
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(PickupOrderFlowStrings.paymentExpired),
-        backgroundColor: Color(0xFFB42318),
-      ),
+    _payHelper.snack(
+      PickupOrderFlowStrings.paymentExpired,
+      color: const Color(0xFFB42318),
     );
     context.go('${RouteNames.home}?tab=1');
   }
 
   Future<void> _changePayment() async {
-    if (_expired) return;
+    if (_expired || _methodBusy || _paying) return;
     final orderId = widget.orderId;
     if (orderId == null || orderId.isEmpty) return;
-    const options = <(String, String)>[
-      ('YJEEK_WALLET', 'Yjeek Wallet'),
-      ('CARD', 'Card'),
-      ('BENEFIT_PAY', 'BenefitPay'),
-      ('APPLE_PAY', 'Apple Pay'),
-      ('CASH', 'Cash'),
-    ];
-    final selected = await showModalBottomSheet<String>(
-      context: context,
-      builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            for (final opt in options)
-              ListTile(
-                title: Text(opt.$2),
-                onTap: () => Navigator.pop(ctx, opt.$1),
-              ),
-          ],
-        ),
-      ),
-    );
-    if (selected == null || !mounted) return;
-    final ok = await ref
-        .read(ordersRepositoryProvider)
-        .changePaymentMethod(orderId, selected);
-    if (!mounted) return;
-    if (!ok) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not change payment method')),
+
+    setState(() => _methodBusy = true);
+    try {
+      final selected = await _payHelper.showMethodSheet(
+        options: _paymentOptions,
+        currentApi: _methodApi,
+        balanceLabel: _balance,
       );
-      return;
+      await Future<void>.delayed(const Duration(milliseconds: 350));
+      if (!mounted) return;
+      if (selected == null) return;
+      if (PayNowHelper.methodsMatch(selected, _methodApi)) {
+        _payArmedAt = DateTime.now().add(const Duration(milliseconds: 400));
+        return;
+      }
+      final ok = await _payHelper.changeMethod(
+        orderIds: [orderId],
+        selected: selected,
+      );
+      if (!ok || !mounted) return;
+      setState(() {
+        _methodApi = selected;
+        _method = formatPaymentMethod(selected);
+        _payArmedAt = DateTime.now().add(const Duration(milliseconds: 400));
+      });
+    } finally {
+      if (mounted) setState(() => _methodBusy = false);
     }
-    setState(() => _method = formatPaymentMethod(selected));
   }
 
   Future<void> _pay() async {
-    if (_paying || _expired || _secondsLeft <= 0) return;
+    if (_paying || _expired || _methodBusy || _secondsLeft <= 0) return;
+    final armed = _payArmedAt;
+    if (armed != null && DateTime.now().isBefore(armed)) return;
     final orderId = widget.orderId;
     if (orderId == null || orderId.isEmpty) {
-      context.pushReplacement(PickupOrderFlowRoutes.confirmed);
+      _payHelper.snack('Order not found', color: const Color(0xFFB42318));
       return;
     }
     setState(() => _paying = true);
-    final initiated =
-        await ref.read(ordersRepositoryProvider).initiatePayment(orderId);
-    final gatewayRef = initiated?['gatewayRef']?.toString();
-    var ok = await ref.read(ordersRepositoryProvider).confirmPayment(
-          orderId,
-          status: 'PAID',
-          gatewayRef: gatewayRef,
-        );
-    if (!ok) {
-      final order = await ref.read(ordersRepositoryProvider).getOrder(orderId);
-      final paymentStatus = order?['paymentStatus']?.toString() ??
-          (order?['payment'] is Map
-              ? (order!['payment'] as Map)['status']?.toString()
-              : null);
-      ok = paymentStatus == 'PAID' || paymentStatus == 'AUTHORIZED';
-    }
-    if (!mounted) return;
-    setState(() => _paying = false);
-    if (!ok) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Payment failed — try again'),
-          backgroundColor: Color(0xFFB42318),
-        ),
+    try {
+      final ok = await _payHelper.pay(
+        orderIds: [orderId],
+        methodApi: _methodApi,
+        totalAmount: _totalAmount,
       );
-      return;
+      if (!ok || !mounted) return;
+      _timer?.cancel();
+      context.pushReplacement(PickupOrderFlowRoutes.confirmedFor(orderId));
+    } finally {
+      if (mounted) setState(() => _paying = false);
     }
-    _timer?.cancel();
-    context.pushReplacement(PickupOrderFlowRoutes.confirmedFor(orderId));
   }
 
   @override
@@ -266,7 +252,8 @@ class _PickupPayScreenState extends ConsumerState<PickupPayScreen> {
           SizedBox(height: 14.h),
           PickupPayMethodCard(
             methodLabel: _method,
-            balanceLabel: _balance,
+            balanceLabel:
+                PayNowHelper.subtitleForMethod(_methodApi, _balance),
             onChange: _expired ? null : _changePayment,
           ),
           SizedBox(height: 14.h),
@@ -275,6 +262,7 @@ class _PickupPayScreenState extends ConsumerState<PickupPayScreen> {
             discountLabel: _discountLabel,
             discountValue: _discountValue,
             serviceFee: _serviceFee,
+            vat: _vat,
             total: _total,
           ),
         ],
@@ -282,7 +270,9 @@ class _PickupPayScreenState extends ConsumerState<PickupPayScreen> {
       bottom: PickupPayStickyFooter(
         timerLabel: _timerLabel,
         payAmount: _total,
-        onPay: (_paying || _expired || _secondsLeft <= 0) ? () {} : _pay,
+        onPay: (_paying || _expired || _methodBusy || _secondsLeft <= 0)
+            ? () {}
+            : _pay,
       ),
     );
   }

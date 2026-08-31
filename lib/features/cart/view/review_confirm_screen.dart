@@ -9,13 +9,16 @@ import 'package:yjeek_app/core/providers/app_providers.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/features/cart/cart_routes.dart';
 import 'package:yjeek_app/features/cart/model/cart_flow_data.dart';
+import 'package:yjeek_app/features/cart/model/cart_repository.dart';
+import 'package:yjeek_app/features/cart/model/checkout_helpers.dart';
+import 'package:yjeek_app/features/cart/model/pending_checkout.dart';
 import 'package:yjeek_app/features/cart/view/widgets/cart_flow_widgets.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/account_widgets.dart';
 import 'package:yjeek_app/features/order_flow/model/order_api_mappers.dart';
 import 'package:yjeek_app/features/order_flow/order_flow_routes.dart';
-import 'package:yjeek_app/routes/route_names.dart';
+import 'package:yjeek_app/routes/app_router.dart';
 
-/// Food: 10s window after place-order to edit or confirm (auto-confirms).
+/// Food: 10s window after checkout to edit or confirm (auto-places order).
 class ReviewConfirmScreen extends ConsumerStatefulWidget {
   const ReviewConfirmScreen({super.key, this.orderId});
 
@@ -32,6 +35,7 @@ class _ReviewConfirmScreenState extends ConsumerState<ReviewConfirmScreen> {
   Timer? _timer;
   bool _finishing = false;
   bool _loading = true;
+  bool _placing = false;
 
   String _vendor = CartFlowData.vendor;
   List<({String qty, String name, String price})> _items = const [];
@@ -39,6 +43,9 @@ class _ReviewConfirmScreenState extends ConsumerState<ReviewConfirmScreen> {
   String _arrives = CartFlowStrings.standardDelivery;
   String _payment = CartFlowStrings.cashOnDelivery;
   String _total = CartFlowData.orderTotal;
+
+  bool get _hasExistingOrder =>
+      widget.orderId != null && widget.orderId!.isNotEmpty;
 
   @override
   void initState() {
@@ -60,11 +67,11 @@ class _ReviewConfirmScreenState extends ConsumerState<ReviewConfirmScreen> {
   void _startTimer() {
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (!mounted || _finishing) return;
+      if (!mounted || _finishing || _placing) return;
       if (_secondsLeft <= 1) {
         _timer?.cancel();
         setState(() => _secondsLeft = 0);
-        _goWaiting();
+        _confirmAndPlace();
         return;
       }
       setState(() => _secondsLeft--);
@@ -72,11 +79,14 @@ class _ReviewConfirmScreenState extends ConsumerState<ReviewConfirmScreen> {
   }
 
   Future<void> _hydrate() async {
-    final orderId = widget.orderId;
-    if (orderId == null || orderId.isEmpty) {
-      setState(() => _loading = false);
+    if (_hasExistingOrder) {
+      await _hydrateFromOrder(widget.orderId!);
       return;
     }
+    await _hydrateFromCart();
+  }
+
+  Future<void> _hydrateFromOrder(String orderId) async {
     final order = await ref.read(ordersRepositoryProvider).getOrder(orderId);
     if (!mounted) return;
     if (order == null) {
@@ -115,43 +125,136 @@ class _ReviewConfirmScreenState extends ConsumerState<ReviewConfirmScreen> {
     });
   }
 
-  void _goWaiting() {
-    if (_finishing) return;
-    _finishing = true;
-    _timer?.cancel();
-    final orderId = widget.orderId;
-    context.pushReplacement(OrderFlowRoutes.waitingFor(orderId));
-  }
-
-  Future<void> _cancelAndLeave(String route) async {
-    if (_finishing) return;
-    _finishing = true;
-    _timer?.cancel();
-    final orderId = widget.orderId;
-    if (orderId != null && orderId.isNotEmpty) {
-      await ref.read(ordersRepositoryProvider).cancel(
-            orderId,
-            reason: 'Edited before confirm',
-          );
-    }
+  Future<void> _hydrateFromCart() async {
+    final pending = ref.read(pendingCheckoutProvider);
+    final cart = await ref
+        .read(cartRepositoryProvider)
+        .fetchCart(CartOrderType.delivery);
+    final address =
+        await ref.read(addressesRepositoryProvider).defaultAddress();
     if (!mounted) return;
-    context.go(route);
+
+    if (!cart.hasItems) {
+      ref.read(pendingCheckoutProvider.notifier).state = null;
+      showEmptyCartSnackBar(context);
+      context.goHome(tab: 2, emptyCart: true);
+      return;
+    }
+
+    final tip = pending?.tipAmount ?? 0;
+    final paymentId = pending?.paymentId ?? 'benefitpay';
+    final lines = cart.items
+        .map(
+          (item) => (
+            qty: '${item.quantity}×',
+            name: item.name,
+            price: item.unitPriceLabel,
+          ),
+        )
+        .toList();
+
+    final eta = cart.deliveryEta;
+    final arrives = eta != null && eta.etaMin > 0
+        ? '${eta.etaMin}–${eta.etaMax > 0 ? eta.etaMax : eta.etaMin} min · Standard'
+        : CartFlowStrings.standardDelivery;
+
+    final deliverTo = address == null
+        ? CartFlowData.reviewAddressLine
+        : [
+            if (address.label.trim().isNotEmpty) address.label.trim(),
+            if (address.subtitle.trim().isNotEmpty) address.subtitle.trim(),
+          ].join(' · ');
+
+    setState(() {
+      _vendor = cart.vendorName.isNotEmpty ? cart.vendorName : _vendor;
+      _items = lines;
+      _deliverTo = deliverTo.isEmpty ? CartFlowData.reviewAddressLine : deliverTo;
+      _arrives = arrives;
+      _payment = formatPaymentMethod(paymentMethodApiValue(paymentId));
+      _total = formatCheckoutTotal(cart, tip);
+      _loading = false;
+    });
   }
 
-  Future<void> _editOrder() =>
-      _cancelAndLeave('${RouteNames.home}?tab=2&cart=1');
-
-  Future<void> _editAddress() async {
-    if (_finishing) return;
-    // Pause countdown while choosing address; cancel order so checkout can re-run.
+  Future<void> _confirmAndPlace() async {
+    if (_finishing || _placing) return;
     _timer?.cancel();
-    final orderId = widget.orderId;
-    if (orderId != null && orderId.isNotEmpty) {
+
+    // Legacy path: order already created at checkout.
+    if (_hasExistingOrder) {
+      _finishing = true;
+      if (mounted) {
+        context.pushReplacement(OrderFlowRoutes.waitingFor(widget.orderId));
+      }
+      return;
+    }
+
+    final pending = ref.read(pendingCheckoutProvider);
+    if (pending == null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Checkout session expired. Try again.')),
+      );
+      context.go(CartRoutes.checkout);
+      return;
+    }
+
+    setState(() => _placing = true);
+    try {
+      final cart = await ref
+          .read(cartRepositoryProvider)
+          .fetchCart(CartOrderType.delivery);
+      if (!mounted) return;
+      if (!cart.hasItems) {
+        ref.read(pendingCheckoutProvider.notifier).state = null;
+        setState(() {
+          _placing = false;
+          _secondsLeft = _initialSeconds;
+        });
+        showEmptyCartSnackBar(context);
+        context.goHome(tab: 2, emptyCart: true);
+        return;
+      }
+      final dropOff = dropOffApiValue(pending.dropOffIndex);
+      final order = await ref.read(cartRepositoryProvider).checkout(
+            type: CartOrderType.delivery,
+            paymentMethod: paymentMethodApiValue(pending.paymentId),
+            tipAmount: pending.tipAmount,
+            addressId: pending.addressId,
+            dropOffPreferences: dropOff == null ? null : [dropOff],
+            saveDropOffPreferences: pending.saveDropOff,
+          );
+      if (!mounted) return;
+      _finishing = true;
+      ref.read(pendingCheckoutProvider.notifier).state = null;
+      final orderId = order?['id']?.toString();
+      context.pushReplacement(OrderFlowRoutes.waitingFor(orderId));
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _placing = false;
+        _secondsLeft = _initialSeconds;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
+      );
+      _startTimer();
+    }
+  }
+
+  /// Same route as the address "Edit" link.
+  Future<void> _editAddress() async {
+    if (_finishing || _placing) return;
+    _timer?.cancel();
+
+    if (_hasExistingOrder) {
+      final orderId = widget.orderId!;
       await ref.read(ordersRepositoryProvider).cancel(
             orderId,
             reason: 'Changed address before confirm',
           );
     }
+
     if (!mounted) return;
     _finishing = true;
     await context.push(CartRoutes.changeAddress);
@@ -161,10 +264,11 @@ class _ReviewConfirmScreenState extends ConsumerState<ReviewConfirmScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final busy = _finishing || _placing;
     return CartFlowScaffold(
       title: CartFlowStrings.reviewConfirm,
       lightHeader: true,
-      onBack: _finishing ? null : _editOrder,
+      onBack: busy ? null : _editAddress,
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : ListView(
@@ -191,7 +295,7 @@ class _ReviewConfirmScreenState extends ConsumerState<ReviewConfirmScreen> {
                   arrivesIn: _arrives,
                   paymentMethod: _payment,
                   orderTotal: _total,
-                  onEditAddress: _finishing ? null : _editAddress,
+                  onEditAddress: busy ? null : _editAddress,
                 ),
               ],
             ),
@@ -208,16 +312,16 @@ class _ReviewConfirmScreenState extends ConsumerState<ReviewConfirmScreen> {
               Expanded(
                 child: CartOutlineButton(
                   label: CartFlowStrings.editOrder,
-                  onPressed: _finishing ? () {} : _editOrder,
+                  onPressed: busy ? () {} : _editAddress,
                 ),
               ),
               SizedBox(width: 12.w),
               Expanded(
                 child: PrimaryGreenButton(
-                  label: CartFlowStrings.confirmNow,
+                  label: _placing ? '…' : CartFlowStrings.confirmNow,
                   height: 53,
-                  enabled: !_finishing,
-                  onPressed: _goWaiting,
+                  enabled: !busy,
+                  onPressed: _confirmAndPlace,
                 ),
               ),
             ],

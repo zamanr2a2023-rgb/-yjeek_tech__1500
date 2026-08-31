@@ -1,7 +1,8 @@
 import 'package:yjeek_app/l10n/l10n.dart';
 abstract final class HomeStrings {
-  static String get hello => L10n.tr('Hello, Asmaa 👋');
+  static String get hello => L10n.tr('Hello 👋');
   static String get deliverTo => L10n.tr('Deliver to');
+  static String get chooseLocation => L10n.tr('Choose location');
   static String get searchHome => L10n.tr('Search for restaurants, groceries…');
   static String get searchCategories => L10n.tr('Search categories & vendors…');
   static String get preparingOrder => L10n.tr('Preparing your order');
@@ -22,4 +23,11 @@ abstract final class HomeStrings {
   static String get navCart => L10n.tr('Cart');
   static String get navWallet => L10n.tr('Wallet');
   static String get navAccount => L10n.tr('Account');
+
+  static String helloNamed(String name) =>
+      L10n.trParams('Hello, {name} 👋', {'name': name});
+  static String get orderConfirmedStatus => L10n.tr('Order confirmed');
+  static String get findingChamp => L10n.tr('Finding your Champ');
+  static String get onTheWay => L10n.tr('On the way');
+  static String get orderInProgress => L10n.tr('Order in progress');
 }

@@ -395,3 +395,58 @@ List<BillLine> receiptBillFromTotals(Map<String, dynamic>? totals) {
     ),
   ];
 }
+
+const _rateableStatuses = {'DELIVERED', 'COLLECTED', 'COMPLETED'};
+
+/// Whether the customer can still submit a rating for this order.
+bool orderCanRate(Map<String, dynamic> order) {
+  if (order.containsKey('canRate')) return order['canRate'] == true;
+  final status = order['status']?.toString().toUpperCase() ?? '';
+  if (!_rateableStatuses.contains(status)) return false;
+  return order['review'] == null;
+}
+
+/// Parsed review from GET /orders/:id (null when not yet rated).
+SubmittedReview? submittedReviewFromOrder(Map<String, dynamic>? order) {
+  if (order == null) return null;
+  final review = order['review'];
+  if (review is! Map) return null;
+  final map = Map<String, dynamic>.from(review);
+  int? rating(dynamic value) => value is num ? value.round().clamp(1, 5) : null;
+  final comment = map['comment']?.toString();
+  return SubmittedReview(
+    orderRating: rating(map['orderRating']),
+    driverRating: rating(map['driverRating']),
+    foodRating: rating(map['foodRating']),
+    experienceRating: rating(map['experienceRating']),
+    comment: comment != null && comment.isNotEmpty ? comment : null,
+  );
+}
+
+class SubmittedReview {
+  const SubmittedReview({
+    this.orderRating,
+    this.driverRating,
+    this.foodRating,
+    this.experienceRating,
+    this.comment,
+  });
+
+  final int? orderRating;
+  final int? driverRating;
+  final int? foodRating;
+  final int? experienceRating;
+  final String? comment;
+}
+
+/// Receipt badge from fulfillment status (matches orders list), not paymentStatus.
+String? receiptBadgeLabel(Map<String, dynamic>? receipt) {
+  if (receipt == null) return null;
+  final status = receipt['status']?.toString();
+  if (status != null && status.trim().isNotEmpty) {
+    return formatStatusLabel(status).toUpperCase();
+  }
+  final badgeRaw = receipt['statusBadge']?.toString();
+  if (badgeRaw == null || badgeRaw.isEmpty) return null;
+  return badgeRaw.replaceAll('_', ' ').toUpperCase();
+}

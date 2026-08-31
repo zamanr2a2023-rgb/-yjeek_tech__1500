@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:yjeek_app/l10n/l10n.dart';
 
 class PickupCategory {
   const PickupCategory({
@@ -37,15 +38,15 @@ class PickupSpot {
 }
 
 abstract final class PickupData {
-  static const String homeTitle = 'Pickup';
-  static const String searchHint = 'Search pickup spots…';
-  static const String browseByCategory = 'Browse by category';
-  static const String viewAll = 'View all';
-  static const String readyNearYou = 'Ready near you';
-  static const String pickUpFromAnyCategory = 'Pick up from any category';
-  static const String weeklySpotlight = 'WEEKLY SPOTLIGHT';
-  static const String spotlightVendor = 'Green Artisan Bakery';
-  static const String orderNow = 'Order Now';
+  static String get homeTitle => L10n.tr('Pickup');
+  static String get searchHint => L10n.tr('Search pickup spots…');
+  static String get browseByCategory => L10n.tr('Browse by category');
+  static String get viewAll => L10n.tr('View all');
+  static String get readyNearYou => L10n.tr('Ready near you');
+  static String get pickUpFromAnyCategory => L10n.tr('Pick up from any category');
+  static String get weeklySpotlight => L10n.tr('WEEKLY SPOTLIGHT');
+  static String get spotlightVendor => L10n.tr('Green Artisan Bakery');
+  static String get orderNow => L10n.tr('Order Now');
 
   static const List<PickupCategory> featuredCategories = [
     PickupCategory(

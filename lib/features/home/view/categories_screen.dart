@@ -8,8 +8,8 @@ import 'package:yjeek_app/core/providers/app_providers.dart';
 import 'package:yjeek_app/features/browse/browse_routes.dart';
 import 'package:yjeek_app/features/home/model/category_item.dart';
 import 'package:yjeek_app/features/home/model/category_navigation.dart';
-import 'package:yjeek_app/features/home/model/home_data.dart';
 import 'package:yjeek_app/features/home/view/widgets/home_widgets.dart';
+import 'package:yjeek_app/features/ui_content/view/ui_banner_widgets.dart';
 import 'package:yjeek_app/routes/app_router.dart';
 
 class CategoriesScreen extends ConsumerStatefulWidget {
@@ -29,11 +29,13 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
   @override
   Widget build(BuildContext context) {
     final categoriesAsync = ref.watch(categoriesProvider);
-    final categories =
-        categoriesAsync.valueOrNull ?? HomeData.allCategories;
+    final categoriesLoading = categoriesAsync.isLoading;
+    final categories = categoriesLoading
+        ? const <CategoryItem>[]
+        : (categoriesAsync.valueOrNull ?? const <CategoryItem>[]);
     final home = ref.watch(homeFeedProvider).valueOrNull;
     final deliverTo =
-        home?.deliverToLabel ?? HomeData.deliveryLocation;
+        home?.deliverToLabel ?? HomeStrings.chooseLocation;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -41,7 +43,11 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
         color: AppColors.primary,
         onRefresh: () async {
           ref.invalidate(categoriesProvider);
-          await ref.read(categoriesProvider.future);
+          invalidateCmsBanners(ref);
+          await Future.wait([
+            ref.read(categoriesProvider.future),
+            ref.read(cmsBannersProvider('category_top').future),
+          ]);
         },
         child: CustomScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
@@ -130,6 +136,10 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
                       onTap: () => context.push(BrowseRoutes.foodSearch()),
                     ),
                   ),
+                  const Padding(
+                    padding: EdgeInsets.fromLTRB(20, 14, 20, 0),
+                    child: UiPlacementBanner(placementKey: 'category_top'),
+                  ),
                   Padding(
                     padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
                     child: Row(
@@ -151,7 +161,20 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
                 ],
               ),
             ),
-            SliverPadding(
+            if (categoriesLoading)
+              const SliverFillRemaining(
+                hasScrollBody: false,
+                child: Center(
+                  child: CircularProgressIndicator(color: AppColors.primary),
+                ),
+              )
+            else if (categories.isEmpty)
+              const SliverFillRemaining(
+                hasScrollBody: false,
+                child: SizedBox.shrink(),
+              )
+            else
+              SliverPadding(
               padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
               sliver: _isGridView
                   ? SliverGridCategories(
@@ -190,7 +213,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
                                     ),
                                     const SizedBox(width: 12),
                                     Text(
-                                      category.name,
+                                      category.localizedName,
                                       style: AppTextStyles.titleSmall()
                                           .copyWith(fontSize: 15),
                                     ),
@@ -208,10 +231,6 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
                         childCount: categories.length,
                       ),
                     ),
-            ),
-            const SliverPadding(
-              padding: EdgeInsets.fromLTRB(20, 20, 20, 24),
-              sliver: SliverToBoxAdapter(child: WeeklySpotlightBanner()),
             ),
           ],
         ),
@@ -247,7 +266,7 @@ class SliverGridCategories extends StatelessWidget {
         crossAxisCount: 4,
         mainAxisSpacing: 8,
         crossAxisSpacing: 0,
-        mainAxisExtent: 90,
+        mainAxisExtent: 96,
       ),
       delegate: SliverChildBuilderDelegate(
         (context, index) => GestureDetector(

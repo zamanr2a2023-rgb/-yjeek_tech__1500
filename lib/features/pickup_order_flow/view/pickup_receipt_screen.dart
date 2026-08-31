@@ -146,10 +146,7 @@ class _PickupReceiptScreenState extends ConsumerState<PickupReceiptScreen> {
         'pickupDiscountLabel': pickupDiscountLabelFromOrder(totalsMap),
     };
     final billLines = pickupBillFromOrderMoney(money);
-    final badgeRaw = receipt?['statusBadge']?.toString();
-    final badgeLabel = badgeRaw != null && badgeRaw.isNotEmpty
-        ? badgeRaw.replaceAll('_', ' ').toUpperCase()
-        : null;
+    final badgeLabel = receiptBadgeLabel(receipt);
     final placed = receipt?['placedAt'];
     final dateLabel = orderNumber == null
         ? null

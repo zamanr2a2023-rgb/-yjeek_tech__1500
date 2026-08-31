@@ -7,10 +7,12 @@ import 'package:yjeek_app/core/constants/app_text_styles.dart';
 import 'package:yjeek_app/core/constants/navigation_strings.dart';
 import 'package:yjeek_app/core/providers/app_providers.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
+import 'package:yjeek_app/features/auth/utils/require_login.dart';
 import 'package:yjeek_app/features/navigation/model/user_me.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/navigation_widgets.dart';
 import 'package:yjeek_app/routes/app_router.dart';
 import 'package:yjeek_app/routes/route_names.dart';
+import 'package:yjeek_app/features/ui_content/view/ui_banner_widgets.dart';
 
 class AccountScreen extends ConsumerWidget {
   const AccountScreen({super.key});
@@ -20,6 +22,7 @@ class AccountScreen extends ConsumerWidget {
     await ref.read(authApiProvider).logout(bearerToken: storage.token);
     await storage.clearSession();
     ref.invalidate(userMeProvider);
+    ref.invalidate(notificationsUnreadCountProvider);
     if (!context.mounted) return;
     context.go(RouteNames.welcome);
   }
@@ -33,7 +36,20 @@ class AccountScreen extends ConsumerWidget {
       backgroundColor: AppColors.background,
       body: CustomScrollView(
         slivers: [
-          SliverToBoxAdapter(child: _AccountHeader(user: user)),
+          SliverToBoxAdapter(
+            child: _AccountHeader(
+              user: user,
+              unreadCount:
+                  ref.watch(notificationsUnreadCountProvider).valueOrNull ?? 0,
+              onNotificationsTap: () => context.push(RouteNames.notifications),
+            ),
+          ),
+          const SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(20, 16, 20, 0),
+              child: UiPlacementBanner(placementKey: 'account_promo'),
+            ),
+          ),
           SliverToBoxAdapter(
             child: Padding(
               padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 0),
@@ -137,13 +153,7 @@ class AccountScreen extends ConsumerWidget {
           SliverToBoxAdapter(
             child: Padding(
               padding: EdgeInsets.fromLTRB(20.w, 8.h, 20.w, 24.h),
-              child: Text(
-                NavigationStrings.appVersion,
-                textAlign: TextAlign.center,
-                style: AppTextStyles.caption(
-                  color: AppColors.textSecondary,
-                ).copyWith(fontSize: 10.5.sp, fontWeight: FontWeight.w500),
-              ),
+              child: const _AccountDeletionLink(),
             ),
           ),
         ],
@@ -152,10 +162,107 @@ class AccountScreen extends ConsumerWidget {
   }
 }
 
+class _AccountDeletionLink extends ConsumerStatefulWidget {
+  const _AccountDeletionLink();
+
+  @override
+  ConsumerState<_AccountDeletionLink> createState() =>
+      _AccountDeletionLinkState();
+}
+
+class _AccountDeletionLinkState extends ConsumerState<_AccountDeletionLink> {
+  bool _deleting = false;
+
+  Future<void> _deleteAccount() async {
+    if (_deleting) return;
+    if (!await requireLogin(context, ref)) return;
+    if (!mounted) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(NavigationStrings.deleteAccountConfirmTitle),
+        content: Text(NavigationStrings.deleteAccountConfirmBody),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(NavigationStrings.cancel),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(
+              foregroundColor: const Color(0xFF9B111E),
+            ),
+            child: Text(NavigationStrings.delete),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    setState(() => _deleting = true);
+    final response = await ref.read(userRepositoryProvider).deleteAccount();
+    if (!mounted) return;
+
+    if (response.ok) {
+      final storage = ref.read(storageServiceProvider);
+      await ref.read(authApiProvider).logout(bearerToken: storage.token);
+      await storage.clearSession();
+      ref.invalidate(userMeProvider);
+      ref.invalidate(notificationsUnreadCountProvider);
+      if (!mounted) return;
+      context.go(RouteNames.welcome);
+      return;
+    }
+
+    setState(() => _deleting = false);
+    if (await redirectToLoginIfAuthError(context, ref, response.message)) {
+      return;
+    }
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          response.message ?? NavigationStrings.couldNotDeleteAccount,
+        ),
+        backgroundColor: const Color(0xFFB42318),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: _deleting ? null : _deleteAccount,
+      behavior: HitTestBehavior.opaque,
+      child: Text(
+        _deleting
+            ? NavigationStrings.deleting
+            : NavigationStrings.accountDeletion,
+        textAlign: TextAlign.center,
+        style: AppTextStyles.caption(
+          color: AppColors.textSecondary,
+        ).copyWith(
+          fontSize: 10.5.sp,
+          fontWeight: FontWeight.w500,
+          decoration: TextDecoration.underline,
+          decorationColor: AppColors.textSecondary,
+        ),
+      ),
+    );
+  }
+}
+
 class _AccountHeader extends StatelessWidget {
-  const _AccountHeader({this.user});
+  const _AccountHeader({
+    this.user,
+    this.unreadCount = 0,
+    this.onNotificationsTap,
+  });
 
   final UserMe? user;
+  final int unreadCount;
+  final VoidCallback? onNotificationsTap;
 
   @override
   Widget build(BuildContext context) {
@@ -184,17 +291,58 @@ class _AccountHeader extends StatelessWidget {
                   ).copyWith(fontSize: 18.sp),
                 ),
                 const Spacer(),
-                Container(
-                  width: 34.w,
-                  height: 34.w,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF3E9B47),
-                    borderRadius: BorderRadius.circular(9.r),
-                  ),
-                  child: Icon(
-                    Icons.notifications_none,
-                    color: AppColors.white,
-                    size: 18.sp,
+                GestureDetector(
+                  onTap: onNotificationsTap,
+                  behavior: HitTestBehavior.opaque,
+                  child: SizedBox(
+                    width: 34.w,
+                    height: 34.w,
+                    child: Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        Container(
+                          width: 34.w,
+                          height: 34.w,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF3E9B47),
+                            borderRadius: BorderRadius.circular(9.r),
+                          ),
+                          child: Icon(
+                            Icons.notifications_none,
+                            color: AppColors.white,
+                            size: 18.sp,
+                          ),
+                        ),
+                        if (unreadCount > 0)
+                          Positioned(
+                            top: -2.h,
+                            right: -2.w,
+                            child: Container(
+                              constraints: BoxConstraints(minWidth: 16.w),
+                              height: 16.w,
+                              padding: EdgeInsets.symmetric(horizontal: 4.w),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFDB2626),
+                                borderRadius: BorderRadius.circular(8.r),
+                                border: Border.all(
+                                  color: AppColors.primary,
+                                  width: 1.5,
+                                ),
+                              ),
+                              alignment: Alignment.center,
+                              child: Text(
+                                unreadCount > 99 ? '99+' : '$unreadCount',
+                                style: TextStyle(
+                                  color: AppColors.white,
+                                  fontSize: 8.sp,
+                                  fontWeight: FontWeight.w700,
+                                  height: 1,
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
                   ),
                 ),
               ],

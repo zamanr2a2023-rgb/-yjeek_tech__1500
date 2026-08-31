@@ -11,6 +11,7 @@ import 'package:yjeek_app/features/order_flow/model/order_api_mappers.dart';
 import 'package:yjeek_app/features/order_flow/model/order_flow_data.dart';
 import 'package:yjeek_app/features/order_flow/order_flow_routes.dart';
 import 'package:yjeek_app/features/order_flow/view/widgets/order_flow_widgets.dart';
+import 'package:yjeek_app/features/payments/pay_now_helper.dart';
 import 'package:yjeek_app/features/pickup_order_flow/view/widgets/pickup_order_flow_widgets.dart';
 import 'package:yjeek_app/routes/route_names.dart';
 
@@ -54,6 +55,9 @@ class _OrderWaitingScreenState extends ConsumerState<OrderWaitingScreen> {
   @override
   void initState() {
     super.initState();
+    // Start a local countdown immediately so a failed first poll cannot freeze the ring at ~3m.
+    _deadline = DateTime.now().add(_defaultAcceptWindow);
+    _windowStart = DateTime.now();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _poll();
       _pollTimer = Timer.periodic(const Duration(seconds: 2), (_) => _poll());
@@ -152,7 +156,14 @@ class _OrderWaitingScreenState extends ConsumerState<OrderWaitingScreen> {
     if (status != null && _accepted.contains(status)) {
       _pollTimer?.cancel();
       _tickTimer?.cancel();
-      final needsPay = !_isPaidOrCash(paymentMethod, paymentStatus);
+      final alreadySettled = _isPaidOrCash(paymentMethod, paymentStatus) &&
+          ((paymentStatus ?? '').toUpperCase() == 'PAID' ||
+              (paymentStatus ?? '').toUpperCase() == 'AUTHORIZED');
+      final cash =
+          _isPaidOrCash(paymentMethod, paymentStatus) && !alreadySettled;
+      final needsPay = !alreadySettled &&
+          !cash &&
+          PayNowHelper.canCollectPayment(order);
       if (needsPay) {
         context.pushReplacement(OrderFlowRoutes.payFor(orderId));
       } else {

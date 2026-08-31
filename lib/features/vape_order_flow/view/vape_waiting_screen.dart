@@ -48,6 +48,7 @@ class _VapeWaitingScreenState extends ConsumerState<VapeWaitingScreen> {
   @override
   void initState() {
     super.initState();
+    _deadline = DateTime.now().add(_defaultWindow);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _poll();
       _pollTimer = Timer.periodic(const Duration(seconds: 2), (_) => _poll());

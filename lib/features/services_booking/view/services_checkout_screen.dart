@@ -8,6 +8,7 @@ import 'package:yjeek_app/features/cart/cart_routes.dart';
 import 'package:yjeek_app/features/cart/model/cart_repository.dart';
 import 'package:yjeek_app/features/cart/model/checkout_helpers.dart';
 import 'package:yjeek_app/features/cart/model/payment_methods_repository.dart';
+import 'package:yjeek_app/features/cart/model/pending_checkout.dart';
 import 'package:yjeek_app/features/cart/view/widgets/cart_flow_widgets.dart';
 import 'package:yjeek_app/features/navigation/model/navigation_data.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/navigation_widgets.dart';
@@ -34,7 +35,6 @@ class _ServicesCheckoutScreenState
   String? _specialistName;
   String? _specialistId;
   bool _loading = true;
-  bool _placing = false;
 
   double get _tipAmount =>
       tipAmountFrom(ServicesBookingData.tipOptions, _tipIndex);
@@ -95,39 +95,16 @@ class _ServicesCheckoutScreenState
     }
   }
 
-  Future<void> _placeOrder() async {
-    if (_placing) return;
-    setState(() => _placing = true);
-    try {
-      final cart = _cart;
-      final duration = cart?.items
-          .map((i) => int.tryParse(i.durationLabel?.replaceAll(RegExp(r'\D'), '') ?? '') ?? 0)
-          .fold<int>(0, (a, b) => a + b);
-      final result = await ref.read(cartRepositoryProvider).checkout(
-            type: CartOrderType.service,
-            paymentMethod: paymentMethodApiValue(_paymentId),
-            tipAmount: _tipAmount,
-            serviceFulfillmentMode: cart?.serviceMode ?? 'IN_SALON',
-            serviceStaffId: _specialistId,
-            servicePeopleCount: cart?.partySize ?? 1,
-            serviceDurationMin:
-                (duration != null && duration >= 15) ? duration : 45,
-          );
-      if (!mounted) return;
-      final orderId = result?['id']?.toString() ??
-          result?['orderId']?.toString() ??
-          (result?['order'] is Map
-              ? (result!['order'] as Map)['id']?.toString()
-              : null);
-      context.pushReplacement(ServicesBookingRoutes.reviewFor(orderId));
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
-      );
-    } finally {
-      if (mounted) setState(() => _placing = false);
-    }
+  void _goToReview() {
+    // Booking is placed on Review (Confirm / auto-timer), not here.
+    ref.read(pendingServiceCheckoutProvider.notifier).state =
+        PendingServiceCheckout(
+      paymentId: _paymentId,
+      tipAmount: _tipAmount,
+      specialistId: _specialistId,
+      specialistName: _specialistName,
+    );
+    context.pushReplacement(ServicesBookingRoutes.review);
   }
 
   @override
@@ -207,9 +184,9 @@ class _ServicesCheckoutScreenState
             ),
       bottom: CartStickyFooter(
         total: total,
-        buttonLabel: _placing ? '…' : ServicesBookingStrings.placeBooking,
+        buttonLabel: ServicesBookingStrings.placeBooking,
         buttonColor: AppColors.cartTabActive,
-        onPressed: _placing || _loading ? () {} : _placeOrder,
+        onPressed: _loading ? () {} : _goToReview,
       ),
     );
   }

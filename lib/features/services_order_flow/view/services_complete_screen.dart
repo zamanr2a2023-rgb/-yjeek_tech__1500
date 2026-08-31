@@ -3,9 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:yjeek_app/core/constants/app_colors.dart';
+import 'package:yjeek_app/core/constants/navigation_strings.dart';
 import 'package:yjeek_app/core/providers/app_providers.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/features/browse/browse_routes.dart';
+import 'package:yjeek_app/features/order_flow/model/order_api_mappers.dart';
 import 'package:yjeek_app/features/order_flow/view/widgets/order_flow_widgets.dart';
 import 'package:yjeek_app/features/services_booking/services_booking_routes.dart';
 import 'package:yjeek_app/features/services_order_flow/model/services_order_flow_data.dart';
@@ -35,6 +37,7 @@ class _ServicesCompleteScreenState
   double _staffTip = 0;
   bool _submitting = false;
   bool _reordering = false;
+  bool _hydrating = true;
   bool _alreadyRated = false;
   String _thankYou = ServicesOrderFlowStrings.thankYouVisit;
 
@@ -46,17 +49,30 @@ class _ServicesCompleteScreenState
 
   Future<void> _hydrate() async {
     final id = widget.orderId;
-    if (id == null || id.isEmpty) return;
+    if (id == null || id.isEmpty) {
+      if (mounted) setState(() => _hydrating = false);
+      return;
+    }
     final order = await ref.read(ordersRepositoryProvider).getOrder(id);
-    if (!mounted || order == null) return;
+    if (!mounted) return;
+    if (order == null) {
+      setState(() => _hydrating = false);
+      return;
+    }
     final vendor = order['vendor'];
     final vendorName = vendor is Map ? vendor['name']?.toString() : null;
-    final review = order['review'];
+    final review = submittedReviewFromOrder(order);
     setState(() {
       if (vendorName != null && vendorName.isNotEmpty) {
         _thankYou = 'Hope you enjoyed your visit to $vendorName.';
       }
-      _alreadyRated = review != null;
+      if (review != null) {
+        _alreadyRated = true;
+        _providerRating =
+            review.experienceRating ?? review.orderRating ?? _providerRating;
+        _serviceRating = review.foodRating ?? _serviceRating;
+      }
+      _hydrating = false;
     });
   }
 
@@ -99,7 +115,7 @@ class _ServicesCompleteScreenState
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
+            child: Text(NavigationStrings.cancel),
           ),
           TextButton(
             onPressed: () {
@@ -136,12 +152,22 @@ class _ServicesCompleteScreenState
     if (!mounted) return;
     setState(() => _submitting = false);
     if (!ok) {
+      await _hydrate();
+      if (!mounted) return;
+      setState(() => _submitting = false);
+      if (_alreadyRated) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Could not submit rating. Try again.')),
       );
       return;
     }
-    context.go('${RouteNames.home}?tab=1');
+    setState(() {
+      _submitting = false;
+      _alreadyRated = true;
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Thanks for your rating')),
+    );
   }
 
   Future<void> _bookAgain() async {
@@ -172,7 +198,11 @@ class _ServicesCompleteScreenState
       showHeader: false,
       bottomNavIndex: 0,
       backgroundColor: _bg,
-      body: ListView(
+      body: _hydrating
+          ? const Center(
+              child: CircularProgressIndicator(color: AppColors.primary),
+            )
+          : ListView(
         padding: EdgeInsets.fromLTRB(20.w, topPad, 20.w, 24.h),
         children: [
           const Align(
@@ -205,13 +235,13 @@ class _ServicesCompleteScreenState
             SizedBox(height: 14.h),
             OrderStarRatingCard(
               title: ServicesOrderFlowStrings.rateProvider,
-              initialRating: 5,
+              initialRating: _providerRating,
               onChanged: (v) => _providerRating = v,
             ),
             SizedBox(height: 14.h),
             OrderStarRatingCard(
               title: ServicesOrderFlowStrings.rateService,
-              initialRating: 5,
+              initialRating: _serviceRating,
               onChanged: (v) => _serviceRating = v,
             ),
             SizedBox(height: 14.h),
@@ -237,8 +267,20 @@ class _ServicesCompleteScreenState
             ),
           ] else ...[
             SizedBox(height: 14.h),
+            OrderStarRatingCard(
+              title: ServicesOrderFlowStrings.rateProvider,
+              initialRating: _providerRating,
+              readOnly: true,
+            ),
+            SizedBox(height: 14.h),
+            OrderStarRatingCard(
+              title: ServicesOrderFlowStrings.rateService,
+              initialRating: _serviceRating,
+              readOnly: true,
+            ),
+            SizedBox(height: 8.h),
             Text(
-              'Thanks — you already rated this booking.',
+              'Your rating has been submitted.',
               style: GoogleFonts.inter(color: _muted, fontSize: 13.sp),
             ),
           ],
@@ -247,7 +289,7 @@ class _ServicesCompleteScreenState
             width: double.infinity,
             height: 52.h,
             child: ElevatedButton(
-              onPressed: _submitting ? null : _submit,
+              onPressed: (_submitting || _hydrating) ? null : _submit,
               style: ElevatedButton.styleFrom(
                 backgroundColor: _green,
                 foregroundColor: AppColors.white,

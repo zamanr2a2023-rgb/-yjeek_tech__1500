@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:yjeek_app/core/network/api_client.dart';
 import 'package:yjeek_app/core/services/storage_service.dart';
 import 'package:yjeek_app/features/navigation/model/wallet_data.dart';
+import 'package:yjeek_app/features/payments/model/benefit_pay_models.dart';
 
 class WalletSnapshot {
   const WalletSnapshot({
@@ -91,16 +92,16 @@ class WalletRepository {
     final w = withdrawal is Map<String, dynamic> ? withdrawal : null;
 
     return WalletSnapshot(
-      balance: data['balance'] as num?,
-      cashback: data['cashback'] as num?,
-      refundBalance: data['refundBalance'] as num?,
+      balance: parseMoney(data['balance']),
+      cashback: parseMoney(data['cashback']),
+      refundBalance: parseMoney(data['refundBalance']),
       currency: currency,
       balanceLabel: _moneyLabel(data['balance'], currency),
       cashbackLabel: _moneyLabel(data['cashback'], currency),
       refundsLabel: _moneyLabel(data['refundBalance'], currency),
       withdrawalEligible: w?['eligible'] == true,
-      withdrawalMinimum: (w?['minimumAmount'] as num?) ?? 10,
-      payoutRate: (w?['payoutRate'] as num?) ?? 0.7,
+      withdrawalMinimum: parseMoney(w?['minimumAmount']) ?? 10,
+      payoutRate: parseMoney(w?['payoutRate']) ?? 0.7,
       kycVerified: w?['kycVerified'] == true,
     );
   }

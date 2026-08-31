@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:yjeek_app/core/constants/app_colors.dart';
 import 'package:yjeek_app/core/constants/app_text_styles.dart';
+import 'package:yjeek_app/core/constants/browse_strings.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/features/browse/model/browse_data.dart';
 import 'package:yjeek_app/features/browse/model/dine_in_data.dart';
@@ -323,17 +324,17 @@ class DineInSortBar extends StatelessWidget {
   final String sort;
   final ValueChanged<String>? onSortChanged;
 
-  static const _options = <(String value, String label)>[
-    ('rating', 'Top rated'),
-    ('popular', 'Most Popular'),
-    ('fastest', 'Fastest Delivery'),
-  ];
+  List<(String value, String label)> get _options => [
+        ('rating', BrowseStrings.topRated),
+        ('popular', BrowseStrings.mostPopular),
+        ('fastest', BrowseStrings.fastestDelivery),
+      ];
 
   String get _sortLabel {
     for (final option in _options) {
       if (option.$1 == sort) return option.$2;
     }
-    return 'Top rated';
+    return BrowseStrings.topRated;
   }
 
   @override
@@ -371,7 +372,7 @@ class DineInSortBar extends StatelessWidget {
                   ],
                   child: _chip(
                     icon: Icons.tune_rounded,
-                    label: 'Sort: $_sortLabel',
+                    label: BrowseStrings.sortWith(_sortLabel),
                     trailing: Icons.keyboard_arrow_down_rounded,
                   ),
                 ),
@@ -380,7 +381,7 @@ class DineInSortBar extends StatelessWidget {
                   onTap: () => onBookableChanged?.call(!bookableOnly),
                   child: _chip(
                     icon: Icons.calendar_month_outlined,
-                    label: 'Bookable',
+                    label: BrowseStrings.bookable,
                     selected: bookableOnly,
                   ),
                 ),
@@ -389,7 +390,7 @@ class DineInSortBar extends StatelessWidget {
                   onTap: () => onOffersChanged?.call(!offersOnly),
                   child: _chip(
                     icon: Icons.local_offer_outlined,
-                    label: 'Offers',
+                    label: BrowseStrings.offers,
                     selected: offersOnly,
                     accent: true,
                   ),
@@ -849,7 +850,7 @@ class DineInVisitCard extends StatelessWidget {
                   Icon(Icons.refresh, color: AppColors.white, size: 16.sp),
                   SizedBox(width: 8.w),
                   Text(
-                    'Book again',
+                    BrowseStrings.bookAgain,
                     style: AppTextStyles.labelMedium(color: AppColors.white).copyWith(
                       fontWeight: FontWeight.w700,
                       fontSize: 14.sp,
@@ -876,7 +877,7 @@ class DineInOrderAgainRow extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(
-          'Order again',
+          BrowseStrings.orderAgain,
           style: AppTextStyles.titleSmall().copyWith(
             fontWeight: FontWeight.w700,
             fontSize: 14.sp,
@@ -885,7 +886,7 @@ class DineInOrderAgainRow extends StatelessWidget {
         GestureDetector(
           onTap: onSeeAll,
           child: Text(
-            'See all',
+            BrowseStrings.seeAll,
             style: AppTextStyles.labelSmall(color: AppColors.primary).copyWith(
               fontWeight: FontWeight.w700,
               fontSize: 12.sp,

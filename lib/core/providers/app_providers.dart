@@ -20,6 +20,7 @@ import 'package:yjeek_app/features/home/model/category_item.dart';
 import 'package:yjeek_app/features/home/model/home_feed.dart';
 import 'package:yjeek_app/features/home/model/home_repository.dart';
 import 'package:yjeek_app/features/navigation/model/content_repository.dart';
+import 'package:yjeek_app/features/notifications/model/notifications_repository.dart';
 import 'package:yjeek_app/features/navigation/model/offers_repository.dart';
 import 'package:yjeek_app/features/navigation/model/orders_repository.dart';
 import 'package:yjeek_app/features/navigation/model/user_me.dart';
@@ -27,6 +28,9 @@ import 'package:yjeek_app/features/navigation/model/user_repository.dart';
 import 'package:yjeek_app/features/navigation/model/wallet_repository.dart';
 import 'package:yjeek_app/features/help/model/support_repository.dart';
 import 'package:yjeek_app/features/order_flow/model/order_chat_repository.dart';
+import 'package:yjeek_app/features/payments/model/wallet_pay_repository.dart';
+import 'package:yjeek_app/features/ui_content/model/banner_models.dart';
+import 'package:yjeek_app/features/ui_content/model/banners_repository.dart';
 
 final storageServiceProvider = Provider<StorageService>(
   (ref) => Get.find<StorageService>(),
@@ -82,6 +86,26 @@ final homeRepositoryProvider = Provider<HomeRepository>(
 final homeFeedProvider = FutureProvider<HomeFeed>((ref) {
   return ref.watch(homeRepositoryProvider).fetchHome();
 });
+
+final bannersRepositoryProvider = Provider<BannersRepository>(
+  (ref) => BannersRepository(
+    ref.watch(apiClientProvider),
+    ref.watch(storageServiceProvider),
+  ),
+);
+
+/// Per-placement CMS banners. No long-lived disk cache — refetch on invalidate.
+final cmsBannersProvider =
+    FutureProvider.family<List<UiBanner>, String>((ref, placementKey) {
+  return ref.watch(bannersRepositoryProvider).fetchBanners(
+        placementKey: placementKey,
+      );
+    });
+
+/// Invalidate all placement banner fetches (pull-to-refresh / app resume).
+void invalidateCmsBanners(WidgetRef ref) {
+  ref.invalidate(cmsBannersProvider);
+}
 
 final categoriesRepositoryProvider = Provider<CategoriesRepository>(
   (ref) => CategoriesRepository(ref.watch(apiClientProvider)),
@@ -173,6 +197,13 @@ final paymentMethodsRepositoryProvider = Provider<PaymentMethodsRepository>(
   ),
 );
 
+final walletPayRepositoryProvider = Provider<WalletPayRepository>(
+  (ref) => WalletPayRepository(
+    ref.watch(apiClientProvider),
+    ref.watch(storageServiceProvider),
+  ),
+);
+
 final offersRepositoryProvider = Provider<OffersRepository>(
   (ref) => OffersRepository(
     ref.watch(apiClientProvider),
@@ -193,6 +224,19 @@ final userRepositoryProvider = Provider<UserRepository>(
     ref.watch(storageServiceProvider),
   ),
 );
+
+final notificationsRepositoryProvider = Provider<NotificationsRepository>(
+  (ref) => NotificationsRepository(
+    ref.watch(apiClientProvider),
+    ref.watch(storageServiceProvider),
+  ),
+);
+
+final notificationsUnreadCountProvider = FutureProvider<int>((ref) {
+  final storage = ref.watch(storageServiceProvider);
+  if (!storage.hasSession) return Future.value(0);
+  return ref.watch(notificationsRepositoryProvider).fetchUnreadCount();
+});
 
 final userMeProvider = FutureProvider<UserMe?>((ref) {
   final storage = ref.watch(storageServiceProvider);

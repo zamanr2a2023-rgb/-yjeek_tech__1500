@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:yjeek_app/core/constants/app_colors.dart';
 import 'package:yjeek_app/core/constants/app_text_styles.dart';
+import 'package:yjeek_app/core/constants/browse_strings.dart';
 import 'package:yjeek_app/core/providers/app_providers.dart';
 import 'package:yjeek_app/core/providers/shell_provider.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
@@ -16,6 +17,7 @@ import 'package:yjeek_app/features/browse/view/widgets/browse_widgets.dart';
 import 'package:yjeek_app/features/browse/view/widgets/dine_in_widgets.dart';
 import 'package:yjeek_app/features/cart/view/widgets/cart_flow_widgets.dart';
 import 'package:yjeek_app/features/home/view/widgets/home_widgets.dart';
+import 'package:yjeek_app/features/navigation/view/widgets/navigation_widgets.dart';
 import 'package:yjeek_app/routes/app_router.dart';
 
 class DineInMenuScreen extends ConsumerStatefulWidget {
@@ -40,6 +42,7 @@ class _DineInMenuScreenState extends ConsumerState<DineInMenuScreen> {
   String _menuQuery = '';
   DineInCartSummary _cart = DineInCartSummary.empty;
   bool _loading = true;
+  bool _loadedOnce = false;
   Timer? _searchDebounce;
 
   /// Design: `rgba(44, 107, 71, 0.55)` over white → sage green.
@@ -52,7 +55,6 @@ class _DineInMenuScreenState extends ConsumerState<DineInMenuScreen> {
   @override
   void initState() {
     super.initState();
-    _restaurant = DineInData.restaurantById(widget.restaurantId);
     WidgetsBinding.instance.addPostFrameCallback((_) => _load());
   }
 
@@ -91,10 +93,14 @@ class _DineInMenuScreenState extends ConsumerState<DineInMenuScreen> {
         }
         _cart = cart;
         _loading = false;
+        _loadedOnce = true;
       });
     } catch (_) {
       if (!mounted) return;
-      setState(() => _loading = false);
+      setState(() {
+        _loading = false;
+        _loadedOnce = true;
+      });
     }
   }
 
@@ -127,6 +133,17 @@ class _DineInMenuScreenState extends ConsumerState<DineInMenuScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (!_loadedOnce && _loading) {
+      return Scaffold(
+        backgroundColor: _screenBg,
+        body: const Center(
+          child: CircularProgressIndicator(color: AppColors.primary),
+        ),
+        bottomNavigationBar: ShellBottomNavBar(
+          currentIndex: widget.bottomNavIndex,
+        ),
+      );
+    }
     return Scaffold(
       backgroundColor: _screenBg,
       body: Column(
@@ -141,7 +158,7 @@ class _DineInMenuScreenState extends ConsumerState<DineInMenuScreen> {
                     padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 8.h),
                     children: [
                       BrowseSearchBar(
-                        hint: 'Search this menu…',
+                        hint: BrowseStrings.searchThisMenu,
                         onChanged: _onMenuQueryChanged,
                       ),
                       SizedBox(height: 14.h),

@@ -1,5 +1,11 @@
 import 'package:yjeek_app/features/cart/model/cart_flow_data.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:yjeek_app/core/constants/navigation_strings.dart';
 import 'package:yjeek_app/features/cart/model/cart_repository.dart';
+import 'package:yjeek_app/features/cart/model/pending_checkout.dart';
+import 'package:yjeek_app/routes/app_router.dart';
 import 'package:yjeek_app/features/navigation/model/navigation_data.dart';
 
 /// Maps UI payment option ids → backend PaymentMethod enum values.
@@ -223,4 +229,30 @@ String deliveryUiIdFromApi(String? speed) {
     'ECONOMY' => 'economy',
     _ => 'same-day',
   };
+}
+
+void showEmptyCartSnackBar(BuildContext context) {
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(content: Text(NavigationStrings.cartEmptyTitle)),
+  );
+}
+
+/// Pop checkout/review or return to the cart tab when the live cart has no items.
+bool leaveCheckoutIfCartEmpty(
+  BuildContext context, {
+  required CartSnapshot cart,
+  WidgetRef? ref,
+  bool clearPendingCheckout = false,
+}) {
+  if (cart.hasItems) return false;
+  if (clearPendingCheckout && ref != null) {
+    ref.read(pendingCheckoutProvider.notifier).state = null;
+  }
+  showEmptyCartSnackBar(context);
+  if (context.canPop()) {
+    context.pop();
+  } else {
+    context.goHome(tab: 2, emptyCart: true);
+  }
+  return true;
 }

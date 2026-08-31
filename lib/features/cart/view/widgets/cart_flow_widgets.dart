@@ -680,14 +680,35 @@ class CartPaymentMethodList extends StatelessWidget {
                           ),
                           SizedBox(width: 12.w),
                           Expanded(
-                            child: Text(
-                              option.label,
-                              style: AppTextStyles.labelMedium(
-                                color: AppColors.textPrimary,
-                              ).copyWith(
-                                fontWeight: FontWeight.w700,
-                                fontSize: 14.sp,
-                              ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  option.label,
+                                  style: AppTextStyles.labelMedium(
+                                    color: AppColors.textPrimary,
+                                  ).copyWith(
+                                    fontWeight: option.subtitle != null
+                                        ? FontWeight.w700
+                                        : FontWeight.w500,
+                                    fontSize: 14.sp,
+                                    height: 1.28,
+                                  ),
+                                ),
+                                if (option.subtitle != null) ...[
+                                  SizedBox(height: 2.h),
+                                  Text(
+                                    option.subtitle!,
+                                    style: AppTextStyles.caption(
+                                      color: const Color(0xFF6B7B6E),
+                                    ).copyWith(
+                                      fontWeight: FontWeight.w500,
+                                      fontSize: 11.5.sp,
+                                      height: 1.3,
+                                    ),
+                                  ),
+                                ],
+                              ],
                             ),
                           ),
                           Container(
@@ -699,9 +720,20 @@ class CartPaymentMethodList extends StatelessWidget {
                                 color: selected
                                     ? AppColors.primary
                                     : const Color(0xFFE2E8DD),
-                                width: selected ? 6 : 1.5,
+                                width: 1.5,
                               ),
                             ),
+                            alignment: Alignment.center,
+                            child: selected
+                                ? Container(
+                                    width: 12.w,
+                                    height: 12.w,
+                                    decoration: const BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: AppColors.primary,
+                                    ),
+                                  )
+                                : null,
                           ),
                         ],
                       ),

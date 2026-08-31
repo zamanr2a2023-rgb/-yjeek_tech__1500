@@ -1,6 +1,5 @@
 import 'package:yjeek_app/core/network/api_client.dart';
 import 'package:yjeek_app/features/home/model/category_item.dart';
-import 'package:yjeek_app/features/home/model/home_data.dart';
 import 'package:yjeek_app/features/home/model/home_ui_mapper.dart';
 
 class CategoriesRepository {
@@ -13,7 +12,7 @@ class CategoriesRepository {
     final path = featured == true ? '/categories?featured=true' : '/categories';
     final response = await _apiClient.getJson(path);
     final data = response?['data'];
-    if (data is! List) return HomeData.allCategories;
+    if (data is! List) return const [];
 
     final items = <CategoryItem>[];
     for (final item in data) {
@@ -28,6 +27,6 @@ class CategoriesRepository {
         ),
       );
     }
-    return items.isNotEmpty ? items : HomeData.allCategories;
+    return items;
   }
 }

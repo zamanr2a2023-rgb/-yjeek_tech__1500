@@ -1,3 +1,4 @@
+import 'package:yjeek_app/core/constants/home_strings.dart';
 import 'package:yjeek_app/features/home/model/category_item.dart';
 import 'package:yjeek_app/features/home/model/home_data.dart';
 import 'package:yjeek_app/features/home/model/home_ui_mapper.dart';
@@ -65,19 +66,19 @@ class HomeActiveOrder {
     switch (status) {
       case 'PLACED':
       case 'CONFIRMED':
-        return 'Order confirmed';
+        return HomeStrings.orderConfirmedStatus;
       case 'PREPARING':
       case 'READY':
-        return 'Preparing your order';
+        return HomeStrings.preparingOrder;
       case 'SEARCHING_DRIVER':
       case 'DRIVER_ASSIGNED':
-        return 'Finding your Champ';
+        return HomeStrings.findingChamp;
       case 'PICKED_UP':
       case 'IN_TRANSIT':
       case 'ON_THE_WAY':
-        return 'On the way';
+        return HomeStrings.onTheWay;
       default:
-        return 'Order in progress';
+        return HomeStrings.orderInProgress;
     }
   }
 
@@ -238,25 +239,23 @@ class HomeFeed {
       deliverTo: deliverTo,
       deliverToLabel: (deliverTo?.label.isNotEmpty ?? false)
           ? deliverTo!.label
-          : HomeData.deliveryLocation,
+          : HomeStrings.chooseLocation,
       activeOrder: activeOrder,
-      categories: categories.isNotEmpty ? categories : HomeData.homeCategories,
-      reorderVendors:
-          vendors.isNotEmpty ? vendors : HomeData.orderAgainBrands,
-      exclusiveOffers:
-          offers.isNotEmpty ? offers : HomeData.exclusiveOffers,
+      categories: categories,
+      reorderVendors: vendors,
+      exclusiveOffers: offers,
       spotlight: spotlight,
     );
   }
 
-  /// Offline / error fallback — keeps current hardcode look.
+  /// Offline / error fallback — no fake logged-in identity.
   factory HomeFeed.fallback() {
-    return const HomeFeed(
-      greeting: 'Hello, Asmaa 👋',
-      deliverToLabel: HomeData.deliveryLocation,
-      categories: HomeData.homeCategories,
-      reorderVendors: HomeData.orderAgainBrands,
-      exclusiveOffers: HomeData.exclusiveOffers,
+    return HomeFeed(
+      greeting: HomeStrings.hello,
+      deliverToLabel: HomeStrings.chooseLocation,
+      categories: const [],
+      reorderVendors: const [],
+      exclusiveOffers: const [],
     );
   }
 }

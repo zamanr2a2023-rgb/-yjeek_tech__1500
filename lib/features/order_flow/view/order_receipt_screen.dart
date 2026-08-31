@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yjeek_app/core/constants/app_colors.dart';
 import 'package:yjeek_app/core/providers/app_providers.dart';
+import 'package:yjeek_app/core/utils/receipt_share.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/account_widgets.dart';
 import 'package:yjeek_app/features/order_flow/model/order_api_mappers.dart';
@@ -21,6 +21,7 @@ class OrderReceiptScreen extends ConsumerStatefulWidget {
 class _OrderReceiptScreenState extends ConsumerState<OrderReceiptScreen> {
   Map<String, dynamic>? _receipt;
   bool _loading = true;
+  bool _sharing = false;
   String? _error;
   String? _shareText;
 
@@ -71,6 +72,50 @@ class _OrderReceiptScreenState extends ConsumerState<OrderReceiptScreen> {
     }
   }
 
+  Future<void> _share() async {
+    final receipt = _receipt;
+    if (receipt == null || _sharing) return;
+
+    final orderNumber = receipt['orderNumber']?.toString() ?? 'receipt';
+    final vendor = receipt['vendor'];
+    final vendorMap = vendor is Map ? Map<String, dynamic>.from(vendor) : null;
+    final vendorName = vendorMap?['name']?.toString();
+    final totals = receipt['totals'];
+    final totalsMap = totals is Map ? Map<String, dynamic>.from(totals) : null;
+    final apiItems = receiptItemsFromApi(
+      receipt['items'] is List ? receipt['items'] as List : null,
+    );
+    final billLines = receiptBillFromTotals(totalsMap);
+    final shareText = (_shareText != null && _shareText!.isNotEmpty)
+        ? _shareText!
+        : 'Yjeek Receipt · $orderNumber';
+
+    setState(() => _sharing = true);
+    try {
+      await shareReceiptPdf(
+        orderNumber: orderNumber,
+        shareText: shareText,
+        vendorName: vendorName,
+        items: [
+          for (final i in apiItems) (name: i.name, price: i.price),
+        ],
+        billLines: [
+          for (final b in billLines) (label: b.label, value: b.value),
+        ],
+        paymentMethod: formatPaymentMethod(receipt['paymentMethod']?.toString()),
+      );
+    } catch (_) {
+      final ok = await shareReceiptWhatsApp(shareText);
+      if (!ok && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not share receipt')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _sharing = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final receipt = _receipt;
@@ -102,10 +147,8 @@ class _OrderReceiptScreenState extends ConsumerState<OrderReceiptScreen> {
       receipt?['items'] is List ? receipt!['items'] as List : null,
     );
     final billLines = receiptBillFromTotals(totalsMap);
-    final badgeRaw = receipt?['statusBadge']?.toString();
-    final badgeLabel = badgeRaw != null && badgeRaw.isNotEmpty
-        ? '✓ ${badgeRaw.replaceAll('_', ' ').toUpperCase()}'
-        : null;
+    final badge = receiptBadgeLabel(receipt);
+    final badgeLabel = badge != null ? '✓ $badge' : null;
 
     return OrderFlowScaffold(
       title: OrderFlowStrings.receipt,
@@ -165,22 +208,7 @@ class _OrderReceiptScreenState extends ConsumerState<OrderReceiptScreen> {
                       label: OrderFlowStrings.shareReceipt,
                       backgroundColor: AppColors.cartTabActive,
                       height: 50,
-                      onPressed: () async {
-                        final text = _shareText;
-                        if (text == null || text.isEmpty) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Receipt share text unavailable'),
-                            ),
-                          );
-                          return;
-                        }
-                        await Clipboard.setData(ClipboardData(text: text));
-                        if (!context.mounted) return;
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Receipt copied')),
-                        );
-                      },
+                      onPressed: _sharing ? () {} : _share,
                     ),
                   ],
                 ),

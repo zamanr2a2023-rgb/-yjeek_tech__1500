@@ -22,8 +22,8 @@ class ServicesBrowseScreen extends ConsumerStatefulWidget {
 }
 
 class _ServicesBrowseScreenState extends ConsumerState<ServicesBrowseScreen> {
-  List<ServiceCategoryItem> _categories = ServicesData.categories;
-  List<ServiceProvider> _popular = ServicesData.popularProviders;
+  List<ServiceCategoryItem> _categories = const [];
+  List<ServiceProvider> _popular = const [];
   bool _loading = true;
 
   @override
@@ -47,7 +47,7 @@ class _ServicesBrowseScreenState extends ConsumerState<ServicesBrowseScreen> {
     } catch (_) {
       if (!mounted) return;
       setState(() {
-        _categories = ServicesData.categories;
+        _categories = const [];
         _popular = const [];
         _loading = false;
       });

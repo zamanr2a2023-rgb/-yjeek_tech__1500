@@ -53,9 +53,17 @@ abstract final class HelpRoutes {
     return '${RouteNames.helpChat}?$query';
   }
 
-  static String helpFaq({int tab = 0}) {
-    if (tab == 0) return RouteNames.helpFaq;
-    return '${RouteNames.helpFaq}?tab=$tab';
+  static String helpFaq({int tab = 0, String? question}) {
+    final query = StringBuffer();
+    if (question != null && question.isNotEmpty) {
+      query.write('q=${Uri.encodeQueryComponent(question)}');
+    }
+    if (tab != 0) {
+      if (query.isNotEmpty) query.write('&');
+      query.write('tab=$tab');
+    }
+    if (query.isEmpty) return RouteNames.helpFaq;
+    return '${RouteNames.helpFaq}?$query';
   }
 
   static String helpPoliciesLegal({int tab = 0}) {
