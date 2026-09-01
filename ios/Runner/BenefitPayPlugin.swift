@@ -70,7 +70,15 @@ final class BenefitPayPlugin: NSObject, FlutterPlugin, BPInAppButtonDelegate {
     pendingSession = config
     pendingResult = result
     ensurePayButton()
-    payButton?.sendActions(for: .touchUpInside)
+    guard let button = payButton else {
+      completePending([
+        "status": "failed",
+        "message": "Could not start BenefitPay",
+      ])
+      return
+    }
+    // BPInAppButton is a UIView; the SDK wires taps to buttonAction:.
+    _ = button.perform(NSSelectorFromString("buttonAction:"), with: button)
   }
 
   private func parseConfig(_ args: [String: Any]) -> [String: String]? {
@@ -146,7 +154,13 @@ final class BenefitPayPlugin: NSObject, FlutterPlugin, BPInAppButtonDelegate {
     }
     guard pendingResult != nil else { return false }
 
-    let item = BPDLPaymentCallBackItem(deepLinkURL: url)
+    guard let item = BPDLPaymentCallBackItem(deepLinkURL: url) else {
+      completePending([
+        "status": "failed",
+        "message": "Invalid BenefitPay callback",
+      ])
+      return true
+    }
     switch item.status {
     case PaymentCallBackStatusSuccess:
       completePending([
@@ -168,7 +182,7 @@ final class BenefitPayPlugin: NSObject, FlutterPlugin, BPInAppButtonDelegate {
         "amount": item.amount ?? pendingSession["amount"] ?? "",
         "message": item.message ?? "Payment failed",
       ])
-    @unknown default:
+    default:
       completePending([
         "status": "failed",
         "message": "Unknown BenefitPay callback status",
