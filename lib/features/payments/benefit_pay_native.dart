@@ -1,4 +1,6 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:yjeek_app/features/payments/benefit_pay_debug.dart';
 
 /// Result from the native BenefitPay in-app SDK (app-to-app flow).
 class BenefitPayNativeResult {
@@ -36,11 +38,15 @@ class BenefitPayNativeSessionResult {
     this.ok = false,
     this.session,
     this.errorMessage,
+    this.httpStatus,
+    this.errorCode,
   });
 
   final bool ok;
   final BenefitPayNativeSession? session;
   final String? errorMessage;
+  final int? httpStatus;
+  final String? errorCode;
 }
 
 /// Session payload from POST …/payments/benefitpay/native-session.
@@ -127,12 +133,32 @@ abstract final class BenefitPayNative {
     BenefitPayNativeSession session,
   ) async {
     try {
+      if (kDebugMode) {
+        BenefitPayDebug.log(
+          'native channel pay gatewayRef=${session.gatewayRef} '
+          'referenceId=${session.referenceId} amount=${session.amount} '
+          'currencyCode=${session.currencyCode} countryCode=${session.countryCode}',
+        );
+      }
       final raw = await _channel.invokeMethod<dynamic>(
         'pay',
         session.toNativeConfig(),
       );
       if (raw is Map) {
-        return BenefitPayNativeResult.fromMap(raw);
+        final result = BenefitPayNativeResult.fromMap(raw);
+        if (kDebugMode) {
+          BenefitPayDebug.logNativeResult(
+            status: result.status,
+            referenceId: result.referenceId,
+            amount: result.amount,
+            message: result.message,
+          );
+          BenefitPayDebug.logAppResume(
+            phase: 'native_channel_returned',
+            orderId: session.gatewayRef,
+          );
+        }
+        return result;
       }
       return const BenefitPayNativeResult(
         status: 'failed',

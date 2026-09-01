@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yjeek_app/core/constants/app_colors.dart';
@@ -5,6 +6,7 @@ import 'package:yjeek_app/core/constants/app_text_styles.dart';
 import 'package:yjeek_app/core/providers/app_providers.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/features/order_flow/model/order_api_mappers.dart';
+import 'package:yjeek_app/features/payments/benefit_pay_debug.dart';
 import 'package:yjeek_app/features/payments/benefit_pay_native.dart';
 import 'package:yjeek_app/features/payments/model/benefit_pay_models.dart';
 import 'package:yjeek_app/features/payments/model/native_wallet_pay.dart';
@@ -161,6 +163,13 @@ class PayNowHelper {
     );
   }
 
+  Future<void> _showBenefitPayDebugFailure(
+    BenefitPayFailureDiagnostic diagnostic,
+  ) async {
+    if (!kDebugMode || !context.mounted) return;
+    await BenefitPayDebug.showFailureDiagnostics(context, diagnostic);
+  }
+
   Future<String?> showMethodSheet({
     required List<PayNowOption> options,
     required String currentApi,
@@ -269,6 +278,17 @@ class PayNowHelper {
         confirmed.errorMessage ?? 'Payment failed — try again',
         color: const Color(0xFFB42318),
       );
+      if (kDebugMode && isBenefitPayNative(paymentMethod)) {
+        await _showBenefitPayDebugFailure(
+          BenefitPayFailureDiagnostic(
+            orderId: orderId,
+            debugId: gatewayRef,
+            errorCode: confirmed.errorCode ??
+                confirmed.httpStatus?.toString(),
+            errorMessage: confirmed.errorMessage,
+          ),
+        );
+      }
       return false;
     }
 
@@ -392,14 +412,26 @@ class PayNowHelper {
 
   Future<bool> payWithBenefitPayNative({required List<String> orderIds}) async {
     for (final orderId in orderIds) {
+      if (kDebugMode) {
+        BenefitPayDebug.log('payWithBenefitPayNative start orderId=$orderId');
+      }
       final sessionResult = await ref
           .read(ordersRepositoryProvider)
           .fetchBenefitPayNativeSession(orderId);
       if (!sessionResult.ok || sessionResult.session == null) {
-        snack(
-          sessionResult.errorMessage ?? 'Could not start BenefitPay',
-          color: const Color(0xFFB42318),
-        );
+        final message =
+            sessionResult.errorMessage ?? 'Could not start BenefitPay';
+        snack(message, color: const Color(0xFFB42318));
+        if (kDebugMode) {
+          await _showBenefitPayDebugFailure(
+            BenefitPayFailureDiagnostic(
+              orderId: orderId,
+              errorCode: sessionResult.errorCode ??
+                  sessionResult.httpStatus?.toString(),
+              errorMessage: message,
+            ),
+          );
+        }
         return false;
       }
       final session = sessionResult.session!;
@@ -409,35 +441,89 @@ class PayNowHelper {
           'Missing payment reference from server',
           color: const Color(0xFFB42318),
         );
+        if (kDebugMode) {
+          await _showBenefitPayDebugFailure(
+            BenefitPayFailureDiagnostic(
+              orderId: orderId,
+              errorCode: sessionResult.httpStatus?.toString(),
+              errorMessage: 'Missing payment reference from server',
+            ),
+          );
+        }
         return false;
       }
 
       final available = await BenefitPayNative.isAvailable();
+      BenefitPayDebug.logNativeLaunch(
+        available: available,
+        gatewayRef: gatewayRef,
+      );
       if (!available) {
         snack(
           'BenefitPay app is not installed on this device',
           color: const Color(0xFFB42318),
         );
+        if (kDebugMode) {
+          await _showBenefitPayDebugFailure(
+            BenefitPayFailureDiagnostic(
+              orderId: orderId,
+              debugId: gatewayRef,
+              errorMessage: 'BenefitPay app is not installed on this device',
+            ),
+          );
+        }
         return false;
       }
 
       final native = await BenefitPayNative.pay(session);
+      BenefitPayDebug.logAppResume(
+        phase: 'after_native_pay',
+        orderId: orderId,
+      );
       if (native.isUnavailable) {
-        snack(
-          native.message ?? 'BenefitPay is not available',
-          color: const Color(0xFFB42318),
-        );
+        final message = native.message ?? 'BenefitPay is not available';
+        snack(message, color: const Color(0xFFB42318));
+        if (kDebugMode) {
+          await _showBenefitPayDebugFailure(
+            BenefitPayFailureDiagnostic(
+              orderId: orderId,
+              debugId: gatewayRef,
+              errorMessage: message,
+            ),
+          );
+        }
         return false;
       }
       if (native.isCancelled) {
         snack(native.message ?? 'Payment cancelled');
+        if (kDebugMode) {
+          await _showBenefitPayDebugFailure(
+            BenefitPayFailureDiagnostic(
+              orderId: orderId,
+              debugId: gatewayRef,
+              errorCode: 'cancelled',
+              errorMessage: native.message ?? 'Payment cancelled',
+            ),
+          );
+        }
         return false;
       }
       if (!native.isSuccess) {
-        snack(
-          native.message ?? 'Payment failed or cancelled',
-          color: const Color(0xFFB42318),
-        );
+        final message = native.message ?? 'Payment failed or cancelled';
+        snack(message, color: const Color(0xFFB42318));
+        if (kDebugMode) {
+          await _showBenefitPayDebugFailure(
+            BenefitPayFailureDiagnostic(
+              orderId: orderId,
+              debugId: gatewayRef,
+              errorCode: native.referenceId != null &&
+                      native.referenceId!.isNotEmpty
+                  ? 'native_failed'
+                  : null,
+              errorMessage: message,
+            ),
+          );
+        }
         return false;
       }
 

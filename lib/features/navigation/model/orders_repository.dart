@@ -1,8 +1,10 @@
+import 'package:flutter/foundation.dart';
 import 'package:yjeek_app/core/constants/navigation_strings.dart';
 import 'package:yjeek_app/core/network/api_client.dart';
 import 'package:yjeek_app/core/services/storage_service.dart';
 import 'package:yjeek_app/features/navigation/model/navigation_data.dart';
 import 'package:yjeek_app/features/order_flow/model/order_api_mappers.dart';
+import 'package:yjeek_app/features/payments/benefit_pay_debug.dart';
 import 'package:yjeek_app/features/payments/benefit_pay_native.dart';
 import 'package:yjeek_app/features/payments/model/benefit_pay_models.dart';
 
@@ -111,14 +113,22 @@ class OrdersRepository {
   Future<BenefitPayNativeSessionResult> fetchBenefitPayNativeSession(
     String orderId,
   ) async {
+    if (kDebugMode) {
+      BenefitPayDebug.logNativeSessionRequest(orderId);
+    }
     final response = await _apiClient.postJson(
       '/orders/$orderId/payments/benefitpay/native-session',
       const {},
       bearerToken: _token,
     );
+    if (kDebugMode) {
+      BenefitPayDebug.logNativeSessionResponse(orderId, response);
+    }
     if (!response.ok) {
       return BenefitPayNativeSessionResult(
         errorMessage: response.message ?? 'Could not start BenefitPay',
+        httpStatus: response.statusCode,
+        errorCode: BenefitPayDebug.extractErrorCode(response.json),
       );
     }
     final data = response.data;
@@ -130,6 +140,7 @@ class OrdersRepository {
     return BenefitPayNativeSessionResult(
       ok: true,
       session: BenefitPayNativeSession.fromJson(data),
+      httpStatus: response.statusCode,
     );
   }
 
@@ -183,6 +194,13 @@ class OrdersRepository {
     String? paymentMethod,
     num? walletAmount,
   }) async {
+    if (kDebugMode) {
+      BenefitPayDebug.logConfirmRequest(
+        orderId: orderId,
+        paymentMethod: paymentMethod ?? '—',
+        gatewayRef: gatewayRef,
+      );
+    }
     final response = await _apiClient.postJson(
       '/orders/$orderId/payments/confirm',
       {
@@ -193,11 +211,16 @@ class OrdersRepository {
       },
       bearerToken: _token,
     );
+    if (kDebugMode) {
+      BenefitPayDebug.logConfirmResponse(orderId, response);
+    }
     return PaymentConfirmResult(
       ok: response.ok,
       errorMessage: response.ok
           ? null
           : (response.message ?? 'Payment confirmation failed'),
+      httpStatus: response.statusCode,
+      errorCode: BenefitPayDebug.extractErrorCode(response.json),
       raw: response.data,
     );
   }

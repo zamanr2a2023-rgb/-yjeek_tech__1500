@@ -3,6 +3,7 @@ package com.example.yjeek_app
 import android.app.Activity
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.util.Log
 import android.view.View
 import android.view.ViewGroup
 import io.flutter.embedding.engine.plugins.FlutterPlugin
@@ -25,6 +26,7 @@ class BenefitPayPlugin :
     PluginRegistry.ActivityResultListener {
 
     companion object {
+        private const val TAG = "BenefitPayPlugin"
         private const val CHANNEL = "bh.yjeek.customer/benefit_pay"
         private const val PAYMENT_REQUEST_CODE = 238
 
@@ -45,6 +47,11 @@ class BenefitPayPlugin :
 
     private val checkoutListener = object : CheckoutListener {
         override fun onTransactionSuccess(transaction: Transaction) {
+            Log.d(
+                TAG,
+                "onTransactionSuccess reference=${transaction.referenceNumber} " +
+                    "amount=${transaction.amount} message=${transaction.transactionMessage}",
+            )
             completePending(
                 mapOf(
                     "status" to "success",
@@ -56,6 +63,11 @@ class BenefitPayPlugin :
         }
 
         override fun onTransactionFail(transaction: Transaction) {
+            Log.d(
+                TAG,
+                "onTransactionFail reference=${transaction.referenceNumber} " +
+                    "amount=${transaction.amount} message=${transaction.transactionMessage}",
+            )
             completePending(
                 mapOf(
                     "status" to "failed",
@@ -115,11 +127,35 @@ class BenefitPayPlugin :
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?): Boolean {
         if (requestCode != PAYMENT_REQUEST_CODE) return false
+        Log.d(
+            TAG,
+            "onActivityResult code=$resultCode action=${data?.action} " +
+                "hasData=${data != null}",
+        )
+        if (data != null) {
+            val action = data.action
+            if (action != null &&
+                action.equals(
+                    "benefitinapp.foo.mobi.benefitinappsdk.transactionstatus",
+                    ignoreCase = true,
+                )
+            ) {
+                Log.d(
+                    TAG,
+                    "handleResult from transaction intent " +
+                        "isSuccess=${data.getBooleanExtra("isSuccess", false)} " +
+                        "message=${data.getStringExtra("message")}",
+                )
+                BenefitInAppHelper.handleResult(data)
+                return true
+            }
+        }
         if (resultCode == Activity.RESULT_OK && data != null) {
             BenefitInAppHelper.handleResult(data)
             return true
         }
         if (pendingResult != null) {
+            Log.d(TAG, "onActivityResult completing cancelled (no transaction intent)")
             completePending(
                 mapOf(
                     "status" to "cancelled",
@@ -154,6 +190,14 @@ class BenefitPayPlugin :
                 override fun onButtonClicked() {
                     val config = pendingConfig ?: return
                     val currentActivity = activity ?: return
+                    val countryCode = config["countryCode"]!!
+                    val currencyCode = config["currencyCode"]!!
+                    val merchantCategoryCode = config["merchantCategoryCode"]!!
+                    Log.d(
+                        TAG,
+                        "countryCode=$countryCode currencyCode=$currencyCode " +
+                            "merchantCategoryCode=$merchantCategoryCode",
+                    )
                     BenefitInAppCheckout.newInstance(
                         currentActivity,
                         config["appId"]!!,
@@ -161,11 +205,11 @@ class BenefitPayPlugin :
                         config["merchantId"]!!,
                         config["secretKey"]!!,
                         config["amount"]!!,
-                        config["currencyCode"]!!,
-                        config["merchantCategoryCode"]!!,
+                        countryCode,
+                        currencyCode,
+                        merchantCategoryCode,
                         config["merchantName"]!!,
                         config["merchantCity"]!!,
-                        config["countryCode"]!!,
                         checkoutListener,
                     )
                 }
