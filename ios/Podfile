@@ -30,7 +30,7 @@ flutter_ios_podfile_setup
 target 'Runner' do
   use_frameworks!
 
-  pod 'BenefitInAppSDKWrapper', :podspec => 'BenefitInAppSDKWrapper.podspec'
+  pod 'BenefitInAppSDKWrapper', :path => '../benefit_sdk/ios'
 
   flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
   target 'RunnerTests' do
