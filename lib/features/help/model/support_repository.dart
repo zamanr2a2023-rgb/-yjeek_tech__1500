@@ -11,6 +11,9 @@ class SupportTicketItem {
     this.issueType,
     this.orderId,
     this.orderNumber,
+    this.conversationId,
+    this.conversationStatus,
+    this.reused = false,
   });
 
   final String id;
@@ -21,6 +24,19 @@ class SupportTicketItem {
   final String? issueType;
   final String? orderId;
   final String? orderNumber;
+  final String? conversationId;
+  final String? conversationStatus;
+  final bool reused;
+
+  bool get isActive =>
+      status.toUpperCase() == 'OPEN' || status.toUpperCase() == 'PENDING';
+
+  bool get isClosed =>
+      status.toUpperCase() == 'RESOLVED' ||
+      conversationStatus?.toUpperCase() == 'CLOSED' ||
+      conversationStatus?.toUpperCase() == 'RESOLVED';
+
+  bool get canChat => isActive && !isClosed;
 
   factory SupportTicketItem.fromJson(Map<String, dynamic> json) {
     return SupportTicketItem(
@@ -32,8 +48,21 @@ class SupportTicketItem {
       issueType: json['issueType']?.toString(),
       orderId: json['orderId']?.toString(),
       orderNumber: json['orderNumber']?.toString(),
+      conversationId: json['conversationId']?.toString(),
+      conversationStatus: json['conversationStatus']?.toString(),
+      reused: json['reused'] == true,
     );
   }
+}
+
+class SupportActiveTicketResult {
+  const SupportActiveTicketResult({
+    required this.ticket,
+    required this.canCreateNew,
+  });
+
+  final SupportTicketItem? ticket;
+  final bool canCreateNew;
 }
 
 class SupportTicketMessage {
@@ -81,6 +110,56 @@ class SupportRepository {
   final StorageService _storage;
 
   String? get _token => _storage.token;
+
+  /// GET /support/tickets
+  Future<List<SupportTicketItem>> listTickets({
+    String? orderId,
+    String? status,
+  }) async {
+    final query = <String, String>{};
+    if (orderId != null && orderId.isNotEmpty) query['orderId'] = orderId;
+    if (status != null && status.isNotEmpty) query['status'] = status;
+
+    final path = query.isEmpty
+        ? '/support/tickets'
+        : '/support/tickets?${Uri(queryParameters: query).query}';
+
+    final response = await _apiClient.getJson(
+      path,
+      bearerToken: _token,
+    );
+    final data = response?['data'];
+    final rows = data is Map<String, dynamic> ? data['tickets'] : data;
+    if (rows is! List) return const [];
+    return rows
+        .whereType<Map<String, dynamic>>()
+        .map(SupportTicketItem.fromJson)
+        .toList();
+  }
+
+  /// GET /support/tickets/orders/:orderId/active
+  Future<SupportActiveTicketResult?> getActiveTicketForOrder(
+    String orderId,
+  ) async {
+    final response = await _apiClient.getJson(
+      '/support/tickets/orders/$orderId/active',
+      bearerToken: _token,
+    );
+    final data = response?['data'];
+    if (data is! Map<String, dynamic>) return null;
+    final ticketJson = data['ticket'];
+    return SupportActiveTicketResult(
+      ticket: ticketJson is Map<String, dynamic>
+          ? SupportTicketItem.fromJson(ticketJson)
+          : null,
+      canCreateNew: data['canCreateNew'] == true,
+    );
+  }
+
+  Future<SupportTicketItem?> findActiveTicketForOrder(String orderId) async {
+    final result = await getActiveTicketForOrder(orderId);
+    return result?.ticket;
+  }
 
   /// POST /support/tickets
   Future<SupportTicketItem?> createTicket({

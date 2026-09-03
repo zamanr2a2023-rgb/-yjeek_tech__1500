@@ -10,7 +10,7 @@ import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/features/browse/browse_routes.dart';
 import 'package:yjeek_app/features/browse/model/browse_data.dart';
 import 'package:yjeek_app/features/browse/view/widgets/browse_widgets.dart';
-import 'package:yjeek_app/features/home/model/home_ui_mapper.dart';
+import 'package:yjeek_app/features/home/model/home_data.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/navigation_widgets.dart';
 import 'package:yjeek_app/routes/app_router.dart';
 
@@ -91,21 +91,12 @@ class _FoodBrowseScreenState extends ConsumerState<FoodBrowseScreen> {
     }
   }
 
-  List<(String, Color, String?)> get _orderAgainBrands {
-    if (_loading) return const [];
+  List<BrandItem> get _orderAgainBrands {
     final vendors = ref.watch(homeFeedProvider).valueOrNull?.reorderVendors;
     if (vendors == null || vendors.isEmpty) {
       return const [];
     }
-    return vendors
-        .map(
-          (v) => (
-            v.name,
-            HomeBrandStyle.forName(v.name),
-            v.id,
-          ),
-        )
-        .toList();
+    return vendors;
   }
 
   @override

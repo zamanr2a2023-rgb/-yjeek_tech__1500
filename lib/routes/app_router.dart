@@ -617,9 +617,11 @@ class AppRouter {
                 HelpChatVariantX.fromQuery(state.uri.queryParameters['variant']);
             final tab = int.tryParse(state.uri.queryParameters['tab'] ?? '') ?? 0;
             final ticketId = state.uri.queryParameters['ticketId'];
+            final orderId = state.uri.queryParameters['orderId'];
             return HelpChatScreen(
               variant: variant,
               ticketId: ticketId,
+              orderId: orderId,
               bottomNavIndex: tab,
             );
           },

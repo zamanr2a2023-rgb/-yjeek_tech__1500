@@ -34,29 +34,31 @@ class ItemDetailScreen extends ConsumerStatefulWidget {
 
 class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
   int _quantity = 1;
-  int _selectedSize = 0;
+  final Map<int, Set<int>> _selectedOptionsByGroup = {};
   final Set<int> _selectedAddons = {};
   bool _loading = true;
   bool _adding = false;
+  bool _loadError = false;
 
-  BrowseRestaurant _restaurant = BrowseData.restaurants.first;
-  BrowseMenuItem _item = BrowseData.greenKitchenMenu.first;
-  String _description = BrowseData.mezzeLongDescription;
+  late BrowseRestaurant _restaurant;
+  late BrowseMenuItem _item;
+  String _description = '';
   String? _descriptionAr;
-  List<BrowseSizeOption> _sizes = BrowseData.mezzeSizes;
-  List<BrowseAddonOption> _addons = BrowseData.mezzeAddons;
+  List<BrowseOptionGroup> _optionGroups = const [];
+  List<BrowseAddonOption> _addons = const [];
   String? _imageUrl;
 
   @override
   void initState() {
     super.initState();
-    _restaurant = BrowseData.restaurantById(widget.vendorId);
-    _item = BrowseData.menuItemById(widget.itemId);
     WidgetsBinding.instance.addPostFrameCallback((_) => _load());
   }
 
   Future<void> _load() async {
-    setState(() => _loading = true);
+    setState(() {
+      _loading = true;
+      _loadError = false;
+    });
     try {
       final repo = ref.read(foodVendorsRepositoryProvider);
       final vendor = await repo.fetchVendor(widget.vendorId);
@@ -70,15 +72,22 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
         _item = detail.item;
         _description = detail.description;
         _descriptionAr = detail.descriptionAr;
-        _sizes = detail.options;
+        _optionGroups = detail.optionGroups;
         _addons = detail.addons;
         _imageUrl = detail.imageUrl ?? detail.item.imageUrl;
-        _selectedSize = 0;
+        _selectedOptionsByGroup
+          ..clear()
+          ..addAll(initialOptionSelections(detail.optionGroups));
         _selectedAddons.clear();
         _loading = false;
       });
     } catch (_) {
-      if (mounted) setState(() => _loading = false);
+      if (mounted) {
+        setState(() {
+          _loading = false;
+          _loadError = true;
+        });
+      }
     }
   }
 
@@ -94,29 +103,61 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
 
   String get _displayPrice {
     final base = double.tryParse(_item.price) ?? 0;
-    final sizeExtra = _selectedSize >= 0 && _selectedSize < _sizes.length
-        ? (double.tryParse(_sizes[_selectedSize].extraPrice ?? '') ?? 0.0)
-        : 0.0;
+    final optionExtra = optionSelectionsExtraPrice(
+      _optionGroups,
+      _selectedOptionsByGroup,
+    );
     var addonTotal = 0.0;
     for (final index in _selectedAddons) {
       if (index >= 0 && index < _addons.length) {
         addonTotal += double.tryParse(_addons[index].price) ?? 0;
       }
     }
-    return ((base + sizeExtra + addonTotal) * _quantity).toStringAsFixed(1);
+    return ((base + optionExtra + addonTotal) * _quantity).toStringAsFixed(1);
+  }
+
+  void _toggleOption(int groupIndex, int optionIndex) {
+    if (groupIndex < 0 || groupIndex >= _optionGroups.length) return;
+    final group = _optionGroups[groupIndex];
+    if (optionIndex < 0 || optionIndex >= group.options.length) return;
+
+    setState(() {
+      final current = Set<int>.from(_selectedOptionsByGroup[groupIndex] ?? {});
+      if (group.allowsMultiple) {
+        if (current.contains(optionIndex)) {
+          current.remove(optionIndex);
+        } else if (current.length < group.maxSelect) {
+          current.add(optionIndex);
+        }
+      } else {
+        current
+          ..clear()
+          ..add(optionIndex);
+      }
+      _selectedOptionsByGroup[groupIndex] = current;
+    });
   }
 
   Future<void> _addToCart({bool replaceCart = false}) async {
     if (_adding) return;
     if (!await requireLogin(context, ref)) return;
 
-    setState(() => _adding = true);
-    final optionIds = <String>[];
-    if (_selectedSize >= 0 &&
-        _selectedSize < _sizes.length &&
-        _sizes[_selectedSize].id != null) {
-      optionIds.add(_sizes[_selectedSize].id!);
+    final validationError = validateOptionSelections(
+      _optionGroups,
+      _selectedOptionsByGroup,
+    );
+    if (validationError != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(validationError)),
+      );
+      return;
     }
+
+    setState(() => _adding = true);
+    final optionIds = optionSelectionIds(
+      _optionGroups,
+      _selectedOptionsByGroup,
+    );
     final addonIds = <String>[];
     for (final index in _selectedAddons) {
       if (index >= 0 &&
@@ -172,6 +213,22 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
       body: _loading
           ? const Center(
               child: CircularProgressIndicator(color: AppColors.primary),
+            )
+          : _loadError
+          ? Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Could not load item',
+                    style: AppTextStyles.bodyMedium(
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                  SizedBox(height: 12.h),
+                  TextButton(onPressed: _load, child: const Text('Retry')),
+                ],
+              ),
             )
           : Column(
               children: [
@@ -278,38 +335,56 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
                           ],
                         ),
                         SizedBox(height: 8.h),
-                        Text(
-                          _localizedDescription,
-                          style: AppTextStyles.bodyMedium(
-                            color: const Color(0xFF6B7B6E),
-                          ).copyWith(
-                            fontWeight: FontWeight.w500,
-                            fontSize: 14.sp,
-                            height: 1.3,
-                          ),
-                        ),
-                        if (_sizes.isNotEmpty) ...[
-                          SizedBox(height: 16.h),
+                        if (_localizedDescription.trim().isNotEmpty)
                           Text(
-                            'CHOOSE SIZE',
-                            style: AppTextStyles.labelSmall(
+                            _localizedDescription,
+                            style: AppTextStyles.bodyMedium(
                               color: const Color(0xFF6B7B6E),
                             ).copyWith(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 12.sp,
+                              fontWeight: FontWeight.w500,
+                              fontSize: 14.sp,
                               height: 1.3,
                             ),
                           ),
-                          SizedBox(height: 10.h),
-                          for (var i = 0; i < _sizes.length; i++) ...[
-                            if (i > 0) SizedBox(height: 8.h),
-                            BrowseSizeOptionCard(
-                              option: _sizes[i],
-                              selected: _selectedSize == i,
-                              onTap: () => setState(() => _selectedSize = i),
+                        if (_optionGroups.isNotEmpty)
+                          for (var gi = 0; gi < _optionGroups.length; gi++) ...[
+                            SizedBox(height: 16.h),
+                            Text(
+                              _optionGroups[gi].name.toUpperCase(),
+                              style: AppTextStyles.labelSmall(
+                                color: const Color(0xFF6B7B6E),
+                              ).copyWith(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 12.sp,
+                                height: 1.3,
+                              ),
                             ),
+                            if (_optionGroups[gi].allowsMultiple &&
+                                _optionGroups[gi].maxSelect > 1)
+                              Padding(
+                                padding: EdgeInsets.only(top: 4.h),
+                                child: Text(
+                                  'Choose up to ${_optionGroups[gi].maxSelect}',
+                                  style: AppTextStyles.caption(
+                                    color: const Color(0xFF6B7B6E),
+                                  ).copyWith(fontSize: 11.sp),
+                                ),
+                              ),
+                            SizedBox(height: 10.h),
+                            for (var oi = 0;
+                                oi < _optionGroups[gi].options.length;
+                                oi++) ...[
+                              if (oi > 0) SizedBox(height: 8.h),
+                              BrowseSizeOptionCard(
+                                option: _optionGroups[gi].options[oi],
+                                selected: _selectedOptionsByGroup[gi]
+                                        ?.contains(oi) ??
+                                    false,
+                                multiple: _optionGroups[gi].allowsMultiple,
+                                onTap: () => _toggleOption(gi, oi),
+                              ),
+                            ],
                           ],
-                        ],
                         if (_addons.isNotEmpty) ...[
                           SizedBox(height: 16.h),
                           Text(

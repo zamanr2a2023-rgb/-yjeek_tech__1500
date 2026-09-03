@@ -3,6 +3,7 @@ import 'package:yjeek_app/core/constants/app_colors.dart';
 import 'package:yjeek_app/core/constants/app_text_styles.dart';
 import 'package:yjeek_app/core/constants/browse_strings.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
+import 'package:yjeek_app/core/widgets/app_network_image.dart';
 import 'package:yjeek_app/features/browse/model/browse_data.dart';
 import 'package:yjeek_app/features/browse/model/dine_in_data.dart';
 import 'package:yjeek_app/features/home/view/widgets/home_widgets.dart';
@@ -636,6 +637,16 @@ class DineInMenuItemRow extends StatelessWidget {
                   colors: [gradientStart, gradientEnd],
                 ),
               ),
+              clipBehavior: Clip.antiAlias,
+              child: item.imageUrl != null && item.imageUrl!.isNotEmpty
+                  ? AppNetworkImage(
+                      url: item.imageUrl!,
+                      width: 72.w,
+                      height: 72.w,
+                      fit: BoxFit.cover,
+                      borderRadius: BorderRadius.circular(14.r),
+                    )
+                  : null,
             ),
             SizedBox(width: 14.w),
             Expanded(

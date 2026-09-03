@@ -43,6 +43,7 @@ class OrderChatRepository {
       ({
         bool ok,
         String? conversationId,
+        String? conversationStatus,
         List<OrderChatMessage> messages,
         String? error,
       })> openOrderChat(String orderId) async {
@@ -54,6 +55,7 @@ class OrderChatRepository {
       return (
         ok: false,
         conversationId: null,
+        conversationStatus: null,
         messages: const <OrderChatMessage>[],
         error: response.message ??
             'Champ not assigned yet — chat unavailable',
@@ -64,12 +66,16 @@ class OrderChatRepository {
       return (
         ok: false,
         conversationId: null,
+        conversationStatus: null,
         messages: const <OrderChatMessage>[],
         error: response.message ?? 'Chat unavailable',
       );
     }
     final conversationId =
         data['conversationId']?.toString() ?? data['id']?.toString();
+    final lifecycle = data['lifecycle'];
+    final conversationStatus = data['status']?.toString() ??
+        (lifecycle is Map ? lifecycle['status']?.toString() : null);
     final raw = data['messages'];
     final messages = <OrderChatMessage>[];
     if (raw is List) {
@@ -82,6 +88,7 @@ class OrderChatRepository {
     return (
       ok: true,
       conversationId: conversationId,
+      conversationStatus: conversationStatus,
       messages: messages,
       error: null,
     );

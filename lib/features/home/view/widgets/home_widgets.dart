@@ -384,6 +384,9 @@ class CategoryIconTile extends StatelessWidget {
     final size = compact ? 62.0 : 58.0;
     final iconSize = compact ? 28.0 : 26.0;
 
+    final borderRadius = BorderRadius.circular(compact ? 18 : 17);
+    final iconUrl = category.iconUrl?.trim();
+
     return SizedBox(
       height: compact ? 96 : 93,
       child: Column(
@@ -394,7 +397,7 @@ class CategoryIconTile extends StatelessWidget {
             height: size,
             decoration: BoxDecoration(
               color: category.backgroundColor,
-              borderRadius: BorderRadius.circular(compact ? 18 : 17),
+              borderRadius: borderRadius,
               boxShadow: const [
                 BoxShadow(
                   color: Color(0x29000000),
@@ -403,11 +406,20 @@ class CategoryIconTile extends StatelessWidget {
                 ),
               ],
             ),
-            child: Icon(
-              category.icon,
-              color: AppColors.textPrimary,
-              size: iconSize,
-            ),
+            clipBehavior: Clip.antiAlias,
+            child: iconUrl != null && iconUrl.isNotEmpty
+                ? AppNetworkImage(
+                    url: iconUrl,
+                    width: size,
+                    height: size,
+                    fit: BoxFit.cover,
+                    borderRadius: borderRadius,
+                  )
+                : Icon(
+                    category.icon,
+                    color: AppColors.textPrimary,
+                    size: iconSize,
+                  ),
           ),
           const SizedBox(height: 7),
           SizedBox(

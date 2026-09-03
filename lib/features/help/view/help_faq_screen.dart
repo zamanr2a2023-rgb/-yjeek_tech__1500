@@ -8,6 +8,7 @@ import 'package:yjeek_app/core/providers/app_providers.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/features/help/help_routes.dart';
 import 'package:yjeek_app/features/help/model/help_phase2_data.dart';
+import 'package:yjeek_app/features/help/model/support_repository.dart';
 import 'package:yjeek_app/features/help/view/widgets/help_widgets.dart';
 
 class HelpFaqScreen extends ConsumerStatefulWidget {
@@ -98,7 +99,13 @@ class _HelpFaqScreenState extends ConsumerState<HelpFaqScreen> {
       final recent = await ref.read(ordersRepositoryProvider).listOrders();
       if (recent.isNotEmpty) orderId = recent.first.id;
 
-      final ticket = await ref.read(supportRepositoryProvider).createTicket(
+      SupportTicketItem? ticket;
+      if (orderId != null && orderId.isNotEmpty) {
+        ticket = await ref
+            .read(supportRepositoryProvider)
+            .findActiveTicketForOrder(orderId);
+      }
+      ticket ??= await ref.read(supportRepositoryProvider).createTicket(
             subject: 'General support · FAQ',
             remark: 'Customer opened Care chat from FAQ (didn’t find an answer).',
             orderId: orderId,
@@ -118,6 +125,7 @@ class _HelpFaqScreenState extends ConsumerState<HelpFaqScreen> {
         HelpRoutes.helpChat(
           variant: HelpChatVariant.support,
           ticketId: ticket.id,
+          orderId: orderId ?? ticket.orderId,
           tab: widget.bottomNavIndex,
         ),
       );

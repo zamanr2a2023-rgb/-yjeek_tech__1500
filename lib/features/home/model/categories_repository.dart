@@ -24,6 +24,7 @@ class CategoriesRepository {
           id: item['id'] as String?,
           name: name,
           slug: item['slug'] as String?,
+          iconUrl: item['iconUrl'] as String?,
         ),
       );
     }

@@ -5,6 +5,7 @@ import 'package:yjeek_app/core/constants/browse_strings.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/core/widgets/app_network_image.dart';
 import 'package:yjeek_app/features/browse/model/browse_data.dart';
+import 'package:yjeek_app/features/home/model/home_data.dart';
 import 'package:yjeek_app/features/home/view/widgets/home_widgets.dart';
 import 'package:yjeek_app/l10n/l10n.dart';
 
@@ -750,13 +751,12 @@ class BrowseOrderAgainRow extends StatelessWidget {
   });
 
   final VoidCallback? onSeeAll;
-  /// (name, color, vendorId?)
-  final List<(String, Color, String?)>? brands;
+  final List<BrandItem>? brands;
   final void Function(String? vendorId, String name)? onBrandTap;
 
   @override
   Widget build(BuildContext context) {
-    final items = brands ?? const <(String, Color, String?)>[];
+    final items = brands ?? const <BrandItem>[];
     if (items.isEmpty) return const SizedBox.shrink();
 
     return Column(
@@ -788,73 +788,20 @@ class BrowseOrderAgainRow extends StatelessWidget {
           ],
         ),
         SizedBox(height: 12.h),
-        Builder(
-          builder: (context) {
-            final circleSize = 62.w;
-            final labelHeight = 14.h;
-            final gap = 7.h;
-            return SizedBox(
-              height: circleSize + gap + labelHeight,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                itemCount: items.length,
-                separatorBuilder: (_, _) => SizedBox(width: 16.w),
-                itemBuilder: (context, index) {
-                  final (name, color, vendorId) = items[index];
-                  final initial = name.isNotEmpty ? name[0] : '';
-                  return GestureDetector(
-                    onTap: () => onBrandTap?.call(vendorId, name),
-                    child: SizedBox(
-                      width: circleSize,
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(
-                            width: circleSize,
-                            height: circleSize,
-                            decoration: BoxDecoration(
-                              color: color,
-                              shape: BoxShape.circle,
-                              border: Border.all(color: const Color(0xFFE2E8DD)),
-                            ),
-                            alignment: Alignment.center,
-                            child: Text(
-                              initial,
-                              style:
-                                  AppTextStyles.labelMedium(
-                                    color: AppColors.white,
-                                  ).copyWith(
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 18.sp,
-                                  ),
-                            ),
-                          ),
-                          SizedBox(height: gap),
-                          SizedBox(
-                            height: labelHeight,
-                            child: Text(
-                              name,
-                              textAlign: TextAlign.center,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style:
-                                  AppTextStyles.caption(
-                                    color: AppColors.textPrimary,
-                                  ).copyWith(
-                                    fontWeight: FontWeight.w500,
-                                    fontSize: 11.sp,
-                                    height: 1.0,
-                                  ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                },
-              ),
-            );
-          },
+        SizedBox(
+          height: 104,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: items.length,
+            separatorBuilder: (_, _) => const SizedBox(width: 16),
+            itemBuilder: (context, index) {
+              final brand = items[index];
+              return BrandAvatar(
+                brand: brand,
+                onTap: () => onBrandTap?.call(brand.id, brand.name),
+              );
+            },
+          ),
         ),
       ],
     );
@@ -882,6 +829,28 @@ class BrowseVendorHero extends StatelessWidget {
               ),
             ),
           ),
+          if (restaurant.imageUrl != null && restaurant.imageUrl!.isNotEmpty)
+            Positioned.fill(
+              child: AppNetworkImage(
+                url: restaurant.imageUrl!,
+                fit: BoxFit.cover,
+              ),
+            ),
+          if (restaurant.imageUrl != null && restaurant.imageUrl!.isNotEmpty)
+            Positioned.fill(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.black.withValues(alpha: 0.15),
+                      Colors.black.withValues(alpha: 0.55),
+                    ],
+                  ),
+                ),
+              ),
+            ),
           Positioned(
             top: 0,
             left: 18.w,
@@ -1010,6 +979,16 @@ class BrowseMenuItemRow extends StatelessWidget {
                 borderRadius: BorderRadius.circular(14.r),
                 gradient: LinearGradient(colors: [gradientStart, gradientEnd]),
               ),
+              clipBehavior: Clip.antiAlias,
+              child: item.imageUrl != null && item.imageUrl!.isNotEmpty
+                  ? AppNetworkImage(
+                      url: item.imageUrl!,
+                      width: 72.w,
+                      height: 72.w,
+                      fit: BoxFit.cover,
+                      borderRadius: BorderRadius.circular(14.r),
+                    )
+                  : null,
             ),
             SizedBox(width: 12.w),
             Expanded(
@@ -1141,11 +1120,13 @@ class BrowseSizeOptionCard extends StatelessWidget {
     required this.option,
     required this.selected,
     required this.onTap,
+    this.multiple = false,
   });
 
   final BrowseSizeOption option;
   final bool selected;
   final VoidCallback onTap;
+  final bool multiple;
 
   @override
   Widget build(BuildContext context) {
@@ -1192,17 +1173,35 @@ class BrowseSizeOptionCard extends StatelessWidget {
                 ],
               ),
             ),
-            Container(
-              width: 22.w,
-              height: 22.w,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: selected ? AppColors.primary : AppColors.white,
-                border: selected
-                    ? null
-                    : Border.all(color: const Color(0xFFE2E8DD), width: 1.5),
+            if (multiple)
+              Container(
+                width: 22.w,
+                height: 22.w,
+                decoration: BoxDecoration(
+                  color: selected ? AppColors.primary : AppColors.white,
+                  borderRadius: BorderRadius.circular(7.r),
+                  border: Border.all(
+                    color: selected ? AppColors.primary : const Color(0xFFE2E8DD),
+                    width: 1.5,
+                  ),
+                ),
+                alignment: Alignment.center,
+                child: selected
+                    ? Icon(Icons.check, size: 14.sp, color: AppColors.white)
+                    : null,
+              )
+            else
+              Container(
+                width: 22.w,
+                height: 22.w,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: selected ? AppColors.primary : AppColors.white,
+                  border: selected
+                      ? null
+                      : Border.all(color: const Color(0xFFE2E8DD), width: 1.5),
+                ),
               ),
-            ),
           ],
         ),
       ),

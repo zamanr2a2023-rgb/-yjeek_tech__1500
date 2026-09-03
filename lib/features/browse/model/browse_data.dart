@@ -82,12 +82,144 @@ class BrowseSizeOption {
     required this.subtitle,
     this.extraPrice,
     this.id,
+    this.isDefault = false,
   });
 
   final String? id;
   final String label;
   final String subtitle;
   final String? extraPrice;
+  final bool isDefault;
+}
+
+class BrowseOptionGroup {
+  const BrowseOptionGroup({
+    required this.name,
+    required this.minSelect,
+    required this.maxSelect,
+    required this.options,
+    this.id,
+  });
+
+  final String? id;
+  final String name;
+  final int minSelect;
+  final int maxSelect;
+  final List<BrowseSizeOption> options;
+
+  bool get allowsMultiple => maxSelect > 1;
+}
+
+List<BrowseOptionGroup> browseOptionGroupsFromJson(Object? raw) {
+  if (raw is! List) return const [];
+
+  final groups = <BrowseOptionGroup>[];
+  for (final group in raw) {
+    if (group is! Map<String, dynamic>) continue;
+    final optsRaw = group['options'];
+    if (optsRaw is! List) continue;
+
+    final options = <BrowseSizeOption>[];
+    for (final opt in optsRaw) {
+      if (opt is! Map<String, dynamic>) continue;
+      final id = opt['id']?.toString();
+      final name = opt['name'] as String? ?? 'Option';
+      final delta = opt['priceDelta'];
+      final deltaNum = delta is num ? delta.toDouble() : 0.0;
+      options.add(
+        BrowseSizeOption(
+          id: id,
+          label: name,
+          subtitle: deltaNum <= 0
+              ? 'Included'
+              : '+ BHD ${deltaNum.toStringAsFixed(1)}',
+          extraPrice: deltaNum > 0 ? deltaNum.toStringAsFixed(3) : null,
+          isDefault: opt['isDefault'] == true,
+        ),
+      );
+    }
+    if (options.isEmpty) continue;
+
+    final minSelect =
+        (group['minSelect'] as num?)?.toInt() ??
+        (group['min'] as num?)?.toInt() ??
+        0;
+    final maxSelect =
+        (group['maxSelect'] as num?)?.toInt() ??
+        (group['max'] as num?)?.toInt() ??
+        1;
+    final name = (group['name'] as String?)?.trim();
+
+    groups.add(
+      BrowseOptionGroup(
+        id: group['id']?.toString(),
+        name: (name != null && name.isNotEmpty) ? name : 'Options',
+        minSelect: minSelect,
+        maxSelect: maxSelect,
+        options: options,
+      ),
+    );
+  }
+  return groups;
+}
+
+Map<int, Set<int>> initialOptionSelections(List<BrowseOptionGroup> groups) {
+  final selected = <int, Set<int>>{};
+  for (var gi = 0; gi < groups.length; gi++) {
+    final picks = <int>{};
+    for (var oi = 0; oi < groups[gi].options.length; oi++) {
+      if (groups[gi].options[oi].isDefault) picks.add(oi);
+    }
+    selected[gi] = picks;
+  }
+  return selected;
+}
+
+double optionSelectionsExtraPrice(
+  List<BrowseOptionGroup> groups,
+  Map<int, Set<int>> selected,
+) {
+  var total = 0.0;
+  for (var gi = 0; gi < groups.length; gi++) {
+    for (final oi in selected[gi] ?? const <int>{}) {
+      if (oi < 0 || oi >= groups[gi].options.length) continue;
+      total +=
+          double.tryParse(groups[gi].options[oi].extraPrice ?? '') ?? 0.0;
+    }
+  }
+  return total;
+}
+
+List<String> optionSelectionIds(
+  List<BrowseOptionGroup> groups,
+  Map<int, Set<int>> selected,
+) {
+  final ids = <String>[];
+  for (var gi = 0; gi < groups.length; gi++) {
+    for (final oi in selected[gi] ?? const <int>{}) {
+      if (oi < 0 || oi >= groups[gi].options.length) continue;
+      final id = groups[gi].options[oi].id;
+      if (id != null && id.isNotEmpty) ids.add(id);
+    }
+  }
+  return ids;
+}
+
+String? validateOptionSelections(
+  List<BrowseOptionGroup> groups,
+  Map<int, Set<int>> selected,
+) {
+  for (var gi = 0; gi < groups.length; gi++) {
+    final group = groups[gi];
+    final count = selected[gi]?.length ?? 0;
+    if (count < group.minSelect) {
+      return 'Select at least ${group.minSelect} for ${group.name}';
+    }
+    if (count > group.maxSelect) {
+      return 'Select up to ${group.maxSelect} for ${group.name}';
+    }
+  }
+  return null;
 }
 
 class BrowseAddonOption {
