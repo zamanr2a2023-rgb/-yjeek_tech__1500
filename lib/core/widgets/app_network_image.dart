@@ -13,6 +13,8 @@ class AppNetworkImage extends StatelessWidget {
     this.height,
     this.fit = BoxFit.cover,
     this.borderRadius,
+    this.errorWidget,
+    this.showShimmer = true,
   });
 
   final String url;
@@ -20,34 +22,62 @@ class AppNetworkImage extends StatelessWidget {
   final double? height;
   final BoxFit fit;
   final BorderRadius? borderRadius;
+  final Widget? errorWidget;
+  final bool showShimmer;
 
   @override
   Widget build(BuildContext context) {
+    final trimmed = url.trim();
+    if (trimmed.isEmpty) {
+      return _wrap(errorWidget ?? _defaultError());
+    }
+
+    final dpr = MediaQuery.devicePixelRatioOf(context);
+    final memW = width == null || !width!.isFinite || width!.isInfinite
+        ? null
+        : (width! * dpr).round();
+    final memH = height == null || !height!.isFinite || height!.isInfinite
+        ? null
+        : (height! * dpr).round();
+
     final image = CachedNetworkImage(
-      imageUrl: url,
+      imageUrl: trimmed,
       width: width,
       height: height,
       fit: fit,
       cacheManager: appCacheManager,
-      placeholder: (_, _) => ShimmerBox(
-        width: width ?? double.infinity,
-        height: height ?? 76.h,
-        borderRadius: borderRadius,
-      ),
-      errorWidget: (_, _, _) => Container(
-        width: width,
-        height: height,
-        color: AppColors.iconBackground,
-        child: Icon(
-          Icons.image_not_supported_outlined,
-          color: AppColors.textSecondary,
-          size: 24.sp,
-        ),
-      ),
+      memCacheWidth: memW,
+      memCacheHeight: memH,
+      fadeInDuration: const Duration(milliseconds: 150),
+      placeholder: showShimmer
+          ? (_, _) => ShimmerBox(
+                width: width ?? double.infinity,
+                height: height ?? 76.h,
+                borderRadius: borderRadius,
+              )
+          : (_, _) => SizedBox(width: width, height: height),
+      errorWidget: (_, _, _) => errorWidget ?? _defaultError(),
     );
 
-    if (borderRadius == null) return image;
-    return ClipRRect(borderRadius: borderRadius!, child: image);
+    return _wrap(image);
+  }
+
+  Widget _wrap(Widget child) {
+    if (borderRadius == null) return child;
+    return ClipRRect(borderRadius: borderRadius!, child: child);
+  }
+
+  Widget _defaultError() {
+    return Container(
+      width: width,
+      height: height,
+      color: AppColors.iconBackground,
+      child: Icon(
+        Icons.image_not_supported_outlined,
+        color: AppColors.textSecondary,
+        size: 24.sp,
+      ),
+    );
   }
 }
 

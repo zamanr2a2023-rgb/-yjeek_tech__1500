@@ -9,6 +9,7 @@ import 'package:google_maps_flutter_android/google_maps_flutter_android.dart';
 import 'package:google_maps_flutter_platform_interface/google_maps_flutter_platform_interface.dart';
 import 'package:yjeek_app/app.dart';
 import 'package:yjeek_app/core/network/api_client.dart';
+import 'package:yjeek_app/core/services/cache_service.dart';
 import 'package:yjeek_app/core/services/storage_service.dart';
 import 'package:yjeek_app/core/utils/app_logger.dart';
 import 'package:yjeek_app/features/notifications/model/notifications_repository.dart';
@@ -17,6 +18,7 @@ import 'package:yjeek_app/firebase_options.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  configureAppImageCaches();
 
   try {
     await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);

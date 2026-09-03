@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:yjeek_app/core/constants/app_colors.dart';
 import 'package:yjeek_app/core/constants/app_text_styles.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
+import 'package:yjeek_app/core/widgets/app_network_image.dart';
 import 'package:yjeek_app/features/help/model/help_data.dart';
 import 'package:yjeek_app/features/help/model/help_phase2_data.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/account_widgets.dart';
@@ -563,12 +564,12 @@ class HelpPhotoUploadBox extends StatelessWidget {
                         children: [
                           ClipRRect(
                             borderRadius: BorderRadius.circular(10.r),
-                            child: Image.network(
-                              imageUrl!,
+                            child: AppNetworkImage(
+                              url: imageUrl!,
                               height: 120.h,
                               width: double.infinity,
                               fit: BoxFit.cover,
-                              errorBuilder: (_, _, _) => Icon(
+                              errorWidget: Icon(
                                 Icons.broken_image_outlined,
                                 size: 40.sp,
                                 color: const Color(0xFF6B7B6E),
@@ -1608,15 +1609,50 @@ class HelpChatBubble extends StatelessWidget {
         borderRadius: BorderRadius.circular(14.r),
         border: isUser ? null : Border.all(color: const Color(0xFFE3E8E0)),
       ),
-      child: Text(
-        message.text,
-        style: AppTextStyles.labelSmall(
-          color: isUser ? AppColors.white : const Color(0xFF25302B),
-        ).copyWith(
-          fontSize: 13.sp,
-          fontWeight: FontWeight.w500,
-          height: 16 / 13,
-        ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (message.text.trim().isNotEmpty)
+            Text(
+              message.text,
+              style: AppTextStyles.labelSmall(
+                color: isUser ? AppColors.white : const Color(0xFF25302B),
+              ).copyWith(
+                fontSize: 13.sp,
+                fontWeight: FontWeight.w500,
+                height: 16 / 13,
+              ),
+            ),
+          if (message.imageUrls.isNotEmpty) ...[
+            if (message.text.trim().isNotEmpty) SizedBox(height: 8.h),
+            ...message.imageUrls.map(
+              (url) => Padding(
+                padding: EdgeInsets.only(bottom: 6.h),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(10.r),
+                  child: AppNetworkImage(
+                    url: url,
+                    width: 220.w,
+                    height: 160.h,
+                    fit: BoxFit.cover,
+                    errorWidget: Container(
+                      width: 220.w,
+                      height: 80.h,
+                      color: const Color(0xFFE8EDE7),
+                      alignment: Alignment.center,
+                      child: Text(
+                        'Photo unavailable',
+                        style: AppTextStyles.caption(
+                          color: const Color(0xFF5B6B58),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ],
       ),
     );
 

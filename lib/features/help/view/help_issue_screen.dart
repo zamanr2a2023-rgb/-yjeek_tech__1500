@@ -133,29 +133,18 @@ class _HelpIssueScreenState extends ConsumerState<HelpIssueScreen> {
     } else {
       _orderTotalBhd = fallback.totalBhd;
       _shortId = fallback.shortId;
-      _items = HelpData.orderItems
-          .map(
-            (e) => _OrderLineItem(
-              id: e.label,
-              label: e.label,
-              price: e.price,
-              quantity: 1,
-              unitPrice: 0,
-            ),
-          )
-          .toList();
-      _itemChecks = HelpData.orderItems.map((e) => e.selected).toList();
-      setState(() => _loading = false);
+      // Do not fall back to demo/static line items — Wrong order must use API items.
+      setState(() {
+        _items = const [];
+        _itemChecks = const [];
+        _loading = false;
+      });
       return;
     }
 
     setState(() {
       _items = parsed;
       _itemChecks = List<bool>.filled(parsed.length, false);
-      if (parsed.length >= 2) {
-        _itemChecks[parsed.length - 1] = true;
-        if (parsed.length >= 3) _itemChecks[parsed.length - 2] = true;
-      }
       _loading = false;
     });
   }

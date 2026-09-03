@@ -6,6 +6,7 @@ import 'package:yjeek_app/core/constants/app_text_styles.dart';
 import 'package:yjeek_app/core/providers/app_providers.dart';
 import 'package:yjeek_app/core/providers/shell_provider.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
+import 'package:yjeek_app/core/widgets/app_network_image.dart';
 import 'package:yjeek_app/features/browse/model/browse_data.dart';
 import 'package:yjeek_app/features/browse/view/widgets/browse_widgets.dart';
 import 'package:yjeek_app/features/auth/utils/require_login.dart';
@@ -226,10 +227,10 @@ class _DineInItemDetailScreenState
                     fit: StackFit.expand,
                     children: [
                       if (_imageUrl != null && _imageUrl!.isNotEmpty)
-                        Image.network(
-                          _imageUrl!,
+                        AppNetworkImage(
+                          url: _imageUrl!,
                           fit: BoxFit.cover,
-                          errorBuilder: (_, _, _) => const DecoratedBox(
+                          errorWidget: const DecoratedBox(
                             decoration: BoxDecoration(
                               gradient: LinearGradient(
                                 begin: Alignment(-0.6, -1),

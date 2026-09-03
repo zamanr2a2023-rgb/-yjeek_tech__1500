@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yjeek_app/core/constants/app_colors.dart';
@@ -29,9 +31,11 @@ class HelpChatScreen extends ConsumerStatefulWidget {
 class _HelpChatScreenState extends ConsumerState<HelpChatScreen> {
   final _input = TextEditingController();
   final _scroll = ScrollController();
+  Timer? _pollTimer;
   List<HelpChatMessage> _messages = const [];
   bool _loading = true;
   bool _sending = false;
+  bool _polling = false;
   String? _ticketId;
   String? _orderId;
   SupportTicketItem? _ticket;
@@ -48,6 +52,7 @@ class _HelpChatScreenState extends ConsumerState<HelpChatScreen> {
 
   @override
   void dispose() {
+    _pollTimer?.cancel();
     _input.dispose();
     _scroll.dispose();
     super.dispose();
@@ -85,6 +90,7 @@ class _HelpChatScreenState extends ConsumerState<HelpChatScreen> {
   }
 
   Future<void> _bootstrap() async {
+    _pollTimer?.cancel();
     setState(() {
       _loading = true;
       _error = null;
@@ -113,14 +119,38 @@ class _HelpChatScreenState extends ConsumerState<HelpChatScreen> {
 
     if (_orderId == null || _orderId!.isEmpty) {
       await _loadTicketMessages();
+      _startPolling();
       return;
     }
 
     await _loadConversationMessages();
+    _startPolling();
   }
 
-  Future<void> _loadTicketMessages() async {
+  void _startPolling() {
+    _pollTimer?.cancel();
+    if (_error != null) return;
+    _pollTimer = Timer.periodic(const Duration(seconds: 3), (_) => _poll());
+  }
+
+  Future<void> _poll() async {
+    if (!mounted || _loading || _sending || _polling) return;
+    _polling = true;
+    try {
+      final orderId = _orderId?.trim();
+      if (orderId != null && orderId.isNotEmpty) {
+        await _loadConversationMessages(silent: true);
+      } else {
+        await _loadTicketMessages(silent: true);
+      }
+    } finally {
+      _polling = false;
+    }
+  }
+
+  Future<void> _loadTicketMessages({bool silent = false}) async {
     final ticketId = _ticketId?.trim();
+    if (silent && (ticketId == null || ticketId.isEmpty)) return;
     if (ticketId == null || ticketId.isEmpty) {
       final recent = await ref.read(ordersRepositoryProvider).listOrders();
       final orderId = recent.isNotEmpty ? recent.first.id : null;
@@ -132,6 +162,7 @@ class _HelpChatScreenState extends ConsumerState<HelpChatScreen> {
           );
       if (!mounted) return;
       if (ticket == null || ticket.id.isEmpty) {
+        if (silent) return;
         setState(() {
           _loading = false;
           _error = 'Could not start support chat';
@@ -142,7 +173,7 @@ class _HelpChatScreenState extends ConsumerState<HelpChatScreen> {
       _ticketId = ticket.id;
       _ticket = ticket;
       _orderId = ticket.orderId ?? orderId;
-    } else {
+    } else if (!silent) {
       _ticket = await ref.read(supportRepositoryProvider).getTicket(ticketId) ??
           _ticket;
     }
@@ -162,27 +193,34 @@ class _HelpChatScreenState extends ConsumerState<HelpChatScreen> {
                 : (m.senderName?.isNotEmpty == true
                     ? m.senderName![0].toUpperCase()
                     : 'M'),
+            imageUrls: m.attachments,
           ),
         )
         .toList();
 
+    final previousCount = _messages.length;
+    final nextMessages = mapped.isNotEmpty
+        ? mapped
+        : [
+            const HelpChatMessage(
+              text:
+                  'Thanks — your request is with Care. Reply here and we’ll follow up.',
+              isSystem: true,
+            ),
+          ];
     setState(() {
-      _messages = mapped.isNotEmpty
-          ? mapped
-          : [
-              const HelpChatMessage(
-                text:
-                    'Thanks — your request is with Care. Reply here and we’ll follow up.',
-                isSystem: true,
-              ),
-            ];
-      _loading = false;
-      _error = null;
+      _messages = nextMessages;
+      if (!silent) {
+        _loading = false;
+        _error = null;
+      }
     });
-    _scrollToEnd();
+    if (!silent || nextMessages.length > previousCount) {
+      _scrollToEnd();
+    }
   }
 
-  Future<void> _loadConversationMessages() async {
+  Future<void> _loadConversationMessages({bool silent = false}) async {
     final orderId = _orderId?.trim();
     if (orderId == null || orderId.isEmpty) return;
 
@@ -190,6 +228,7 @@ class _HelpChatScreenState extends ConsumerState<HelpChatScreen> {
     if (!mounted) return;
 
     if (!chat.ok) {
+      if (silent) return;
       setState(() {
         _loading = false;
         _error = _friendlyChatError(chat.error);
@@ -200,7 +239,7 @@ class _HelpChatScreenState extends ConsumerState<HelpChatScreen> {
 
     _conversationStatus = chat.conversationStatus;
 
-    if (_ticketId != null && _ticketId!.isNotEmpty) {
+    if (!silent && _ticketId != null && _ticketId!.isNotEmpty) {
       _ticket = await ref.read(supportRepositoryProvider).getTicket(_ticketId!) ??
           _ticket;
     }
@@ -217,24 +256,31 @@ class _HelpChatScreenState extends ConsumerState<HelpChatScreen> {
                 : (m.senderName?.isNotEmpty == true
                     ? m.senderName![0].toUpperCase()
                     : 'M'),
+            imageUrls: m.imageUrls,
           ),
         )
         .toList();
 
+    final previousCount = _messages.length;
+    final nextMessages = mapped.isNotEmpty
+        ? mapped
+        : [
+            const HelpChatMessage(
+              text:
+                  'Thanks — your request is with Care. Reply here and we’ll follow up.',
+              isSystem: true,
+            ),
+          ];
     setState(() {
-      _messages = mapped.isNotEmpty
-          ? mapped
-          : [
-              const HelpChatMessage(
-                text:
-                    'Thanks — your request is with Care. Reply here and we’ll follow up.',
-                isSystem: true,
-              ),
-            ];
-      _loading = false;
-      _error = null;
+      _messages = nextMessages;
+      if (!silent) {
+        _loading = false;
+        _error = null;
+      }
     });
-    _scrollToEnd();
+    if (!silent || nextMessages.length > previousCount) {
+      _scrollToEnd();
+    }
   }
 
   void _scrollToEnd() {

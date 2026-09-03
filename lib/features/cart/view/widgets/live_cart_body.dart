@@ -5,6 +5,7 @@ import 'package:yjeek_app/core/constants/app_text_styles.dart';
 import 'package:yjeek_app/core/constants/navigation_strings.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/core/widgets/app_google_map.dart';
+import 'package:yjeek_app/core/widgets/app_network_image.dart';
 import 'package:yjeek_app/features/cart/model/cart_repository.dart';
 import 'package:yjeek_app/features/dine_in_cart/model/dine_in_cart_data.dart';
 import 'package:yjeek_app/features/dine_in_cart/view/widgets/dine_in_cart_widgets.dart';
@@ -752,10 +753,13 @@ class _LiveCartBodyState extends State<LiveCartBody> {
               ),
               clipBehavior: Clip.antiAlias,
               child: item.imageUrl != null && item.imageUrl!.isNotEmpty
-                  ? Image.network(
-                      item.imageUrl!,
+                  ? AppNetworkImage(
+                      url: item.imageUrl!,
+                      width: 54,
+                      height: 54,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, _, _) => const Center(
+                      showShimmer: false,
+                      errorWidget: const Center(
                         child: Text('📦', style: TextStyle(fontSize: 19)),
                       ),
                     )
@@ -1191,12 +1195,13 @@ class _UpsellCard extends StatelessWidget {
                   height: 90,
                   color: item.imageColor,
                   child: item.imageUrl != null && item.imageUrl!.isNotEmpty
-                      ? Image.network(
-                          item.imageUrl!,
+                      ? AppNetworkImage(
+                          url: item.imageUrl!,
                           width: 120,
                           height: 90,
                           fit: BoxFit.cover,
-                          errorBuilder: (_, _, _) => Container(
+                          showShimmer: false,
+                          errorWidget: Container(
                             decoration: BoxDecoration(
                               gradient: LinearGradient(
                                 begin: const Alignment(-0.6, -1),
