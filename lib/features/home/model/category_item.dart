@@ -8,6 +8,7 @@ class CategoryItem {
     required this.backgroundColor,
     this.id,
     this.slug,
+    this.iconUrl,
   });
 
   final String? id;
@@ -15,6 +16,9 @@ class CategoryItem {
   final String name;
   final IconData icon;
   final Color backgroundColor;
+  final String? iconUrl;
+
+  bool get hasNetworkIcon => iconUrl != null && iconUrl!.trim().isNotEmpty;
 
   /// Category label in the active app language.
   String get localizedName {

@@ -32,6 +32,26 @@ class VerifyOtpResult {
   final String? token;
 }
 
+class SocialAuthResult {
+  const SocialAuthResult({
+    required this.success,
+    this.error,
+    this.isNetworkError = false,
+    this.token,
+    this.phone,
+    this.isNewUser = false,
+    this.providerStatus,
+  });
+
+  final bool success;
+  final String? error;
+  final bool isNetworkError;
+  final String? token;
+  final String? phone;
+  final bool isNewUser;
+  final String? providerStatus;
+}
+
 class AuthApi {
   AuthApi(this._client);
 
@@ -133,5 +153,53 @@ class AuthApi {
     );
     // Local clear should happen even if the server call fails.
     return res.ok || res.isNetworkError || res.statusCode == 401;
+  }
+
+  /// POST /auth/google or /auth/apple
+  Future<SocialAuthResult> socialLogin({
+    required String provider,
+    required String idToken,
+    String? phone,
+    String? countryCode,
+    String? email,
+    String? firstName,
+    String? lastName,
+  }) async {
+    final path = provider == 'apple' ? '/auth/apple' : '/auth/google';
+    final body = <String, dynamic>{
+      'idToken': idToken,
+      if (phone != null && phone.isNotEmpty) 'phone': phone,
+      if (countryCode != null && countryCode.isNotEmpty)
+        'countryCode': countryCode,
+      if (email != null && email.isNotEmpty) 'email': email,
+      if (firstName != null && firstName.isNotEmpty) 'firstName': firstName,
+      if (lastName != null && lastName.isNotEmpty) 'lastName': lastName,
+    };
+
+    final res = await _client.postJson(path, body);
+    if (res.ok) {
+      final data = res.data;
+      final token = (data?['token'] ??
+              data?['accessToken'] ??
+              (data?['tokens'] as Map<String, dynamic>?)?['accessToken'])
+          ?.toString();
+      final user = data?['user'];
+      final userPhone = user is Map ? user['phone']?.toString() : null;
+      return SocialAuthResult(
+        success: true,
+        token: token,
+        phone: userPhone,
+        isNewUser: data?['isNewUser'] == true,
+        providerStatus: data?['providerStatus']?.toString(),
+      );
+    }
+    return SocialAuthResult(
+      success: false,
+      isNetworkError: res.isNetworkError,
+      error: res.message ??
+          (res.isNetworkError
+              ? 'Could not reach the server. Check your connection.'
+              : 'Social login failed. Please try again.'),
+    );
   }
 }

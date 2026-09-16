@@ -19,6 +19,11 @@ class CheckoutLoginSheet extends StatelessWidget {
     );
   }
 
+  void _goPhoneLogin(BuildContext context) {
+    context.pop();
+    context.push(RouteNames.phoneLogin);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Stack(
@@ -59,7 +64,11 @@ class CheckoutLoginSheet extends StatelessWidget {
                       color: AppColors.primary,
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(Icons.lock_outline, color: AppColors.white, size: 28),
+                    child: const Icon(
+                      Icons.lock_outline,
+                      color: AppColors.white,
+                      size: 28,
+                    ),
                   ),
                   const SizedBox(height: 14),
                   Text(
@@ -76,24 +85,25 @@ class CheckoutLoginSheet extends StatelessWidget {
                   const SizedBox(height: 20),
                   CustomButton(
                     label: AppStrings.continueWithPhone,
-                    onPressed: () {
-                      context.pop();
-                      context.push(RouteNames.phoneLogin);
-                    },
+                    onPressed: () => _goPhoneLogin(context),
                   ),
                   const SizedBox(height: 10),
                   CustomButton(
                     label: AppStrings.continueWithGoogle,
                     variant: AppButtonVariant.outlined,
                     leading: const GoogleLogo(),
-                    onPressed: () {},
+                    onPressed: () => _goPhoneLogin(context),
                   ),
                   const SizedBox(height: 10),
                   CustomButton(
                     label: AppStrings.continueWithApple,
                     variant: AppButtonVariant.apple,
-                    leading: const Icon(Icons.apple, color: AppColors.white, size: 22),
-                    onPressed: () {},
+                    leading: const Icon(
+                      Icons.apple,
+                      color: AppColors.white,
+                      size: 22,
+                    ),
+                    onPressed: () => _goPhoneLogin(context),
                   ),
                   const SizedBox(height: 10),
                   CustomButton(
@@ -133,7 +143,12 @@ class BasketPreviewBackground extends StatelessWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(AppStrings.yourBasket, style: AppTextStyles.titleLarge(color: AppColors.primary).copyWith(fontSize: 20)),
+                        Text(
+                          AppStrings.yourBasket,
+                          style: AppTextStyles.titleLarge(
+                            color: AppColors.primary,
+                          ).copyWith(fontSize: 20),
+                        ),
                         const YjeekLogo(compact: true),
                       ],
                     ),

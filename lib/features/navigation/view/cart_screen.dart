@@ -12,6 +12,7 @@ import 'package:yjeek_app/features/cart/cart_routes.dart';
 import 'package:yjeek_app/features/cart/model/cart_repository.dart';
 import 'package:yjeek_app/features/cart/view/widgets/live_cart_body.dart';
 import 'package:yjeek_app/features/dine_in_cart/dine_in_cart_routes.dart';
+import 'package:yjeek_app/features/geofence/service/geofence_session_controller.dart';
 import 'package:yjeek_app/features/navigation/model/navigation_data.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/navigation_widgets.dart';
 import 'package:yjeek_app/features/pickup_cart/pickup_cart_routes.dart';
@@ -239,9 +240,19 @@ class _CartScreenState extends ConsumerState<CartScreen> {
     final repo = ref.read(cartRepositoryProvider);
     final isScheduledOnly =
         _scheduled != null && identical(snap, _scheduled);
+    final pendingPromo = ref.watch(pendingGeofencePromoProvider);
+    if (pendingPromo != null && pendingPromo.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        if (ref.read(pendingGeofencePromoProvider) == pendingPromo) {
+          ref.read(pendingGeofencePromoProvider.notifier).state = null;
+        }
+      });
+    }
 
     return LiveCartBody(
       cart: snap,
+      initialPromoCode: pendingPromo,
       showCutlery: tab == CartTab.orders &&
           !snap.isVape &&
           !snap.isElectronics &&

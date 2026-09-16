@@ -9,6 +9,7 @@ import 'package:yjeek_app/core/constants/browse_strings.dart';
 import 'package:yjeek_app/core/providers/app_providers.dart';
 import 'package:yjeek_app/core/providers/shell_provider.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
+import 'package:yjeek_app/features/auth/utils/require_login.dart';
 import 'package:yjeek_app/features/browse/browse_routes.dart';
 import 'package:yjeek_app/features/browse/model/browse_data.dart';
 import 'package:yjeek_app/features/browse/model/dine_in_data.dart';
@@ -43,6 +44,7 @@ class _DineInMenuScreenState extends ConsumerState<DineInMenuScreen> {
   DineInCartSummary _cart = DineInCartSummary.empty;
   bool _loading = true;
   bool _loadedOnce = false;
+  bool _adding = false;
   Timer? _searchDebounce;
 
   /// Design: `rgba(44, 107, 71, 0.55)` over white → sage green.
@@ -104,6 +106,14 @@ class _DineInMenuScreenState extends ConsumerState<DineInMenuScreen> {
     }
   }
 
+  Future<void> _onItemAction(BrowseMenuItem item) async {
+    if (item.hasModifiers) {
+      await _openItem(item);
+      return;
+    }
+    await _addItemDirectly(item);
+  }
+
   Future<void> _openItem(BrowseMenuItem item) async {
     final cartVendorId = _cart.vendorId;
     final needsReplace = cartVendorId != null &&
@@ -129,6 +139,53 @@ class _DineInMenuScreenState extends ConsumerState<DineInMenuScreen> {
       return;
     }
     goDetail();
+  }
+
+  Future<void> _addItemDirectly(BrowseMenuItem item) async {
+    if (_adding) return;
+    if (!await requireLogin(context, ref)) return;
+
+    final cartVendorId = _cart.vendorId;
+    final needsReplace = cartVendorId != null &&
+        cartVendorId.isNotEmpty &&
+        cartVendorId != widget.restaurantId &&
+        _cart.itemCount > 0;
+
+    Future<void> doAdd({bool replace = false}) async {
+      setState(() => _adding = true);
+      final result = await ref.read(dineInVendorsRepositoryProvider).addToCart(
+            productId: item.id,
+            quantity: 1,
+            replaceCart: replace,
+          );
+      if (!mounted) return;
+      setState(() => _adding = false);
+
+      if (result.ok) {
+        ref.read(shellProvider.notifier).openDineInCartWithItems();
+        context.goHome(tab: 2, dineInCart: true);
+        return;
+      }
+      if (result.vendorConflict) {
+        showCartNewCartDialog(
+          context,
+          onConfirm: () => doAdd(replace: true),
+        );
+        return;
+      }
+      if (await redirectToLoginIfAuthError(context, ref, result.message)) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(result.message ?? 'Could not add to cart')),
+      );
+    }
+
+    if (needsReplace) {
+      showCartNewCartDialog(context, onConfirm: () => doAdd(replace: true));
+      return;
+    }
+    await doAdd();
   }
 
   @override
@@ -205,7 +262,8 @@ class _DineInMenuScreenState extends ConsumerState<DineInMenuScreen> {
                             item: _items[i],
                             gradientStart: _restaurant.gradientStart,
                             gradientEnd: _restaurant.gradientEnd,
-                            onTap: () => _openItem(_items[i]),
+                            onTap: () => _onItemAction(_items[i]),
+                            onAdd: () => _onItemAction(_items[i]),
                           ),
                           if (i < _items.length - 1)
                             Divider(

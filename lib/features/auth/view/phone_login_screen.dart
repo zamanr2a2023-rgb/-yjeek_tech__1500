@@ -6,6 +6,7 @@ import 'package:yjeek_app/core/constants/app_strings.dart';
 import 'package:yjeek_app/core/constants/app_text_styles.dart';
 import 'package:yjeek_app/core/providers/app_providers.dart';
 import 'package:yjeek_app/core/widgets/custom_button.dart';
+import 'package:yjeek_app/features/auth/utils/social_login_helper.dart';
 import 'package:yjeek_app/features/auth/view/widgets/auth_widgets.dart';
 import 'package:yjeek_app/features/auth/view/widgets/otp_input.dart';
 import 'package:yjeek_app/features/auth/view/widgets/terms_bottom_sheet.dart';
@@ -20,23 +21,33 @@ class PhoneLoginScreen extends ConsumerStatefulWidget {
 
 class _PhoneLoginScreenState extends ConsumerState<PhoneLoginScreen> {
   final _phoneController = TextEditingController();
+  final _phoneFocus = FocusNode();
   bool _termsAccepted = false;
   bool _sending = false;
+  bool _socialBusy = false;
+  bool _phoneError = false;
 
   @override
   void initState() {
     super.initState();
-    _phoneController.addListener(() => setState(() {}));
+    _phoneController.addListener(() {
+      if (_phoneError && _phoneDigits.length >= 8) {
+        setState(() => _phoneError = false);
+      } else {
+        setState(() {});
+      }
+    });
   }
 
   @override
   void dispose() {
     _phoneController.dispose();
+    _phoneFocus.dispose();
     super.dispose();
   }
 
   bool get _canSendCode =>
-      _termsAccepted && _phoneController.text.trim().length >= 8 && !_sending;
+      _termsAccepted && _phoneDigits.length >= 8 && !_sending;
 
   String get _phoneDigits =>
       _phoneController.text.replaceAll(RegExp(r'\D'), '');
@@ -47,8 +58,21 @@ class _PhoneLoginScreenState extends ConsumerState<PhoneLoginScreen> {
     return '${digits.substring(0, 4)} ${digits.substring(4)}';
   }
 
+  bool _ensurePhoneAndTerms() {
+    if (_phoneDigits.length < 8) {
+      setState(() => _phoneError = true);
+      _phoneFocus.requestFocus();
+      return false;
+    }
+    if (!_termsAccepted) {
+      _openTermsSheet();
+      return false;
+    }
+    return true;
+  }
+
   Future<void> _sendCode() async {
-    if (!_canSendCode) return;
+    if (!_ensurePhoneAndTerms() || _sending) return;
     setState(() => _sending = true);
 
     final result = await ref
@@ -90,6 +114,22 @@ class _PhoneLoginScreenState extends ConsumerState<PhoneLoginScreen> {
     );
   }
 
+  Future<void> _social(String provider) async {
+    if (_socialBusy) return;
+    if (!_ensurePhoneAndTerms()) return;
+
+    await completeSocialLogin(
+      context: context,
+      ref: ref,
+      provider: provider,
+      termsAccepted: true,
+      phoneDigits: _phoneDigits,
+      onBusyChanged: (busy) {
+        if (mounted) setState(() => _socialBusy = busy);
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return AuthScreenScaffold(
@@ -111,7 +151,12 @@ class _PhoneLoginScreenState extends ConsumerState<PhoneLoginScreen> {
                 style: AppTextStyles.bodyMedium(),
               ),
               const SizedBox(height: 24),
-              PhoneNumberField(controller: _phoneController, enabled: true),
+              PhoneNumberField(
+                controller: _phoneController,
+                focusNode: _phoneFocus,
+                error: _phoneError,
+                enabled: true,
+              ),
             ],
           ),
           Column(
@@ -125,28 +170,34 @@ class _PhoneLoginScreenState extends ConsumerState<PhoneLoginScreen> {
               const SizedBox(height: 12),
               CustomButton(
                 label: _sending ? 'Sending...' : AppStrings.sendCode,
-                enabled: _canSendCode,
+                enabled: !_sending && !_socialBusy,
                 onPressed: _sendCode,
               ),
               const SizedBox(height: 12),
               const OrDivider(),
               const SizedBox(height: 16),
               CustomButton(
-                label: AppStrings.continueWithGoogle,
+                label: _socialBusy
+                    ? 'Signing in...'
+                    : AppStrings.continueWithGoogle,
                 variant: AppButtonVariant.outlined,
                 height: 48,
                 borderRadius: 13,
                 leading: const GoogleLogo(),
-                onPressed: () {},
+                enabled: !_socialBusy && !_sending,
+                onPressed: () => _social('google'),
               ),
               const SizedBox(height: 10),
               CustomButton(
-                label: AppStrings.continueWithApple,
+                label: _socialBusy
+                    ? 'Signing in...'
+                    : AppStrings.continueWithApple,
                 variant: AppButtonVariant.apple,
                 height: 48,
                 borderRadius: 13,
                 leading: const Icon(Icons.apple, color: Colors.white, size: 22),
-                onPressed: () {},
+                enabled: !_socialBusy && !_sending,
+                onPressed: () => _social('apple'),
               ),
             ],
           ),

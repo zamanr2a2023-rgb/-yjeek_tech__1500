@@ -196,19 +196,24 @@ class PhoneNumberField extends StatelessWidget {
   const PhoneNumberField({
     super.key,
     required this.controller,
+    this.focusNode,
     this.enabled = true,
+    this.error = false,
     this.onChanged,
   });
 
   final TextEditingController controller;
+  final FocusNode? focusNode;
   final bool enabled;
+  final bool error;
   final ValueChanged<String>? onChanged;
 
   @override
   Widget build(BuildContext context) {
-    const fieldBorder = OutlineInputBorder(
-      borderRadius: BorderRadius.all(Radius.circular(14)),
-      borderSide: BorderSide(color: AppColors.border, width: 1),
+    final borderColor = error ? AppColors.error : AppColors.border;
+    final fieldBorder = OutlineInputBorder(
+      borderRadius: const BorderRadius.all(Radius.circular(14)),
+      borderSide: BorderSide(color: borderColor, width: error ? 1.5 : 1),
     );
 
     return Row(
@@ -219,7 +224,7 @@ class PhoneNumberField extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16),
           decoration: BoxDecoration(
             color: AppColors.white,
-            border: Border.all(color: AppColors.border),
+            border: Border.all(color: borderColor, width: error ? 1.5 : 1),
             borderRadius: BorderRadius.circular(14),
           ),
           alignment: Alignment.center,
@@ -247,6 +252,7 @@ class PhoneNumberField extends StatelessWidget {
             height: 54,
             child: TextField(
               controller: controller,
+              focusNode: focusNode,
               enabled: enabled,
               keyboardType: TextInputType.phone,
               inputFormatters: [
@@ -270,6 +276,8 @@ class PhoneNumberField extends StatelessWidget {
                 enabledBorder: fieldBorder,
                 focusedBorder: fieldBorder,
                 disabledBorder: fieldBorder,
+                errorBorder: fieldBorder,
+                focusedErrorBorder: fieldBorder,
               ),
               onChanged: onChanged,
             ),

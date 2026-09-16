@@ -1,5 +1,6 @@
 import 'package:yjeek_app/core/constants/home_strings.dart';
 import 'package:yjeek_app/features/home/model/category_item.dart';
+import 'package:yjeek_app/features/home/model/exclusive_offers_section.dart';
 import 'package:yjeek_app/features/home/model/home_data.dart';
 import 'package:yjeek_app/features/home/model/home_ui_mapper.dart';
 
@@ -128,6 +129,7 @@ class HomeFeed {
     required this.categories,
     required this.reorderVendors,
     required this.exclusiveOffers,
+    required this.exclusiveOffersSection,
     this.deliverTo,
     this.activeOrder,
     this.spotlight,
@@ -140,6 +142,7 @@ class HomeFeed {
   final List<CategoryItem> categories;
   final List<BrandItem> reorderVendors;
   final List<OfferItem> exclusiveOffers;
+  final ExclusiveOffersSection exclusiveOffersSection;
   final HomeSpotlight? spotlight;
 
   factory HomeFeed.fromJson(Map<String, dynamic> json) {
@@ -170,6 +173,7 @@ class HomeFeed {
             id: item['id'] as String?,
             name: name,
             slug: item['slug'] as String?,
+            iconUrl: item['iconUrl'] as String?,
           ),
         );
       }
@@ -231,6 +235,11 @@ class HomeFeed {
       }
     }
 
+    final sectionJson = json['exclusiveOffersSection'];
+    final exclusiveOffersSection = sectionJson is Map<String, dynamic>
+        ? ExclusiveOffersSection.fromJson(sectionJson)
+        : ExclusiveOffersSection.fallback();
+
     final rawGreeting = json['greeting'] as String? ?? 'Welcome to Yjeek';
     final greeting = rawGreeting.contains('👋') ? rawGreeting : '$rawGreeting 👋';
 
@@ -244,6 +253,7 @@ class HomeFeed {
       categories: categories,
       reorderVendors: vendors,
       exclusiveOffers: offers,
+      exclusiveOffersSection: exclusiveOffersSection,
       spotlight: spotlight,
     );
   }
@@ -256,6 +266,7 @@ class HomeFeed {
       categories: const [],
       reorderVendors: const [],
       exclusiveOffers: const [],
+      exclusiveOffersSection: ExclusiveOffersSection.fallback(),
     );
   }
 }

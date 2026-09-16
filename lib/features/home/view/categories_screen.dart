@@ -5,6 +5,7 @@ import 'package:yjeek_app/core/constants/app_colors.dart';
 import 'package:yjeek_app/core/constants/app_text_styles.dart';
 import 'package:yjeek_app/core/constants/home_strings.dart';
 import 'package:yjeek_app/core/providers/app_providers.dart';
+import 'package:yjeek_app/core/widgets/app_network_image.dart';
 import 'package:yjeek_app/features/browse/browse_routes.dart';
 import 'package:yjeek_app/features/home/model/category_item.dart';
 import 'package:yjeek_app/features/home/model/category_navigation.dart';
@@ -206,10 +207,20 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
                                         borderRadius:
                                             BorderRadius.circular(14),
                                       ),
-                                      child: Icon(
-                                        category.icon,
-                                        color: AppColors.textPrimary,
-                                      ),
+                                      clipBehavior: Clip.antiAlias,
+                                      child: category.hasNetworkIcon
+                                          ? AppNetworkImage(
+                                              url: category.iconUrl!,
+                                              width: 48,
+                                              height: 48,
+                                              fit: BoxFit.cover,
+                                              borderRadius:
+                                                  BorderRadius.circular(14),
+                                            )
+                                          : Icon(
+                                              category.icon,
+                                              color: AppColors.textPrimary,
+                                            ),
                                     ),
                                     const SizedBox(width: 12),
                                     Text(

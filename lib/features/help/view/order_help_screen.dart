@@ -68,7 +68,7 @@ class _OrderHelpScreenState extends ConsumerState<OrderHelpScreen> {
     });
   }
 
-  void _openIssue(HelpIssueType type) {
+  Future<void> _openIssue(HelpIssueType type) async {
     if (type == HelpIssueType.trackOrder) {
       context.push(OrderFlowRoutes.statusFor(widget.orderId));
       return;
@@ -78,6 +78,24 @@ class _OrderHelpScreenState extends ConsumerState<OrderHelpScreen> {
       context.push(
         HelpRoutes.helpFlow(
           flow: HelpFlowType.scheduledCancelFree,
+          orderId: widget.orderId,
+          tab: widget.bottomNavIndex,
+        ),
+      );
+      return;
+    }
+
+    final active = await ref
+        .read(supportRepositoryProvider)
+        .findActiveTicketForOrder(widget.orderId);
+    if (!mounted) return;
+    if (active != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Continuing your existing request')),
+      );
+      context.push(
+        HelpRoutes.helpChat(
+          ticketId: active.id,
           orderId: widget.orderId,
           tab: widget.bottomNavIndex,
         ),

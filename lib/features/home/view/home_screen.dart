@@ -257,21 +257,15 @@ class HomeScreen extends ConsumerWidget {
                     ),
                     const SizedBox(height: 18),
                   ],
-                  SectionHeader(
-                    title: HomeStrings.exclusiveOffers,
-                    onSeeAll: () => context.push(RouteNames.exclusiveOffers),
-                  ),
-                  const SizedBox(height: 14),
-                  if (categoriesLoading)
-                    const SizedBox(
-                      height: 165,
-                      child: Center(
-                        child: CircularProgressIndicator(
-                          color: AppColors.primary,
-                        ),
-                      ),
-                    )
-                  else if (feed != null && feed.exclusiveOffers.isNotEmpty)
+                  if (!categoriesLoading &&
+                      feed != null &&
+                      feed.exclusiveOffersSection.isVisible &&
+                      feed.exclusiveOffers.isNotEmpty) ...[
+                    SectionHeader(
+                      title: feed.exclusiveOffersSection.displayTitle,
+                      onSeeAll: () => context.push(RouteNames.exclusiveOffers),
+                    ),
+                    const SizedBox(height: 14),
                     SizedBox(
                       height: 165,
                       child: ListView.separated(
@@ -287,7 +281,8 @@ class HomeScreen extends ConsumerWidget {
                         },
                       ),
                     ),
-                  const SizedBox(height: 18),
+                    const SizedBox(height: 18),
+                  ],
                   const UiPlacementBanner(placementKey: 'home_below_picks'),
                 ]),
               ),

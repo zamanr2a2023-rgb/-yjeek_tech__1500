@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yjeek_app/core/constants/app_colors.dart';
@@ -5,6 +6,7 @@ import 'package:yjeek_app/core/constants/app_text_styles.dart';
 import 'package:yjeek_app/core/providers/app_providers.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/features/order_flow/model/order_api_mappers.dart';
+import 'package:yjeek_app/features/payments/benefit_pay_debug.dart';
 import 'package:yjeek_app/features/payments/benefit_pay_native.dart';
 import 'package:yjeek_app/features/payments/model/benefit_pay_models.dart';
 import 'package:yjeek_app/features/payments/model/native_wallet_pay.dart';
@@ -34,7 +36,7 @@ class PayNowHelper {
     PayNowOption(api: 'BENEFIT_PAY', label: 'BenefitPay', enabled: true),
     PayNowOption(api: 'APPLE_PAY', label: 'Apple Pay', enabled: false),
     PayNowOption(api: 'GOOGLE_PAY', label: 'Google Pay', enabled: false),
-    PayNowOption(api: 'BENEFIT', label: 'Benefit', enabled: false),
+    PayNowOption(api: 'BENEFIT', label: 'Benefit', enabled: true),
     PayNowOption(api: 'CARD', label: 'Add new card', enabled: false),
   ];
 
@@ -46,6 +48,23 @@ class PayNowHelper {
   static bool isBenefitPayNative(String methodApi) {
     final key = methodApi.toUpperCase();
     return key == 'BENEFIT_PAY' || key == 'BENEFITPAY';
+  }
+
+  /// Native Wallet: never treat SDK success alone as payment success.
+  /// Success snack only after confirm (or settlement fallback).
+  static bool shouldShowNativePaymentSuccessSnack({
+    required bool confirmOk,
+    bool orderSettled = false,
+  }) =>
+      confirmOk || orderSettled;
+
+  /// Native Wallet routing after SDK returns (before /payments/confirm).
+  /// Insufficient-funds / declines stay on the SDK failure path.
+  static bool shouldConfirmAfterNativeSdk(BenefitPayNativeResult native) {
+    if (native.isUnavailable || native.isCancelled || !native.isSuccess) {
+      return false;
+    }
+    return true;
   }
 
   static bool isBenefitHosted(String methodApi) {
@@ -161,6 +180,13 @@ class PayNowHelper {
     );
   }
 
+  Future<void> _showBenefitPayDebugFailure(
+    BenefitPayFailureDiagnostic diagnostic,
+  ) async {
+    if (!kDebugMode || !context.mounted) return;
+    await BenefitPayDebug.showFailureDiagnostics(context, diagnostic);
+  }
+
   Future<String?> showMethodSheet({
     required List<PayNowOption> options,
     required String currentApi,
@@ -269,6 +295,17 @@ class PayNowHelper {
         confirmed.errorMessage ?? 'Payment failed — try again',
         color: const Color(0xFFB42318),
       );
+      if (kDebugMode && isBenefitPayNative(paymentMethod)) {
+        await _showBenefitPayDebugFailure(
+          BenefitPayFailureDiagnostic(
+            orderId: orderId,
+            debugId: gatewayRef,
+            errorCode: confirmed.errorCode ??
+                confirmed.httpStatus?.toString(),
+            errorMessage: confirmed.errorMessage,
+          ),
+        );
+      }
       return false;
     }
 
@@ -392,14 +429,26 @@ class PayNowHelper {
 
   Future<bool> payWithBenefitPayNative({required List<String> orderIds}) async {
     for (final orderId in orderIds) {
+      if (kDebugMode) {
+        BenefitPayDebug.log('payWithBenefitPayNative start orderId=$orderId');
+      }
       final sessionResult = await ref
           .read(ordersRepositoryProvider)
           .fetchBenefitPayNativeSession(orderId);
       if (!sessionResult.ok || sessionResult.session == null) {
-        snack(
-          sessionResult.errorMessage ?? 'Could not start BenefitPay',
-          color: const Color(0xFFB42318),
-        );
+        final message =
+            sessionResult.errorMessage ?? 'Could not start BenefitPay';
+        snack(message, color: const Color(0xFFB42318));
+        if (kDebugMode) {
+          await _showBenefitPayDebugFailure(
+            BenefitPayFailureDiagnostic(
+              orderId: orderId,
+              errorCode: sessionResult.errorCode ??
+                  sessionResult.httpStatus?.toString(),
+              errorMessage: message,
+            ),
+          );
+        }
         return false;
       }
       final session = sessionResult.session!;
@@ -409,48 +458,106 @@ class PayNowHelper {
           'Missing payment reference from server',
           color: const Color(0xFFB42318),
         );
+        if (kDebugMode) {
+          await _showBenefitPayDebugFailure(
+            BenefitPayFailureDiagnostic(
+              orderId: orderId,
+              errorCode: sessionResult.httpStatus?.toString(),
+              errorMessage: 'Missing payment reference from server',
+            ),
+          );
+        }
         return false;
       }
 
       final available = await BenefitPayNative.isAvailable();
+      BenefitPayDebug.logNativeLaunch(
+        available: available,
+        gatewayRef: gatewayRef,
+      );
       if (!available) {
         snack(
           'BenefitPay app is not installed on this device',
           color: const Color(0xFFB42318),
         );
+        if (kDebugMode) {
+          await _showBenefitPayDebugFailure(
+            BenefitPayFailureDiagnostic(
+              orderId: orderId,
+              debugId: gatewayRef,
+              errorMessage: 'BenefitPay app is not installed on this device',
+            ),
+          );
+        }
         return false;
       }
 
       final native = await BenefitPayNative.pay(session);
+      BenefitPayDebug.logAppResume(
+        phase: 'after_native_pay',
+        orderId: orderId,
+      );
       if (native.isUnavailable) {
-        snack(
-          native.message ?? 'BenefitPay is not available',
-          color: const Color(0xFFB42318),
-        );
+        final message = native.message ?? 'BenefitPay is not available';
+        snack(message, color: const Color(0xFFB42318));
+        if (kDebugMode) {
+          await _showBenefitPayDebugFailure(
+            BenefitPayFailureDiagnostic(
+              orderId: orderId,
+              debugId: gatewayRef,
+              errorMessage: message,
+            ),
+          );
+        }
         return false;
       }
       if (native.isCancelled) {
         snack(native.message ?? 'Payment cancelled');
+        if (kDebugMode) {
+          await _showBenefitPayDebugFailure(
+            BenefitPayFailureDiagnostic(
+              orderId: orderId,
+              debugId: gatewayRef,
+              errorCode: 'cancelled',
+              errorMessage: native.message ?? 'Payment cancelled',
+            ),
+          );
+        }
         return false;
       }
-      if (!native.isSuccess) {
-        snack(
-          native.message ?? 'Payment failed or cancelled',
-          color: const Color(0xFFB42318),
-        );
+      if (!shouldConfirmAfterNativeSdk(native)) {
+        final message = native.message ?? 'Payment failed or cancelled';
+        snack(message, color: const Color(0xFFB42318));
+        if (kDebugMode) {
+          await _showBenefitPayDebugFailure(
+            BenefitPayFailureDiagnostic(
+              orderId: orderId,
+              debugId: gatewayRef,
+              errorCode: native.referenceId != null &&
+                      native.referenceId!.isNotEmpty
+                  ? 'native_failed'
+                  : null,
+              errorMessage: message,
+            ),
+          );
+        }
         return false;
       }
 
-      snack('Payment successful');
+      // Confirm first — only show success after backend verification succeeds.
       final ok = await confirmAuthorized(
         orderId: orderId,
         paymentMethod: 'BENEFIT_PAY',
         gatewayRef: gatewayRef,
       );
-      if (!ok) {
-        final settled = await isOrderSettled(orderId);
-        if (!settled) return false;
+      final settled = ok ? true : await isOrderSettled(orderId);
+      if (!shouldShowNativePaymentSuccessSnack(
+        confirmOk: ok,
+        orderSettled: settled,
+      )) {
+        return false;
       }
+      snack('Payment successful');
     }
     return true;
   }

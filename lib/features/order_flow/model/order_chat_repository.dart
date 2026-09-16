@@ -8,6 +8,7 @@ class OrderChatMessage {
     required this.isMine,
     this.senderName,
     this.createdAt,
+    this.imageUrls = const [],
   });
 
   final String id;
@@ -15,17 +16,37 @@ class OrderChatMessage {
   final bool isMine;
   final String? senderName;
   final DateTime? createdAt;
+  final List<String> imageUrls;
 
   factory OrderChatMessage.fromJson(Map<String, dynamic> json, {String? myRole}) {
     final sender = json['sender']?.toString().toUpperCase() ?? '';
     final role = json['senderRole']?.toString().toUpperCase() ?? sender;
     final isMine = role.contains('CUSTOMER') || sender == 'CUSTOMER';
+    final imageUrls = <String>[];
+    final direct = json['attachments'];
+    if (direct is List) {
+      for (final item in direct) {
+        final url = item?.toString().trim() ?? '';
+        if (url.isNotEmpty) imageUrls.add(url);
+      }
+    }
+    final metadata = json['metadata'];
+    if (metadata is Map && imageUrls.isEmpty) {
+      final raw = metadata['attachments'];
+      if (raw is List) {
+        for (final item in raw) {
+          final url = item?.toString().trim() ?? '';
+          if (url.isNotEmpty) imageUrls.add(url);
+        }
+      }
+    }
     return OrderChatMessage(
       id: json['id']?.toString() ?? '',
       body: json['body']?.toString() ?? json['text']?.toString() ?? '',
       isMine: isMine,
       senderName: json['senderName']?.toString(),
       createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? ''),
+      imageUrls: imageUrls,
     );
   }
 }
@@ -43,6 +64,7 @@ class OrderChatRepository {
       ({
         bool ok,
         String? conversationId,
+        String? conversationStatus,
         List<OrderChatMessage> messages,
         String? error,
       })> openOrderChat(String orderId) async {
@@ -54,6 +76,7 @@ class OrderChatRepository {
       return (
         ok: false,
         conversationId: null,
+        conversationStatus: null,
         messages: const <OrderChatMessage>[],
         error: response.message ??
             'Champ not assigned yet — chat unavailable',
@@ -64,12 +87,16 @@ class OrderChatRepository {
       return (
         ok: false,
         conversationId: null,
+        conversationStatus: null,
         messages: const <OrderChatMessage>[],
         error: response.message ?? 'Chat unavailable',
       );
     }
     final conversationId =
         data['conversationId']?.toString() ?? data['id']?.toString();
+    final lifecycle = data['lifecycle'];
+    final conversationStatus = data['status']?.toString() ??
+        (lifecycle is Map ? lifecycle['status']?.toString() : null);
     final raw = data['messages'];
     final messages = <OrderChatMessage>[];
     if (raw is List) {
@@ -82,6 +109,7 @@ class OrderChatRepository {
     return (
       ok: true,
       conversationId: conversationId,
+      conversationStatus: conversationStatus,
       messages: messages,
       error: null,
     );

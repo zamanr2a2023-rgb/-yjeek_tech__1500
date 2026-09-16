@@ -1,26 +1,79 @@
 import 'package:yjeek_app/core/network/api_client.dart';
 import 'package:yjeek_app/core/services/storage_service.dart';
+import 'package:yjeek_app/features/home/model/exclusive_offers_section.dart';
 import 'package:yjeek_app/features/home/model/home_ui_mapper.dart';
 import 'package:yjeek_app/features/navigation/model/navigation_data.dart';
 
-/// GET /offers — optional category slug filter (food / groceries / fashion).
+class ExclusiveOffersPage {
+  const ExclusiveOffersPage({
+    required this.section,
+    required this.offers,
+  });
+
+  final ExclusiveOffersSection section;
+  final List<BrowseOffer> offers;
+}
+
+/// Curated Super Exclusive offers from `GET /home/exclusive-offers`.
 class OffersRepository {
   const OffersRepository(this._apiClient, this._storage);
 
   final ApiClient _apiClient;
   final StorageService _storage;
 
-  Future<List<BrowseOffer>> fetchOffers({
+  Future<ExclusiveOffersPage> fetchExclusiveOffersPage({
     String? categorySlug,
-    bool exclusiveOnly = true,
+    int limit = 50,
+    int offset = 0,
   }) async {
-    final params = <String, String>{};
+    final params = <String, String>{
+      'limit': '$limit',
+      'offset': '$offset',
+    };
     final slug = categorySlug?.trim();
     if (slug != null && slug.isNotEmpty) {
       params['category'] = slug;
     }
-    if (exclusiveOnly) {
-      params['exclusive'] = 'true';
+
+    final query =
+        '?${params.entries.map((e) => '${e.key}=${Uri.encodeQueryComponent(e.value)}').join('&')}';
+
+    final response = await _apiClient.getJson(
+      '/home/exclusive-offers$query',
+      bearerToken: _storage.token,
+    );
+    final data = response?['data'];
+    if (data is! Map<String, dynamic>) {
+      return ExclusiveOffersPage(
+        section: ExclusiveOffersSection.fallback(),
+        offers: const [],
+      );
+    }
+
+    final section = ExclusiveOffersSection.fromJson(data);
+    final rawItems = data['items'] ?? data['exclusiveOffers'];
+    final offers = _parseOffers(rawItems);
+
+    return ExclusiveOffersPage(section: section, offers: offers);
+  }
+
+  /// Backward-compatible list fetch for callers that only need items.
+  Future<List<BrowseOffer>> fetchOffers({
+    String? categorySlug,
+    bool exclusiveOnly = true,
+  }) async {
+    if (!exclusiveOnly) {
+      return _fetchLegacyOffers(categorySlug: categorySlug);
+    }
+    final page = await fetchExclusiveOffersPage(categorySlug: categorySlug);
+    return page.offers;
+  }
+
+  Future<List<BrowseOffer>> _fetchLegacyOffers({String? categorySlug}) async {
+    final params = <String, String>{};
+    final slug = categorySlug?.trim();
+    if (slug != null && slug.isNotEmpty) {
+      params['category'] = slug;
     }
 
     final query = params.isEmpty
@@ -32,12 +85,22 @@ class OffersRepository {
       bearerToken: _storage.token,
     );
     final data = response?['data'];
-    if (data is! List) return const [];
+    if (data is List) {
+      return _parseOffers(data);
+    }
+    if (data is Map<String, dynamic>) {
+      final rawItems = data['items'] ?? data['exclusiveOffers'];
+      return _parseOffers(rawItems);
+    }
+    return const [];
+  }
 
+  static List<BrowseOffer> _parseOffers(Object? raw) {
+    if (raw is! List) return const [];
     final out = <BrowseOffer>[];
-    for (final raw in data) {
-      if (raw is! Map<String, dynamic>) continue;
-      final mapped = _fromJson(raw);
+    for (final item in raw) {
+      if (item is! Map<String, dynamic>) continue;
+      final mapped = _fromJson(item);
       if (mapped != null) out.add(mapped);
     }
     return out;
@@ -65,6 +128,8 @@ class OffersRepository {
     final badge = json['badgeLabel']?.toString().trim();
     final categorySlug =
         categoryMap?['slug']?.toString().trim().toLowerCase() ?? '';
+    final imageUrl = json['imageUrl']?.toString() ??
+        productMap?['imageUrl']?.toString();
 
     return BrowseOffer(
       name: name,
@@ -78,7 +143,7 @@ class OffersRepository {
       category: _categoryFromSlug(categorySlug),
       productId: json['productId']?.toString() ?? productMap?['id']?.toString(),
       vendorId: json['vendorId']?.toString() ?? vendorMap?['id']?.toString(),
-      imageUrl: productMap?['imageUrl']?.toString(),
+      imageUrl: imageUrl,
     );
   }
 

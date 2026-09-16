@@ -137,10 +137,18 @@ String? sanitizeBenefitHostedInitError(String? raw) {
 }
 
 class PaymentConfirmResult {
-  const PaymentConfirmResult({required this.ok, this.errorMessage, this.raw});
+  const PaymentConfirmResult({
+    required this.ok,
+    this.errorMessage,
+    this.httpStatus,
+    this.errorCode,
+    this.raw,
+  });
 
   final bool ok;
   final String? errorMessage;
+  final int? httpStatus;
+  final String? errorCode;
   final Map<String, dynamic>? raw;
 }
 

@@ -43,11 +43,15 @@ abstract final class HelpRoutes {
   static String helpChat({
     HelpChatVariant variant = HelpChatVariant.support,
     String? ticketId,
+    String? orderId,
     int tab = 0,
   }) {
     final query = StringBuffer('variant=${variant.routeValue}');
     if (ticketId != null && ticketId.isNotEmpty) {
       query.write('&ticketId=$ticketId');
+    }
+    if (orderId != null && orderId.isNotEmpty) {
+      query.write('&orderId=$orderId');
     }
     if (tab != 0) query.write('&tab=$tab');
     return '${RouteNames.helpChat}?$query';

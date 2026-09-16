@@ -3,6 +3,7 @@ import 'package:yjeek_app/core/constants/app_colors.dart';
 import 'package:yjeek_app/core/constants/app_text_styles.dart';
 import 'package:yjeek_app/core/constants/browse_strings.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
+import 'package:yjeek_app/core/widgets/app_network_image.dart';
 import 'package:yjeek_app/features/browse/model/browse_data.dart';
 import 'package:yjeek_app/features/browse/model/dine_in_data.dart';
 import 'package:yjeek_app/features/home/view/widgets/home_widgets.dart';
@@ -609,12 +610,14 @@ class DineInMenuItemRow extends StatelessWidget {
     required this.gradientStart,
     required this.gradientEnd,
     this.onTap,
+    this.onAdd,
   });
 
   final BrowseMenuItem item;
   final Color gradientStart;
   final Color gradientEnd;
   final VoidCallback? onTap;
+  final VoidCallback? onAdd;
 
   @override
   Widget build(BuildContext context) {
@@ -636,6 +639,16 @@ class DineInMenuItemRow extends StatelessWidget {
                   colors: [gradientStart, gradientEnd],
                 ),
               ),
+              clipBehavior: Clip.antiAlias,
+              child: item.imageUrl != null && item.imageUrl!.isNotEmpty
+                  ? AppNetworkImage(
+                      url: item.imageUrl!,
+                      width: 72.w,
+                      height: 72.w,
+                      fit: BoxFit.cover,
+                      borderRadius: BorderRadius.circular(14.r),
+                    )
+                  : null,
             ),
             SizedBox(width: 14.w),
             Expanded(
@@ -673,21 +686,25 @@ class DineInMenuItemRow extends StatelessWidget {
                 ],
               ),
             ),
-            Container(
-              width: 34.w,
-              height: 34.w,
-              decoration: BoxDecoration(
-                color: AppColors.primary,
-                borderRadius: BorderRadius.circular(11.r),
-              ),
-              alignment: Alignment.center,
-              child: Text(
-                '+',
-                style: TextStyle(
-                  color: AppColors.white,
-                  fontSize: 20.sp,
-                  fontWeight: FontWeight.w700,
-                  height: 1.3,
+            GestureDetector(
+              onTap: onAdd ?? onTap,
+              behavior: HitTestBehavior.opaque,
+              child: Container(
+                width: 34.w,
+                height: 34.w,
+                decoration: BoxDecoration(
+                  color: AppColors.primary,
+                  borderRadius: BorderRadius.circular(11.r),
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  '+',
+                  style: TextStyle(
+                    color: AppColors.white,
+                    fontSize: 20.sp,
+                    fontWeight: FontWeight.w700,
+                    height: 1.3,
+                  ),
                 ),
               ),
             ),

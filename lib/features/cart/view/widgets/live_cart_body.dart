@@ -5,6 +5,7 @@ import 'package:yjeek_app/core/constants/app_text_styles.dart';
 import 'package:yjeek_app/core/constants/navigation_strings.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/core/widgets/app_google_map.dart';
+import 'package:yjeek_app/core/widgets/app_network_image.dart';
 import 'package:yjeek_app/features/cart/model/cart_repository.dart';
 import 'package:yjeek_app/features/dine_in_cart/model/dine_in_cart_data.dart';
 import 'package:yjeek_app/features/dine_in_cart/view/widgets/dine_in_cart_widgets.dart';
@@ -34,6 +35,7 @@ class LiveCartBody extends StatefulWidget {
     this.showElectronicsCart = false,
     this.showVapeCart = false,
     this.checkoutLabel,
+    this.initialPromoCode,
   });
 
   final CartSnapshot cart;
@@ -55,6 +57,7 @@ class LiveCartBody extends StatefulWidget {
   final bool showElectronicsCart;
   final bool showVapeCart;
   final String? checkoutLabel;
+  final String? initialPromoCode;
 
   @override
   State<LiveCartBody> createState() => _LiveCartBodyState();
@@ -64,6 +67,25 @@ class _LiveCartBodyState extends State<LiveCartBody> {
   final _promoController = TextEditingController();
   final _promoFocusNode = FocusNode();
   bool _busy = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final initial = widget.initialPromoCode?.trim();
+    if (initial != null && initial.isNotEmpty) {
+      _promoController.text = initial;
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant LiveCartBody oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final next = widget.initialPromoCode?.trim();
+    final prev = oldWidget.initialPromoCode?.trim();
+    if (next != null && next.isNotEmpty && next != prev) {
+      _promoController.text = next;
+    }
+  }
 
   CartSnapshot get cart => widget.cart;
 
@@ -752,10 +774,13 @@ class _LiveCartBodyState extends State<LiveCartBody> {
               ),
               clipBehavior: Clip.antiAlias,
               child: item.imageUrl != null && item.imageUrl!.isNotEmpty
-                  ? Image.network(
-                      item.imageUrl!,
+                  ? AppNetworkImage(
+                      url: item.imageUrl!,
+                      width: 54,
+                      height: 54,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, _, _) => const Center(
+                      showShimmer: false,
+                      errorWidget: const Center(
                         child: Text('📦', style: TextStyle(fontSize: 19)),
                       ),
                     )
@@ -1191,12 +1216,13 @@ class _UpsellCard extends StatelessWidget {
                   height: 90,
                   color: item.imageColor,
                   child: item.imageUrl != null && item.imageUrl!.isNotEmpty
-                      ? Image.network(
-                          item.imageUrl!,
+                      ? AppNetworkImage(
+                          url: item.imageUrl!,
                           width: 120,
                           height: 90,
                           fit: BoxFit.cover,
-                          errorBuilder: (_, _, _) => Container(
+                          showShimmer: false,
+                          errorWidget: Container(
                             decoration: BoxDecoration(
                               gradient: LinearGradient(
                                 begin: const Alignment(-0.6, -1),

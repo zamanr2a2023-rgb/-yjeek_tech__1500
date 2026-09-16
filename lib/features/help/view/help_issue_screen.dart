@@ -133,29 +133,18 @@ class _HelpIssueScreenState extends ConsumerState<HelpIssueScreen> {
     } else {
       _orderTotalBhd = fallback.totalBhd;
       _shortId = fallback.shortId;
-      _items = HelpData.orderItems
-          .map(
-            (e) => _OrderLineItem(
-              id: e.label,
-              label: e.label,
-              price: e.price,
-              quantity: 1,
-              unitPrice: 0,
-            ),
-          )
-          .toList();
-      _itemChecks = HelpData.orderItems.map((e) => e.selected).toList();
-      setState(() => _loading = false);
+      // Do not fall back to demo/static line items — Wrong order must use API items.
+      setState(() {
+        _items = const [];
+        _itemChecks = const [];
+        _loading = false;
+      });
       return;
     }
 
     setState(() {
       _items = parsed;
       _itemChecks = List<bool>.filled(parsed.length, false);
-      if (parsed.length >= 2) {
-        _itemChecks[parsed.length - 1] = true;
-        if (parsed.length >= 3) _itemChecks[parsed.length - 2] = true;
-      }
       _loading = false;
     });
   }
@@ -420,25 +409,23 @@ class _HelpIssueScreenState extends ConsumerState<HelpIssueScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          ticket.displayCode.isNotEmpty
+          ticket.reused
+              ? 'Continuing your existing request'
+              : ticket.displayCode.isNotEmpty
               ? 'Submitted · ${ticket.displayCode}'
               : 'Your request has been submitted',
         ),
       ),
     );
 
-    if (widget.type.opensCareChatAfterSubmit) {
-      context.push(
-        HelpRoutes.helpChat(
-          variant: _chatVariantForType(),
-          ticketId: ticket.id,
-          tab: widget.bottomNavIndex,
-        ),
-      );
-      return;
-    }
-
-    context.pop();
+    context.push(
+      HelpRoutes.helpChat(
+        variant: _chatVariantForType(),
+        ticketId: ticket.id,
+        orderId: widget.orderId,
+        tab: widget.bottomNavIndex,
+      ),
+    );
   }
 
   @override
@@ -597,11 +584,46 @@ class _HelpIssueScreenState extends ConsumerState<HelpIssueScreen> {
                     inline: true,
                     onTap: _submitting
                         ? null
-                        : () => context.push(
+                        : () async {
+                            final support =
+                                ref.read(supportRepositoryProvider);
+                            final active = await support
+                                .findActiveTicketForOrder(widget.orderId);
+                            if (!context.mounted) return;
+                            if (active != null) {
+                              context.push(
+                                HelpRoutes.helpChat(
+                                  ticketId: active.id,
+                                  orderId: widget.orderId,
+                                  tab: widget.bottomNavIndex,
+                                ),
+                              );
+                              return;
+                            }
+                            final ticket = await support.createTicket(
+                              subject: '$_title · $_shortId',
+                              remark: 'Customer contacted support from issue form.',
+                              orderId: widget.orderId,
+                              issueType: widget.type.apiIssueType,
+                            );
+                            if (!context.mounted) return;
+                            if (ticket == null) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Could not start support chat'),
+                                  backgroundColor: Color(0xFFB42318),
+                                ),
+                              );
+                              return;
+                            }
+                            context.push(
                               HelpRoutes.helpChat(
+                                ticketId: ticket.id,
+                                orderId: widget.orderId,
                                 tab: widget.bottomNavIndex,
                               ),
-                            ),
+                            );
+                          },
                   ),
                 SizedBox(height: 10.h),
                 HelpOutlineButton(

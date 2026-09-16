@@ -23,6 +23,7 @@ class ExclusiveOffersScreen extends ConsumerStatefulWidget {
 class _ExclusiveOffersScreenState extends ConsumerState<ExclusiveOffersScreen> {
   int _filterIndex = 0;
   List<BrowseOffer> _offers = [];
+  String _sectionTitle = NavigationStrings.exclusiveOffersTitle;
   bool _loading = true;
   String? _error;
   String? _addingProductId;
@@ -55,12 +56,13 @@ class _ExclusiveOffersScreenState extends ConsumerState<ExclusiveOffersScreen> {
     });
     try {
       final slug = _categorySlugs[_filterIndex];
-      final offers = await ref
+      final page = await ref
           .read(offersRepositoryProvider)
-          .fetchOffers(categorySlug: slug);
+          .fetchExclusiveOffersPage(categorySlug: slug);
       if (!mounted) return;
       setState(() {
-        _offers = offers;
+        _offers = page.offers;
+        _sectionTitle = page.section.displayTitle;
         _loading = false;
       });
     } catch (e) {
@@ -159,7 +161,7 @@ class _ExclusiveOffersScreenState extends ConsumerState<ExclusiveOffersScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           NavBackHeader(
-            title: NavigationStrings.exclusiveOffersTitle,
+            title: _sectionTitle,
             subtitle: NavigationStrings.exclusiveOffersSubtitle,
           ),
           Padding(

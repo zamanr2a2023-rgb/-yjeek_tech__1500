@@ -50,6 +50,7 @@ class HelpChatMessage {
     this.isAgentJoin = false,
     this.avatarLabel = 'Y',
     this.quickReplies = const [],
+    this.imageUrls = const [],
   });
 
   final String text;
@@ -60,6 +61,7 @@ class HelpChatMessage {
   /// Agent avatar letter — `Y` (bot) or `M` (Maryam).
   final String avatarLabel;
   final List<String> quickReplies;
+  final List<String> imageUrls;
 
   bool get isAgentMaryam => avatarLabel == 'M';
 }

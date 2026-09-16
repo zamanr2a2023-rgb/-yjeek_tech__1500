@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:yjeek_app/core/network/api_client.dart';
 import 'package:yjeek_app/core/services/storage_service.dart';
+import 'package:yjeek_app/core/utils/api_media_url.dart';
 import 'package:yjeek_app/features/browse/model/browse_data.dart';
 import 'package:yjeek_app/features/browse/model/dine_in_data.dart';
 import 'package:yjeek_app/features/browse/model/food_vendors_repository.dart';
@@ -23,14 +24,14 @@ class DineInProductDetail {
   const DineInProductDetail({
     required this.item,
     required this.description,
-    required this.options,
+    required this.optionGroups,
     required this.addons,
     this.imageUrl,
   });
 
   final BrowseMenuItem item;
   final String description;
-  final List<BrowseSizeOption> options;
+  final List<BrowseOptionGroup> optionGroups;
   final List<BrowseAddonOption> addons;
   final String? imageUrl;
 }
@@ -203,47 +204,18 @@ class DineInVendorsRepository {
     );
     final data = response?['data'];
     if (data is! Map<String, dynamic>) {
-      final fallback = DineInData.menuItemById(itemId);
-      return DineInProductDetail(
-        item: fallback,
-        description: DineInData.mezzeLongDescription,
-        options: DineInData.mezzeSizes,
-        addons: DineInData.mezzeAddons,
-      );
+      throw StateError('Product not found');
     }
 
     final item = browseMenuItemFromProductJson(
           data,
           section: data['menuSectionName'] as String? ?? 'Menu',
-        ) ??
-        DineInData.menuItemById(itemId);
-
-    final options = <BrowseSizeOption>[];
-    final groups = data['optionGroups'];
-    if (groups is List) {
-      for (final group in groups) {
-        if (group is! Map<String, dynamic>) continue;
-        final opts = group['options'];
-        if (opts is! List) continue;
-        for (final opt in opts) {
-          if (opt is! Map<String, dynamic>) continue;
-          final id = opt['id']?.toString();
-          final name = opt['name'] as String? ?? 'Option';
-          final delta = opt['priceDelta'];
-          final deltaNum = delta is num ? delta.toDouble() : 0.0;
-          options.add(
-            BrowseSizeOption(
-              id: id,
-              label: name,
-              subtitle: deltaNum <= 0
-                  ? 'Included'
-                  : '+ BHD ${deltaNum.toStringAsFixed(1)}',
-              extraPrice: deltaNum > 0 ? deltaNum.toStringAsFixed(3) : null,
-            ),
-          );
-        }
-      }
+        );
+    if (item == null) {
+      throw StateError('Product not found');
     }
+
+    final optionGroups = browseOptionGroupsFromJson(data['optionGroups']);
 
     final addons = <BrowseAddonOption>[];
     final addonsRaw = data['addons'];
@@ -274,9 +246,11 @@ class DineInVendorsRepository {
           ? data['description'] as String
           : item.description,
       // Keep EN description on detail; UI picks AR via item.descriptionAr.
-      options: options.isNotEmpty ? options : DineInData.mezzeSizes,
-      addons: addons.isNotEmpty ? addons : DineInData.mezzeAddons,
-      imageUrl: (data['imageUrl'] as String?)?.trim(),
+      optionGroups: optionGroups,
+      addons: addons,
+      imageUrl: resolveApiMediaUrl(data['imageUrl'] as String?) ??
+          resolveApiMediaUrlFromList(data['imageUrls']) ??
+          item.imageUrl,
     );
   }
 
@@ -450,7 +424,8 @@ DineInRestaurant? dineInRestaurantFromVendorJson(Map<String, dynamic> json) {
       ? tableMinRaw.toInt()
       : int.tryParse(tableMinRaw?.toString() ?? '') ?? 2;
 
-  final imageUrl = (json['coverUrl'] as String?)?.trim();
+  final imageUrl = resolveApiMediaUrl(json['coverUrl'] as String?) ??
+      resolveApiMediaUrlFromList(json['imageUrls']);
   final colors = _gradientForName(name);
 
   return DineInRestaurant(

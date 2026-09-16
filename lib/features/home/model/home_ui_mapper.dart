@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:yjeek_app/core/utils/api_media_url.dart';
 import 'package:yjeek_app/features/home/model/category_item.dart';
 import 'package:yjeek_app/features/home/model/home_data.dart';
 
@@ -87,14 +88,19 @@ CategoryItem categoryItemFromApi({
   required String name,
   String? slug,
   String? id,
+  String? iconUrl,
 }) {
   final style = HomeCategoryStyle.forSlug(slug, name);
+  final trimmedIconUrl = iconUrl?.trim();
   return CategoryItem(
     id: id,
     slug: slug,
     name: name,
     icon: style.$1,
     backgroundColor: style.$2,
+    iconUrl: (trimmedIconUrl != null && trimmedIconUrl.isNotEmpty)
+        ? trimmedIconUrl
+        : null,
   );
 }
 
@@ -107,7 +113,7 @@ BrandItem brandItemFromApi({
     id: id,
     name: name,
     color: HomeBrandStyle.forName(name),
-    logoUrl: logoUrl,
+    logoUrl: resolveApiMediaUrl(logoUrl),
   );
 }
 

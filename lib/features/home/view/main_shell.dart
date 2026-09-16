@@ -1,9 +1,15 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:yjeek_app/core/constants/app_colors.dart';
 import 'package:yjeek_app/core/providers/app_providers.dart';
 import 'package:yjeek_app/core/providers/shell_provider.dart';
+import 'package:yjeek_app/core/services/location_service.dart';
+import 'package:yjeek_app/features/geofence/model/geofence_models.dart';
+import 'package:yjeek_app/features/geofence/service/geofence_session_controller.dart';
+import 'package:yjeek_app/features/geofence/view/geofence_offer_screen.dart';
 import 'package:yjeek_app/features/home/view/home_screen.dart';
 import 'package:yjeek_app/features/home/view/widgets/home_widgets.dart';
 import 'package:yjeek_app/features/navigation/view/account_screen.dart';
@@ -39,16 +45,101 @@ class MainShell extends ConsumerStatefulWidget {
 
 class _MainShellState extends ConsumerState<MainShell>
     with WidgetsBindingObserver {
+  ProviderSubscription<GeofenceEnterResult?>? _unlockSub;
+  ProviderSubscription<LocationPermissionOutcome?>? _locationPromptSub;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     Future.microtask(_applyInitialTab);
+    Future.microtask(_startGeofenceWatcher);
+    _unlockSub = ref.listenManual(geofenceLastUnlockProvider, (prev, next) {
+      if (next == null || next.alreadyTriggered) return;
+      if (!mounted) return;
+      final code = next.promoCode;
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text(
+              code.isEmpty
+                  ? 'Nearby offer unlocked at ${next.vendorName}'
+                  : 'Offer unlocked: $code',
+            ),
+            behavior: SnackBarBehavior.floating,
+            action: SnackBarAction(
+              label: 'View',
+              onPressed: () {
+                context.push(
+                  geofenceOfferLocation(
+                    triggerId: next.trigger.id,
+                    promoCode: next.promoCode,
+                    campaignId: next.campaignId,
+                    vendorName: next.vendorName,
+                    expiresAt: next.trigger.expiresAt?.toIso8601String(),
+                  ),
+                );
+              },
+            ),
+          ),
+        );
+      ref.read(geofenceLastUnlockProvider.notifier).state = null;
+    });
+    _locationPromptSub = ref.listenManual(geofenceLocationPromptProvider, (
+      prev,
+      next,
+    ) {
+      if (next == null || !mounted) return;
+      final message = switch (next) {
+        LocationPermissionOutcome.serviceDisabled =>
+          'Turn on Location to unlock nearby offers',
+        LocationPermissionOutcome.deniedForever =>
+          'Location permission is blocked. Enable it in Settings',
+        LocationPermissionOutcome.denied =>
+          'Allow location access to unlock nearby offers',
+        LocationPermissionOutcome.granted => null,
+      };
+      if (message == null) return;
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text(message),
+            behavior: SnackBarBehavior.floating,
+            action: SnackBarAction(
+              label: next == LocationPermissionOutcome.denied
+                  ? 'Allow'
+                  : 'Settings',
+              onPressed: () {
+                unawaited(
+                  ref
+                      .read(geofenceSessionControllerProvider)
+                      .retryPermissionFromSettings(),
+                );
+              },
+            ),
+          ),
+        );
+      ref.read(geofenceLocationPromptProvider.notifier).state = null;
+    });
+  }
+
+  void _startGeofenceWatcher() {
+    if (!mounted) return;
+    final storage = ref.read(storageServiceProvider);
+    if (!storage.hasSession) return;
+    ref.read(geofenceSessionControllerProvider).start();
   }
 
   @override
   void dispose() {
+    _unlockSub?.close();
+    _locationPromptSub?.close();
     WidgetsBinding.instance.removeObserver(this);
+    try {
+      ref.read(geofenceSessionControllerProvider).stop();
+    } catch (_) {}
     super.dispose();
   }
 
@@ -57,6 +148,13 @@ class _MainShellState extends ConsumerState<MainShell>
     if (state == AppLifecycleState.resumed) {
       invalidateCmsBanners(ref);
       ref.invalidate(homeFeedProvider);
+      final storage = ref.read(storageServiceProvider);
+      if (storage.hasSession) {
+        ref.read(geofenceSessionControllerProvider).start();
+        unawaited(ref.read(geofenceSessionControllerProvider).scan());
+      }
+    } else if (state == AppLifecycleState.paused) {
+      ref.read(geofenceSessionControllerProvider).stop();
     }
   }
 

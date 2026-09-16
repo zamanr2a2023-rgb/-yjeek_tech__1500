@@ -9,6 +9,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:yjeek_app/core/services/storage_service.dart';
 import 'package:yjeek_app/core/utils/app_logger.dart';
 import 'package:yjeek_app/features/notifications/model/notifications_repository.dart';
+import 'package:yjeek_app/features/geofence/view/geofence_offer_screen.dart';
 import 'package:yjeek_app/firebase_options.dart';
 import 'package:yjeek_app/routes/app_router.dart';
 import 'package:yjeek_app/routes/route_names.dart';
@@ -171,8 +172,20 @@ class PushNotificationService {
 
     final orderId = data['orderId']?.trim() ?? '';
     final type = (data['type'] ?? data['screen'] ?? '').toUpperCase();
+    final screen = (data['screen'] ?? '').toLowerCase();
     if (orderId.isNotEmpty) {
       router.push('${RouteNames.orderDetails}?id=$orderId');
+      return;
+    }
+    if (type == 'GEOFENCE_OFFER' || screen == 'geofence_offer') {
+      final location = geofenceOfferLocation(
+        triggerId: data['triggerId'],
+        promoCode: data['promoCode'],
+        campaignId: data['campaignId'],
+        vendorName: data['vendorName'],
+        expiresAt: data['expiresAt'],
+      );
+      router.push(location);
       return;
     }
     if (type == 'PROMO' || type == 'OFFERS') {
