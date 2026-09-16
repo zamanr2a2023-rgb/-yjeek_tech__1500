@@ -20,6 +20,7 @@ import 'package:yjeek_app/features/browse/view/services_search_screen.dart';
 import 'package:yjeek_app/features/browse/view/electronics_browse_screen.dart';
 import 'package:yjeek_app/features/browse/view/electronics_product_detail_screen.dart';
 import 'package:yjeek_app/features/browse/view/electronics_store_screen.dart';
+import 'package:yjeek_app/features/geofence/view/geofence_offer_screen.dart';
 import 'package:yjeek_app/features/home/view/home_screen.dart';
 import 'package:yjeek_app/features/vape_cart/view/vape_age_verify_screen.dart';
 import 'package:yjeek_app/features/vape_cart/view/vape_checkout_screen.dart';
@@ -484,6 +485,19 @@ class AppRouter {
         GoRoute(
           path: RouteNames.exclusiveOffers,
           builder: (_, _) => const ExclusiveOffersScreen(),
+        ),
+        GoRoute(
+          path: RouteNames.geofenceOffer,
+          builder: (_, state) {
+            final q = state.uri.queryParameters;
+            return GeofenceOfferScreen(
+              triggerId: q['triggerId'],
+              promoCode: q['promoCode'],
+              campaignId: q['campaignId'],
+              vendorName: q['vendorName'],
+              expiresAt: q['expiresAt'],
+            );
+          },
         ),
         GoRoute(
           path: RouteNames.orderDetails,

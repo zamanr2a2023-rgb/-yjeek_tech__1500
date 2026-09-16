@@ -46,6 +46,7 @@ class BrowseMenuItem {
     this.imageUrl,
     this.nameAr,
     this.descriptionAr,
+    this.hasModifiers = false,
   });
 
   final String id;
@@ -56,6 +57,9 @@ class BrowseMenuItem {
   final String price;
   final String section;
   final String? imageUrl;
+  /// True when product has option groups and/or add-ons that must be chosen
+  /// on the product details page before adding to cart.
+  final bool hasModifiers;
 
   /// Active-locale product title (AR when set and locale is Arabic).
   String get localizedName {

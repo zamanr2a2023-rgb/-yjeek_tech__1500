@@ -8,6 +8,7 @@ import 'package:yjeek_app/core/constants/app_text_styles.dart';
 import 'package:yjeek_app/core/constants/browse_strings.dart';
 import 'package:yjeek_app/core/providers/app_providers.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
+import 'package:yjeek_app/features/auth/utils/require_login.dart';
 import 'package:yjeek_app/features/browse/browse_routes.dart';
 import 'package:yjeek_app/features/browse/model/browse_data.dart';
 import 'package:yjeek_app/features/browse/model/food_vendors_repository.dart';
@@ -44,11 +45,14 @@ class _VendorMenuScreenState extends ConsumerState<VendorMenuScreen> {
   FoodCartSummary _cart = FoodCartSummary.empty;
   bool _loading = true;
   bool _loadedOnce = false;
+  bool _adding = false;
   Timer? _searchDebounce;
 
   List<BrowseMenuItem> get _items => _allItems
       .where((item) => item.section == _selectedSection)
       .toList();
+
+  bool get _isPickup => (widget.cartType ?? '').toLowerCase() == 'pickup';
 
   @override
   void initState() {
@@ -102,6 +106,14 @@ class _VendorMenuScreenState extends ConsumerState<VendorMenuScreen> {
     }
   }
 
+  Future<void> _onItemAction(BrowseMenuItem item) async {
+    if (item.hasModifiers) {
+      await _openItem(item);
+      return;
+    }
+    await _addItemDirectly(item);
+  }
+
   Future<void> _openItem(BrowseMenuItem item) async {
     final cartVendorId = _cart.vendorId;
     final needsReplace = cartVendorId != null &&
@@ -128,6 +140,57 @@ class _VendorMenuScreenState extends ConsumerState<VendorMenuScreen> {
       return;
     }
     goDetail();
+  }
+
+  Future<void> _addItemDirectly(BrowseMenuItem item) async {
+    if (_adding) return;
+    if (!await requireLogin(context, ref)) return;
+
+    final cartVendorId = _cart.vendorId;
+    final needsReplace = cartVendorId != null &&
+        cartVendorId.isNotEmpty &&
+        cartVendorId != widget.vendorId &&
+        _cart.itemCount > 0;
+
+    Future<void> doAdd({bool replace = false}) async {
+      setState(() => _adding = true);
+      final result = await ref.read(foodVendorsRepositoryProvider).addToCart(
+            productId: item.id,
+            quantity: 1,
+            replaceCart: replace,
+            cartType: _isPickup ? 'PICKUP' : 'DELIVERY',
+          );
+      if (!mounted) return;
+      setState(() => _adding = false);
+
+      if (result.ok) {
+        context.goHome(
+          tab: 2,
+          cartHasItems: !_isPickup,
+          pickupCart: _isPickup,
+        );
+        return;
+      }
+      if (result.vendorConflict) {
+        showCartNewCartDialog(
+          context,
+          onConfirm: () => doAdd(replace: true),
+        );
+        return;
+      }
+      if (await redirectToLoginIfAuthError(context, ref, result.message)) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(result.message ?? 'Could not add to cart')),
+      );
+    }
+
+    if (needsReplace) {
+      showCartNewCartDialog(context, onConfirm: () => doAdd(replace: true));
+      return;
+    }
+    await doAdd();
   }
 
   @override
@@ -209,7 +272,8 @@ class _VendorMenuScreenState extends ConsumerState<VendorMenuScreen> {
                             item: item,
                             gradientStart: _restaurant.gradientStart,
                             gradientEnd: _restaurant.gradientEnd,
-                            onTap: () => _openItem(item),
+                            onTap: () => _onItemAction(item),
+                            onAdd: () => _onItemAction(item),
                           ),
                         ),
                     ],

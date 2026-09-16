@@ -36,7 +36,7 @@ class PayNowHelper {
     PayNowOption(api: 'BENEFIT_PAY', label: 'BenefitPay', enabled: true),
     PayNowOption(api: 'APPLE_PAY', label: 'Apple Pay', enabled: false),
     PayNowOption(api: 'GOOGLE_PAY', label: 'Google Pay', enabled: false),
-    PayNowOption(api: 'BENEFIT', label: 'Benefit', enabled: false),
+    PayNowOption(api: 'BENEFIT', label: 'Benefit', enabled: true),
     PayNowOption(api: 'CARD', label: 'Add new card', enabled: false),
   ];
 
@@ -48,6 +48,23 @@ class PayNowHelper {
   static bool isBenefitPayNative(String methodApi) {
     final key = methodApi.toUpperCase();
     return key == 'BENEFIT_PAY' || key == 'BENEFITPAY';
+  }
+
+  /// Native Wallet: never treat SDK success alone as payment success.
+  /// Success snack only after confirm (or settlement fallback).
+  static bool shouldShowNativePaymentSuccessSnack({
+    required bool confirmOk,
+    bool orderSettled = false,
+  }) =>
+      confirmOk || orderSettled;
+
+  /// Native Wallet routing after SDK returns (before /payments/confirm).
+  /// Insufficient-funds / declines stay on the SDK failure path.
+  static bool shouldConfirmAfterNativeSdk(BenefitPayNativeResult native) {
+    if (native.isUnavailable || native.isCancelled || !native.isSuccess) {
+      return false;
+    }
+    return true;
   }
 
   static bool isBenefitHosted(String methodApi) {
@@ -508,7 +525,7 @@ class PayNowHelper {
         }
         return false;
       }
-      if (!native.isSuccess) {
+      if (!shouldConfirmAfterNativeSdk(native)) {
         final message = native.message ?? 'Payment failed or cancelled';
         snack(message, color: const Color(0xFFB42318));
         if (kDebugMode) {
@@ -527,16 +544,20 @@ class PayNowHelper {
         return false;
       }
 
-      snack('Payment successful');
+      // Confirm first — only show success after backend verification succeeds.
       final ok = await confirmAuthorized(
         orderId: orderId,
         paymentMethod: 'BENEFIT_PAY',
         gatewayRef: gatewayRef,
       );
-      if (!ok) {
-        final settled = await isOrderSettled(orderId);
-        if (!settled) return false;
+      final settled = ok ? true : await isOrderSettled(orderId);
+      if (!shouldShowNativePaymentSuccessSnack(
+        confirmOk: ok,
+        orderSettled: settled,
+      )) {
+        return false;
       }
+      snack('Payment successful');
     }
     return true;
   }

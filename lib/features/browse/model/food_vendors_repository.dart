@@ -466,6 +466,16 @@ BrowseMenuItem? browseMenuItemFromProductJson(
   final imageUrl = resolveApiMediaUrl(json['imageUrl'] as String?) ??
       resolveApiMediaUrlFromList(json['imageUrls']);
 
+  final optionGroups = json['optionGroups'];
+  final addons = json['addons'];
+  // Legacy menu payloads without `hasModifiers` keep opening details (safe).
+  // Once the API sends the flag, plain items can add directly to cart.
+  final hasModifiers = !json.containsKey('hasModifiers')
+      ? true
+      : json['hasModifiers'] == true ||
+          (optionGroups is List && optionGroups.isNotEmpty) ||
+          (addons is List && addons.isNotEmpty);
+
   return BrowseMenuItem(
     id: id,
     name: name,
@@ -476,6 +486,7 @@ BrowseMenuItem? browseMenuItemFromProductJson(
     price: priceStr,
     section: section,
     imageUrl: imageUrl,
+    hasModifiers: hasModifiers,
   );
 }
 

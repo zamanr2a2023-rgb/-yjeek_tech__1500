@@ -956,12 +956,14 @@ class BrowseMenuItemRow extends StatelessWidget {
     required this.gradientStart,
     required this.gradientEnd,
     this.onTap,
+    this.onAdd,
   });
 
   final BrowseMenuItem item;
   final Color gradientStart;
   final Color gradientEnd;
   final VoidCallback? onTap;
+  final VoidCallback? onAdd;
 
   @override
   Widget build(BuildContext context) {
@@ -1018,21 +1020,25 @@ class BrowseMenuItemRow extends StatelessWidget {
                 ],
               ),
             ),
-            Container(
-              width: 32.w,
-              height: 32.w,
-              decoration: const BoxDecoration(
-                color: AppColors.primary,
-                shape: BoxShape.circle,
-              ),
-              alignment: Alignment.center,
-              child: Text(
-                '+',
-                style: TextStyle(
-                  color: AppColors.white,
-                  fontSize: 20.sp,
-                  fontWeight: FontWeight.w600,
-                  height: 1,
+            GestureDetector(
+              onTap: onAdd ?? onTap,
+              behavior: HitTestBehavior.opaque,
+              child: Container(
+                width: 32.w,
+                height: 32.w,
+                decoration: const BoxDecoration(
+                  color: AppColors.primary,
+                  shape: BoxShape.circle,
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  '+',
+                  style: TextStyle(
+                    color: AppColors.white,
+                    fontSize: 20.sp,
+                    fontWeight: FontWeight.w600,
+                    height: 1,
+                  ),
                 ),
               ),
             ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:yjeek_app/core/constants/app_colors.dart';
 import 'package:yjeek_app/core/constants/app_text_styles.dart';
 import 'package:yjeek_app/core/constants/maps_config.dart';
@@ -89,6 +90,16 @@ class _AddAddressScreenState extends ConsumerState<AddAddressScreen> {
     _flatController.dispose();
     _noteController.dispose();
     super.dispose();
+  }
+
+  void _onMapCameraIdle(LatLng target) {
+    final moved =
+        (target.latitude - _latitude).abs() > 0.00005 ||
+        (target.longitude - _longitude).abs() > 0.00005;
+    if (!moved) return;
+    // Keep state without setState so the map does not re-animate while dragging.
+    _latitude = target.latitude;
+    _longitude = target.longitude;
   }
 
   Future<void> _loadExisting() async {
@@ -207,16 +218,31 @@ class _AddAddressScreenState extends ConsumerState<AddAddressScreen> {
                 : ListView(
                     padding: EdgeInsets.zero,
                     children: [
-                      AppMapPreview(
-                        key: ValueKey(
-                          '${_latitude.toStringAsFixed(5)},${_longitude.toStringAsFixed(5)}',
-                        ),
-                        latitude: _latitude,
-                        longitude: _longitude,
+                      SizedBox(
                         height: 180.h,
+                        width: double.infinity,
+                        child: AppMapPicker(
+                          latitude: _latitude,
+                          longitude: _longitude,
+                          onCameraIdle: _onMapCameraIdle,
+                          borderRadius: BorderRadius.zero,
+                        ),
                       ),
                       Padding(
-                        padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 24.h),
+                        padding: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 0),
+                        child: Text(
+                          'Move the map to adjust the pin',
+                          style: AppTextStyles.labelSmall(
+                            color: const Color(0xFF6B7B6E),
+                          ).copyWith(
+                            fontWeight: FontWeight.w500,
+                            fontSize: 12.sp,
+                            height: 1.3,
+                          ),
+                        ),
+                      ),
+                      Padding(
+                        padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 24.h),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [

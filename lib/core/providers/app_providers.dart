@@ -22,6 +22,7 @@ import 'package:yjeek_app/features/home/model/home_repository.dart';
 import 'package:yjeek_app/features/navigation/model/content_repository.dart';
 import 'package:yjeek_app/features/notifications/model/notifications_repository.dart';
 import 'package:yjeek_app/features/navigation/model/offers_repository.dart';
+import 'package:yjeek_app/features/geofence/model/geofence_repository.dart';
 import 'package:yjeek_app/features/navigation/model/orders_repository.dart';
 import 'package:yjeek_app/features/navigation/model/user_me.dart';
 import 'package:yjeek_app/features/navigation/model/user_repository.dart';
@@ -206,6 +207,13 @@ final walletPayRepositoryProvider = Provider<WalletPayRepository>(
 
 final offersRepositoryProvider = Provider<OffersRepository>(
   (ref) => OffersRepository(
+    ref.watch(apiClientProvider),
+    ref.watch(storageServiceProvider),
+  ),
+);
+
+final geofenceRepositoryProvider = Provider<GeofenceRepository>(
+  (ref) => GeofenceRepository(
     ref.watch(apiClientProvider),
     ref.watch(storageServiceProvider),
   ),

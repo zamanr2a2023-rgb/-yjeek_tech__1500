@@ -7,6 +7,7 @@ import 'package:yjeek_app/core/constants/navigation_strings.dart';
 import 'package:yjeek_app/core/providers/app_providers.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/features/notifications/model/customer_notification.dart';
+import 'package:yjeek_app/features/geofence/view/geofence_offer_screen.dart';
 import 'package:yjeek_app/routes/route_names.dart';
 
 class NotificationsScreen extends ConsumerStatefulWidget {
@@ -97,7 +98,21 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
       context.push('${RouteNames.orderDetails}?id=${item.orderId}');
       return;
     }
-    if (item.type.toUpperCase() == 'PROMO') {
+    final type = item.type.toUpperCase();
+    if (type == 'GEOFENCE_OFFER') {
+      final meta = item.metadata ?? const <String, dynamic>{};
+      context.push(
+        geofenceOfferLocation(
+          triggerId: meta['triggerId']?.toString(),
+          promoCode: meta['promoCode']?.toString(),
+          campaignId: meta['campaignId']?.toString(),
+          vendorName: meta['vendorName']?.toString(),
+          expiresAt: meta['expiresAt']?.toString(),
+        ),
+      );
+      return;
+    }
+    if (type == 'PROMO') {
       context.push(RouteNames.exclusiveOffers);
     }
   }
@@ -456,6 +471,8 @@ _NotifVisual _visualFor(String type) {
       return const _NotifVisual(emoji: '💳', bg: Color(0xFFFFF2CF));
     case 'PROMO':
       return const _NotifVisual(emoji: '🎁', bg: Color(0xFFFFF1D8));
+    case 'GEOFENCE_OFFER':
+      return const _NotifVisual(emoji: '📍', bg: Color(0xFFE8F5E9));
     case 'ORDER_UPDATE':
       return const _NotifVisual(emoji: '📦', bg: Color(0xFFEAFBF0));
     default:

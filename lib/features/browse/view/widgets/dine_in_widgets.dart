@@ -610,12 +610,14 @@ class DineInMenuItemRow extends StatelessWidget {
     required this.gradientStart,
     required this.gradientEnd,
     this.onTap,
+    this.onAdd,
   });
 
   final BrowseMenuItem item;
   final Color gradientStart;
   final Color gradientEnd;
   final VoidCallback? onTap;
+  final VoidCallback? onAdd;
 
   @override
   Widget build(BuildContext context) {
@@ -684,21 +686,25 @@ class DineInMenuItemRow extends StatelessWidget {
                 ],
               ),
             ),
-            Container(
-              width: 34.w,
-              height: 34.w,
-              decoration: BoxDecoration(
-                color: AppColors.primary,
-                borderRadius: BorderRadius.circular(11.r),
-              ),
-              alignment: Alignment.center,
-              child: Text(
-                '+',
-                style: TextStyle(
-                  color: AppColors.white,
-                  fontSize: 20.sp,
-                  fontWeight: FontWeight.w700,
-                  height: 1.3,
+            GestureDetector(
+              onTap: onAdd ?? onTap,
+              behavior: HitTestBehavior.opaque,
+              child: Container(
+                width: 34.w,
+                height: 34.w,
+                decoration: BoxDecoration(
+                  color: AppColors.primary,
+                  borderRadius: BorderRadius.circular(11.r),
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  '+',
+                  style: TextStyle(
+                    color: AppColors.white,
+                    fontSize: 20.sp,
+                    fontWeight: FontWeight.w700,
+                    height: 1.3,
+                  ),
                 ),
               ),
             ),

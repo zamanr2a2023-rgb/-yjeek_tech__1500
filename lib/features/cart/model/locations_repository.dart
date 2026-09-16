@@ -45,29 +45,50 @@ class LocationsRepository {
 
   String? get _token => _storage.token;
 
-  /// GET /locations/reverse?lat=&lng=
+  Map<String, dynamic>? _asMap(dynamic value) {
+    if (value is Map<String, dynamic>) return value;
+    if (value is Map) return Map<String, dynamic>.from(value);
+    return null;
+  }
+
+  ReverseGeocodeResult _parseDetected(
+    Map<String, dynamic> map, {
+    double? fallbackLat,
+    double? fallbackLng,
+  }) {
+    final title = map['title']?.toString();
+    final formatted = map['formattedAddress']?.toString();
+    final label = (title != null && title.isNotEmpty)
+        ? title
+        : (formatted != null && formatted.isNotEmpty)
+            ? formatted
+            : map['label']?.toString() ??
+                map['address']?.toString() ??
+                'Selected location';
+    return ReverseGeocodeResult(
+      label: label,
+      area: map['area']?.toString(),
+      road: map['road']?.toString(),
+      block: map['block']?.toString(),
+      city: map['city']?.toString(),
+      latitude: (map['latitude'] as num?)?.toDouble() ?? fallbackLat,
+      longitude: (map['longitude'] as num?)?.toDouble() ?? fallbackLng,
+    );
+  }
+
+  /// GET /locations/reverse?latitude=&longitude=
   Future<ReverseGeocodeResult?> reverse({
     required double lat,
     required double lng,
   }) async {
     final response = await _apiClient.getJson(
-      '/locations/reverse?lat=$lat&lng=$lng',
+      '/locations/reverse?latitude=$lat&longitude=$lng',
       bearerToken: _token,
     );
-    final data = response?['data'];
-    if (data is! Map<String, dynamic>) return null;
-    return ReverseGeocodeResult(
-      label: data['label']?.toString() ??
-          data['formatted']?.toString() ??
-          data['address']?.toString() ??
-          'Selected location',
-      area: data['area']?.toString(),
-      road: data['road']?.toString(),
-      block: data['block']?.toString(),
-      city: data['city']?.toString(),
-      latitude: (data['latitude'] as num?)?.toDouble() ?? lat,
-      longitude: (data['longitude'] as num?)?.toDouble() ?? lng,
-    );
+    final data = _asMap(response?['data']);
+    if (data == null) return null;
+    final detected = _asMap(data['detected']) ?? data;
+    return _parseDetected(detected, fallbackLat: lat, fallbackLng: lng);
   }
 
   /// GET /locations/search?q=
@@ -78,7 +99,9 @@ class LocationsRepository {
       bearerToken: _token,
     );
     final data = response?['data'];
-    final rows = data is Map ? (data['results'] ?? data['items']) : data;
+    final rows = data is Map
+        ? (data['predictions'] ?? data['results'] ?? data['items'])
+        : data;
     if (rows is! List) return const [];
     final out = <LocationSuggestion>[];
     for (final row in rows) {
@@ -111,19 +134,8 @@ class LocationsRepository {
       '/locations/places/${Uri.encodeComponent(placeId)}',
       bearerToken: _token,
     );
-    final data = response?['data'];
-    if (data is! Map<String, dynamic>) return null;
-    return ReverseGeocodeResult(
-      label: data['label']?.toString() ??
-          data['formatted']?.toString() ??
-          data['address']?.toString() ??
-          'Selected location',
-      area: data['area']?.toString(),
-      road: data['road']?.toString(),
-      block: data['block']?.toString(),
-      city: data['city']?.toString(),
-      latitude: (data['latitude'] as num?)?.toDouble(),
-      longitude: (data['longitude'] as num?)?.toDouble(),
-    );
+    final data = _asMap(response?['data']);
+    if (data == null) return null;
+    return _parseDetected(data);
   }
 }

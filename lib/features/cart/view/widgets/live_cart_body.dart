@@ -35,6 +35,7 @@ class LiveCartBody extends StatefulWidget {
     this.showElectronicsCart = false,
     this.showVapeCart = false,
     this.checkoutLabel,
+    this.initialPromoCode,
   });
 
   final CartSnapshot cart;
@@ -56,6 +57,7 @@ class LiveCartBody extends StatefulWidget {
   final bool showElectronicsCart;
   final bool showVapeCart;
   final String? checkoutLabel;
+  final String? initialPromoCode;
 
   @override
   State<LiveCartBody> createState() => _LiveCartBodyState();
@@ -65,6 +67,25 @@ class _LiveCartBodyState extends State<LiveCartBody> {
   final _promoController = TextEditingController();
   final _promoFocusNode = FocusNode();
   bool _busy = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final initial = widget.initialPromoCode?.trim();
+    if (initial != null && initial.isNotEmpty) {
+      _promoController.text = initial;
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant LiveCartBody oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final next = widget.initialPromoCode?.trim();
+    final prev = oldWidget.initialPromoCode?.trim();
+    if (next != null && next.isNotEmpty && next != prev) {
+      _promoController.text = next;
+    }
+  }
 
   CartSnapshot get cart => widget.cart;
 
