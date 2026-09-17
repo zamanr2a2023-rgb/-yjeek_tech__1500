@@ -805,13 +805,11 @@ class BillSummaryCard extends StatelessWidget {
   const BillSummaryCard({
     super.key,
     required this.lines,
-    this.showPromo = false,
     this.showCashback = false,
     this.cashbackAmount,
   });
 
   final List<BillLine> lines;
-  final bool showPromo;
   final bool showCashback;
   final String? cashbackAmount;
 
@@ -827,10 +825,6 @@ class BillSummaryCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (showPromo) ...[
-            const PromoCodeField(),
-            const SizedBox(height: 14),
-          ],
           ...lines.map((line) {
             final bool mutedValue = line.value.startsWith('—');
             final Color labelColor = line.isDiscount
@@ -921,49 +915,6 @@ class BillSummaryCard extends StatelessWidget {
               ),
             ),
           ],
-        ],
-      ),
-    );
-  }
-}
-
-class PromoCodeField extends StatelessWidget {
-  const PromoCodeField({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFE2E8DD)),
-      ),
-      child: Row(
-        children: [
-          const Icon(
-            Icons.local_activity_outlined,
-            size: 18,
-            color: AppColors.primary,
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              NavigationStrings.enterPromoCode,
-              style: AppTextStyles.bodyMedium().copyWith(
-                color: AppColors.textSecondary,
-                fontWeight: FontWeight.w500,
-                fontSize: 14,
-              ),
-            ),
-          ),
-          Text(
-            NavigationStrings.submit,
-            style: AppTextStyles.labelMedium(color: AppColors.primary).copyWith(
-              fontWeight: FontWeight.w700,
-              fontSize: 14,
-            ),
-          ),
         ],
       ),
     );

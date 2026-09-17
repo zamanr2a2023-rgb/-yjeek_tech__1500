@@ -73,8 +73,6 @@ class _DineInBasketBodyState extends State<DineInBasketBody> {
                 ),
               ),
               SizedBox(height: 14.h),
-              const _PromoRow(),
-              SizedBox(height: 14.h),
               DineInPreferencesCard(
                 partySize: _partySize,
                 seating: _seating,

@@ -7,6 +7,7 @@ import 'package:yjeek_app/features/cart/cart_routes.dart';
 import 'package:yjeek_app/features/cart/model/addresses_repository.dart';
 import 'package:yjeek_app/features/cart/model/cart_repository.dart';
 import 'package:yjeek_app/features/cart/model/checkout_helpers.dart';
+import 'package:yjeek_app/features/cart/model/delivery_range.dart';
 import 'package:yjeek_app/features/cart/model/payment_methods_repository.dart';
 import 'package:yjeek_app/features/cart/view/widgets/cart_flow_widgets.dart';
 import 'package:yjeek_app/features/navigation/model/navigation_data.dart';
@@ -30,8 +31,10 @@ class VapeCheckoutScreen extends ConsumerStatefulWidget {
 
 class _VapeCheckoutScreenState extends ConsumerState<VapeCheckoutScreen> {
   late String _deliveryId;
-  int _dropOffIndex = 0;
+  Set<int> _dropOffIndices = {0};
   int _tipIndex = 0;
+  double _customTipAmount = 0;
+  final _customTipController = TextEditingController();
   String _paymentId = 'benefitpay';
   bool _saveDropOff = false;
   CartSnapshot? _cart;
@@ -46,7 +49,11 @@ class _VapeCheckoutScreenState extends ConsumerState<VapeCheckoutScreen> {
   bool _loading = true;
   bool _placing = false;
 
-  double get _tipAmount => tipAmountFrom(VapeCartData.tipOptions, _tipIndex);
+  double get _tipAmount => tipAmountFrom(
+        VapeCartData.tipOptions,
+        _tipIndex,
+        customAmount: _customTipAmount,
+      );
 
   VapeDeliveryMethod get _selectedMethod {
     for (final m in _deliveryMethods) {
@@ -96,6 +103,12 @@ class _VapeCheckoutScreenState extends ConsumerState<VapeCheckoutScreen> {
     super.initState();
     _deliveryId = widget.initialDeliveryId;
     WidgetsBinding.instance.addPostFrameCallback((_) => _load());
+  }
+
+  @override
+  void dispose() {
+    _customTipController.dispose();
+    super.dispose();
   }
 
   List<VapeDeliveryMethod> _mapOptions(List<Map<String, dynamic>> raw) {
@@ -166,7 +179,7 @@ class _VapeCheckoutScreenState extends ConsumerState<VapeCheckoutScreen> {
         _payments = payments;
         _paymentId = payments.defaultId;
         _phone = address?.phone ?? me?.formattedPhone;
-        _dropOffIndex = dropOffIndexFromPrefs(address?.dropOffPreferences);
+        _dropOffIndices = dropOffIndicesFromPrefs(address?.dropOffPreferences);
         _ageVerified = me?.verification.status.toUpperCase() == 'VERIFIED';
         _loading = false;
       });
@@ -197,16 +210,35 @@ class _VapeCheckoutScreenState extends ConsumerState<VapeCheckoutScreen> {
       );
       return;
     }
+
+    final vendorId = _cart?.vendorId;
+    if (vendorId != null && vendorId.isNotEmpty) {
+      final range = await checkDeliveryRange(
+        addresses: ref.read(addressesRepositoryProvider),
+        vendorId: vendorId,
+        addressId: addressId,
+        failClosed: true,
+      );
+      if (!mounted) return;
+      if (!range.allowsDelivery) {
+        await pushOutOfDelivery(
+          context,
+          address: range.address ?? _address,
+        );
+        return;
+      }
+    }
+
     setState(() => _placing = true);
     try {
-      final dropOff = dropOffApiValue(_dropOffIndex);
+      final dropOff = dropOffApiValues(_dropOffIndices);
       final windowStart = _windowForSelected();
       final result = await ref.read(cartRepositoryProvider).checkout(
             type: CartOrderType.delivery,
             paymentMethod: paymentMethodApiValue(_paymentId),
             tipAmount: _tipAmount,
             addressId: addressId,
-            dropOffPreferences: dropOff == null ? null : [dropOff],
+            dropOffPreferences: dropOff.isEmpty ? null : dropOff,
             saveDropOffPreferences: _saveDropOff,
             fulfillmentType: 'SCHEDULED',
             deliverySpeed: deliverySpeedApiValue(_deliveryId),
@@ -226,6 +258,11 @@ class _VapeCheckoutScreenState extends ConsumerState<VapeCheckoutScreen> {
       );
     } catch (e) {
       if (!mounted) return;
+      if (e is OutOfDeliveryRangeException ||
+          isOutOfDeliveryRangeMessage(e.toString())) {
+        await pushOutOfDelivery(context, address: _address);
+        return;
+      }
       final message = e.toString().replaceFirst('Exception: ', '');
       if (message.toLowerCase().contains('age verification') ||
           message.contains('AGE_VERIFICATION')) {
@@ -286,8 +323,8 @@ class _VapeCheckoutScreenState extends ConsumerState<VapeCheckoutScreen> {
                 CartDropOffGrid(
                   showTitle: true,
                   options: VapeCartData.dropOffOptions,
-                  selectedIndex: _dropOffIndex,
-                  onSelected: (index) => setState(() => _dropOffIndex = index),
+                  selectedIndices: _dropOffIndices,
+                  onChanged: (next) => setState(() => _dropOffIndices = next),
                   saveForAddress: _saveDropOff,
                   onSaveChanged: (v) => setState(() => _saveDropOff = v),
                 ),
@@ -306,7 +343,13 @@ class _VapeCheckoutScreenState extends ConsumerState<VapeCheckoutScreen> {
                   showHeader: true,
                   options: VapeCartData.tipOptions,
                   selectedIndex: _tipIndex,
+                  customController: _customTipController,
                   onSelected: (index) => setState(() => _tipIndex = index),
+                  onCustomChanged: (raw) {
+                    setState(() {
+                      _customTipAmount = parseTipInput(raw) ?? 0;
+                    });
+                  },
                 ),
                 SizedBox(height: 14.h),
                 CartZoodPromoBanner(

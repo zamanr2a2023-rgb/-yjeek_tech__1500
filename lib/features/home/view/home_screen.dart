@@ -7,6 +7,7 @@ import 'package:yjeek_app/core/providers/app_providers.dart';
 import 'package:yjeek_app/core/providers/shell_provider.dart';
 import 'package:yjeek_app/features/browse/browse_routes.dart';
 import 'package:yjeek_app/features/cart/model/cart_repository.dart';
+import 'package:yjeek_app/features/cart/model/delivery_range.dart';
 import 'package:yjeek_app/features/cart/view/widgets/cart_flow_widgets.dart';
 import 'package:yjeek_app/features/home/model/category_navigation.dart';
 import 'package:yjeek_app/features/home/model/home_data.dart';
@@ -125,6 +126,10 @@ class HomeScreen extends ConsumerWidget {
       context.goHome(tab: 2, cartHasItems: true);
     } catch (e) {
       if (!context.mounted) return;
+      if (e is OutOfDeliveryRangeException) {
+        await pushOutOfDelivery(context);
+        return;
+      }
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(e.toString().replaceFirst('Exception: ', '')),
@@ -224,7 +229,8 @@ class HomeScreen extends ConsumerWidget {
                     placementKey: 'home_mid',
                     padding: EdgeInsets.only(bottom: 18),
                   ),
-                  if (!categoriesLoading &&
+                  if (loggedIn &&
+                      !categoriesLoading &&
                       feed != null &&
                       feed.reorderVendors.isNotEmpty) ...[
                     SectionHeader(

@@ -68,17 +68,6 @@ class _VapeCartBodyState extends State<VapeCartBody> {
               ),
               SizedBox(height: 16.h),
               Text(
-                VapeCartStrings.promoCode,
-                style: AppTextStyles.titleSmall().copyWith(
-                  fontSize: 16.sp,
-                  fontWeight: FontWeight.w700,
-                  color: const Color(0xFF1A1A1A),
-                ),
-              ),
-              SizedBox(height: 10.h),
-              const VapePromoRow(),
-              SizedBox(height: 16.h),
-              Text(
                 VapeCartStrings.billSummary,
                 style: AppTextStyles.titleSmall().copyWith(
                   fontSize: 16.sp,
@@ -89,7 +78,6 @@ class _VapeCartBodyState extends State<VapeCartBody> {
               SizedBox(height: 10.h),
               BillSummaryCard(
                 lines: VapeCartData.cartBillLines,
-                showPromo: false,
                 showCashback: true,
                 cashbackAmount: VapeCartData.cashbackAmount,
               ),

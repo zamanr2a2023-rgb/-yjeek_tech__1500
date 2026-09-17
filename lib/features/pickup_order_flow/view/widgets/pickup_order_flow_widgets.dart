@@ -924,7 +924,6 @@ class PickupReceiptPaper extends StatelessWidget {
           ),
           BillSummaryCard(
             lines: lines,
-            showPromo: false,
           ),
           SizedBox(height: 10.h),
           Align(

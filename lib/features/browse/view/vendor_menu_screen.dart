@@ -13,6 +13,7 @@ import 'package:yjeek_app/features/browse/browse_routes.dart';
 import 'package:yjeek_app/features/browse/model/browse_data.dart';
 import 'package:yjeek_app/features/browse/model/food_vendors_repository.dart';
 import 'package:yjeek_app/features/browse/view/widgets/browse_widgets.dart';
+import 'package:yjeek_app/features/cart/model/delivery_range.dart';
 import 'package:yjeek_app/features/cart/view/widgets/cart_flow_widgets.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/navigation_widgets.dart';
 import 'package:yjeek_app/l10n/locale_controller.dart';
@@ -159,6 +160,7 @@ class _VendorMenuScreenState extends ConsumerState<VendorMenuScreen> {
             quantity: 1,
             replaceCart: replace,
             cartType: _isPickup ? 'PICKUP' : 'DELIVERY',
+            vendorId: widget.vendorId,
           );
       if (!mounted) return;
       setState(() => _adding = false);
@@ -169,6 +171,10 @@ class _VendorMenuScreenState extends ConsumerState<VendorMenuScreen> {
           cartHasItems: !_isPickup,
           pickupCart: _isPickup,
         );
+        return;
+      }
+      if (result.outOfRange) {
+        await pushOutOfDelivery(context);
         return;
       }
       if (result.vendorConflict) {

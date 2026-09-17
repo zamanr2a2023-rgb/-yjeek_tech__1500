@@ -3,6 +3,7 @@ import 'package:yjeek_app/core/constants/app_colors.dart';
 import 'package:yjeek_app/core/constants/app_text_styles.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/features/cart/model/cart_flow_data.dart';
+import 'package:yjeek_app/features/cart/model/checkout_helpers.dart';
 import 'package:yjeek_app/features/services_booking/model/services_booking_data.dart';
 
 class ServicesLocationToggle extends StatelessWidget {
@@ -205,47 +206,104 @@ class ServicesTipSelector extends StatelessWidget {
     required this.options,
     required this.selectedIndex,
     required this.onSelected,
+    this.customController,
+    this.onCustomChanged,
   });
 
   final List<TipOption> options;
   final int selectedIndex;
   final ValueChanged<int> onSelected;
+  final TextEditingController? customController;
+  final ValueChanged<String>? onCustomChanged;
 
   static const Color _chipBorder = Color(0xFFE0E6E0);
   static const Color _labelMuted = Color(0xFF6B756E);
 
+  bool get _customSelected {
+    if (selectedIndex < 0 || selectedIndex >= options.length) return false;
+    return isCustomTipOption(options[selectedIndex]);
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: List.generate(options.length, (index) {
-        final selected = index == selectedIndex;
-        return Expanded(
-          child: Padding(
-            padding: EdgeInsets.only(right: index < options.length - 1 ? 8.w : 0),
-            child: GestureDetector(
-              onTap: () => onSelected(index),
-              child: Container(
-                height: 36.h,
-                decoration: BoxDecoration(
-                  color: selected ? AppColors.cartTabActive : AppColors.white,
-                  borderRadius: BorderRadius.circular(18.r),
-                  border: Border.all(
-                    color: selected ? AppColors.cartTabActive : _chipBorder,
-                    width: 1.2,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: List.generate(options.length, (index) {
+            final selected = index == selectedIndex;
+            return Expanded(
+              child: Padding(
+                padding: EdgeInsets.only(
+                  right: index < options.length - 1 ? 8.w : 0,
+                ),
+                child: GestureDetector(
+                  onTap: () => onSelected(index),
+                  child: Container(
+                    height: 36.h,
+                    decoration: BoxDecoration(
+                      color:
+                          selected ? AppColors.cartTabActive : AppColors.white,
+                      borderRadius: BorderRadius.circular(18.r),
+                      border: Border.all(
+                        color: selected ? AppColors.cartTabActive : _chipBorder,
+                        width: 1.2,
+                      ),
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(
+                      options[index].label,
+                      style: AppTextStyles.labelSmall(
+                        color: selected ? AppColors.white : _labelMuted,
+                      ).copyWith(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 12.5.sp,
+                      ),
+                    ),
                   ),
                 ),
-                alignment: Alignment.center,
-                child: Text(
-                  options[index].label,
-                  style: AppTextStyles.labelSmall(
-                    color: selected ? AppColors.white : _labelMuted,
-                  ).copyWith(fontWeight: FontWeight.w600, fontSize: 12.5.sp),
+              ),
+            );
+          }),
+        ),
+        if (_customSelected && customController != null) ...[
+          SizedBox(height: 10.h),
+          TextField(
+            controller: customController,
+            onChanged: onCustomChanged,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            style: AppTextStyles.bodyMedium().copyWith(
+              fontWeight: FontWeight.w600,
+              fontSize: 14.sp,
+            ),
+            decoration: InputDecoration(
+              prefixText: 'BHD ',
+              hintText: 'Enter tip amount',
+              filled: true,
+              fillColor: AppColors.white,
+              contentPadding: EdgeInsets.symmetric(
+                horizontal: 14.w,
+                vertical: 12.h,
+              ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14.r),
+                borderSide: const BorderSide(color: _chipBorder),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14.r),
+                borderSide: const BorderSide(color: _chipBorder),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14.r),
+                borderSide: const BorderSide(
+                  color: AppColors.cartTabActive,
+                  width: 1.5,
                 ),
               ),
             ),
           ),
-        );
-      }),
+        ],
+      ],
     );
   }
 }

@@ -19,8 +19,8 @@ abstract final class CartFlowStrings {
   static String get saveDropOffForAddress => L10n.tr('Save these for this address');
   static String get pciProtected => L10n.tr('Protected by PCI Data Security Standard');
   static String get walletComboNote => L10n.tr('You can pay with any method and use your Yjeek Wallet balance together.');
-  static String get sendingOrder => L10n.tr('Sending your order');
-  static String get autoConfirmHint => L10n.tr('Auto-confirms in 10 seconds. You can still edit or cancel before then.');
+  static String get sendingOrder => L10n.tr('Confirm your order');
+  static String get autoConfirmHint => L10n.tr('Confirm within 10 seconds, or you\'ll return to checkout.');
   static String get editOrder => L10n.tr('Edit order');
   static String get confirmNow => L10n.tr('Confirm now');
   static String get orderSummary => L10n.tr('Order summary');
@@ -86,7 +86,7 @@ abstract final class CartFlowStrings {
   static String get cashbackBanner => L10n.tr('2% cashback to your Yjeek Wallet');
   static String get addNewCard => L10n.tr('Add new card');
   static String get customTip => L10n.tr('Custom');
-  static String get standardDelivery => L10n.tr('15–25 min · Standard');
+  static String get standardDelivery => L10n.tr('15–25 mins');
   static String get cashOnDelivery => L10n.tr('Cash on delivery');
 }
 

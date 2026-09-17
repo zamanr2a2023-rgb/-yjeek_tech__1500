@@ -6,8 +6,8 @@ abstract final class ApiConstants {
   /// Local yjeek_backend via `adb reverse tcp:3000 tcp:3000` on USB devices.
   // static const String baseUrl = 'http://127.0.0.1:3000/api/v1';
   // static const String baseUrl = 'https://api.yjeektech.com/api/v1';
-  // static const String baseUrl = 'http://103.208.183.248:3000/api/v1';
-  static const String baseUrl = 'http://103.208.183.250:3000/api/v1';
+  static const String baseUrl = 'http://103.208.183.248:3000/api/v1';
+  // static const String baseUrl = 'http://103.208.183.250:3000/api/v1';
   // static const String baseUrl = 'http://192.168.10.251:3000/api/v1';
   // static const String baseUrl = 'http://192.168.10.251:3000/api/v1';
 }

@@ -9,6 +9,7 @@ import 'package:yjeek_app/core/widgets/app_network_image.dart';
 import 'package:yjeek_app/features/browse/model/browse_data.dart';
 import 'package:yjeek_app/features/browse/view/widgets/browse_widgets.dart';
 import 'package:yjeek_app/features/auth/utils/require_login.dart';
+import 'package:yjeek_app/features/cart/model/delivery_range.dart';
 import 'package:yjeek_app/features/cart/view/widgets/cart_flow_widgets.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/navigation_widgets.dart';
 import 'package:yjeek_app/l10n/locale_controller.dart';
@@ -176,6 +177,7 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
           addonIds: addonIds,
           replaceCart: replaceCart,
           cartType: isPickup ? 'PICKUP' : 'DELIVERY',
+          vendorId: widget.vendorId,
         );
 
     if (!mounted) return;
@@ -187,6 +189,11 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
         cartHasItems: !isPickup,
         pickupCart: isPickup,
       );
+      return;
+    }
+
+    if (result.outOfRange) {
+      await pushOutOfDelivery(context);
       return;
     }
 

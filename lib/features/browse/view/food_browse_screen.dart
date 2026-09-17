@@ -92,6 +92,8 @@ class _FoodBrowseScreenState extends ConsumerState<FoodBrowseScreen> {
   }
 
   List<BrandItem> get _orderAgainBrands {
+    final loggedIn = ref.watch(storageServiceProvider).hasSession;
+    if (!loggedIn) return const [];
     final vendors = ref.watch(homeFeedProvider).valueOrNull?.reorderVendors;
     if (vendors == null || vendors.isEmpty) {
       return const [];

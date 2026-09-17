@@ -284,7 +284,8 @@ class AddressesRepository {
   }
 
   /// GET /addresses/check-range?vendorId=&addressId=
-  Future<bool> checkInRange({
+  /// Returns `true` / `false` when the API returns a clear flag; `null` if unknown.
+  Future<bool?> checkInRangeResult({
     required String vendorId,
     required String addressId,
   }) async {
@@ -294,12 +295,30 @@ class AddressesRepository {
       bearerToken: _token,
     );
     final data = response?['data'];
-    if (data is Map<String, dynamic>) {
-      return data['inRange'] == true ||
-          data['deliverable'] == true ||
-          data['withinRange'] == true;
+    if (data is! Map<String, dynamic>) return null;
+
+    if (data.containsKey('inRange')) {
+      return data['inRange'] == true;
     }
-    // If API fails open, allow delivery (backend may omit flag).
-    return response?['success'] == true;
+    if (data.containsKey('deliverable')) {
+      return data['deliverable'] == true;
+    }
+    if (data.containsKey('withinRange')) {
+      return data['withinRange'] == true;
+    }
+    return null;
+  }
+
+  /// GET /addresses/check-range?vendorId=&addressId=
+  Future<bool> checkInRange({
+    required String vendorId,
+    required String addressId,
+  }) async {
+    final result = await checkInRangeResult(
+      vendorId: vendorId,
+      addressId: addressId,
+    );
+    // Legacy callers treat unknown as in-range; checkout uses [checkInRangeResult].
+    return result ?? true;
   }
 }

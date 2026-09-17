@@ -29,8 +29,6 @@ class _ServicesBookingScreenState extends ConsumerState<ServicesBookingScreen> {
 
   int _selectedDate = 0;
   int _selectedTime = 0;
-  final TextEditingController _promoController = TextEditingController();
-  bool _applyingPromo = false;
   final Set<String> _busyProducts = {};
 
   List<DateTime> _dates = List.generate(5, (i) {
@@ -54,12 +52,6 @@ class _ServicesBookingScreenState extends ConsumerState<ServicesBookingScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) => _load());
-  }
-
-  @override
-  void dispose() {
-    _promoController.dispose();
-    super.dispose();
   }
 
   Future<void> _load() async {
@@ -259,29 +251,6 @@ class _ServicesBookingScreenState extends ConsumerState<ServicesBookingScreen> {
     }
   }
 
-  Future<void> _applyPromo() async {
-    final code = _promoController.text.trim();
-    if (code.isEmpty || _applyingPromo) return;
-    setState(() => _applyingPromo = true);
-    final repo = ref.read(cartRepositoryProvider);
-    try {
-      final next = await repo.applyPromo(
-        type: CartOrderType.service,
-        code: code,
-      );
-      if (!mounted) return;
-      setState(() => _cart = next);
-      _promoController.clear();
-    } catch (_) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Invalid promo code')),
-      );
-    } finally {
-      if (mounted) setState(() => _applyingPromo = false);
-    }
-  }
-
   bool get _atVenue => _cart.serviceMode != 'AT_HOME';
 
   /// Services shown as "Your service" cards: items that aren't suggested
@@ -432,14 +401,30 @@ class _ServicesBookingScreenState extends ConsumerState<ServicesBookingScreen> {
                         ),
                     ],
                     SizedBox(height: 14.h),
-                    CartSectionTitle(ServicesBookingStrings.promoCode),
-                    ServicesPromoField(
-                      controller: _promoController,
-                      applying: _applyingPromo,
-                      appliedCode: _cart.promoCode,
-                      onApply: _applyPromo,
-                    ),
-                    SizedBox(height: 14.h),
+                    if (_cart.promoCode != null &&
+                        _cart.promoCode!.trim().isNotEmpty) ...[
+                      Container(
+                        width: double.infinity,
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 14.w,
+                          vertical: 12.h,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFEDF7EE),
+                          borderRadius: BorderRadius.circular(14.r),
+                          border: Border.all(color: const Color(0xFFCDE8CF)),
+                        ),
+                        child: Text(
+                          '${_cart.promoCode!.trim()} applied',
+                          style: TextStyle(
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 14.sp,
+                          ),
+                        ),
+                      ),
+                      SizedBox(height: 14.h),
+                    ],
                     CartSectionTitle(ServicesBookingStrings.billSummary),
                     BillSummaryCard(lines: _cart.billLines),
                   ],

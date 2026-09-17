@@ -10,6 +10,7 @@ import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/features/browse/browse_routes.dart';
 import 'package:yjeek_app/features/cart/cart_routes.dart';
 import 'package:yjeek_app/features/cart/model/cart_repository.dart';
+import 'package:yjeek_app/features/cart/model/delivery_range.dart';
 import 'package:yjeek_app/features/cart/view/widgets/live_cart_body.dart';
 import 'package:yjeek_app/features/dine_in_cart/dine_in_cart_routes.dart';
 import 'package:yjeek_app/features/geofence/service/geofence_session_controller.dart';
@@ -425,6 +426,27 @@ class _CartScreenState extends ConsumerState<CartScreen> {
           case CartTab.services:
             context.push(ServicesBookingRoutes.checkout);
           case CartTab.orders:
+            final vendorId = snap.vendorId;
+            if (vendorId != null && vendorId.isNotEmpty) {
+              final range = await checkDeliveryRange(
+                addresses: ref.read(addressesRepositoryProvider),
+                vendorId: vendorId,
+                failClosed: true,
+              );
+              if (!mounted) return;
+              if (!range.allowsDelivery) {
+                if (range.outcome == DeliveryRangeOutcome.noAddress) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Add a delivery address first'),
+                    ),
+                  );
+                  return;
+                }
+                await pushOutOfDelivery(context, address: range.address);
+                return;
+              }
+            }
             if (isScheduledOnly) {
               context.push(ScheduledCartRoutes.checkout);
             } else if (snap.isVape) {

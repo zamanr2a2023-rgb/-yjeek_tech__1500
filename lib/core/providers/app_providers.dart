@@ -116,10 +116,18 @@ final categoriesProvider = FutureProvider<List<CategoryItem>>((ref) {
   return ref.watch(categoriesRepositoryProvider).fetchCategories();
 });
 
+final addressesRepositoryProvider = Provider<AddressesRepository>(
+  (ref) => AddressesRepository(
+    ref.watch(apiClientProvider),
+    ref.watch(storageServiceProvider),
+  ),
+);
+
 final foodVendorsRepositoryProvider = Provider<FoodVendorsRepository>(
   (ref) => FoodVendorsRepository(
     ref.watch(apiClientProvider),
     ref.watch(storageServiceProvider),
+    addresses: ref.watch(addressesRepositoryProvider),
   ),
 );
 
@@ -146,6 +154,7 @@ final vapeVendorsRepositoryProvider = Provider<VapeVendorsRepository>(
   (ref) => VapeVendorsRepository(
     ref.watch(apiClientProvider),
     ref.watch(storageServiceProvider),
+    addresses: ref.watch(addressesRepositoryProvider),
   ),
 );
 
@@ -160,13 +169,7 @@ final cartRepositoryProvider = Provider<CartRepository>(
   (ref) => CartRepository(
     ref.watch(apiClientProvider),
     ref.watch(storageServiceProvider),
-  ),
-);
-
-final addressesRepositoryProvider = Provider<AddressesRepository>(
-  (ref) => AddressesRepository(
-    ref.watch(apiClientProvider),
-    ref.watch(storageServiceProvider),
+    addresses: ref.watch(addressesRepositoryProvider),
   ),
 );
 

@@ -120,7 +120,11 @@ class _OrderDetailsScreenState extends ConsumerState<OrderDetailsScreen> {
       }
 
       final deliveryFee = data['deliveryFee'];
-      final tipAmount = (data['tipAmount'] as num?)?.toDouble() ?? 0;
+      final tipRaw = data['tipAmount'] ??
+          (data['totals'] is Map ? data['totals']['tipAmount'] : null);
+      final tipAmount = tipRaw is num
+          ? tipRaw.toDouble()
+          : double.tryParse(tipRaw?.toString() ?? '') ?? 0;
       final money = <BillLine>[
         BillLine(
           label: 'Subtotal',
@@ -143,8 +147,7 @@ class _OrderDetailsScreenState extends ConsumerState<OrderDetailsScreen> {
           label: 'Service fee',
           value: formatBhd(data['serviceFee']),
         ),
-        if (tipAmount > 0)
-          BillLine(label: 'Tip', value: formatBhd(tipAmount)),
+        BillLine(label: 'Tip', value: formatBhd(tipAmount)),
         if ((data['vatAmount'] as num?) != null &&
             (data['vatAmount'] as num) > 0)
           BillLine(label: 'VAT', value: formatBhd(data['vatAmount'])),

@@ -27,6 +27,8 @@ class ServicesCheckoutScreen extends ConsumerStatefulWidget {
 class _ServicesCheckoutScreenState
     extends ConsumerState<ServicesCheckoutScreen> {
   int _tipIndex = 1;
+  double _customTipAmount = 0;
+  final _customTipController = TextEditingController();
   String _paymentId = 'benefitpay';
   CartSnapshot? _cart;
   CheckoutPaymentMethods _payments = CheckoutPaymentMethods.fallback(
@@ -36,13 +38,22 @@ class _ServicesCheckoutScreenState
   String? _specialistId;
   bool _loading = true;
 
-  double get _tipAmount =>
-      tipAmountFrom(ServicesBookingData.tipOptions, _tipIndex);
+  double get _tipAmount => tipAmountFrom(
+        ServicesBookingData.tipOptions,
+        _tipIndex,
+        customAmount: _customTipAmount,
+      );
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) => _load());
+  }
+
+  @override
+  void dispose() {
+    _customTipController.dispose();
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -159,7 +170,13 @@ class _ServicesCheckoutScreenState
                 ServicesTipSelector(
                   options: ServicesBookingData.tipOptions,
                   selectedIndex: _tipIndex,
+                  customController: _customTipController,
                   onSelected: (i) => setState(() => _tipIndex = i),
+                  onCustomChanged: (raw) {
+                    setState(() {
+                      _customTipAmount = parseTipInput(raw) ?? 0;
+                    });
+                  },
                 ),
                 SizedBox(height: 14.h),
                 CartSectionTitle(ServicesBookingStrings.paymentMethod),

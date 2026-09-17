@@ -27,6 +27,8 @@ class PickupCheckoutScreen extends ConsumerStatefulWidget {
 class _PickupCheckoutScreenState extends ConsumerState<PickupCheckoutScreen> {
   /// No tip selected until user taps a chip (keeps cart CTA total aligned).
   int _tipIndex = -1;
+  double _customTipAmount = 0;
+  final _customTipController = TextEditingController();
   String _paymentId = 'benefitpay';
   CartSnapshot? _cart;
   PickupSlotsSnapshot? _slots;
@@ -35,12 +37,22 @@ class _PickupCheckoutScreenState extends ConsumerState<PickupCheckoutScreen> {
   );
   bool _loading = true;
 
-  double get _tipAmount => tipAmountFrom(PickupCartData.tipOptions, _tipIndex);
+  double get _tipAmount => tipAmountFrom(
+        PickupCartData.tipOptions,
+        _tipIndex,
+        customAmount: _customTipAmount,
+      );
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) => _load());
+  }
+
+  @override
+  void dispose() {
+    _customTipController.dispose();
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -202,7 +214,13 @@ class _PickupCheckoutScreenState extends ConsumerState<PickupCheckoutScreen> {
                   showHeader: true,
                   options: PickupCartData.tipOptions,
                   selectedIndex: _tipIndex,
+                  customController: _customTipController,
                   onSelected: (index) => setState(() => _tipIndex = index),
+                  onCustomChanged: (raw) {
+                    setState(() {
+                      _customTipAmount = parseTipInput(raw) ?? 0;
+                    });
+                  },
                 ),
                 SizedBox(height: 14.h),
                 CartZoodPromoBanner(

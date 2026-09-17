@@ -47,8 +47,6 @@ class _PickupCartBodyState extends State<PickupCartBody> {
                 ),
               ),
               SizedBox(height: 16.h),
-              const PickupPromoRow(),
-              SizedBox(height: 16.h),
               const PickupBillSummaryCard(),
             ],
           ),

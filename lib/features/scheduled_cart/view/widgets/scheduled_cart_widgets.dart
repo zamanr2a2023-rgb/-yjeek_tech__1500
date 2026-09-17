@@ -66,11 +66,8 @@ class _ScheduledCartBodyState extends State<ScheduledCartBody> {
                 ),
               ),
               SizedBox(height: 16.h),
-              const _PromoRow(),
-              SizedBox(height: 14.h),
               BillSummaryCard(
                 lines: ScheduledCartData.cartBillLines,
-                showPromo: false,
               ),
             ],
           ),

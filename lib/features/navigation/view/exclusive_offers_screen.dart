@@ -6,6 +6,7 @@ import 'package:yjeek_app/core/constants/navigation_strings.dart';
 import 'package:yjeek_app/core/providers/app_providers.dart';
 import 'package:yjeek_app/core/providers/shell_provider.dart';
 import 'package:yjeek_app/features/cart/model/cart_repository.dart';
+import 'package:yjeek_app/features/cart/model/delivery_range.dart';
 import 'package:yjeek_app/features/cart/view/widgets/cart_flow_widgets.dart';
 import 'package:yjeek_app/features/home/view/widgets/home_widgets.dart';
 import 'package:yjeek_app/features/navigation/model/navigation_data.dart';
@@ -143,6 +144,10 @@ class _ExclusiveOffersScreenState extends ConsumerState<ExclusiveOffersScreen> {
       context.goHome(tab: 2, cartHasItems: true);
     } catch (e) {
       if (!mounted) return;
+      if (e is OutOfDeliveryRangeException) {
+        await pushOutOfDelivery(context);
+        return;
+      }
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(e.toString().replaceFirst('Exception: ', '')),
