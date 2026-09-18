@@ -22,7 +22,7 @@ class DineInConfirmedScreen extends ConsumerStatefulWidget {
 }
 
 class _DineInConfirmedScreenState extends ConsumerState<DineInConfirmedScreen> {
-  static const Color _screenBg = Color(0xFF8BAE9A);
+  static const Color _screenBg = AppColors.background;
 
   String _vendor = DineInOrderFlowData.vendor;
   String _code = DineInOrderFlowData.arrivalCode;

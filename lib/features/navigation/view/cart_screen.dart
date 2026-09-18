@@ -510,12 +510,10 @@ class _CartScreenState extends ConsumerState<CartScreen> {
       });
     }
 
-    final isDineIn = _tabIndex == CartTab.dineIn.index;
-    const dineInBg = Color(0xFF8BAE9A);
     final tab = CartTab.values[_tabIndex];
 
     return Scaffold(
-      backgroundColor: isDineIn ? dineInBg : AppColors.background,
+      backgroundColor: AppColors.background,
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

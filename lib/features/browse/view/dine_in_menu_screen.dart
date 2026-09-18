@@ -48,7 +48,7 @@ class _DineInMenuScreenState extends ConsumerState<DineInMenuScreen> {
   Timer? _searchDebounce;
 
   /// Design: `rgba(44, 107, 71, 0.55)` over white → sage green.
-  static const Color _screenBg = Color(0xFF8BAE9A);
+  static const Color _screenBg = AppColors.background;
 
   List<BrowseMenuItem> get _items => _allItems
       .where((item) => item.section == _selectedSection)

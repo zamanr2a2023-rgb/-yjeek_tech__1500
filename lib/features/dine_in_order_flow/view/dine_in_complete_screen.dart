@@ -24,7 +24,7 @@ class DineInCompleteScreen extends ConsumerStatefulWidget {
 }
 
 class _DineInCompleteScreenState extends ConsumerState<DineInCompleteScreen> {
-  static const Color _screenBg = Color(0xFF8BAE9A);
+  static const Color _screenBg = AppColors.background;
 
   final _reviewController = TextEditingController();
   int _experienceRating = 5;

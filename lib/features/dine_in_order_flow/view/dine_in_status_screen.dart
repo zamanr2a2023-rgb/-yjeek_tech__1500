@@ -25,7 +25,7 @@ class DineInStatusScreen extends ConsumerStatefulWidget {
 }
 
 class _DineInStatusScreenState extends ConsumerState<DineInStatusScreen> {
-  static const Color _screenBg = Color(0xFF8BAE9A);
+  static const Color _screenBg = AppColors.background;
 
   Timer? _pollTimer;
   String _subtitle = DineInOrderFlowStrings.orderHeaderSubtitle;

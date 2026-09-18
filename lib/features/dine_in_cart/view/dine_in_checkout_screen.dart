@@ -243,7 +243,7 @@ class _DineInCheckoutScreenState extends ConsumerState<DineInCheckoutScreen> {
       title: DineInCartStrings.checkout,
       subtitle: vendor,
       lightHeader: true,
-      backgroundColor: const Color(0xFF8BAE9A),
+      backgroundColor: AppColors.background,
       body: _loading
           ? Center(child: CircularProgressIndicator())
           : ListView(

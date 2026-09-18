@@ -37,7 +37,7 @@ class _DineInSearchScreenState extends ConsumerState<DineInSearchScreen> {
   bool _loading = false;
 
   /// Keep same sage backdrop as browse.
-  static const Color _screenBg = Color(0xFF8BAE9A);
+  static const Color _screenBg = AppColors.background;
 
   @override
   void initState() {
