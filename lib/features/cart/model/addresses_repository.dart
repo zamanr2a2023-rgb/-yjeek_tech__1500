@@ -294,17 +294,29 @@ class AddressesRepository {
       '&addressId=${Uri.encodeQueryComponent(addressId)}',
       bearerToken: _token,
     );
-    final data = response?['data'];
-    if (data is! Map<String, dynamic>) return null;
+    final raw = response?['data'];
+    final data = raw is Map ? Map<String, dynamic>.from(raw) : null;
+    if (data == null) return null;
 
     if (data.containsKey('inRange')) {
-      return data['inRange'] == true;
+      return _asBool(data['inRange']);
     }
     if (data.containsKey('deliverable')) {
-      return data['deliverable'] == true;
+      return _asBool(data['deliverable']);
     }
     if (data.containsKey('withinRange')) {
-      return data['withinRange'] == true;
+      return _asBool(data['withinRange']);
+    }
+    return null;
+  }
+
+  static bool? _asBool(Object? value) {
+    if (value is bool) return value;
+    if (value is num) return value != 0;
+    if (value is String) {
+      final lower = value.toLowerCase().trim();
+      if (lower == 'true' || lower == '1') return true;
+      if (lower == 'false' || lower == '0') return false;
     }
     return null;
   }

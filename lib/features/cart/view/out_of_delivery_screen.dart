@@ -9,9 +9,12 @@ import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/core/widgets/app_google_map.dart';
 import 'package:yjeek_app/features/cart/cart_routes.dart';
 import 'package:yjeek_app/features/cart/model/cart_flow_data.dart';
+import 'package:yjeek_app/features/cart/model/cart_repository.dart';
+import 'package:yjeek_app/features/cart/model/delivery_range.dart';
 import 'package:yjeek_app/features/cart/view/widgets/cart_flow_widgets.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/account_widgets.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/navigation_widgets.dart';
+import 'package:yjeek_app/routes/app_router.dart';
 
 class OutOfDeliveryScreen extends ConsumerStatefulWidget {
   const OutOfDeliveryScreen({
@@ -45,18 +48,41 @@ class _OutOfDeliveryScreenState extends ConsumerState<OutOfDeliveryScreen> {
 
   Future<void> _hydrate() async {
     final id = widget.addressId;
-    if (id == null || id.isEmpty) {
+    if (id != null && id.isNotEmpty) {
+      final address =
+          await ref.read(addressesRepositoryProvider).getAddress(id);
+      if (!mounted) return;
+      setState(() {
+        if (address?.latitude != null) _lat = address!.latitude!;
+        if (address?.longitude != null) _lng = address!.longitude!;
+        _loading = false;
+      });
+    } else if (mounted) {
       setState(() => _loading = false);
-      return;
     }
-    final address =
-        await ref.read(addressesRepositoryProvider).getAddress(id);
-    if (!mounted) return;
-    setState(() {
-      if (address?.latitude != null) _lat = address!.latitude!;
-      if (address?.longitude != null) _lng = address!.longitude!;
-      _loading = false;
-    });
+
+    // Address may already be in range (e.g. user fixed it) — leave this screen.
+    await _leaveIfNowInRange();
+  }
+
+  /// If check-range says in-range (or unknown), open Cart instead of trapping
+  /// the user on this warning after a successful address change.
+  Future<void> _leaveIfNowInRange() async {
+    final cart = await ref
+        .read(cartRepositoryProvider)
+        .fetchCart(CartOrderType.delivery);
+    final vendorId = cart.vendorId;
+    if (!mounted || vendorId == null || vendorId.isEmpty) return;
+
+    final range = await checkDeliveryRange(
+      addresses: ref.read(addressesRepositoryProvider),
+      vendorId: vendorId,
+      // Use current default — route query id can be stale after address save.
+      failClosed: false,
+    );
+    if (!mounted || range.isOutOfRange) return;
+
+    context.goHome(tab: 2, cartHasItems: cart.hasItems);
   }
 
   @override
@@ -166,7 +192,10 @@ class _OutOfDeliveryScreenState extends ConsumerState<OutOfDeliveryScreen> {
               padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 16.h),
               child: PrimaryGreenButton(
                 label: CartFlowStrings.chooseAnotherAddress,
-                onPressed: () => context.go(CartRoutes.changeAddress),
+                onPressed: () async {
+                  await context.push(CartRoutes.changeAddress);
+                  if (mounted) await _leaveIfNowInRange();
+                },
               ),
             ),
           ),

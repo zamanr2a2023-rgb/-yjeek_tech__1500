@@ -184,6 +184,7 @@ class VapeVendorsRepository {
     List<String> optionIds = const [],
     bool replaceCart = false,
     String? vendorId,
+    String? geofenceTriggerId,
   }) async {
     if (!_storage.hasSession) {
       return (
@@ -216,6 +217,8 @@ class VapeVendorsRepository {
         'productId': productId,
         'quantity': quantity,
         'replaceCart': replaceCart,
+        if (geofenceTriggerId != null && geofenceTriggerId.isNotEmpty)
+          'geofenceTriggerId': geofenceTriggerId,
         'options': {
           if (optionIds.isNotEmpty) 'optionIds': optionIds,
         },

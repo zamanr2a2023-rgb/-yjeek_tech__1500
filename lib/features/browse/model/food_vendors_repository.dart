@@ -332,6 +332,7 @@ class FoodVendorsRepository {
     bool replaceCart = false,
     String cartType = 'DELIVERY',
     String? vendorId,
+    String? geofenceTriggerId,
   }) async {
     final type = cartType.toUpperCase() == 'PICKUP' ? 'PICKUP' : 'DELIVERY';
 
@@ -361,6 +362,8 @@ class FoodVendorsRepository {
         'productId': productId,
         'quantity': quantity,
         'replaceCart': replaceCart,
+        if (geofenceTriggerId != null && geofenceTriggerId.isNotEmpty)
+          'geofenceTriggerId': geofenceTriggerId,
         'options': {
           if (optionIds.isNotEmpty) 'optionIds': optionIds,
           if (addonIds.isNotEmpty) 'addonIds': addonIds,

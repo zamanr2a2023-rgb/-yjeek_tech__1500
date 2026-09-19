@@ -957,6 +957,7 @@ class BrowseMenuItemRow extends StatelessWidget {
     required this.gradientEnd,
     this.onTap,
     this.onAdd,
+    this.isAdding = false,
   });
 
   final BrowseMenuItem item;
@@ -964,6 +965,7 @@ class BrowseMenuItemRow extends StatelessWidget {
   final Color gradientEnd;
   final VoidCallback? onTap;
   final VoidCallback? onAdd;
+  final bool isAdding;
 
   @override
   Widget build(BuildContext context) {
@@ -1021,7 +1023,7 @@ class BrowseMenuItemRow extends StatelessWidget {
               ),
             ),
             GestureDetector(
-              onTap: onAdd ?? onTap,
+              onTap: isAdding ? null : (onAdd ?? onTap),
               behavior: HitTestBehavior.opaque,
               child: Container(
                 width: 32.w,
@@ -1031,15 +1033,24 @@ class BrowseMenuItemRow extends StatelessWidget {
                   shape: BoxShape.circle,
                 ),
                 alignment: Alignment.center,
-                child: Text(
-                  '+',
-                  style: TextStyle(
-                    color: AppColors.white,
-                    fontSize: 20.sp,
-                    fontWeight: FontWeight.w600,
-                    height: 1,
-                  ),
-                ),
+                child: isAdding
+                    ? SizedBox(
+                        width: 16.w,
+                        height: 16.w,
+                        child: const CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: AppColors.white,
+                        ),
+                      )
+                    : Text(
+                        '+',
+                        style: TextStyle(
+                          color: AppColors.white,
+                          fontSize: 20.sp,
+                          fontWeight: FontWeight.w600,
+                          height: 1,
+                        ),
+                      ),
               ),
             ),
           ],

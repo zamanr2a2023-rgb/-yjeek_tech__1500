@@ -44,7 +44,7 @@ class _DineInMenuScreenState extends ConsumerState<DineInMenuScreen> {
   DineInCartSummary _cart = DineInCartSummary.empty;
   bool _loading = true;
   bool _loadedOnce = false;
-  bool _adding = false;
+  String? _addingItemId;
   Timer? _searchDebounce;
 
   /// Design: `rgba(44, 107, 71, 0.55)` over white → sage green.
@@ -142,7 +142,7 @@ class _DineInMenuScreenState extends ConsumerState<DineInMenuScreen> {
   }
 
   Future<void> _addItemDirectly(BrowseMenuItem item) async {
-    if (_adding) return;
+    if (_addingItemId != null) return;
     if (!await requireLogin(context, ref)) return;
 
     final cartVendorId = _cart.vendorId;
@@ -152,14 +152,14 @@ class _DineInMenuScreenState extends ConsumerState<DineInMenuScreen> {
         _cart.itemCount > 0;
 
     Future<void> doAdd({bool replace = false}) async {
-      setState(() => _adding = true);
+      setState(() => _addingItemId = item.id);
       final result = await ref.read(dineInVendorsRepositoryProvider).addToCart(
             productId: item.id,
             quantity: 1,
             replaceCart: replace,
           );
       if (!mounted) return;
-      setState(() => _adding = false);
+      setState(() => _addingItemId = null);
 
       if (result.ok) {
         ref.read(shellProvider.notifier).openDineInCartWithItems();
@@ -262,8 +262,9 @@ class _DineInMenuScreenState extends ConsumerState<DineInMenuScreen> {
                             item: _items[i],
                             gradientStart: _restaurant.gradientStart,
                             gradientEnd: _restaurant.gradientEnd,
-                            onTap: () => _onItemAction(_items[i]),
+                            onTap: () => _openItem(_items[i]),
                             onAdd: () => _onItemAction(_items[i]),
+                            isAdding: _addingItemId == _items[i].id,
                           ),
                           if (i < _items.length - 1)
                             Divider(

@@ -13,6 +13,7 @@ import 'package:yjeek_app/features/cart/model/cart_repository.dart';
 import 'package:yjeek_app/features/cart/model/checkout_helpers.dart';
 import 'package:yjeek_app/features/cart/model/delivery_range.dart';
 import 'package:yjeek_app/features/cart/model/pending_checkout.dart';
+import 'package:yjeek_app/features/geofence/model/active_geofence_order_context.dart';
 import 'package:yjeek_app/features/cart/view/widgets/cart_flow_widgets.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/account_widgets.dart';
 import 'package:yjeek_app/features/order_flow/model/order_api_mappers.dart';
@@ -236,6 +237,7 @@ class _ReviewConfirmScreenState extends ConsumerState<ReviewConfirmScreen> {
       if (!mounted) return;
       _finishing = true;
       ref.read(pendingCheckoutProvider.notifier).state = null;
+      clearGeofenceOrderContext(ref);
       final orderId = order?['id']?.toString();
       context.pushReplacement(OrderFlowRoutes.waitingFor(orderId));
     } catch (e) {

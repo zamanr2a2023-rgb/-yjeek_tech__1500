@@ -31,7 +31,47 @@ class GeofenceRepository {
         .toList(growable: false);
   }
 
-  /// POST /geofence/entered
+  /// POST /geofence/events — ENTER | APP_OPEN | APP_RESUME
+  Future<GeofenceLocationEventResult?> postLocationEvent({
+    required double lat,
+    required double lng,
+    required GeofenceEventType eventType,
+    String? campaignId,
+  }) async {
+    final body = <String, dynamic>{
+      'latitude': lat,
+      'longitude': lng,
+      'eventType': eventType.apiValue,
+      if (campaignId != null && campaignId.isNotEmpty) 'campaignId': campaignId,
+    };
+    final response = await _apiClient.postJson(
+      '/geofence/events',
+      body,
+      bearerToken: _token,
+    );
+    if (!response.ok || response.data == null) return null;
+    return GeofenceLocationEventResult.fromJson(response.data!);
+  }
+
+  /// GET /geofence/active-offers — Home section (no activation side effects).
+  Future<List<ActiveGeofenceOffer>> fetchActiveOffers() async {
+    final response = await _apiClient.getJson(
+      '/geofence/active-offers',
+      bearerToken: _token,
+    );
+    final data = response?['data'];
+    final offersRaw = data is Map ? data['offers'] : null;
+    if (offersRaw is! List) return const [];
+    return offersRaw
+        .whereType<Map>()
+        .map(
+          (row) => ActiveGeofenceOffer.fromJson(Map<String, dynamic>.from(row)),
+        )
+        .where((o) => o.triggerId.isNotEmpty && o.isActive)
+        .toList(growable: false);
+  }
+
+  /// POST /geofence/entered (legacy ENTER for a known campaign).
   Future<GeofenceEnterResult?> entered({
     required String campaignId,
     required double lat,

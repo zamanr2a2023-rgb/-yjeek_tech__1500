@@ -103,7 +103,8 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
       final meta = item.metadata ?? const <String, dynamic>{};
       context.push(
         geofenceOfferLocation(
-          triggerId: meta['triggerId']?.toString(),
+          triggerId: meta['triggerId']?.toString() ??
+              meta['activationId']?.toString(),
           promoCode: meta['promoCode']?.toString(),
           campaignId: meta['campaignId']?.toString(),
           vendorName: meta['vendorName']?.toString(),

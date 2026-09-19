@@ -10,7 +10,9 @@ import 'package:yjeek_app/features/browse/model/browse_data.dart';
 import 'package:yjeek_app/features/browse/view/widgets/browse_widgets.dart';
 import 'package:yjeek_app/features/auth/utils/require_login.dart';
 import 'package:yjeek_app/features/cart/model/delivery_range.dart';
+import 'package:yjeek_app/features/cart/model/pending_add_to_cart.dart';
 import 'package:yjeek_app/features/cart/view/widgets/cart_flow_widgets.dart';
+import 'package:yjeek_app/features/geofence/model/active_geofence_order_context.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/navigation_widgets.dart';
 import 'package:yjeek_app/l10n/locale_controller.dart';
 import 'package:yjeek_app/routes/app_router.dart';
@@ -170,14 +172,20 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
     }
 
     final isPickup = (widget.cartType ?? '').toLowerCase() == 'pickup';
+    final orderType = isPickup ? 'PICKUP' : 'DELIVERY';
     final result = await ref.read(foodVendorsRepositoryProvider).addToCart(
           productId: widget.itemId,
           quantity: _quantity,
           optionIds: optionIds,
           addonIds: addonIds,
           replaceCart: replaceCart,
-          cartType: isPickup ? 'PICKUP' : 'DELIVERY',
+          cartType: orderType,
           vendorId: widget.vendorId,
+          geofenceTriggerId: resolveGeofenceTriggerId(
+            ref,
+            vendorId: widget.vendorId,
+            orderType: orderType,
+          ),
         );
 
     if (!mounted) return;
@@ -193,6 +201,23 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
     }
 
     if (result.outOfRange) {
+      rememberPendingAddToCart(
+        ref,
+        PendingAddToCart(
+          productId: widget.itemId,
+          quantity: _quantity,
+          optionIds: optionIds,
+          addonIds: addonIds,
+          cartType: orderType,
+          vendorId: widget.vendorId,
+          geofenceTriggerId: resolveGeofenceTriggerId(
+            ref,
+            vendorId: widget.vendorId,
+            orderType: orderType,
+          ),
+          replaceCart: replaceCart,
+        ),
+      );
       await pushOutOfDelivery(context);
       return;
     }

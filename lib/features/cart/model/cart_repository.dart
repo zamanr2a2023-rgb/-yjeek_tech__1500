@@ -412,6 +412,7 @@ class CartRepository {
     required String productId,
     int quantity = 1,
     String? vendorId,
+    String? geofenceTriggerId,
   }) async {
     final addresses = _addresses;
     if (type == CartOrderType.delivery &&
@@ -431,7 +432,12 @@ class CartRepository {
 
     final response = await _apiClient.postJson(
       '/cart/items?type=${type.apiValue}',
-      {'productId': productId, 'quantity': quantity},
+      {
+        'productId': productId,
+        'quantity': quantity,
+        if (geofenceTriggerId != null && geofenceTriggerId.isNotEmpty)
+          'geofenceTriggerId': geofenceTriggerId,
+      },
       bearerToken: _token,
     );
     if (!response.ok) {
