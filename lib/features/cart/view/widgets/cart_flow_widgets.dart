@@ -1079,12 +1079,14 @@ class CartStickyFooter extends StatelessWidget {
     required this.buttonLabel,
     required this.onPressed,
     this.buttonColor = AppColors.primary,
+    this.loading = false,
   });
 
   final String total;
   final String buttonLabel;
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
   final Color buttonColor;
+  final bool loading;
 
   @override
   Widget build(BuildContext context) {
@@ -1132,27 +1134,38 @@ class CartStickyFooter extends StatelessWidget {
               width: 149.w,
               height: 52.h,
               child: ElevatedButton(
-                onPressed: onPressed,
+                onPressed: loading ? null : onPressed,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: buttonColor,
                   foregroundColor: AppColors.white,
+                  disabledBackgroundColor: buttonColor,
+                  disabledForegroundColor: AppColors.white,
                   elevation: 0,
                   padding: EdgeInsets.symmetric(horizontal: 30.w, vertical: 16.h),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(28.r),
                   ),
                 ),
-                child: Text(
-                  buttonLabel,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTextStyles.labelLarge().copyWith(
-                    fontSize: 16.sp,
-                    fontWeight: FontWeight.w700,
-                    height: 1.28,
-                    color: AppColors.white,
-                  ),
-                ),
+                child: loading
+                    ? SizedBox(
+                        height: 22.h,
+                        width: 22.w,
+                        child: const CircularProgressIndicator(
+                          strokeWidth: 2.5,
+                          color: AppColors.white,
+                        ),
+                      )
+                    : Text(
+                        buttonLabel,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTextStyles.labelLarge().copyWith(
+                          fontSize: 16.sp,
+                          fontWeight: FontWeight.w700,
+                          height: 1.28,
+                          color: AppColors.white,
+                        ),
+                      ),
               ),
             ),
           ],

@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:yjeek_app/core/constants/app_colors.dart';
 import 'package:yjeek_app/core/constants/app_text_styles.dart';
+import 'package:yjeek_app/core/utils/app_logger.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/features/browse/browse_routes.dart';
 import 'package:yjeek_app/features/geofence/model/active_geofence_order_context.dart';
@@ -85,8 +86,10 @@ class GeofenceOfferPopupHost extends ConsumerStatefulWidget {
 }
 
 class _GeofenceOfferPopupHostState extends ConsumerState<GeofenceOfferPopupHost> {
-  final Set<String> _shownTriggerIds = {};
+  /// User closed the dialog — don't spam again this session.
+  final Set<String> _dismissedTriggerIds = {};
   bool _dialogOpen = false;
+  bool _showScheduled = false;
 
   @override
   void initState() {
@@ -122,23 +125,34 @@ class _GeofenceOfferPopupHostState extends ConsumerState<GeofenceOfferPopupHost>
         }
       }
       if (match != null) {
-        _shownTriggerIds.remove(match.triggerId);
+        // Fresh unlock — allow popup even if user dismissed earlier.
+        _dismissedTriggerIds.remove(match.triggerId);
         _maybeShowPopup([match]);
       }
       ref.read(geofenceLastUnlockProvider.notifier).state = null;
     });
 
+    // Catch offers already loaded before this host subscribed.
+    final offers = ref.watch(activeGeofenceOffersProvider);
+    if (!_dialogOpen && !_showScheduled && offers.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        _maybeShowPopup(ref.read(activeGeofenceOffersProvider));
+      });
+    }
+
     return widget.child;
   }
 
   void _maybeShowPopup(List<ActiveGeofenceOffer> offers) {
-    if (!mounted || _dialogOpen) return;
+    if (!mounted || _dialogOpen || _showScheduled) return;
     final active = offers.where((o) => o.isActive).toList(growable: false);
     if (active.isEmpty) return;
 
     ActiveGeofenceOffer? pending;
     for (final o in active) {
-      if (!_shownTriggerIds.contains(o.triggerId)) {
+      if (!_dismissedTriggerIds.contains(o.triggerId) &&
+          o.triggerId.isNotEmpty) {
         pending = o;
         break;
       }
@@ -146,17 +160,52 @@ class _GeofenceOfferPopupHostState extends ConsumerState<GeofenceOfferPopupHost>
     if (pending == null) return;
 
     final offer = pending;
-    _shownTriggerIds.add(offer.triggerId);
+    _showScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      unawaited(_presentPopup(offer));
+    });
+  }
+
+  Future<void> _presentPopup(ActiveGeofenceOffer offer) async {
+    if (!mounted) {
+      _showScheduled = false;
+      return;
+    }
+    if (_dialogOpen) {
+      _showScheduled = false;
+      return;
+    }
+    if (_dismissedTriggerIds.contains(offer.triggerId)) {
+      _showScheduled = false;
+      return;
+    }
+
     _dialogOpen = true;
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      if (!mounted) {
-        _dialogOpen = false;
+    _showScheduled = false;
+    try {
+      // Let the shell finish layout / any competing app-open dialog first.
+      await Future<void>.delayed(const Duration(milliseconds: 350));
+      if (!mounted) return;
+      await ref.read(activeGeofenceOffersProvider.notifier).refresh();
+      if (!mounted) return;
+      final synced = ref.read(activeGeofenceOffersProvider);
+      final stillActive = synced.any(
+        (o) => o.triggerId == offer.triggerId && o.isActive,
+      );
+      if (!stillActive) {
         return;
       }
-      final hostContext = context;
-      await showGeofenceOfferPopup(hostContext, ref, offer: offer);
-      if (mounted) _dialogOpen = false;
-    });
+      final navigator = Navigator.maybeOf(context, rootNavigator: true);
+      if (navigator == null) {
+        throw StateError('No root navigator for geofence offer popup');
+      }
+      await showGeofenceOfferPopup(context, ref, offer: offer);
+      _dismissedTriggerIds.add(offer.triggerId);
+    } catch (e, st) {
+      appLogger.e('Geofence offer popup failed', error: e, stackTrace: st);
+    } finally {
+      _dialogOpen = false;
+    }
   }
 }
 
@@ -167,6 +216,7 @@ Future<void> showGeofenceOfferPopup(
 }) {
   return showDialog<void>(
     context: hostContext,
+    useRootNavigator: true,
     barrierDismissible: true,
     builder: (dialogContext) {
       return _GeofenceOfferPopupDialog(

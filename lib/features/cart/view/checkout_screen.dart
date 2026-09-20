@@ -38,6 +38,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       CheckoutPaymentMethods.fallback(defaultId: 'benefitpay');
   String? _phone;
   bool _loading = true;
+  bool _submitting = false;
 
   double get _tipAmount => tipAmountFrom(
         CartFlowData.tipOptions,
@@ -93,6 +94,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   }
 
   Future<void> _goToReview() async {
+    if (_submitting) return;
     final cart = _cart;
     if (cart == null || !cart.hasItems) {
       showEmptyCartSnackBar(context);
@@ -106,33 +108,39 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       return;
     }
 
-    final vendorId = cart.vendorId;
-    if (vendorId != null && vendorId.isNotEmpty) {
-      final range = await checkDeliveryRange(
-        addresses: ref.read(addressesRepositoryProvider),
-        vendorId: vendorId,
+    setState(() => _submitting = true);
+    try {
+      final vendorId = cart.vendorId;
+      if (vendorId != null && vendorId.isNotEmpty) {
+        final range = await checkDeliveryRange(
+          addresses: ref.read(addressesRepositoryProvider),
+          vendorId: vendorId,
+          addressId: addressId,
+          failClosed: true,
+        );
+        if (!mounted) return;
+        if (!range.allowsDelivery) {
+          await pushOutOfDelivery(
+            context,
+            address: range.address ?? _address,
+          );
+          return;
+        }
+      }
+
+      // Order is placed on Review & confirm (Confirm now / auto-timer), not here.
+      ref.read(pendingCheckoutProvider.notifier).state = PendingCheckout(
+        paymentId: _paymentId,
+        tipAmount: _tipAmount,
         addressId: addressId,
-        failClosed: true,
+        dropOffIndices: _dropOffIndices,
+        saveDropOff: _saveDropOff,
       );
       if (!mounted) return;
-      if (!range.allowsDelivery) {
-        await pushOutOfDelivery(
-          context,
-          address: range.address ?? _address,
-        );
-        return;
-      }
+      context.pushReplacement(CartRoutes.review);
+    } finally {
+      if (mounted) setState(() => _submitting = false);
     }
-
-    // Order is placed on Review & confirm (Confirm now / auto-timer), not here.
-    ref.read(pendingCheckoutProvider.notifier).state = PendingCheckout(
-      paymentId: _paymentId,
-      tipAmount: _tipAmount,
-      addressId: addressId,
-      dropOffIndices: _dropOffIndices,
-      saveDropOff: _saveDropOff,
-    );
-    context.pushReplacement(CartRoutes.review);
   }
 
   @override
@@ -149,11 +157,13 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       title: CartFlowStrings.checkout,
       subtitle: vendor,
       lightHeader: true,
-      onBack: () {
-        if (context.canPop()) {
-          context.pop();
-        }
-      },
+      onBack: _submitting
+          ? () {}
+          : () {
+              if (context.canPop()) {
+                context.pop();
+              }
+            },
       body: _loading
           ? Center(child: CircularProgressIndicator())
           : ListView(
@@ -222,7 +232,8 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       bottom: CartStickyFooter(
         total: total,
         buttonLabel: CartFlowStrings.placeOrder,
-        onPressed: _loading ? () {} : _goToReview,
+        loading: _loading || _submitting,
+        onPressed: _goToReview,
       ),
     );
   }

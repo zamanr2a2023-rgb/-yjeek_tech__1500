@@ -13,12 +13,12 @@ import 'package:yjeek_app/features/cart/model/cart_repository.dart';
 import 'package:yjeek_app/features/cart/model/checkout_helpers.dart';
 import 'package:yjeek_app/features/cart/model/delivery_range.dart';
 import 'package:yjeek_app/features/cart/model/pending_checkout.dart';
-import 'package:yjeek_app/features/geofence/model/active_geofence_order_context.dart';
 import 'package:yjeek_app/features/cart/view/widgets/cart_flow_widgets.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/account_widgets.dart';
 import 'package:yjeek_app/features/order_flow/model/order_api_mappers.dart';
 import 'package:yjeek_app/features/order_flow/order_flow_routes.dart';
 import 'package:yjeek_app/routes/app_router.dart';
+import 'package:yjeek_app/routes/route_names.dart';
 
 /// Food: 10s window after checkout to edit or confirm (timeout returns to checkout).
 class ReviewConfirmScreen extends ConsumerStatefulWidget {
@@ -149,8 +149,9 @@ class _ReviewConfirmScreenState extends ConsumerState<ReviewConfirmScreen> {
 
     if (!cart.hasItems) {
       ref.read(pendingCheckoutProvider.notifier).state = null;
+      if (_placing || _finishing) return;
       showEmptyCartSnackBar(context);
-      context.goHome(tab: 2, emptyCart: true);
+      context.go('${RouteNames.home}?tab=1');
       return;
     }
 
@@ -197,7 +198,7 @@ class _ReviewConfirmScreenState extends ConsumerState<ReviewConfirmScreen> {
     if (_hasExistingOrder) {
       _finishing = true;
       if (mounted) {
-        context.pushReplacement(OrderFlowRoutes.waitingFor(widget.orderId));
+        context.go(OrderFlowRoutes.waitingFor(widget.orderId));
       }
       return;
     }
@@ -222,7 +223,7 @@ class _ReviewConfirmScreenState extends ConsumerState<ReviewConfirmScreen> {
         ref.read(pendingCheckoutProvider.notifier).state = null;
         setState(() => _placing = false);
         showEmptyCartSnackBar(context);
-        context.goHome(tab: 2, emptyCart: true);
+        context.go('${RouteNames.home}?tab=1');
         return;
       }
       final dropOff = dropOffApiValues(pending.dropOffIndices);
@@ -237,9 +238,13 @@ class _ReviewConfirmScreenState extends ConsumerState<ReviewConfirmScreen> {
       if (!mounted) return;
       _finishing = true;
       ref.read(pendingCheckoutProvider.notifier).state = null;
-      clearGeofenceOrderContext(ref);
+      await completeGeofenceAfterSuccessfulOrder(ref);
+      if (!mounted) return;
       final orderId = order?['id']?.toString();
-      context.pushReplacement(OrderFlowRoutes.waitingFor(orderId));
+      if (orderId == null || orderId.isEmpty) {
+        throw Exception('Checkout succeeded but order id was missing');
+      }
+      context.go(OrderFlowRoutes.waitingFor(orderId));
     } catch (e) {
       if (!mounted) return;
       setState(() => _placing = false);

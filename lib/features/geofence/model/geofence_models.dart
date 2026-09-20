@@ -219,11 +219,22 @@ class ActiveGeofenceOffer {
           : (activationId ?? '');
 
   bool get isActive {
-    if (offerStatus != null &&
-        offerStatus!.toUpperCase() != 'ACTIVE') {
+    final status = offerStatus?.toUpperCase();
+    if (status != null &&
+        status.isNotEmpty &&
+        status != 'ACTIVE') {
       return false;
     }
-    return remainingDuration(DateTime.now()).inSeconds > 0;
+    if (remainingDuration(DateTime.now()).inSeconds > 0) return true;
+
+    // Fresh active-offers payload: trust remainingSeconds if server time is recent.
+    final rem = remainingSeconds;
+    final server = serverCurrentTime;
+    if (rem != null && rem > 0 && server != null) {
+      final age = DateTime.now().difference(server).abs();
+      if (age < const Duration(minutes: 2)) return true;
+    }
+    return false;
   }
 
   /// Authoritative countdown from [expiresAt], optionally skewed by server clock.

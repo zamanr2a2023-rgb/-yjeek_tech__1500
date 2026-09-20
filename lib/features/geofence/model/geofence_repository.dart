@@ -62,13 +62,21 @@ class GeofenceRepository {
     final data = response?['data'];
     final offersRaw = data is Map ? data['offers'] : null;
     if (offersRaw is! List) return const [];
-    return offersRaw
+    final parsed = offersRaw
         .whereType<Map>()
         .map(
           (row) => ActiveGeofenceOffer.fromJson(Map<String, dynamic>.from(row)),
         )
-        .where((o) => o.triggerId.isNotEmpty && o.isActive)
+        .where((o) => o.triggerId.isNotEmpty)
         .toList(growable: false);
+    // Keep ACTIVE-by-server offers even if local clock skew confuses countdown.
+    return parsed.where((o) {
+      final status = o.offerStatus?.toUpperCase();
+      if (status == 'EXPIRED' || status == 'USED' || status == 'CANCELLED') {
+        return false;
+      }
+      return o.isActive || (o.remainingSeconds != null && o.remainingSeconds! > 0);
+    }).toList(growable: false);
   }
 
   /// POST /geofence/entered (legacy ENTER for a known campaign).

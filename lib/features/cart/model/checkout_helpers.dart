@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import 'package:yjeek_app/core/constants/navigation_strings.dart';
 import 'package:yjeek_app/features/cart/model/cart_repository.dart';
 import 'package:yjeek_app/features/cart/model/pending_checkout.dart';
+import 'package:yjeek_app/features/geofence/model/active_geofence_order_context.dart';
+import 'package:yjeek_app/features/geofence/service/geofence_session_controller.dart';
 import 'package:yjeek_app/routes/app_router.dart';
 import 'package:yjeek_app/features/navigation/model/navigation_data.dart';
 
@@ -339,6 +341,14 @@ void showEmptyCartSnackBar(BuildContext context) {
   ScaffoldMessenger.of(context).showSnackBar(
     SnackBar(content: Text(NavigationStrings.cartEmptyTitle)),
   );
+}
+
+/// Clears geofence cart context and syncs active unlocks after a placed order.
+Future<void> completeGeofenceAfterSuccessfulOrder(WidgetRef ref) async {
+  clearGeofenceOrderContext(ref);
+  final notifier = ref.read(activeGeofenceOffersProvider.notifier);
+  notifier.state = const [];
+  await notifier.refresh();
 }
 
 /// Pop checkout/review or return to the cart tab when the live cart has no items.
