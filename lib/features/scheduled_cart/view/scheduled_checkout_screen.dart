@@ -7,6 +7,7 @@ import 'package:yjeek_app/features/cart/cart_routes.dart';
 import 'package:yjeek_app/features/cart/model/addresses_repository.dart';
 import 'package:yjeek_app/features/cart/model/cart_repository.dart';
 import 'package:yjeek_app/features/cart/model/checkout_helpers.dart';
+import 'package:yjeek_app/features/cart/model/delivery_range.dart';
 import 'package:yjeek_app/features/cart/model/payment_methods_repository.dart';
 import 'package:yjeek_app/features/cart/view/widgets/cart_flow_widgets.dart';
 import 'package:yjeek_app/features/navigation/model/navigation_data.dart';
@@ -31,8 +32,10 @@ class ScheduledCheckoutScreen extends ConsumerStatefulWidget {
 class _ScheduledCheckoutScreenState
     extends ConsumerState<ScheduledCheckoutScreen> {
   late String _deliveryId;
-  int _dropOffIndex = 0;
+  Set<int> _dropOffIndices = {0};
   int _tipIndex = 0;
+  double _customTipAmount = 0;
+  final _customTipController = TextEditingController();
   String _paymentId = 'cod';
   CartSnapshot? _cart;
   DeliveryAddressSnapshot? _address;
@@ -44,8 +47,11 @@ class _ScheduledCheckoutScreenState
   bool _loading = true;
   bool _placing = false;
 
-  double get _tipAmount =>
-      tipAmountFrom(ScheduledCartData.tipOptions, _tipIndex);
+  double get _tipAmount => tipAmountFrom(
+        ScheduledCartData.tipOptions,
+        _tipIndex,
+        customAmount: _customTipAmount,
+      );
 
   ScheduledDeliveryMethod get _selectedMethod {
     for (final m in _deliveryMethods) {
@@ -83,6 +89,12 @@ class _ScheduledCheckoutScreenState
     super.initState();
     _deliveryId = widget.initialDeliveryId;
     WidgetsBinding.instance.addPostFrameCallback((_) => _load());
+  }
+
+  @override
+  void dispose() {
+    _customTipController.dispose();
+    super.dispose();
   }
 
   String formatBhdMoney(num value) =>
@@ -149,7 +161,7 @@ class _ScheduledCheckoutScreenState
         _deliveryMethods = methods;
         _deliveryOptions = detailed.deliveryOptions;
         _deliveryId = deliveryId;
-        _dropOffIndex = dropOffIndexFromPrefs(address?.dropOffPreferences);
+        _dropOffIndices = dropOffIndicesFromPrefs(address?.dropOffPreferences);
         _loading = false;
       });
     } catch (_) {
@@ -173,16 +185,35 @@ class _ScheduledCheckoutScreenState
       );
       return;
     }
+
+    final vendorId = _cart?.vendorId;
+    if (vendorId != null && vendorId.isNotEmpty) {
+      final range = await checkDeliveryRange(
+        addresses: ref.read(addressesRepositoryProvider),
+        vendorId: vendorId,
+        addressId: addressId,
+        failClosed: true,
+      );
+      if (!mounted) return;
+      if (!range.allowsDelivery) {
+        await pushOutOfDelivery(
+          context,
+          address: range.address ?? _address,
+        );
+        return;
+      }
+    }
+
     setState(() => _placing = true);
     try {
-      final dropOff = dropOffApiValue(_dropOffIndex);
+      final dropOff = dropOffApiValues(_dropOffIndices);
       final windowStart = _windowForSelected();
       final result = await ref.read(cartRepositoryProvider).checkoutScheduled(
             addressId: addressId,
             paymentMethod: paymentMethodApiValue(_paymentId),
             windowStartAt: windowStart,
             deliverySpeed: deliverySpeedApiValue(_deliveryId),
-            dropOffPreferences: dropOff == null ? null : [dropOff],
+            dropOffPreferences: dropOff.isEmpty ? null : dropOff,
             tipAmount: _tipAmount,
           );
       if (!mounted) return;
@@ -201,6 +232,11 @@ class _ScheduledCheckoutScreenState
       );
     } catch (e) {
       if (!mounted) return;
+      if (e is OutOfDeliveryRangeException ||
+          isOutOfDeliveryRangeMessage(e.toString())) {
+        await pushOutOfDelivery(context, address: _address);
+        return;
+      }
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
       );
@@ -245,8 +281,8 @@ class _ScheduledCheckoutScreenState
                 CartDropOffGrid(
                   showTitle: true,
                   options: ScheduledCartData.dropOffOptions,
-                  selectedIndex: _dropOffIndex,
-                  onSelected: (index) => setState(() => _dropOffIndex = index),
+                  selectedIndices: _dropOffIndices,
+                  onChanged: (next) => setState(() => _dropOffIndices = next),
                 ),
                 SizedBox(height: 14.h),
                 CartSectionTitle(ScheduledCartStrings.paymentMethod),
@@ -263,7 +299,13 @@ class _ScheduledCheckoutScreenState
                   showHeader: true,
                   options: ScheduledCartData.tipOptions,
                   selectedIndex: _tipIndex,
+                  customController: _customTipController,
                   onSelected: (index) => setState(() => _tipIndex = index),
+                  onCustomChanged: (raw) {
+                    setState(() {
+                      _customTipAmount = parseTipInput(raw) ?? 0;
+                    });
+                  },
                 ),
                 SizedBox(height: 14.h),
                 CartZoodPromoBanner(

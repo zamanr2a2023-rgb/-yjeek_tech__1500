@@ -6,6 +6,7 @@ import 'package:yjeek_app/core/constants/maps_config.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/core/widgets/app_google_map.dart';
 import 'package:yjeek_app/features/cart/model/cart_flow_data.dart';
+import 'package:yjeek_app/features/cart/model/checkout_helpers.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/account_widgets.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/navigation_widgets.dart';
 
@@ -357,16 +358,16 @@ class CartDropOffGrid extends StatelessWidget {
   const CartDropOffGrid({
     super.key,
     required this.options,
-    required this.selectedIndex,
-    required this.onSelected,
+    required this.selectedIndices,
+    required this.onChanged,
     this.saveForAddress = false,
     this.onSaveChanged,
     this.showTitle = false,
   });
 
   final List<DropOffOption> options;
-  final int selectedIndex;
-  final ValueChanged<int> onSelected;
+  final Set<int> selectedIndices;
+  final ValueChanged<Set<int>> onChanged;
   final bool saveForAddress;
   final ValueChanged<bool>? onSaveChanged;
   final bool showTitle;
@@ -408,55 +409,75 @@ class CartDropOffGrid extends StatelessWidget {
                 runSpacing: gapY,
                 children: List.generate(options.length, (index) {
                   final option = options[index];
-                  final selected = index == selectedIndex;
-                  return GestureDetector(
-                    onTap: () => onSelected(index),
-                    child: Container(
-                      width: tileW,
-                      height: tileH,
-                      padding: EdgeInsets.fromLTRB(10.w, 12.h, 10.w, 8.h),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFEAF1E6),
-                        borderRadius: BorderRadius.circular(12.r),
-                        border: Border.all(
-                          color: selected
-                              ? AppColors.primary
-                              : Colors.transparent,
-                          width: 1.5,
+                  final selected = selectedIndices.contains(index);
+                  final blockedBySelection = selectedIndices.any(
+                    (s) => dropOffConflicts(s, index),
+                  );
+                  final disabled = !selected && blockedBySelection;
+
+                  return Opacity(
+                    opacity: disabled ? 0.42 : 1,
+                    child: GestureDetector(
+                      onTap: () {
+                        // Tapping a conflicting (disabled) chip switches to it.
+                        onChanged(applyDropOffSelection(selectedIndices, index));
+                      },
+                      child: Container(
+                        width: tileW,
+                        height: tileH,
+                        padding: EdgeInsets.fromLTRB(10.w, 12.h, 10.w, 8.h),
+                        decoration: BoxDecoration(
+                          color: disabled
+                              ? const Color(0xFFF0F2EE)
+                              : const Color(0xFFEAF1E6),
+                          borderRadius: BorderRadius.circular(12.r),
+                          border: Border.all(
+                            color: selected
+                                ? AppColors.primary
+                                : Colors.transparent,
+                            width: 1.5,
+                          ),
                         ),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          if (option.iconAsset != null)
-                            Image.asset(
-                              option.iconAsset!,
-                              width: 16.w,
-                              height: 16.w,
-                              fit: BoxFit.contain,
-                            )
-                          else
-                            Icon(
-                              option.icon,
-                              size: 16.sp,
-                              color: const Color(0xFF0F4D27),
-                            ),
-                          SizedBox(height: 5.h),
-                          Expanded(
-                            child: Text(
-                              option.label,
-                              maxLines: 3,
-                              overflow: TextOverflow.ellipsis,
-                              style: AppTextStyles.caption(
-                                color: const Color(0xFF1A1A1A),
-                              ).copyWith(
-                                fontWeight: FontWeight.w600,
-                                fontSize: 10.sp,
-                                height: 1.2,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (option.iconAsset != null)
+                              Image.asset(
+                                option.iconAsset!,
+                                width: 16.w,
+                                height: 16.w,
+                                fit: BoxFit.contain,
+                                color: disabled ? const Color(0xFF9AA59C) : null,
+                                colorBlendMode:
+                                    disabled ? BlendMode.srcIn : null,
+                              )
+                            else
+                              Icon(
+                                option.icon,
+                                size: 16.sp,
+                                color: disabled
+                                    ? const Color(0xFF9AA59C)
+                                    : const Color(0xFF0F4D27),
+                              ),
+                            SizedBox(height: 5.h),
+                            Expanded(
+                              child: Text(
+                                option.label,
+                                maxLines: 3,
+                                overflow: TextOverflow.ellipsis,
+                                style: AppTextStyles.caption(
+                                  color: disabled
+                                      ? const Color(0xFF9AA59C)
+                                      : const Color(0xFF1A1A1A),
+                                ).copyWith(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 10.sp,
+                                  height: 1.2,
+                                ),
                               ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                   );
@@ -519,13 +540,22 @@ class CartTipSelector extends StatelessWidget {
     required this.options,
     required this.selectedIndex,
     required this.onSelected,
+    this.customController,
+    this.onCustomChanged,
     this.showHeader = false,
   });
 
   final List<TipOption> options;
   final int selectedIndex;
   final ValueChanged<int> onSelected;
+  final TextEditingController? customController;
+  final ValueChanged<String>? onCustomChanged;
   final bool showHeader;
+
+  bool get _customSelected {
+    if (selectedIndex < 0 || selectedIndex >= options.length) return false;
+    return isCustomTipOption(options[selectedIndex]);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -560,7 +590,60 @@ class CartTipSelector extends StatelessWidget {
       }),
     );
 
-    if (!showHeader) return chips;
+    final customField = _customSelected && customController != null
+        ? Padding(
+            padding: EdgeInsets.only(top: 12.h),
+            child: TextField(
+              controller: customController,
+              onChanged: onCustomChanged,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              style: AppTextStyles.bodyMedium().copyWith(
+                fontWeight: FontWeight.w600,
+                fontSize: 14.sp,
+              ),
+              decoration: InputDecoration(
+                prefixText: 'BHD ',
+                prefixStyle: AppTextStyles.bodyMedium().copyWith(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 14.sp,
+                  color: AppColors.textPrimary,
+                ),
+                hintText: 'Enter tip amount',
+                hintStyle: AppTextStyles.bodyMedium(
+                  color: AppColors.textSecondary,
+                ).copyWith(fontSize: 14.sp),
+                filled: true,
+                fillColor: AppColors.white,
+                contentPadding: EdgeInsets.symmetric(
+                  horizontal: 14.w,
+                  vertical: 12.h,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14.r),
+                  borderSide: const BorderSide(color: Color(0xFFE2E8DD)),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14.r),
+                  borderSide: const BorderSide(color: Color(0xFFE2E8DD)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14.r),
+                  borderSide: const BorderSide(
+                    color: AppColors.primary,
+                    width: 1.5,
+                  ),
+                ),
+              ),
+            ),
+          )
+        : const SizedBox.shrink();
+
+    if (!showHeader) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [chips, customField],
+      );
+    }
 
     return CartFlowCard(
       child: Column(
@@ -609,6 +692,7 @@ class CartTipSelector extends StatelessWidget {
           ),
           SizedBox(height: 12.h),
           chips,
+          customField,
         ],
       ),
     );
@@ -995,12 +1079,14 @@ class CartStickyFooter extends StatelessWidget {
     required this.buttonLabel,
     required this.onPressed,
     this.buttonColor = AppColors.primary,
+    this.loading = false,
   });
 
   final String total;
   final String buttonLabel;
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
   final Color buttonColor;
+  final bool loading;
 
   @override
   Widget build(BuildContext context) {
@@ -1048,27 +1134,38 @@ class CartStickyFooter extends StatelessWidget {
               width: 149.w,
               height: 52.h,
               child: ElevatedButton(
-                onPressed: onPressed,
+                onPressed: loading ? null : onPressed,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: buttonColor,
                   foregroundColor: AppColors.white,
+                  disabledBackgroundColor: buttonColor,
+                  disabledForegroundColor: AppColors.white,
                   elevation: 0,
                   padding: EdgeInsets.symmetric(horizontal: 30.w, vertical: 16.h),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(28.r),
                   ),
                 ),
-                child: Text(
-                  buttonLabel,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTextStyles.labelLarge().copyWith(
-                    fontSize: 16.sp,
-                    fontWeight: FontWeight.w700,
-                    height: 1.28,
-                    color: AppColors.white,
-                  ),
-                ),
+                child: loading
+                    ? SizedBox(
+                        height: 22.h,
+                        width: 22.w,
+                        child: const CircularProgressIndicator(
+                          strokeWidth: 2.5,
+                          color: AppColors.white,
+                        ),
+                      )
+                    : Text(
+                        buttonLabel,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTextStyles.labelLarge().copyWith(
+                          fontSize: 16.sp,
+                          fontWeight: FontWeight.w700,
+                          height: 1.28,
+                          color: AppColors.white,
+                        ),
+                      ),
               ),
             ),
           ],

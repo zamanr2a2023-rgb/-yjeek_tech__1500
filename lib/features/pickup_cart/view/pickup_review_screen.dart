@@ -84,7 +84,9 @@ class _PickupReviewScreenState extends ConsumerState<PickupReviewScreen> {
       if (orderId == null || orderId.isEmpty) {
         throw Exception('Checkout failed — try again');
       }
-      context.pushReplacement(PickupOrderFlowRoutes.waitingFor(orderId));
+      await completeGeofenceAfterSuccessfulOrder(ref);
+      if (!mounted) return;
+      context.go(PickupOrderFlowRoutes.waitingFor(orderId));
     } catch (e) {
       if (!mounted) return;
       final message = e.toString().replaceFirst('Exception: ', '');

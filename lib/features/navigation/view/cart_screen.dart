@@ -10,9 +10,10 @@ import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/features/browse/browse_routes.dart';
 import 'package:yjeek_app/features/cart/cart_routes.dart';
 import 'package:yjeek_app/features/cart/model/cart_repository.dart';
+import 'package:yjeek_app/features/cart/model/delivery_range.dart';
 import 'package:yjeek_app/features/cart/view/widgets/live_cart_body.dart';
 import 'package:yjeek_app/features/dine_in_cart/dine_in_cart_routes.dart';
-import 'package:yjeek_app/features/geofence/service/geofence_session_controller.dart';
+import 'package:yjeek_app/features/geofence/model/active_geofence_order_context.dart';
 import 'package:yjeek_app/features/navigation/model/navigation_data.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/navigation_widgets.dart';
 import 'package:yjeek_app/features/pickup_cart/pickup_cart_routes.dart';
@@ -240,19 +241,10 @@ class _CartScreenState extends ConsumerState<CartScreen> {
     final repo = ref.read(cartRepositoryProvider);
     final isScheduledOnly =
         _scheduled != null && identical(snap, _scheduled);
-    final pendingPromo = ref.watch(pendingGeofencePromoProvider);
-    if (pendingPromo != null && pendingPromo.isNotEmpty) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) return;
-        if (ref.read(pendingGeofencePromoProvider) == pendingPromo) {
-          ref.read(pendingGeofencePromoProvider.notifier).state = null;
-        }
-      });
-    }
 
     return LiveCartBody(
       cart: snap,
-      initialPromoCode: pendingPromo,
+      initialPromoCode: null,
       showCutlery: tab == CartTab.orders &&
           !snap.isVape &&
           !snap.isElectronics &&
@@ -296,7 +288,16 @@ class _CartScreenState extends ConsumerState<CartScreen> {
           );
           return;
         }
-        final next = await repo.addProduct(type: type, productId: productId);
+        final next = await repo.addProduct(
+          type: type,
+          productId: productId,
+          vendorId: snap.vendorId,
+          geofenceTriggerId: resolveGeofenceTriggerId(
+            ref,
+            vendorId: snap.vendorId,
+            orderType: type.apiValue,
+          ),
+        );
         await _setCart(type, next);
       },
       onApplyPromo: (code) async {
@@ -425,6 +426,27 @@ class _CartScreenState extends ConsumerState<CartScreen> {
           case CartTab.services:
             context.push(ServicesBookingRoutes.checkout);
           case CartTab.orders:
+            final vendorId = snap.vendorId;
+            if (vendorId != null && vendorId.isNotEmpty) {
+              final range = await checkDeliveryRange(
+                addresses: ref.read(addressesRepositoryProvider),
+                vendorId: vendorId,
+                failClosed: true,
+              );
+              if (!mounted) return;
+              if (!range.allowsDelivery) {
+                if (range.outcome == DeliveryRangeOutcome.noAddress) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Add a delivery address first'),
+                    ),
+                  );
+                  return;
+                }
+                await pushOutOfDelivery(context, address: range.address);
+                return;
+              }
+            }
             if (isScheduledOnly) {
               context.push(ScheduledCartRoutes.checkout);
             } else if (snap.isVape) {
@@ -488,12 +510,10 @@ class _CartScreenState extends ConsumerState<CartScreen> {
       });
     }
 
-    final isDineIn = _tabIndex == CartTab.dineIn.index;
-    const dineInBg = Color(0xFF8BAE9A);
     final tab = CartTab.values[_tabIndex];
 
     return Scaffold(
-      backgroundColor: isDineIn ? dineInBg : AppColors.background,
+      backgroundColor: AppColors.background,
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

@@ -7,14 +7,14 @@ class PendingCheckout {
     required this.paymentId,
     required this.tipAmount,
     required this.addressId,
-    this.dropOffIndex = 0,
+    this.dropOffIndices = const {0},
     this.saveDropOff = false,
   });
 
   final String paymentId;
   final double tipAmount;
   final String addressId;
-  final int dropOffIndex;
+  final Set<int> dropOffIndices;
   final bool saveDropOff;
 }
 

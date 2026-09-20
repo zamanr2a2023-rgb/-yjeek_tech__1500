@@ -11,14 +11,16 @@ import 'package:yjeek_app/features/cart/cart_routes.dart';
 import 'package:yjeek_app/features/cart/model/cart_flow_data.dart';
 import 'package:yjeek_app/features/cart/model/cart_repository.dart';
 import 'package:yjeek_app/features/cart/model/checkout_helpers.dart';
+import 'package:yjeek_app/features/cart/model/delivery_range.dart';
 import 'package:yjeek_app/features/cart/model/pending_checkout.dart';
 import 'package:yjeek_app/features/cart/view/widgets/cart_flow_widgets.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/account_widgets.dart';
 import 'package:yjeek_app/features/order_flow/model/order_api_mappers.dart';
 import 'package:yjeek_app/features/order_flow/order_flow_routes.dart';
 import 'package:yjeek_app/routes/app_router.dart';
+import 'package:yjeek_app/routes/route_names.dart';
 
-/// Food: 10s window after checkout to edit or confirm (auto-places order).
+/// Food: 10s window after checkout to edit or confirm (timeout returns to checkout).
 class ReviewConfirmScreen extends ConsumerStatefulWidget {
   const ReviewConfirmScreen({super.key, this.orderId});
 
@@ -71,11 +73,23 @@ class _ReviewConfirmScreenState extends ConsumerState<ReviewConfirmScreen> {
       if (_secondsLeft <= 1) {
         _timer?.cancel();
         setState(() => _secondsLeft = 0);
-        _confirmAndPlace();
+        _onTimeout();
         return;
       }
       setState(() => _secondsLeft--);
     });
+  }
+
+  /// Timer expired without Confirm now — return to checkout.
+  void _onTimeout() {
+    if (_finishing || _placing) return;
+    _timer?.cancel();
+    _finishing = true;
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Order not confirmed. Returned to checkout.')),
+    );
+    context.go(CartRoutes.checkout);
   }
 
   Future<void> _hydrate() async {
@@ -105,13 +119,12 @@ class _ReviewConfirmScreenState extends ConsumerState<ReviewConfirmScreen> {
     final etaMin = order['estimatedArrivalMin'] ?? order['etaMin'];
     final etaMax = order['estimatedArrivalMax'] ?? order['etaMax'];
     final etaLabel = order['etaLabel']?.toString();
-    final arrives = etaLabel != null && etaLabel.isNotEmpty
-        ? (etaLabel.toLowerCase().contains('standard')
-            ? etaLabel
-            : '$etaLabel · Standard')
-        : (etaMin != null
-            ? '$etaMin–${etaMax ?? etaMin} min · Standard'
-            : CartFlowStrings.standardDelivery);
+    final arrives = formatEtaWindow(
+      (etaMin as num?)?.toInt(),
+      (etaMax as num?)?.toInt(),
+      etaLabel: etaLabel,
+      fallback: CartFlowStrings.standardDelivery,
+    );
 
     setState(() {
       _vendor = vendorName;
@@ -136,8 +149,9 @@ class _ReviewConfirmScreenState extends ConsumerState<ReviewConfirmScreen> {
 
     if (!cart.hasItems) {
       ref.read(pendingCheckoutProvider.notifier).state = null;
+      if (_placing || _finishing) return;
       showEmptyCartSnackBar(context);
-      context.goHome(tab: 2, emptyCart: true);
+      context.go('${RouteNames.home}?tab=1');
       return;
     }
 
@@ -153,10 +167,10 @@ class _ReviewConfirmScreenState extends ConsumerState<ReviewConfirmScreen> {
         )
         .toList();
 
-    final eta = cart.deliveryEta;
-    final arrives = eta != null && eta.etaMin > 0
-        ? '${eta.etaMin}–${eta.etaMax > 0 ? eta.etaMax : eta.etaMin} min · Standard'
-        : CartFlowStrings.standardDelivery;
+    final arrives = formatEtaWindowFromCart(
+      cart.deliveryEta,
+      fallback: CartFlowStrings.standardDelivery,
+    );
 
     final deliverTo = address == null
         ? CartFlowData.reviewAddressLine
@@ -184,7 +198,7 @@ class _ReviewConfirmScreenState extends ConsumerState<ReviewConfirmScreen> {
     if (_hasExistingOrder) {
       _finishing = true;
       if (mounted) {
-        context.pushReplacement(OrderFlowRoutes.waitingFor(widget.orderId));
+        context.go(OrderFlowRoutes.waitingFor(widget.orderId));
       }
       return;
     }
@@ -207,38 +221,47 @@ class _ReviewConfirmScreenState extends ConsumerState<ReviewConfirmScreen> {
       if (!mounted) return;
       if (!cart.hasItems) {
         ref.read(pendingCheckoutProvider.notifier).state = null;
-        setState(() {
-          _placing = false;
-          _secondsLeft = _initialSeconds;
-        });
+        setState(() => _placing = false);
         showEmptyCartSnackBar(context);
-        context.goHome(tab: 2, emptyCart: true);
+        context.go('${RouteNames.home}?tab=1');
         return;
       }
-      final dropOff = dropOffApiValue(pending.dropOffIndex);
+      final dropOff = dropOffApiValues(pending.dropOffIndices);
       final order = await ref.read(cartRepositoryProvider).checkout(
             type: CartOrderType.delivery,
             paymentMethod: paymentMethodApiValue(pending.paymentId),
             tipAmount: pending.tipAmount,
             addressId: pending.addressId,
-            dropOffPreferences: dropOff == null ? null : [dropOff],
+            dropOffPreferences: dropOff.isEmpty ? null : dropOff,
             saveDropOffPreferences: pending.saveDropOff,
           );
       if (!mounted) return;
       _finishing = true;
       ref.read(pendingCheckoutProvider.notifier).state = null;
+      await completeGeofenceAfterSuccessfulOrder(ref);
+      if (!mounted) return;
       final orderId = order?['id']?.toString();
-      context.pushReplacement(OrderFlowRoutes.waitingFor(orderId));
+      if (orderId == null || orderId.isEmpty) {
+        throw Exception('Checkout succeeded but order id was missing');
+      }
+      context.go(OrderFlowRoutes.waitingFor(orderId));
     } catch (e) {
       if (!mounted) return;
-      setState(() {
-        _placing = false;
-        _secondsLeft = _initialSeconds;
-      });
+      setState(() => _placing = false);
+      _finishing = true;
+      if (e is OutOfDeliveryRangeException ||
+          isOutOfDeliveryRangeMessage(e.toString())) {
+        final pending = ref.read(pendingCheckoutProvider);
+        await pushOutOfDelivery(
+          context,
+          addressId: pending?.addressId,
+        );
+        return;
+      }
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
       );
-      _startTimer();
+      context.go(CartRoutes.checkout);
     }
   }
 

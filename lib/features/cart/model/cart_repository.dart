@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:yjeek_app/core/network/api_client.dart';
 import 'package:yjeek_app/core/services/storage_service.dart';
+import 'package:yjeek_app/features/cart/model/addresses_repository.dart';
+import 'package:yjeek_app/features/cart/model/delivery_range.dart';
 import 'package:yjeek_app/features/navigation/model/navigation_data.dart';
 
 enum CartOrderType {
@@ -286,10 +288,15 @@ class CartSnapshot {
 }
 
 class CartRepository {
-  const CartRepository(this._apiClient, this._storage);
+  const CartRepository(
+    this._apiClient,
+    this._storage, {
+    AddressesRepository? addresses,
+  }) : _addresses = addresses;
 
   final ApiClient _apiClient;
   final StorageService _storage;
+  final AddressesRepository? _addresses;
 
   String? get _token => _storage.token;
 
@@ -404,12 +411,45 @@ class CartRepository {
     required CartOrderType type,
     required String productId,
     int quantity = 1,
+    String? vendorId,
+    String? geofenceTriggerId,
   }) async {
+    final addresses = _addresses;
+    if (type == CartOrderType.delivery &&
+        addresses != null &&
+        _storage.hasSession &&
+        vendorId != null &&
+        vendorId.isNotEmpty) {
+      final range = await checkDeliveryRange(
+        addresses: addresses,
+        vendorId: vendorId,
+        failClosed: false,
+      );
+      if (range.isOutOfRange) {
+        throw OutOfDeliveryRangeException();
+      }
+    }
+
     final response = await _apiClient.postJson(
       '/cart/items?type=${type.apiValue}',
-      {'productId': productId, 'quantity': quantity},
+      {
+        'productId': productId,
+        'quantity': quantity,
+        if (geofenceTriggerId != null && geofenceTriggerId.isNotEmpty)
+          'geofenceTriggerId': geofenceTriggerId,
+      },
       bearerToken: _token,
     );
+    if (!response.ok) {
+      if (isOutOfDeliveryRangeCode(response.errorCode) ||
+          isOutOfDeliveryRangeMessage(response.message)) {
+        throw OutOfDeliveryRangeException(
+          response.message ??
+              'This address is outside the vendor delivery area',
+        );
+      }
+      throw Exception(response.message ?? 'Could not add to cart');
+    }
     final data = response.data;
     if (data != null) return cartSnapshotFromJson(data, type);
     return fetchCart(type);
@@ -682,6 +722,13 @@ class CartRepository {
       bearerToken: _token,
     );
     if (!response.ok) {
+      if (isOutOfDeliveryRangeCode(response.errorCode) ||
+          isOutOfDeliveryRangeMessage(response.message)) {
+        throw OutOfDeliveryRangeException(
+          response.message ??
+              'This address is outside the vendor delivery area',
+        );
+      }
       throw Exception(response.message ?? 'Checkout failed');
     }
     return response.data;
@@ -717,6 +764,13 @@ class CartRepository {
       bearerToken: _token,
     );
     if (!response.ok) {
+      if (isOutOfDeliveryRangeCode(response.errorCode) ||
+          isOutOfDeliveryRangeMessage(response.message)) {
+        throw OutOfDeliveryRangeException(
+          response.message ??
+              'This address is outside the vendor delivery area',
+        );
+      }
       throw Exception(response.message ?? 'Checkout failed');
     }
     return response.data;

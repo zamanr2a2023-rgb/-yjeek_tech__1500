@@ -40,6 +40,20 @@ class ApiResponse {
     }
     return null;
   }
+
+  String? get errorCode {
+    final error = json?['error'];
+    if (error is Map) {
+      final code = error['code']?.toString();
+      if (code != null && code.isNotEmpty) return code;
+      final details = error['details'];
+      if (details is Map) {
+        final detailCode = details['code']?.toString();
+        if (detailCode != null && detailCode.isNotEmpty) return detailCode;
+      }
+    }
+    return null;
+  }
 }
 
 class ApiClient {

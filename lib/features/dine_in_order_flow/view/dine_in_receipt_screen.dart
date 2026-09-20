@@ -22,7 +22,7 @@ class DineInReceiptScreen extends ConsumerStatefulWidget {
 }
 
 class _DineInReceiptScreenState extends ConsumerState<DineInReceiptScreen> {
-  static const Color _screenBg = Color(0xFF8BAE9A);
+  static const Color _screenBg = AppColors.background;
 
   Map<String, dynamic>? _receipt;
   bool _loading = true;

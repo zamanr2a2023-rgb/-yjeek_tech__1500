@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:yjeek_app/core/network/api_client.dart';
 import 'package:yjeek_app/core/services/storage_service.dart';
 import 'package:yjeek_app/features/browse/model/vape_data.dart';
+import 'package:yjeek_app/features/cart/model/addresses_repository.dart';
+import 'package:yjeek_app/features/cart/model/delivery_range.dart';
 
 class VapeCartSummary {
   const VapeCartSummary({
@@ -18,10 +20,15 @@ class VapeCartSummary {
 }
 
 class VapeVendorsRepository {
-  const VapeVendorsRepository(this._apiClient, this._storage);
+  const VapeVendorsRepository(
+    this._apiClient,
+    this._storage, {
+    AddressesRepository? addresses,
+  }) : _addresses = addresses;
 
   final ApiClient _apiClient;
   final StorageService _storage;
+  final AddressesRepository? _addresses;
 
   String? get _token => _storage.token;
 
@@ -170,18 +177,38 @@ class VapeVendorsRepository {
   }
 
   /// POST /cart/items?type=DELIVERY
-  Future<({bool ok, bool vendorConflict, String? message})> addToCart({
+  Future<({bool ok, bool vendorConflict, bool outOfRange, String? message})>
+      addToCart({
     required String productId,
     required int quantity,
     List<String> optionIds = const [],
     bool replaceCart = false,
+    String? vendorId,
+    String? geofenceTriggerId,
   }) async {
     if (!_storage.hasSession) {
       return (
         ok: false,
         vendorConflict: false,
+        outOfRange: false,
         message: 'Please log in to add items to your cart',
       );
+    }
+
+    if (_addresses != null && vendorId != null && vendorId.isNotEmpty) {
+      final range = await checkDeliveryRange(
+        addresses: _addresses!,
+        vendorId: vendorId,
+        failClosed: false,
+      );
+      if (range.isOutOfRange) {
+        return (
+          ok: false,
+          vendorConflict: false,
+          outOfRange: true,
+          message: 'This address is outside the vendor delivery area',
+        );
+      }
     }
 
     final response = await _apiClient.postJson(
@@ -190,6 +217,8 @@ class VapeVendorsRepository {
         'productId': productId,
         'quantity': quantity,
         'replaceCart': replaceCart,
+        if (geofenceTriggerId != null && geofenceTriggerId.isNotEmpty)
+          'geofenceTriggerId': geofenceTriggerId,
         'options': {
           if (optionIds.isNotEmpty) 'optionIds': optionIds,
         },
@@ -197,19 +226,26 @@ class VapeVendorsRepository {
       bearerToken: _token,
     );
 
-    if (response.ok) return (ok: true, vendorConflict: false, message: null);
+    if (response.ok) {
+      return (ok: true, vendorConflict: false, outOfRange: false, message: null);
+    }
 
     final error = response.json?['error'];
     final details = error is Map ? error['details'] : null;
     final detailCode = details is Map ? details['code']?.toString() : null;
     final code = error is Map ? error['code']?.toString() : null;
-    final conflict = response.statusCode == 409 ||
-        code == 'VENDOR_CART_CONFLICT' ||
-        detailCode == 'VENDOR_CART_CONFLICT' ||
-        code == 'CONFLICT';
+    final outOfRange = isOutOfDeliveryRangeCode(code) ||
+        isOutOfDeliveryRangeCode(detailCode) ||
+        isOutOfDeliveryRangeMessage(response.message);
+    final conflict = !outOfRange &&
+        (response.statusCode == 409 ||
+            code == 'VENDOR_CART_CONFLICT' ||
+            detailCode == 'VENDOR_CART_CONFLICT' ||
+            code == 'CONFLICT');
     return (
       ok: false,
       vendorConflict: conflict,
+      outOfRange: outOfRange,
       message: response.message ?? 'Could not add to cart',
     );
   }

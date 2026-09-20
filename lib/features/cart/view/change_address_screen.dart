@@ -9,8 +9,11 @@ import 'package:yjeek_app/features/cart/cart_routes.dart';
 import 'package:yjeek_app/features/cart/model/addresses_repository.dart';
 import 'package:yjeek_app/features/cart/model/cart_flow_data.dart';
 import 'package:yjeek_app/features/cart/model/cart_repository.dart';
+import 'package:yjeek_app/features/cart/model/delivery_range.dart';
+import 'package:yjeek_app/features/cart/model/pending_add_to_cart.dart';
 import 'package:yjeek_app/features/cart/view/widgets/cart_flow_widgets.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/account_widgets.dart';
+import 'package:yjeek_app/routes/app_router.dart';
 import 'package:yjeek_app/routes/route_names.dart';
 
 class ChangeAddressScreen extends ConsumerStatefulWidget {
@@ -22,7 +25,6 @@ class ChangeAddressScreen extends ConsumerStatefulWidget {
 }
 
 class _ChangeAddressScreenState extends ConsumerState<ChangeAddressScreen> {
-  List<DeliveryAddressSnapshot> _snapshots = const [];
   List<CartDeliveryAddress> _addresses = const [];
   String? _selectedId;
   String? _vendorId;
@@ -56,7 +58,6 @@ class _ChangeAddressScreenState extends ConsumerState<ChangeAddressScreen> {
         .map((a) => a.toCartAddress(selected: a.id == selectedId))
         .toList();
     setState(() {
-      _snapshots = addresses;
       _addresses = mapped;
       _selectedId = selectedId;
       _vendorId = cart.vendorId;
@@ -68,43 +69,90 @@ class _ChangeAddressScreenState extends ConsumerState<ChangeAddressScreen> {
     final selectedId = _selectedId;
     if (selectedId == null || _submitting) return;
     setState(() => _submitting = true);
-    final repo = ref.read(addressesRepositoryProvider);
-    await repo.setDefaultAddress(selectedId);
-    final vendorId = _vendorId;
-    if (vendorId != null && vendorId.isNotEmpty) {
-      final inRange = await repo.checkInRange(
-        vendorId: vendorId,
-        addressId: selectedId,
-      );
-      if (!mounted) return;
-      setState(() => _submitting = false);
-      if (!inRange) {
-        DeliveryAddressSnapshot? snap;
-        for (final a in _snapshots) {
-          if (a.id == selectedId) {
-            snap = a;
-            break;
-          }
-        }
-        final params = <String, String>{
-          'id': selectedId,
-          if (snap?.latitude != null) 'lat': '${snap!.latitude}',
-          if (snap?.longitude != null) 'lng': '${snap!.longitude}',
-        };
-        final q = params.entries
-            .map(
-              (e) =>
-                  '${Uri.encodeQueryComponent(e.key)}=${Uri.encodeQueryComponent(e.value)}',
-            )
-            .join('&');
-        context.push('${CartRoutes.outOfDelivery}?$q');
-        return;
+    try {
+      final addresses = ref.read(addressesRepositoryProvider);
+      await addresses.setDefaultAddress(selectedId);
+      ref.invalidate(userMeProvider);
+
+      // Always re-read cart vendor — stale null skipped the range check before.
+      final cart = await ref
+          .read(cartRepositoryProvider)
+          .fetchCart(CartOrderType.delivery);
+      final vendorId = (cart.vendorId?.isNotEmpty == true)
+          ? cart.vendorId!
+          : (_vendorId ?? '');
+      if (mounted && vendorId.isNotEmpty) {
+        setState(() => _vendorId = vendorId);
       }
-    } else if (mounted) {
-      setState(() => _submitting = false);
+
+      if (vendorId.isNotEmpty) {
+        // failClosed: false — only block when API explicitly says out of range.
+        // Unknown must not trap the user on Out of range after Deliver here.
+        final range = await checkDeliveryRange(
+          addresses: addresses,
+          vendorId: vendorId,
+          addressId: selectedId,
+          failClosed: false,
+        );
+        if (!mounted) return;
+
+        if (range.isOutOfRange) {
+          // Replace stack so Change Address / old Out of range don't sit underneath.
+          context.go(
+            outOfDeliveryLocation(
+              addressId: selectedId,
+              latitude: range.address?.latitude,
+              longitude: range.address?.longitude,
+            ),
+          );
+          return;
+        }
+      }
+
+      if (!mounted) return;
+      await _leaveAfterDeliver(cartHasItems: cart.hasItems);
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not update delivery address')),
+      );
+    } finally {
+      if (mounted) setState(() => _submitting = false);
     }
-    if (!mounted) return;
-    context.pop(true);
+  }
+
+  /// In-range (or unknown): retry blocked add, then always open Cart and
+  /// clear the Out of range / Change address stack via [goHome].
+  ///
+  /// Never re-open Out of range here — caller already verified range (or
+  /// cart already has items). A flaky pending retry must not trap the user.
+  Future<void> _leaveAfterDeliver({required bool cartHasItems}) async {
+    final pending = ref.read(pendingAddToCartProvider);
+    if (pending != null) {
+      final result = await retryPendingAddToCart(ref);
+      if (!mounted) return;
+
+      if (!result.ok) {
+        clearPendingAddToCart(ref);
+        if (result.message != null &&
+            result.message!.isNotEmpty &&
+            !result.outOfRange) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(result.message!)),
+          );
+        }
+      }
+
+      context.goHome(
+        tab: 2,
+        cartHasItems: result.ok ? !pending.isPickup : (cartHasItems || !pending.isPickup),
+        pickupCart: pending.isPickup,
+      );
+      return;
+    }
+
+    // Address confirmed — open Cart and leave Out of range behind.
+    context.goHome(tab: 2, cartHasItems: cartHasItems);
   }
 
   @override
@@ -114,7 +162,11 @@ class _ChangeAddressScreenState extends ConsumerState<ChangeAddressScreen> {
       subtitle: CartFlowStrings.chooseWhereToDeliver,
       lightHeader: true,
       onBack: () {
-        if (context.canPop()) context.pop();
+        if (context.canPop()) {
+          context.pop();
+        } else {
+          context.goHome(tab: 2, cartHasItems: true);
+        }
       },
       body: _loading
           ? const Center(child: CircularProgressIndicator())

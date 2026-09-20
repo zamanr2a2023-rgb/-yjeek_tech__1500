@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:yjeek_app/core/constants/app_colors.dart';
@@ -50,7 +52,7 @@ class LiveCartBody extends StatefulWidget {
   final Future<void> Function(String seatingPreference)? onSeatingChanged;
   final Future<void> Function(bool enabled)? onSpecialOccasionChanged;
   final VoidCallback onAddMore;
-  final VoidCallback onCheckout;
+  final Future<void> Function() onCheckout;
   final bool showCutlery;
   final bool showDineInPreferences;
   final bool showPickupHeader;
@@ -64,17 +66,24 @@ class LiveCartBody extends StatefulWidget {
 }
 
 class _LiveCartBodyState extends State<LiveCartBody> {
-  final _promoController = TextEditingController();
-  final _promoFocusNode = FocusNode();
   bool _busy = false;
+  bool _checkoutBusy = false;
+  String? _autoAppliedPromo;
+
+  Future<void> _handleCheckout() async {
+    if (_checkoutBusy) return;
+    setState(() => _checkoutBusy = true);
+    try {
+      await widget.onCheckout();
+    } finally {
+      if (mounted) setState(() => _checkoutBusy = false);
+    }
+  }
 
   @override
   void initState() {
     super.initState();
-    final initial = widget.initialPromoCode?.trim();
-    if (initial != null && initial.isNotEmpty) {
-      _promoController.text = initial;
-    }
+    _scheduleAutoApplyPromo(widget.initialPromoCode);
   }
 
   @override
@@ -83,8 +92,20 @@ class _LiveCartBodyState extends State<LiveCartBody> {
     final next = widget.initialPromoCode?.trim();
     final prev = oldWidget.initialPromoCode?.trim();
     if (next != null && next.isNotEmpty && next != prev) {
-      _promoController.text = next;
+      _scheduleAutoApplyPromo(next);
     }
+  }
+
+  void _scheduleAutoApplyPromo(String? raw) {
+    final code = raw?.trim();
+    if (code == null || code.isEmpty) return;
+    if (_autoAppliedPromo == code) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (_autoAppliedPromo == code) return;
+      _autoAppliedPromo = code;
+      _run(() => widget.onApplyPromo(code));
+    });
   }
 
   CartSnapshot get cart => widget.cart;
@@ -130,13 +151,6 @@ class _LiveCartBodyState extends State<LiveCartBody> {
       DineInSeating.outdoor => 'OUTDOOR',
       DineInSeating.any => 'NO_PREFERENCE',
     };
-  }
-
-  @override
-  void dispose() {
-    _promoFocusNode.dispose();
-    _promoController.dispose();
-    super.dispose();
   }
 
   @override
@@ -205,22 +219,6 @@ class _LiveCartBodyState extends State<LiveCartBody> {
                 ),
               ],
               if (widget.showDineInPreferences) ...[
-                const SizedBox(height: 18),
-                Text(
-                  NavigationStrings.haveAPromoCode,
-                  style: AppTextStyles.titleSmall().copyWith(fontSize: 16),
-                ),
-                const SizedBox(height: 10),
-                _PromoApplyRow(
-                  controller: _promoController,
-                  focusNode: _promoFocusNode,
-                  busy: _busy,
-                  onSubmit: () {
-                    final code = _promoController.text.trim();
-                    if (code.isEmpty) return;
-                    _run(() => widget.onApplyPromo(code));
-                  },
-                ),
                 const SizedBox(height: 18),
                 DineInPreferencesCard(
                   partySize: cart.partySize ?? DineInCartData.defaultPartySize,
@@ -350,61 +348,15 @@ class _LiveCartBodyState extends State<LiveCartBody> {
                 ),
               ],
               const SizedBox(height: 18),
-              if (widget.showVapeCart || isPickupFood) ...[
-                Text(
-                  NavigationStrings.haveAPromoCode,
-                  style: AppTextStyles.titleSmall().copyWith(fontSize: 16),
-                ),
-                const SizedBox(height: 10),
-                _PromoApplyRow(
-                  controller: _promoController,
-                  focusNode: _promoFocusNode,
-                  busy: _busy,
-                  onSubmit: () {
-                    final code = _promoController.text.trim();
-                    if (code.isEmpty) return;
-                    _run(() => widget.onApplyPromo(code));
-                  },
-                ),
-                const SizedBox(height: 10),
-              ] else if (!widget.showDineInPreferences) ...[
-                Text(
-                  widget.showElectronicsCart
-                      ? 'Order options'
-                      : NavigationStrings.billSummary,
-                  style: AppTextStyles.titleSmall().copyWith(fontSize: 16),
-                ),
-                const SizedBox(height: 10),
-                if (widget.showElectronicsCart)
-                  _ElectronicsPromoRow(
-                    controller: _promoController,
-                    focusNode: _promoFocusNode,
-                    busy: _busy,
-                    appliedCode: cart.promoCode,
-                    onSubmit: () {
-                      final code = _promoController.text.trim();
-                      if (code.isEmpty) return;
-                      _run(() => widget.onApplyPromo(code));
-                    },
-                  )
-                else
-                  _PromoApplyRow(
-                    controller: _promoController,
-                    focusNode: _promoFocusNode,
-                    busy: _busy,
-                    onSubmit: () {
-                      final code = _promoController.text.trim();
-                      if (code.isEmpty) return;
-                      _run(() => widget.onApplyPromo(code));
-                    },
-                  ),
-                const SizedBox(height: 10),
-              ],
-              if (widget.showDineInPreferences) ...[
+              if (!widget.showVapeCart && !isPickupFood) ...[
                 Text(
                   NavigationStrings.billSummary,
                   style: AppTextStyles.titleSmall().copyWith(fontSize: 16),
                 ),
+                const SizedBox(height: 10),
+              ],
+              if (cart.promoCode != null && cart.promoCode!.trim().isNotEmpty) ...[
+                _AppliedPromoBanner(code: cart.promoCode!.trim()),
                 const SizedBox(height: 10),
               ],
               const UiPlacementBanner(placementKey: 'cart_banner'),
@@ -420,7 +372,8 @@ class _LiveCartBodyState extends State<LiveCartBody> {
         if (isPickupFood)
           _PickupCheckoutFooter(
             totalLabel: cart.totalLabel,
-            onCheckout: widget.onCheckout,
+            loading: _checkoutBusy,
+            onCheckout: _handleCheckout,
           )
         else
           SafeArea(
@@ -431,7 +384,7 @@ class _LiveCartBodyState extends State<LiveCartBody> {
                 children: [
                   Expanded(
                     child: OutlinedButton(
-                      onPressed: widget.onAddMore,
+                      onPressed: _checkoutBusy ? null : widget.onAddMore,
                       style: OutlinedButton.styleFrom(
                         backgroundColor: AppColors.white,
                         foregroundColor: AppColors.textPrimary,
@@ -454,21 +407,33 @@ class _LiveCartBodyState extends State<LiveCartBody> {
                   const SizedBox(width: 10),
                   Expanded(
                     child: ElevatedButton(
-                      onPressed: widget.onCheckout,
+                      onPressed: _checkoutBusy ? null : _handleCheckout,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primary,
                         foregroundColor: AppColors.white,
+                        disabledBackgroundColor: AppColors.primary,
+                        disabledForegroundColor: AppColors.white,
                         minimumSize: const Size.fromHeight(48),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14),
                         ),
                       ),
-                      child: Text(
-                        widget.checkoutLabel ?? NavigationStrings.checkout,
-                        style: AppTextStyles.labelMedium(
-                          color: AppColors.white,
-                        ).copyWith(fontWeight: FontWeight.w700),
-                      ),
+                      child: _checkoutBusy
+                          ? const SizedBox(
+                              height: 22,
+                              width: 22,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2.5,
+                                color: AppColors.white,
+                              ),
+                            )
+                          : Text(
+                              widget.checkoutLabel ??
+                                  NavigationStrings.checkout,
+                              style: AppTextStyles.labelMedium(
+                                color: AppColors.white,
+                              ).copyWith(fontWeight: FontWeight.w700),
+                            ),
                     ),
                   ),
                 ],
@@ -1047,97 +1012,36 @@ class _ElectronicsQtyControls extends StatelessWidget {
   }
 }
 
-class _ElectronicsPromoRow extends StatelessWidget {
-  const _ElectronicsPromoRow({
-    required this.controller,
-    required this.busy,
-    required this.onSubmit,
-    this.focusNode,
-    this.appliedCode,
-  });
+class _AppliedPromoBanner extends StatelessWidget {
+  const _AppliedPromoBanner({required this.code});
 
-  final TextEditingController controller;
-  final FocusNode? focusNode;
-  final bool busy;
-  final VoidCallback onSubmit;
-  final String? appliedCode;
+  final String code;
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: Container(
-                height: 48,
-                padding: const EdgeInsets.symmetric(horizontal: 14),
-                decoration: BoxDecoration(
-                  color: AppColors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFE0E6E0)),
-                ),
-                alignment: Alignment.centerLeft,
-                child: TextField(
-                  controller: controller,
-                  focusNode: focusNode,
-                  style: AppTextStyles.bodySmall(
-                    color: const Color(0xFF121A14),
-                  ).copyWith(fontSize: 14, height: 1.28),
-                  decoration: InputDecoration(
-                    hintText: 'Promo code',
-                    hintStyle: AppTextStyles.bodySmall(
-                      color: const Color(0xFF6B756E),
-                    ).copyWith(
-                      fontWeight: FontWeight.w500,
-                      fontSize: 14,
-                      height: 1.28,
-                    ),
-                    border: InputBorder.none,
-                    isDense: true,
-                    contentPadding: EdgeInsets.zero,
-                  ),
-                ),
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFEDF7EE),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFCDE8CF)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.local_offer_outlined, size: 18, color: AppColors.primary),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              '$code applied',
+              style: AppTextStyles.labelMedium(color: AppColors.primary).copyWith(
+                fontWeight: FontWeight.w700,
+                fontSize: 14,
               ),
             ),
-            const SizedBox(width: 10),
-            SizedBox(
-              height: 48,
-              child: ElevatedButton(
-                onPressed: busy ? null : onSubmit,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: AppColors.white,
-                  disabledBackgroundColor: const Color(0xFFDCE7D4),
-                  elevation: 0,
-                  padding: const EdgeInsets.symmetric(horizontal: 22),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                child: Text(
-                  busy ? '…' : 'Apply',
-                  style: AppTextStyles.labelMedium(color: AppColors.white)
-                      .copyWith(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 15,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-        if (appliedCode != null && appliedCode!.isNotEmpty) ...[
-          const SizedBox(height: 8),
-          Text(
-            '✓ $appliedCode applied',
-            style: AppTextStyles.labelSmall(
-              color: AppColors.primary,
-            ).copyWith(fontWeight: FontWeight.w600, fontSize: 12),
           ),
         ],
-      ],
+      ),
     );
   }
 }
@@ -1585,10 +1489,12 @@ class _PickupCheckoutFooter extends StatelessWidget {
   const _PickupCheckoutFooter({
     required this.totalLabel,
     required this.onCheckout,
+    this.loading = false,
   });
 
   final String totalLabel;
-  final VoidCallback onCheckout;
+  final Future<void> Function() onCheckout;
+  final bool loading;
 
   @override
   Widget build(BuildContext context) {
@@ -1601,101 +1507,57 @@ class _PickupCheckoutFooter extends StatelessWidget {
       child: SafeArea(
         top: false,
         child: GestureDetector(
-          onTap: onCheckout,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-            decoration: BoxDecoration(
-              color: AppColors.primary,
-              borderRadius: BorderRadius.circular(28),
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.shopping_bag_outlined, color: AppColors.white, size: 20),
-                const SizedBox(width: 8),
-                Text(
-                  'Go to checkout',
-                  style: AppTextStyles.labelMedium(color: AppColors.white).copyWith(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 15,
+          onTap: loading ? null : () => unawaited(onCheckout()),
+          child: Opacity(
+            opacity: loading ? 0.85 : 1,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+              decoration: BoxDecoration(
+                color: AppColors.primary,
+                borderRadius: BorderRadius.circular(28),
+              ),
+              child: Row(
+                children: [
+                  if (loading)
+                    const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.5,
+                        color: AppColors.white,
+                      ),
+                    )
+                  else
+                    const Icon(
+                      Icons.shopping_bag_outlined,
+                      color: AppColors.white,
+                      size: 20,
+                    ),
+                  const SizedBox(width: 8),
+                  Text(
+                    loading ? 'Loading…' : 'Go to checkout',
+                    style: AppTextStyles.labelMedium(color: AppColors.white)
+                        .copyWith(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 15,
+                    ),
                   ),
-                ),
-                const Spacer(),
-                Text(
-                  totalLabel,
-                  style: AppTextStyles.labelMedium(color: AppColors.white).copyWith(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 15,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _PromoApplyRow extends StatelessWidget {
-  const _PromoApplyRow({
-    required this.controller,
-    required this.busy,
-    required this.onSubmit,
-    this.focusNode,
-  });
-
-  final TextEditingController controller;
-  final FocusNode? focusNode;
-  final bool busy;
-  final VoidCallback onSubmit;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 46,
-      padding: const EdgeInsets.symmetric(horizontal: 14),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFE2E8DD)),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.local_offer_outlined, size: 18, color: AppColors.primary),
-          const SizedBox(width: 10),
-          Expanded(
-            child: TextField(
-              controller: controller,
-              focusNode: focusNode,
-              style: AppTextStyles.bodySmall(
-                color: AppColors.textPrimary,
-              ).copyWith(fontSize: 14, height: 1.28),
-              decoration: InputDecoration(
-                hintText: 'Enter promo code',
-                hintStyle: AppTextStyles.bodySmall(
-                  color: const Color(0xFF6B7B6E),
-                ).copyWith(fontSize: 14, height: 1.28),
-                border: InputBorder.none,
-                isDense: true,
-                contentPadding: EdgeInsets.zero,
+                  const Spacer(),
+                  if (!loading)
+                    Text(
+                      totalLabel,
+                      style:
+                          AppTextStyles.labelMedium(color: AppColors.white)
+                              .copyWith(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 15,
+                      ),
+                    ),
+                ],
               ),
             ),
           ),
-          TextButton(
-            onPressed: busy ? null : onSubmit,
-            style: TextButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              minimumSize: Size.zero,
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            ),
-            child: Text(
-              busy ? '…' : 'Submit',
-              style: AppTextStyles.labelMedium(
-                color: AppColors.primary,
-              ).copyWith(fontWeight: FontWeight.w700, fontSize: 14),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }

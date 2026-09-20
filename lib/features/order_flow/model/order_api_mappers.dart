@@ -385,9 +385,10 @@ List<BillLine> receiptBillFromTotals(Map<String, dynamic>? totals) {
     if ((totals['vatAmount'] as num?) != null &&
         (totals['vatAmount'] as num) > 0)
       BillLine(label: 'VAT', value: formatBhd(totals['vatAmount'])),
-    if ((totals['tipAmount'] as num?) != null &&
-        (totals['tipAmount'] as num) > 0)
-      BillLine(label: 'Tip', value: formatBhd(totals['tipAmount'])),
+    BillLine(
+      label: 'Tip',
+      value: formatBhd(totals['tipAmount'] ?? 0),
+    ),
     BillLine(
       label: 'Total',
       value: formatBhd(totals['totalAmount']),

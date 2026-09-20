@@ -8,6 +8,7 @@ import 'package:yjeek_app/features/cart/model/addresses_repository.dart';
 import 'package:yjeek_app/features/cart/model/cart_flow_data.dart';
 import 'package:yjeek_app/features/cart/model/cart_repository.dart';
 import 'package:yjeek_app/features/cart/model/checkout_helpers.dart';
+import 'package:yjeek_app/features/cart/model/delivery_range.dart';
 import 'package:yjeek_app/features/cart/model/payment_methods_repository.dart';
 import 'package:yjeek_app/features/cart/model/pending_checkout.dart';
 import 'package:yjeek_app/features/cart/view/widgets/cart_flow_widgets.dart';
@@ -24,8 +25,10 @@ class CheckoutScreen extends ConsumerStatefulWidget {
 }
 
 class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
-  int _dropOffIndex = 0;
+  Set<int> _dropOffIndices = {0};
   int _tipIndex = 0;
+  double _customTipAmount = 0;
+  final _customTipController = TextEditingController();
   /// Deferred charge: online default so vendor accept → pay-now screen.
   String _paymentId = 'benefitpay';
   bool _saveDropOff = false;
@@ -35,13 +38,24 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       CheckoutPaymentMethods.fallback(defaultId: 'benefitpay');
   String? _phone;
   bool _loading = true;
+  bool _submitting = false;
 
-  double get _tipAmount => tipAmountFrom(CartFlowData.tipOptions, _tipIndex);
+  double get _tipAmount => tipAmountFrom(
+        CartFlowData.tipOptions,
+        _tipIndex,
+        customAmount: _customTipAmount,
+      );
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) => _load());
+  }
+
+  @override
+  void dispose() {
+    _customTipController.dispose();
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -70,7 +84,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
             ? previousPaymentId
             : payments.defaultId;
         _phone = address?.phone ?? me?.formattedPhone;
-        _dropOffIndex = dropOffIndexFromPrefs(address?.dropOffPreferences);
+        _dropOffIndices = dropOffIndicesFromPrefs(address?.dropOffPreferences);
         _loading = false;
       });
     } catch (_) {
@@ -79,7 +93,8 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     }
   }
 
-  void _goToReview() {
+  Future<void> _goToReview() async {
+    if (_submitting) return;
     final cart = _cart;
     if (cart == null || !cart.hasItems) {
       showEmptyCartSnackBar(context);
@@ -92,15 +107,40 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       );
       return;
     }
-    // Order is placed on Review & confirm (Confirm now / auto-timer), not here.
-    ref.read(pendingCheckoutProvider.notifier).state = PendingCheckout(
-      paymentId: _paymentId,
-      tipAmount: _tipAmount,
-      addressId: addressId,
-      dropOffIndex: _dropOffIndex,
-      saveDropOff: _saveDropOff,
-    );
-    context.pushReplacement(CartRoutes.review);
+
+    setState(() => _submitting = true);
+    try {
+      final vendorId = cart.vendorId;
+      if (vendorId != null && vendorId.isNotEmpty) {
+        final range = await checkDeliveryRange(
+          addresses: ref.read(addressesRepositoryProvider),
+          vendorId: vendorId,
+          addressId: addressId,
+          failClosed: true,
+        );
+        if (!mounted) return;
+        if (!range.allowsDelivery) {
+          await pushOutOfDelivery(
+            context,
+            address: range.address ?? _address,
+          );
+          return;
+        }
+      }
+
+      // Order is placed on Review & confirm (Confirm now / auto-timer), not here.
+      ref.read(pendingCheckoutProvider.notifier).state = PendingCheckout(
+        paymentId: _paymentId,
+        tipAmount: _tipAmount,
+        addressId: addressId,
+        dropOffIndices: _dropOffIndices,
+        saveDropOff: _saveDropOff,
+      );
+      if (!mounted) return;
+      context.pushReplacement(CartRoutes.review);
+    } finally {
+      if (mounted) setState(() => _submitting = false);
+    }
   }
 
   @override
@@ -117,11 +157,13 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       title: CartFlowStrings.checkout,
       subtitle: vendor,
       lightHeader: true,
-      onBack: () {
-        if (context.canPop()) {
-          context.pop();
-        }
-      },
+      onBack: _submitting
+          ? () {}
+          : () {
+              if (context.canPop()) {
+                context.pop();
+              }
+            },
       body: _loading
           ? Center(child: CircularProgressIndicator())
           : ListView(
@@ -143,8 +185,8 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                 SizedBox(height: 18.h),
                 CartDropOffGrid(
                   options: CartFlowData.dropOffOptions,
-                  selectedIndex: _dropOffIndex,
-                  onSelected: (index) => setState(() => _dropOffIndex = index),
+                  selectedIndices: _dropOffIndices,
+                  onChanged: (next) => setState(() => _dropOffIndices = next),
                   saveForAddress: _saveDropOff,
                   onSaveChanged: (value) =>
                       setState(() => _saveDropOff = value),
@@ -154,7 +196,13 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                 CartTipSelector(
                   options: CartFlowData.tipOptions,
                   selectedIndex: _tipIndex,
+                  customController: _customTipController,
                   onSelected: (index) => setState(() => _tipIndex = index),
+                  onCustomChanged: (raw) {
+                    setState(() {
+                      _customTipAmount = parseTipInput(raw) ?? 0;
+                    });
+                  },
                   showHeader: true,
                 ),
                 SizedBox(height: 18.h),
@@ -184,7 +232,8 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       bottom: CartStickyFooter(
         total: total,
         buttonLabel: CartFlowStrings.placeOrder,
-        onPressed: _loading ? () {} : _goToReview,
+        loading: _loading || _submitting,
+        onPressed: _goToReview,
       ),
     );
   }

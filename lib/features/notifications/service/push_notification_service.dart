@@ -179,7 +179,7 @@ class PushNotificationService {
     }
     if (type == 'GEOFENCE_OFFER' || screen == 'geofence_offer') {
       final location = geofenceOfferLocation(
-        triggerId: data['triggerId'],
+        triggerId: data['triggerId'] ?? data['activationId'],
         promoCode: data['promoCode'],
         campaignId: data['campaignId'],
         vendorName: data['vendorName'],

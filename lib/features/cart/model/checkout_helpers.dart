@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import 'package:yjeek_app/core/constants/navigation_strings.dart';
 import 'package:yjeek_app/features/cart/model/cart_repository.dart';
 import 'package:yjeek_app/features/cart/model/pending_checkout.dart';
+import 'package:yjeek_app/features/geofence/model/active_geofence_order_context.dart';
+import 'package:yjeek_app/features/geofence/service/geofence_session_controller.dart';
 import 'package:yjeek_app/routes/app_router.dart';
 import 'package:yjeek_app/features/navigation/model/navigation_data.dart';
 
@@ -44,19 +46,72 @@ const List<String> kDropOffApiValues = [
   'LEAVE_AT_DOOR',
 ];
 
+/// Mutual-exclusion groups (indices into [kDropOffApiValues]).
+/// Within a group only one preference may be selected at a time.
+const List<Set<int>> kDropOffConflictGroups = [
+  {0, 4, 6}, // Call / Don't call / Message on arrival
+  {1, 3, 5}, // Don't ring / Ring doorbell / Ring bell
+  {2, 7}, // Leave at reception / Leave at door
+];
+
 String? dropOffApiValue(int index) {
   if (index < 0 || index >= kDropOffApiValues.length) return null;
   return kDropOffApiValues[index];
 }
 
-/// Map saved address drop-off prefs → chip index (first known pref wins).
-int dropOffIndexFromPrefs(List<String>? prefs, {int fallback = 0}) {
-  if (prefs == null || prefs.isEmpty) return fallback;
+List<String> dropOffApiValues(Iterable<int> indices) {
+  final values = <String>[];
+  for (final index in indices) {
+    final value = dropOffApiValue(index);
+    if (value != null) values.add(value);
+  }
+  return values;
+}
+
+/// Indices that conflict with [index] (same group, excluding itself).
+Set<int> dropOffConflictPeers(int index) {
+  for (final group in kDropOffConflictGroups) {
+    if (group.contains(index)) {
+      return {...group}..remove(index);
+    }
+  }
+  return {};
+}
+
+bool dropOffConflicts(int a, int b) {
+  if (a == b) return false;
+  for (final group in kDropOffConflictGroups) {
+    if (group.contains(a) && group.contains(b)) return true;
+  }
+  return false;
+}
+
+/// Toggle [tapped] into selection. Only one option may be selected overall;
+/// choosing a new option replaces the previous one (and clears conflicts).
+Set<int> applyDropOffSelection(Set<int> current, int tapped) {
+  if (current.contains(tapped)) {
+    return <int>{};
+  }
+  return {tapped};
+}
+
+/// Map saved address drop-off prefs → chip indices (single selection; first wins).
+Set<int> dropOffIndicesFromPrefs(List<String>? prefs, {Set<int>? fallback}) {
+  final defaults = fallback ?? {0};
+  if (prefs == null || prefs.isEmpty) return Set<int>.from(defaults);
+
   for (final pref in prefs) {
     final i = kDropOffApiValues.indexOf(pref);
-    if (i >= 0) return i;
+    if (i >= 0) return {i};
   }
-  return fallback;
+  return Set<int>.from(defaults);
+}
+
+/// Legacy single-index helper (first known pref wins).
+int dropOffIndexFromPrefs(List<String>? prefs, {int fallback = 0}) {
+  final set = dropOffIndicesFromPrefs(prefs, fallback: {fallback});
+  if (set.isEmpty) return fallback;
+  return set.first;
 }
 
 /// Parse delivery fee from cart bill lines (API summary).
@@ -71,9 +126,26 @@ double? deliveryFeeFromBillLines(List<BillLine> lines) {
   return null;
 }
 
-double tipAmountFrom(List<TipOption> options, int index) {
+double tipAmountFrom(
+  List<TipOption> options,
+  int index, {
+  double customAmount = 0,
+}) {
   if (index < 0 || index >= options.length) return 0;
-  return options[index].amount ?? 0;
+  final fixed = options[index].amount;
+  if (fixed != null) return fixed;
+  if (!customAmount.isFinite || customAmount <= 0) return 0;
+  // Backend checkout allows tipAmount max 50 BHD.
+  if (customAmount > 50) return 50;
+  return double.parse(customAmount.toStringAsFixed(3));
+}
+
+bool isCustomTipOption(TipOption option) => option.amount == null;
+
+double? parseTipInput(String raw) {
+  final cleaned = raw.trim().replaceAll(RegExp(r'[^0-9.]'), '');
+  if (cleaned.isEmpty) return null;
+  return double.tryParse(cleaned);
 }
 
 List<BillLine> billLinesWithTip(CartSnapshot cart, double tipAmount) {
@@ -133,6 +205,40 @@ String formatArrivesLabel(CartDeliveryEta? eta, {String fallback = 'Arrives in 1
   if (label.isEmpty) return fallback;
   if (label.toLowerCase().startsWith('arrives')) return label;
   return 'Arrives in $label';
+}
+
+/// ETA window only (no delivery-type suffix), e.g. "45–60 mins".
+String formatEtaWindow(
+  int? etaMin,
+  int? etaMax, {
+  String? etaLabel,
+  String fallback = '15–25 mins',
+}) {
+  final min = etaMin;
+  final max = etaMax;
+  if (min != null && min > 0) {
+    final end = (max != null && max > 0) ? max : min;
+    if (end == min) return '$min mins';
+    return '$min–$end mins';
+  }
+  final label = etaLabel?.trim() ?? '';
+  if (label.isEmpty) return fallback;
+  // Strip legacy "· Standard" / delivery-type suffixes.
+  final cleaned = label
+      .replaceAll(RegExp(r'\s*·\s*Standard\b', caseSensitive: false), '')
+      .replaceAll(RegExp(r'^Arrives in\s+', caseSensitive: false), '')
+      .trim();
+  return cleaned.isEmpty ? fallback : cleaned;
+}
+
+String formatEtaWindowFromCart(CartDeliveryEta? eta, {String fallback = '15–25 mins'}) {
+  if (eta == null) return fallback;
+  return formatEtaWindow(
+    eta.etaMin,
+    eta.etaMax,
+    etaLabel: eta.etaLabel,
+    fallback: fallback,
+  );
 }
 
 /// Human-readable dine-in ready window, e.g. "in ~1 hour" / "in ~45 min".
@@ -235,6 +341,14 @@ void showEmptyCartSnackBar(BuildContext context) {
   ScaffoldMessenger.of(context).showSnackBar(
     SnackBar(content: Text(NavigationStrings.cartEmptyTitle)),
   );
+}
+
+/// Clears geofence cart context and syncs active unlocks after a placed order.
+Future<void> completeGeofenceAfterSuccessfulOrder(WidgetRef ref) async {
+  clearGeofenceOrderContext(ref);
+  final notifier = ref.read(activeGeofenceOffersProvider.notifier);
+  notifier.state = const [];
+  await notifier.refresh();
 }
 
 /// Pop checkout/review or return to the cart tab when the live cart has no items.

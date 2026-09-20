@@ -1022,6 +1022,20 @@ String? cartReturnPathFromUri(Uri uri) {
     return null;
   }
 
+  // Address / out-of-range cart flows are not browse return targets — saving
+  // them made Cart back dump the user onto "Out of range" after a fix.
+  if (path == RouteNames.cartOutOfDelivery ||
+      path == RouteNames.cartChangeAddress ||
+      path == RouteNames.cartSetLocation ||
+      path == RouteNames.cartAddAddress ||
+      path == RouteNames.cartEditAddress ||
+      path == RouteNames.cartCheckout ||
+      path == RouteNames.cartReview ||
+      path == RouteNames.cartNewCartDialog ||
+      path == RouteNames.cartZoodWaitingList) {
+    return null;
+  }
+
   if (path == RouteNames.electronicsProductDetail) {
     final storeId = uri.queryParameters['store'];
     if (storeId != null && storeId.isNotEmpty) {

@@ -25,7 +25,7 @@ class DineInWaitingScreen extends ConsumerStatefulWidget {
 }
 
 class _DineInWaitingScreenState extends ConsumerState<DineInWaitingScreen> {
-  static const Color _screenBg = Color(0xFF8BAE9A);
+  static const Color _screenBg = AppColors.background;
   static const _defaultWindow = Duration(seconds: 180);
 
   Timer? _pollTimer;

@@ -13,7 +13,10 @@ import 'package:yjeek_app/features/browse/browse_routes.dart';
 import 'package:yjeek_app/features/browse/model/browse_data.dart';
 import 'package:yjeek_app/features/browse/model/food_vendors_repository.dart';
 import 'package:yjeek_app/features/browse/view/widgets/browse_widgets.dart';
+import 'package:yjeek_app/features/cart/model/delivery_range.dart';
+import 'package:yjeek_app/features/cart/model/pending_add_to_cart.dart';
 import 'package:yjeek_app/features/cart/view/widgets/cart_flow_widgets.dart';
+import 'package:yjeek_app/features/geofence/model/active_geofence_order_context.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/navigation_widgets.dart';
 import 'package:yjeek_app/l10n/locale_controller.dart';
 import 'package:yjeek_app/routes/app_router.dart';
@@ -45,7 +48,7 @@ class _VendorMenuScreenState extends ConsumerState<VendorMenuScreen> {
   FoodCartSummary _cart = FoodCartSummary.empty;
   bool _loading = true;
   bool _loadedOnce = false;
-  bool _adding = false;
+  String? _addingItemId;
   Timer? _searchDebounce;
 
   List<BrowseMenuItem> get _items => _allItems
@@ -57,7 +60,13 @@ class _VendorMenuScreenState extends ConsumerState<VendorMenuScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _load());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final ctx = ref.read(activeGeofenceOrderContextProvider);
+      if (ctx != null && ctx.vendorId != widget.vendorId) {
+        clearGeofenceOrderContext(ref);
+      }
+      _load();
+    });
   }
 
   @override
@@ -143,7 +152,7 @@ class _VendorMenuScreenState extends ConsumerState<VendorMenuScreen> {
   }
 
   Future<void> _addItemDirectly(BrowseMenuItem item) async {
-    if (_adding) return;
+    if (_addingItemId != null) return;
     if (!await requireLogin(context, ref)) return;
 
     final cartVendorId = _cart.vendorId;
@@ -153,15 +162,21 @@ class _VendorMenuScreenState extends ConsumerState<VendorMenuScreen> {
         _cart.itemCount > 0;
 
     Future<void> doAdd({bool replace = false}) async {
-      setState(() => _adding = true);
+      setState(() => _addingItemId = item.id);
       final result = await ref.read(foodVendorsRepositoryProvider).addToCart(
             productId: item.id,
             quantity: 1,
             replaceCart: replace,
             cartType: _isPickup ? 'PICKUP' : 'DELIVERY',
+            vendorId: widget.vendorId,
+            geofenceTriggerId: resolveGeofenceTriggerId(
+              ref,
+              vendorId: widget.vendorId,
+              orderType: _isPickup ? 'PICKUP' : 'DELIVERY',
+            ),
           );
       if (!mounted) return;
-      setState(() => _adding = false);
+      setState(() => _addingItemId = null);
 
       if (result.ok) {
         context.goHome(
@@ -169,6 +184,25 @@ class _VendorMenuScreenState extends ConsumerState<VendorMenuScreen> {
           cartHasItems: !_isPickup,
           pickupCart: _isPickup,
         );
+        return;
+      }
+      if (result.outOfRange) {
+        rememberPendingAddToCart(
+          ref,
+          PendingAddToCart(
+            productId: item.id,
+            quantity: 1,
+            cartType: _isPickup ? 'PICKUP' : 'DELIVERY',
+            vendorId: widget.vendorId,
+            geofenceTriggerId: resolveGeofenceTriggerId(
+              ref,
+              vendorId: widget.vendorId,
+              orderType: _isPickup ? 'PICKUP' : 'DELIVERY',
+            ),
+            replaceCart: replace,
+          ),
+        );
+        await pushOutOfDelivery(context);
         return;
       }
       if (result.vendorConflict) {
@@ -272,8 +306,9 @@ class _VendorMenuScreenState extends ConsumerState<VendorMenuScreen> {
                             item: item,
                             gradientStart: _restaurant.gradientStart,
                             gradientEnd: _restaurant.gradientEnd,
-                            onTap: () => _onItemAction(item),
+                            onTap: () => _openItem(item),
                             onAdd: () => _onItemAction(item),
+                            isAdding: _addingItemId == item.id,
                           ),
                         ),
                     ],

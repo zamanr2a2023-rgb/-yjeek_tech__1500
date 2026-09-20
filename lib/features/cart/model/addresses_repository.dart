@@ -284,7 +284,8 @@ class AddressesRepository {
   }
 
   /// GET /addresses/check-range?vendorId=&addressId=
-  Future<bool> checkInRange({
+  /// Returns `true` / `false` when the API returns a clear flag; `null` if unknown.
+  Future<bool?> checkInRangeResult({
     required String vendorId,
     required String addressId,
   }) async {
@@ -293,13 +294,43 @@ class AddressesRepository {
       '&addressId=${Uri.encodeQueryComponent(addressId)}',
       bearerToken: _token,
     );
-    final data = response?['data'];
-    if (data is Map<String, dynamic>) {
-      return data['inRange'] == true ||
-          data['deliverable'] == true ||
-          data['withinRange'] == true;
+    final raw = response?['data'];
+    final data = raw is Map ? Map<String, dynamic>.from(raw) : null;
+    if (data == null) return null;
+
+    if (data.containsKey('inRange')) {
+      return _asBool(data['inRange']);
     }
-    // If API fails open, allow delivery (backend may omit flag).
-    return response?['success'] == true;
+    if (data.containsKey('deliverable')) {
+      return _asBool(data['deliverable']);
+    }
+    if (data.containsKey('withinRange')) {
+      return _asBool(data['withinRange']);
+    }
+    return null;
+  }
+
+  static bool? _asBool(Object? value) {
+    if (value is bool) return value;
+    if (value is num) return value != 0;
+    if (value is String) {
+      final lower = value.toLowerCase().trim();
+      if (lower == 'true' || lower == '1') return true;
+      if (lower == 'false' || lower == '0') return false;
+    }
+    return null;
+  }
+
+  /// GET /addresses/check-range?vendorId=&addressId=
+  Future<bool> checkInRange({
+    required String vendorId,
+    required String addressId,
+  }) async {
+    final result = await checkInRangeResult(
+      vendorId: vendorId,
+      addressId: addressId,
+    );
+    // Legacy callers treat unknown as in-range; checkout uses [checkInRangeResult].
+    return result ?? true;
   }
 }

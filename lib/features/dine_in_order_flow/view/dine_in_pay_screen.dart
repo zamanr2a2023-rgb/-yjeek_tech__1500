@@ -26,7 +26,7 @@ class DineInPayScreen extends ConsumerStatefulWidget {
 }
 
 class _DineInPayScreenState extends ConsumerState<DineInPayScreen> {
-  static const Color _screenBg = Color(0xFF8BAE9A);
+  static const Color _screenBg = AppColors.background;
   static const _defaultSeconds = 299;
 
   late int _secondsLeft;

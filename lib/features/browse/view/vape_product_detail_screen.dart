@@ -9,6 +9,7 @@ import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/features/auth/utils/require_login.dart';
 import 'package:yjeek_app/features/browse/model/vape_data.dart';
 import 'package:yjeek_app/features/browse/view/widgets/vape_widgets.dart';
+import 'package:yjeek_app/features/cart/model/delivery_range.dart';
 import 'package:yjeek_app/features/cart/view/widgets/cart_flow_widgets.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/navigation_widgets.dart';
 import 'package:yjeek_app/routes/app_router.dart';
@@ -93,6 +94,7 @@ class _VapeProductDetailScreenState
           quantity: 1,
           optionIds: optionIds,
           replaceCart: replaceCart,
+          vendorId: widget.storeId,
         );
 
     if (!mounted) return;
@@ -100,6 +102,11 @@ class _VapeProductDetailScreenState
 
     if (result.ok) {
       _openCart();
+      return;
+    }
+
+    if (result.outOfRange) {
+      await pushOutOfDelivery(context);
       return;
     }
 
