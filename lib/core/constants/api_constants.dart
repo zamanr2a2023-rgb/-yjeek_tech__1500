@@ -11,4 +11,16 @@ abstract final class ApiConstants {
   static const String baseUrl = 'http://103.208.183.248:3000/api/v1';
   // static const String baseUrl = 'http://103.208.183.250:3000/api/v1';
   // static const String baseUrl = 'http://192.168.10.251:3000/api/v1';
+
+  /// Local / private / explicitly UAT-named hosts (not production api.yjeektech.com).
+  static bool get isLikelyUatBackend {
+    final u = baseUrl.toLowerCase();
+    return u.contains('localhost') ||
+        u.contains('127.0.0.1') ||
+        u.contains('10.0.2.2') ||
+        u.contains('192.168.') ||
+        u.contains('uat') ||
+        u.contains('staging') ||
+        u.contains(':3000');
+  }
 }

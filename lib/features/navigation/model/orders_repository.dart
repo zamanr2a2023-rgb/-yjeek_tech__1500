@@ -225,6 +225,39 @@ class OrdersRepository {
     );
   }
 
+  /// POST /payments/benefitpay/cert-test-order (UAT-only).
+  Future<BenefitPayCertTestOrderResult?> createBenefitPayCertTestOrder(
+    num amount,
+  ) async {
+    final response = await _apiClient.postJson(
+      '/payments/benefitpay/cert-test-order',
+      {'amount': amount},
+      bearerToken: _token,
+    );
+    if (!response.ok || response.data == null) {
+      if (kDebugMode) {
+        debugPrint(
+          'cert-test-order failed http=${response.statusCode} '
+          'message=${response.message}',
+        );
+      }
+      return BenefitPayCertTestOrderResult(
+        orderId: '',
+        amount: amount,
+        errorMessage: response.message ??
+            'Could not create BenefitPay cert-test order',
+      );
+    }
+    final data = response.data!;
+    return BenefitPayCertTestOrderResult(
+      orderId: data['orderId']?.toString() ?? '',
+      orderNumber: data['orderNumber']?.toString(),
+      amount: data['amount'] is num
+          ? data['amount'] as num
+          : num.tryParse('${data['amount']}') ?? amount,
+    );
+  }
+
   /// POST /orders/:orderId/payments/confirm
   Future<bool> confirmPayment(
     String orderId, {
