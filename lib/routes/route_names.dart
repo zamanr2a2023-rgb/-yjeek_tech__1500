@@ -79,6 +79,7 @@ abstract final class RouteNames {
   static const String aboutYjeek = '/account/about-yjeek';
   static const String policyDocument = '/account/policy';
   static const String helpSupport = '/account/help-support';
+  static const String benefitPayCertTest = '/account/benefitpay-cert-test';
   static const String orderHelp = '/account/order-help';
   static const String helpIssue = '/account/help-issue';
   static const String helpChat = '/account/help-chat';

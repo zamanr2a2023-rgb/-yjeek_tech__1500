@@ -1,6 +1,8 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:yjeek_app/core/constants/api_constants.dart';
 import 'package:yjeek_app/core/constants/app_assets.dart';
 import 'package:yjeek_app/core/constants/app_colors.dart';
 import 'package:yjeek_app/core/constants/app_text_styles.dart';
@@ -136,6 +138,12 @@ class AccountScreen extends ConsumerWidget {
                   title: NavigationStrings.aboutPolicies,
                   onTap: () => context.push(RouteNames.aboutPolicies),
                 ),
+                if (kDebugMode || ApiConstants.isLikelyUatBackend)
+                  ProfileMenuTile(
+                    iconAsset: AppAssets.payBenefitPay,
+                    title: 'BenefitPay Test Payment',
+                    onTap: () => context.push(RouteNames.benefitPayCertTest),
+                  ),
               ],
             ),
           ),

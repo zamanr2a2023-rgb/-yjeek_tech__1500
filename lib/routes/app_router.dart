@@ -82,6 +82,7 @@ import 'package:yjeek_app/features/help/view/order_help_screen.dart';
 import 'package:yjeek_app/features/navigation/view/policy_document_screen.dart';
 import 'package:yjeek_app/features/navigation/view/refunds_credits_screen.dart';
 import 'package:yjeek_app/features/navigation/view/saved_addresses_screen.dart';
+import 'package:yjeek_app/features/payments/view/benefit_pay_cert_test_screen.dart';
 import 'package:yjeek_app/features/navigation/view/wallet_screen.dart';
 import 'package:yjeek_app/features/navigation/view/withdraw_bank_screen.dart';
 import 'package:yjeek_app/features/dine_in_cart/view/dine_in_checkout_screen.dart';
@@ -600,6 +601,10 @@ class AppRouter {
                 int.tryParse(state.uri.queryParameters['tab'] ?? '') ?? 4;
             return HelpSupportScreen(orderId: orderId, bottomNavIndex: tab);
           },
+        ),
+        GoRoute(
+          path: RouteNames.benefitPayCertTest,
+          builder: (_, _) => const BenefitPayCertTestScreen(),
         ),
         GoRoute(
           path: RouteNames.orderHelp,

@@ -152,6 +152,23 @@ class PaymentConfirmResult {
   final Map<String, dynamic>? raw;
 }
 
+/// Result of POST /payments/benefitpay/cert-test-order.
+class BenefitPayCertTestOrderResult {
+  const BenefitPayCertTestOrderResult({
+    required this.orderId,
+    required this.amount,
+    this.orderNumber,
+    this.errorMessage,
+  });
+
+  final String orderId;
+  final num amount;
+  final String? orderNumber;
+  final String? errorMessage;
+
+  bool get ok => orderId.isNotEmpty && errorMessage == null;
+}
+
 num? parseMoney(dynamic value) {
   if (value == null) return null;
   if (value is num) return value;
