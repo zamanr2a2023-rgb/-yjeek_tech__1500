@@ -183,6 +183,7 @@ class _DineInReviewScreenState extends ConsumerState<DineInReviewScreen> {
                 DineInReviewStatusCard(
                   secondsLeft: _secondsLeft,
                   totalSeconds: _initialSeconds,
+                  vendorName: _vendor,
                 ),
                 SizedBox(height: 14.h),
                 _DineInLiveSummaryCard(

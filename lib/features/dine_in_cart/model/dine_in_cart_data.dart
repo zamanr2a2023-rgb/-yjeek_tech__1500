@@ -74,7 +74,9 @@ abstract final class DineInCartStrings {
   static String get walletBalance => L10n.tr('Balance BHD 12.450');
   static String get billSummary => L10n.tr('Bill summary');
   static String get placeOrder => L10n.tr('Place order');
-  static String get sendingOrder => L10n.tr('Sending your dine-in order to VEERA');
+  static String get sendingOrder => L10n.tr('Sending your dine-in order to {vendor}');
+  static String sendingOrderTo(String vendor) =>
+      L10n.trParams('Sending your dine-in order to {vendor}', {'vendor': vendor});
   static String get autoConfirmHint => L10n.tr('Auto-confirms in 10 seconds. You can still edit or cancel before then.');
   static String get orderSummary => L10n.tr('Order summary');
   static String get editOrder => L10n.tr('Edit order');

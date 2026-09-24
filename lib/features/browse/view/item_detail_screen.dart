@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:yjeek_app/core/constants/app_colors.dart';
 import 'package:yjeek_app/core/constants/app_text_styles.dart';
 import 'package:yjeek_app/core/providers/app_providers.dart';
+import 'package:yjeek_app/core/providers/shell_provider.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/core/widgets/app_network_image.dart';
 import 'package:yjeek_app/features/browse/model/browse_data.dart';
@@ -192,10 +193,15 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
     setState(() => _adding = false);
 
     if (result.ok) {
-      context.goHome(
-        tab: 2,
-        cartHasItems: !isPickup,
-        pickupCart: isPickup,
+      ref.read(shellProvider.notifier).markCartUpdated(
+            delivery: !isPickup,
+            pickup: isPickup,
+          );
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${_item.localizedName} added to cart'),
+          duration: const Duration(seconds: 1),
+        ),
       );
       return;
     }

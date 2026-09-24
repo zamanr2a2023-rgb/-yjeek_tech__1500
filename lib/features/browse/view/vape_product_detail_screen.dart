@@ -101,7 +101,13 @@ class _VapeProductDetailScreenState
     setState(() => _adding = false);
 
     if (result.ok) {
-      _openCart();
+      ref.read(shellProvider.notifier).markCartUpdated(vape: true, delivery: true);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${_product.name} added to cart'),
+          duration: const Duration(seconds: 1),
+        ),
+      );
       return;
     }
 

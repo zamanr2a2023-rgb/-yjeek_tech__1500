@@ -630,6 +630,7 @@ const Map<String, String> kArabicTranslations = {
   'Send to vendor': 'أرسل إلى المتجر',
   'Sending to vendor…': 'جاري الإرسال إلى المتجر…',
   'Sending your booking to Glow Beauty Lounge': 'جاري إرسال حجزك إلى Glow Beauty Lounge',
+  'Sending your dine-in order to {vendor}': 'جاري إرسال طلب تناول الطعام إلى {vendor}',
   'Sending your dine-in order to VEERA': 'جاري إرسال طلب تناول الطعام إلى VEERA',
   'Sending your order': 'جاري إرسال طلبك',
   'Sent to Brew & Bean': 'أُرسل إلى Brew & Bean',

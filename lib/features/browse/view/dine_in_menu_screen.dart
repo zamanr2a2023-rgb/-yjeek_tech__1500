@@ -162,8 +162,19 @@ class _DineInMenuScreenState extends ConsumerState<DineInMenuScreen> {
       setState(() => _addingItemId = null);
 
       if (result.ok) {
-        ref.read(shellProvider.notifier).openDineInCartWithItems();
-        context.goHome(tab: 2, dineInCart: true);
+        ref.read(shellProvider.notifier).markCartUpdated(dineIn: true);
+        try {
+          final cart =
+              await ref.read(dineInVendorsRepositoryProvider).fetchDineInCart();
+          if (mounted) setState(() => _cart = cart);
+        } catch (_) {}
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${item.localizedName} added to cart'),
+            duration: const Duration(seconds: 1),
+          ),
+        );
         return;
       }
       if (result.vendorConflict) {

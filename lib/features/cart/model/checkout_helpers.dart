@@ -86,25 +86,32 @@ bool dropOffConflicts(int a, int b) {
   return false;
 }
 
-/// Toggle [tapped] into selection. Only one option may be selected overall;
-/// choosing a new option replaces the previous one (and clears conflicts).
+/// Toggle [tapped] into selection.
+/// Options in the same [kDropOffConflictGroups] entry stay mutually exclusive;
+/// options from different groups can be combined (e.g. Don't ring + Call on arrival).
 Set<int> applyDropOffSelection(Set<int> current, int tapped) {
-  if (current.contains(tapped)) {
-    return <int>{};
+  final next = Set<int>.from(current);
+  if (next.contains(tapped)) {
+    next.remove(tapped);
+    return next;
   }
-  return {tapped};
+  next.removeAll(dropOffConflictPeers(tapped));
+  next.add(tapped);
+  return next;
 }
 
-/// Map saved address drop-off prefs → chip indices (single selection; first wins).
+/// Map saved address drop-off prefs → chip indices (multi-select; conflicts resolved).
 Set<int> dropOffIndicesFromPrefs(List<String>? prefs, {Set<int>? fallback}) {
   final defaults = fallback ?? {0};
   if (prefs == null || prefs.isEmpty) return Set<int>.from(defaults);
 
+  var next = <int>{};
   for (final pref in prefs) {
     final i = kDropOffApiValues.indexOf(pref);
-    if (i >= 0) return {i};
+    if (i >= 0) next = applyDropOffSelection(next, i);
   }
-  return Set<int>.from(defaults);
+  if (next.isEmpty) return Set<int>.from(defaults);
+  return next;
 }
 
 /// Legacy single-index helper (first known pref wins).

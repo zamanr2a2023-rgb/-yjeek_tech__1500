@@ -7,6 +7,7 @@ import 'package:yjeek_app/core/constants/app_colors.dart';
 import 'package:yjeek_app/core/constants/app_text_styles.dart';
 import 'package:yjeek_app/core/constants/browse_strings.dart';
 import 'package:yjeek_app/core/providers/app_providers.dart';
+import 'package:yjeek_app/core/providers/shell_provider.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/features/auth/utils/require_login.dart';
 import 'package:yjeek_app/features/browse/browse_routes.dart';
@@ -41,9 +42,9 @@ class VendorMenuScreen extends ConsumerStatefulWidget {
 
 class _VendorMenuScreenState extends ConsumerState<VendorMenuScreen> {
   BrowseRestaurant _restaurant = BrowseData.restaurants.first;
-  List<String> _sections = BrowseData.menuSections;
-  List<BrowseMenuItem> _allItems = BrowseData.greenKitchenMenu;
-  String _selectedSection = BrowseData.menuSections.first;
+  List<String> _sections = const [];
+  List<BrowseMenuItem> _allItems = const [];
+  String _selectedSection = '';
   String _menuQuery = '';
   FoodCartSummary _cart = FoodCartSummary.empty;
   bool _loading = true;
@@ -52,7 +53,8 @@ class _VendorMenuScreenState extends ConsumerState<VendorMenuScreen> {
   Timer? _searchDebounce;
 
   List<BrowseMenuItem> get _items => _allItems
-      .where((item) => item.section == _selectedSection)
+      .where((item) =>
+          _selectedSection.isEmpty || item.section == _selectedSection)
       .toList();
 
   bool get _isPickup => (widget.cartType ?? '').toLowerCase() == 'pickup';
@@ -95,12 +97,13 @@ class _VendorMenuScreenState extends ConsumerState<VendorMenuScreen> {
       if (!mounted) return;
       setState(() {
         _restaurant = menu.restaurant;
-        _sections = menu.sections.isNotEmpty
-            ? menu.sections
-            : BrowseData.menuSections;
+        _sections = menu.sections;
         _allItems = menu.items;
-        if (!_sections.contains(_selectedSection) && _sections.isNotEmpty) {
-          _selectedSection = _sections.first;
+        if (_sections.isEmpty && _allItems.isNotEmpty) {
+          _sections = _allItems.map((e) => e.section).toSet().toList();
+        }
+        if (!_sections.contains(_selectedSection)) {
+          _selectedSection = _sections.isNotEmpty ? _sections.first : '';
         }
         _cart = cart;
         _loading = false;
@@ -109,6 +112,9 @@ class _VendorMenuScreenState extends ConsumerState<VendorMenuScreen> {
     } catch (_) {
       if (!mounted) return;
       setState(() {
+        _sections = const [];
+        _allItems = const [];
+        _selectedSection = '';
         _loading = false;
         _loadedOnce = true;
       });
@@ -179,10 +185,21 @@ class _VendorMenuScreenState extends ConsumerState<VendorMenuScreen> {
       setState(() => _addingItemId = null);
 
       if (result.ok) {
-        context.goHome(
-          tab: 2,
-          cartHasItems: !_isPickup,
-          pickupCart: _isPickup,
+        ref.read(shellProvider.notifier).markCartUpdated(
+              delivery: !_isPickup,
+              pickup: _isPickup,
+            );
+        try {
+          final cart =
+              await ref.read(foodVendorsRepositoryProvider).fetchDeliveryCart();
+          if (mounted) setState(() => _cart = cart);
+        } catch (_) {}
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${item.localizedName} added to cart'),
+            duration: const Duration(seconds: 1),
+          ),
         );
         return;
       }
@@ -270,30 +287,32 @@ class _VendorMenuScreenState extends ConsumerState<VendorMenuScreen> {
                         placementKey: 'store_mid',
                         padding: EdgeInsets.only(bottom: 14),
                       ),
-                      if (_sections.isNotEmpty)
+                      if (_sections.isNotEmpty) ...[
                         BrowseFilterChips(
                           options: _sections,
                           selected: _selectedSection,
                           onSelected: (v) =>
                               setState(() => _selectedSection = v),
                         ),
-                      SizedBox(height: 14.h),
-                      Text(
-                        _selectedSection.toUpperCase(),
-                        style: AppTextStyles.labelSmall(
-                          color: const Color(0xFF6B7B6E),
-                        ).copyWith(
-                          fontWeight: FontWeight.w700,
-                          fontSize: 11.sp,
-                          letterSpacing: 0.5,
+                        SizedBox(height: 14.h),
+                      ],
+                      if (_selectedSection.isNotEmpty)
+                        Text(
+                          _selectedSection.toUpperCase(),
+                          style: AppTextStyles.labelSmall(
+                            color: const Color(0xFF6B7B6E),
+                          ).copyWith(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 11.sp,
+                            letterSpacing: 0.5,
+                          ),
                         ),
-                      ),
                       if (_items.isEmpty)
                         Padding(
                           padding: EdgeInsets.symmetric(vertical: 24.h),
                           child: Text(
                             _menuQuery.trim().isEmpty
-                                ? '___'
+                                ? 'No items available right now'
                                 : 'No items found',
                             style: AppTextStyles.bodyMedium(
                               color: AppColors.textSecondary,

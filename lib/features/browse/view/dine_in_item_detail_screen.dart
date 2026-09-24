@@ -168,8 +168,13 @@ class _DineInItemDetailScreenState
     setState(() => _adding = false);
 
     if (result.ok) {
-      ref.read(shellProvider.notifier).openDineInCartWithItems();
-      context.goHome(tab: 2, dineInCart: true);
+      ref.read(shellProvider.notifier).markCartUpdated(dineIn: true);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${_item.localizedName} added to cart'),
+          duration: const Duration(seconds: 1),
+        ),
+      );
       return;
     }
 

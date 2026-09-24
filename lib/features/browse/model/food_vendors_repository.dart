@@ -168,7 +168,12 @@ class FoodVendorsRepository {
     final response = await _apiClient.getJson('/vendors/$vendorId/menu$qs');
     final data = response?['data'];
     if (data is! Map<String, dynamic>) {
-      return _fallbackMenu(vendorId);
+      final restaurant = await fetchVendor(vendorId);
+      return FoodVendorMenu(
+        restaurant: restaurant,
+        sections: const [],
+        items: const [],
+      );
     }
 
     final vendorRaw = data['vendor'];
@@ -201,17 +206,6 @@ class FoodVendorsRepository {
           if (mapped != null) items.add(mapped);
         }
       }
-    }
-
-    if (sections.isEmpty || items.isEmpty) {
-      if (query != null && query.trim().isNotEmpty) {
-        return FoodVendorMenu(
-          restaurant: restaurant,
-          sections: const [],
-          items: const [],
-        );
-      }
-      return _fallbackMenu(vendorId);
     }
 
     return FoodVendorMenu(
@@ -418,15 +412,6 @@ class FoodVendorsRepository {
       }
     }
     return queries.isNotEmpty ? queries : BrowseData.recentSearches;
-  }
-
-  FoodVendorMenu _fallbackMenu(String vendorId) {
-    final restaurant = BrowseData.restaurantById(vendorId);
-    return FoodVendorMenu(
-      restaurant: restaurant,
-      sections: BrowseData.menuSections,
-      items: BrowseData.greenKitchenMenu,
-    );
   }
 }
 

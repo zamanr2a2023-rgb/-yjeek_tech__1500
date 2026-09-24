@@ -124,6 +124,13 @@ class _VapeStoreScreenState extends ConsumerState<VapeStoreScreen> {
 
     if (result.ok) {
       await _refreshCart();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${product.name} added to cart'),
+          duration: const Duration(seconds: 1),
+        ),
+      );
       return;
     }
 

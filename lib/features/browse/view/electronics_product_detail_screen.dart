@@ -112,8 +112,13 @@ class _ElectronicsProductDetailScreenState
     setState(() => _adding = false);
 
     if (result.ok) {
-      ref.read(shellProvider.notifier).openScheduledCartWithItems();
-      context.goHome(tab: 2, scheduledCart: true);
+      ref.read(shellProvider.notifier).markCartUpdated(scheduled: true);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${_product.name} added to cart'),
+          duration: const Duration(seconds: 1),
+        ),
+      );
       return;
     }
 
