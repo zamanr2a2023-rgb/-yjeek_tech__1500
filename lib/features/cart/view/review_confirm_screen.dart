@@ -17,7 +17,6 @@ import 'package:yjeek_app/features/cart/view/widgets/cart_flow_widgets.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/account_widgets.dart';
 import 'package:yjeek_app/features/order_flow/model/order_api_mappers.dart';
 import 'package:yjeek_app/features/order_flow/order_flow_routes.dart';
-import 'package:yjeek_app/routes/app_router.dart';
 import 'package:yjeek_app/routes/route_names.dart';
 
 /// Food: 10s window after checkout to edit or confirm (timeout returns to checkout).
@@ -39,12 +38,12 @@ class _ReviewConfirmScreenState extends ConsumerState<ReviewConfirmScreen> {
   bool _loading = true;
   bool _placing = false;
 
-  String _vendor = CartFlowData.vendor;
+  String _vendor = '';
   List<({String qty, String name, String price})> _items = const [];
-  String _deliverTo = CartFlowData.reviewAddressLine;
+  String _deliverTo = '';
   String _arrives = CartFlowStrings.standardDelivery;
   String _payment = CartFlowStrings.cashOnDelivery;
-  String _total = CartFlowData.orderTotal;
+  String _total = '';
 
   bool get _hasExistingOrder =>
       widget.orderId != null && widget.orderId!.isNotEmpty;
@@ -129,8 +128,7 @@ class _ReviewConfirmScreenState extends ConsumerState<ReviewConfirmScreen> {
     setState(() {
       _vendor = vendorName;
       _items = lines;
-      _deliverTo =
-          deliverToFromOrderApi(order) ?? CartFlowData.reviewAddressLine;
+      _deliverTo = deliverToFromOrderApi(order) ?? '';
       _arrives = arrives;
       _payment = formatPaymentMethod(order['paymentMethod']?.toString());
       _total = formatBhd(order['totalAmount']);
@@ -173,16 +171,16 @@ class _ReviewConfirmScreenState extends ConsumerState<ReviewConfirmScreen> {
     );
 
     final deliverTo = address == null
-        ? CartFlowData.reviewAddressLine
+        ? ''
         : [
             if (address.label.trim().isNotEmpty) address.label.trim(),
             if (address.subtitle.trim().isNotEmpty) address.subtitle.trim(),
           ].join(' · ');
 
     setState(() {
-      _vendor = cart.vendorName.isNotEmpty ? cart.vendorName : _vendor;
+      _vendor = cart.vendorName;
       _items = lines;
-      _deliverTo = deliverTo.isEmpty ? CartFlowData.reviewAddressLine : deliverTo;
+      _deliverTo = deliverTo;
       _arrives = arrives;
       _payment = formatPaymentMethod(paymentMethodApiValue(paymentId));
       _total = formatCheckoutTotal(cart, tip);
@@ -293,7 +291,9 @@ class _ReviewConfirmScreenState extends ConsumerState<ReviewConfirmScreen> {
       lightHeader: true,
       onBack: busy ? null : _editAddress,
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(
+              child: CircularProgressIndicator(color: AppColors.primary),
+            )
           : ListView(
               padding: EdgeInsets.fromLTRB(20.w, 8.h, 20.w, 16.h),
               children: [

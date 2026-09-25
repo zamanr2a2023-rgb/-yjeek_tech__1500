@@ -35,15 +35,16 @@ class _DineInPayScreenState extends ConsumerState<DineInPayScreen> {
   bool _expiring = false;
   bool _expired = false;
   bool _methodBusy = false;
+  bool _loading = true;
   DateTime? _payArmedAt;
-  String _vendor = DineInOrderFlowData.vendor;
+  String _vendor = '';
   String _method = 'BenefitPay';
   String _methodApi = 'BENEFIT_PAY';
   String _balance = 'Balance BHD 0.000';
   num _totalAmount = 0;
-  String _subtotal = DineInOrderFlowData.subtotalAmount;
-  String _serviceFee = DineInOrderFlowData.serviceFeeAmount;
-  String _total = DineInOrderFlowData.orderTotal;
+  String _subtotal = '';
+  String _serviceFee = '';
+  String _total = '';
   List<PayNowOption> _paymentOptions =
       List.of(PayNowHelper.defaultPaymentOptions);
 
@@ -78,7 +79,10 @@ class _DineInPayScreenState extends ConsumerState<DineInPayScreen> {
 
   Future<void> _hydrate() async {
     final orderId = widget.orderId;
-    if (orderId == null || orderId.isEmpty) return;
+    if (orderId == null || orderId.isEmpty) {
+      if (mounted) setState(() => _loading = false);
+      return;
+    }
 
     final orderFuture = ref.read(ordersRepositoryProvider).getOrder(orderId);
     final walletFuture = ref.read(walletRepositoryProvider).fetchWallet();
@@ -90,7 +94,10 @@ class _DineInPayScreenState extends ConsumerState<DineInPayScreen> {
     final balanceText = 'Balance ${formatBhd(balanceNum)}';
 
     if (order == null) {
-      setState(() => _balance = balanceText);
+      setState(() {
+        _balance = balanceText;
+        _loading = false;
+      });
       return;
     }
 
@@ -129,6 +136,7 @@ class _DineInPayScreenState extends ConsumerState<DineInPayScreen> {
           _secondsLeft = 0;
         }
       }
+      _loading = false;
     });
 
     if (PayNowHelper.isSettled(paymentStatus)) {
@@ -228,6 +236,16 @@ class _DineInPayScreenState extends ConsumerState<DineInPayScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_loading) {
+      return OrderFlowScaffold(
+        showHeader: false,
+        backgroundColor: _screenBg,
+        bottomNavIndex: 1,
+        body: const Center(
+          child: CircularProgressIndicator(color: AppColors.primary),
+        ),
+      );
+    }
     return OrderFlowScaffold(
       showHeader: false,
       backgroundColor: _screenBg,

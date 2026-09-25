@@ -38,12 +38,13 @@ class _ServicesReviewScreenState extends ConsumerState<ServicesReviewScreen> {
   bool _leaving = false;
   bool _placing = false;
 
-  String _vendor = ServicesBookingStrings.provider;
-  String _service = ServicesBookingData.mainService;
-  String _when = ServicesBookingData.appointmentWhen;
-  String _location = ServicesBookingStrings.venueLocationShort;
-  String _people = ServicesBookingData.peopleCount;
-  List<BillLine> _bill = ServicesBookingData.reviewBillLines;
+  String _vendor = '';
+  String _service = '';
+  String _when = '';
+  String _location = '';
+  String _people = '';
+  List<BillLine> _bill = const [];
+  bool _loading = true;
 
   bool get _hasExistingOrder =>
       widget.orderId != null && widget.orderId!.isNotEmpty;
@@ -52,11 +53,7 @@ class _ServicesReviewScreenState extends ConsumerState<ServicesReviewScreen> {
   void initState() {
     super.initState();
     _secondsLeft = _initialSeconds;
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      await _hydrate();
-      if (!mounted) return;
-      _startTimer();
-    });
+    WidgetsBinding.instance.addPostFrameCallback((_) => _hydrate());
   }
 
   @override
@@ -84,19 +81,32 @@ class _ServicesReviewScreenState extends ConsumerState<ServicesReviewScreen> {
   Future<void> _hydrate() async {
     if (_hasExistingOrder) {
       await _hydrateFromOrder(widget.orderId!);
+    } else {
+      await _hydrateFromCart();
+    }
+    if (!mounted) return;
+    final empty = _service.isEmpty && _vendor.isEmpty;
+    if (empty) {
+      setState(() => _loading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not load booking details')),
+      );
+      context.pop();
       return;
     }
-    await _hydrateFromCart();
+    setState(() => _loading = false);
+    _startTimer();
   }
 
   Future<void> _hydrateFromOrder(String id) async {
     final order = await ref.read(ordersRepositoryProvider).getOrder(id);
-    if (!mounted || order == null) return;
+    if (!mounted) return;
+    if (order == null) return;
 
     final vendor = order['vendor'];
     final vendorName = vendor is Map ? vendor['name']?.toString() : null;
     final items = order['items'];
-    String service = _service;
+    var service = '';
     if (items is List && items.isNotEmpty) {
       final first = items.first;
       if (first is Map) {
@@ -164,18 +174,18 @@ class _ServicesReviewScreenState extends ConsumerState<ServicesReviewScreen> {
         .fetchCart(CartOrderType.service);
     if (!mounted) return;
 
+    if (cart.items.isEmpty) return;
+
     final tip = pending?.tipAmount ?? 0;
-    final serviceName = cart.items.isNotEmpty
-        ? (cart.items.length > 1
-            ? '${cart.items.first.name} +${cart.items.length - 1}'
-            : cart.items.first.name)
-        : _service;
+    final serviceName = cart.items.length > 1
+        ? '${cart.items.first.name} +${cart.items.length - 1}'
+        : cart.items.first.name;
     final when = cart.serviceScheduledAt != null
         ? formatPickupTimeLabel(cart.serviceScheduledAt)
-        : _when;
+        : '—';
     final location = cart.serviceMode == 'AT_HOME'
         ? 'At home'
-        : 'At venue · ${cart.vendorName.isNotEmpty ? cart.vendorName : _vendor}';
+        : 'At venue · ${cart.vendorName.isNotEmpty ? cart.vendorName : '—'}';
     final people = (cart.partySize ?? 1) == 1
         ? '1 person'
         : '${cart.partySize} people';
@@ -280,7 +290,9 @@ class _ServicesReviewScreenState extends ConsumerState<ServicesReviewScreen> {
       lightHeader: true,
       bottomNavIndex: 0,
       onBack: busy ? null : _editOrder,
-      body: ListView(
+      body: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : ListView(
         padding: EdgeInsets.fromLTRB(20.w, 8.h, 20.w, 16.h),
         children: [
           ServicesBookingReviewStatusCard(
@@ -302,7 +314,9 @@ class _ServicesReviewScreenState extends ConsumerState<ServicesReviewScreen> {
           BillSummaryCard(lines: _bill),
         ],
       ),
-      bottom: SafeArea(
+      bottom: _loading
+          ? null
+          : SafeArea(
         top: false,
         child: Container(
           padding: EdgeInsets.fromLTRB(20.w, 12.h, 20.w, 12.h),

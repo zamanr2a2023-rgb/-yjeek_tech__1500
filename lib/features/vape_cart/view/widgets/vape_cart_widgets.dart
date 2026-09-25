@@ -7,6 +7,7 @@ import 'package:yjeek_app/features/cart/view/widgets/cart_flow_widgets.dart';
 import 'package:yjeek_app/features/vape_cart/model/vape_cart_data.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/navigation_widgets.dart';
 
+/// DEPRECATED — use [LiveCartBody].
 class VapeCartBody extends StatefulWidget {
   const VapeCartBody({
     super.key,
@@ -908,32 +909,75 @@ class VapeAgeVerifyDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Dialog(
-      backgroundColor: AppColors.white,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
-      child: Padding(
-        padding: EdgeInsets.all(24.w),
+    // Figma: bottom sheet · Verify your ID · benefits · Verify now / Maybe later.
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
+      ),
+      padding: EdgeInsets.fromLTRB(20.w, 12.h, 20.w, 24.h),
+      child: SafeArea(
+        top: false,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('⚠', style: TextStyle(fontSize: 28.sp, color: const Color(0xFFE68C1A))),
-            SizedBox(height: 12.h),
+            Container(
+              width: 40.w,
+              height: 4.h,
+              decoration: BoxDecoration(
+                color: const Color(0xFFDEDEDE),
+                borderRadius: BorderRadius.circular(2.r),
+              ),
+            ),
+            SizedBox(height: 16.h),
+            Container(
+              width: 56.w,
+              height: 56.w,
+              decoration: BoxDecoration(
+                color: const Color(0xFFE8F5E9),
+                shape: BoxShape.circle,
+              ),
+              alignment: Alignment.center,
+              child: Icon(
+                Icons.verified_user_outlined,
+                size: 28.sp,
+                color: AppColors.primary,
+              ),
+            ),
+            SizedBox(height: 14.h),
             Text(
               VapeCartStrings.verifyTitle,
               textAlign: TextAlign.center,
               style: AppTextStyles.titleSmall().copyWith(
                 fontWeight: FontWeight.w700,
-                fontSize: 17.sp,
+                fontSize: 18.sp,
               ),
             ),
-            SizedBox(height: 10.h),
+            SizedBox(height: 8.h),
             Text(
               VapeCartStrings.verifyBody,
               textAlign: TextAlign.center,
-              style: AppTextStyles.bodySmall(color: AppColors.textSecondary).copyWith(
-                fontSize: 12.5.sp,
-                height: 1.35,
+              style: AppTextStyles.bodySmall(color: AppColors.textSecondary)
+                  .copyWith(
+                fontSize: 13.sp,
+                height: 1.4,
               ),
+            ),
+            SizedBox(height: 16.h),
+            _BenefitRow(
+              icon: Icons.bolt_outlined,
+              text: VapeCartStrings.verifyBenefitInstant,
+            ),
+            SizedBox(height: 10.h),
+            _BenefitRow(
+              icon: Icons.done_all_rounded,
+              text: VapeCartStrings.verifyBenefitOnce,
+            ),
+            SizedBox(height: 10.h),
+            _BenefitRow(
+              icon: Icons.local_shipping_outlined,
+              text: VapeCartStrings.verifyBenefitDelivery,
             ),
             SizedBox(height: 20.h),
             GestureDetector(
@@ -942,27 +986,29 @@ class VapeAgeVerifyDialog extends StatelessWidget {
                 width: double.infinity,
                 padding: EdgeInsets.symmetric(vertical: 14.h),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF4DAD4F),
-                  borderRadius: BorderRadius.circular(13.r),
+                  color: AppColors.primary,
+                  borderRadius: BorderRadius.circular(12.r),
                 ),
                 alignment: Alignment.center,
                 child: Text(
-                  VapeCartStrings.goToVerification,
-                  style: AppTextStyles.labelMedium(color: AppColors.white).copyWith(
+                  VapeCartStrings.verifyNow,
+                  style: AppTextStyles.labelMedium(color: AppColors.white)
+                      .copyWith(
                     fontWeight: FontWeight.w600,
                     fontSize: 15.sp,
                   ),
                 ),
               ),
             ),
-            SizedBox(height: 10.h),
+            SizedBox(height: 8.h),
             GestureDetector(
               onTap: onDismiss,
               child: Padding(
-                padding: EdgeInsets.symmetric(vertical: 8.h),
+                padding: EdgeInsets.symmetric(vertical: 10.h),
                 child: Text(
-                  VapeCartStrings.notNow,
-                  style: AppTextStyles.labelMedium(color: AppColors.textSecondary).copyWith(
+                  VapeCartStrings.maybeLater,
+                  style: AppTextStyles.labelMedium(color: AppColors.textSecondary)
+                      .copyWith(
                     fontWeight: FontWeight.w600,
                     fontSize: 14.sp,
                   ),
@@ -972,6 +1018,31 @@ class VapeAgeVerifyDialog extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _BenefitRow extends StatelessWidget {
+  const _BenefitRow({required this.icon, required this.text});
+
+  final IconData icon;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 18.sp, color: AppColors.primary),
+        SizedBox(width: 10.w),
+        Expanded(
+          child: Text(
+            text,
+            style: AppTextStyles.bodySmall(color: AppColors.textPrimary)
+                .copyWith(fontSize: 13.sp, height: 1.35),
+          ),
+        ),
+      ],
     );
   }
 }

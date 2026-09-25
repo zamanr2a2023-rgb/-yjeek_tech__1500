@@ -85,10 +85,14 @@ class OrderHistoryItem {
     required this.actions,
     this.badge,
     this.arrivalText,
+    this.vendorId,
+    this.createdAt,
   });
 
   final String id;
   final String vendor;
+  final String? vendorId;
+  final DateTime? createdAt;
   final String subtitle;
   final String price;
   final OrderStatus status;

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:yjeek_app/core/constants/app_colors.dart';
+import 'package:yjeek_app/core/constants/app_text_styles.dart';
 import 'package:yjeek_app/core/constants/browse_strings.dart';
 import 'package:yjeek_app/core/providers/app_providers.dart';
 import 'package:yjeek_app/core/providers/shell_provider.dart';
@@ -141,6 +142,18 @@ class _DineInBrowseScreenState extends ConsumerState<DineInBrowseScreen> {
                 hasScrollBody: false,
                 child: Center(
                   child: CircularProgressIndicator(color: AppColors.primary),
+                ),
+              )
+            else if (_restaurants.isEmpty)
+              SliverFillRemaining(
+                hasScrollBody: false,
+                child: Center(
+                  child: Text(
+                    'No restaurants found',
+                    style: AppTextStyles.bodyMedium(
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
                 ),
               )
             else if (_isGridView)

@@ -7,6 +7,7 @@ import 'package:yjeek_app/features/cart/view/widgets/cart_flow_widgets.dart';
 import 'package:yjeek_app/features/dine_in_cart/model/dine_in_cart_data.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/navigation_widgets.dart';
 
+/// DEPRECATED — use [LiveCartBody].
 class DineInBasketBody extends StatefulWidget {
   const DineInBasketBody({
     super.key,

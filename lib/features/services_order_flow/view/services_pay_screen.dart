@@ -3,13 +3,13 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:yjeek_app/core/constants/app_colors.dart';
 import 'package:yjeek_app/core/providers/app_providers.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/features/order_flow/model/order_api_mappers.dart';
 import 'package:yjeek_app/features/order_flow/view/widgets/order_flow_widgets.dart';
 import 'package:yjeek_app/features/payments/model/benefit_pay_models.dart';
 import 'package:yjeek_app/features/payments/pay_now_helper.dart';
-import 'package:yjeek_app/features/services_order_flow/model/services_order_flow_data.dart';
 import 'package:yjeek_app/features/services_order_flow/services_order_flow_routes.dart';
 import 'package:yjeek_app/features/services_order_flow/view/widgets/services_order_flow_widgets.dart';
 import 'package:yjeek_app/routes/route_names.dart';
@@ -32,15 +32,16 @@ class _ServicesPayScreenState extends ConsumerState<ServicesPayScreen> {
   bool _expiring = false;
   bool _expired = false;
   bool _methodBusy = false;
+  bool _loading = true;
   DateTime? _payArmedAt;
-  String _vendor = ServicesOrderFlowData.providerName;
+  String _vendor = '';
   String _method = 'BenefitPay';
   String _methodApi = 'BENEFIT_PAY';
   String _balance = 'Balance BHD 0.000';
   num _totalAmount = 0;
-  String _subtotal = ServicesOrderFlowData.subtotalAmount;
-  String _serviceFee = ServicesOrderFlowData.serviceFeeAmount;
-  String _total = ServicesOrderFlowData.payTotal;
+  String _subtotal = '';
+  String _serviceFee = '';
+  String _total = '';
   List<PayNowOption> _paymentOptions =
       List.of(PayNowHelper.defaultPaymentOptions);
 
@@ -81,7 +82,10 @@ class _ServicesPayScreenState extends ConsumerState<ServicesPayScreen> {
 
   Future<void> _hydrate() async {
     final orderId = widget.orderId;
-    if (orderId == null || orderId.isEmpty) return;
+    if (orderId == null || orderId.isEmpty) {
+      if (mounted) setState(() => _loading = false);
+      return;
+    }
 
     final orderFuture = ref.read(ordersRepositoryProvider).getOrder(orderId);
     final walletFuture = ref.read(walletRepositoryProvider).fetchWallet();
@@ -93,7 +97,10 @@ class _ServicesPayScreenState extends ConsumerState<ServicesPayScreen> {
     final balanceText = 'Balance ${formatBhd(balanceNum)}';
 
     if (order == null) {
-      setState(() => _balance = balanceText);
+      setState(() {
+        _balance = balanceText;
+        _loading = false;
+      });
       return;
     }
 
@@ -132,6 +139,7 @@ class _ServicesPayScreenState extends ConsumerState<ServicesPayScreen> {
           _secondsLeft = 0;
         }
       }
+      _loading = false;
     });
 
     if (PayNowHelper.isSettled(paymentStatus)) {
@@ -231,6 +239,15 @@ class _ServicesPayScreenState extends ConsumerState<ServicesPayScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_loading) {
+      return OrderFlowScaffold(
+        showHeader: false,
+        bottomNavIndex: 0,
+        body: const Center(
+          child: CircularProgressIndicator(color: AppColors.primary),
+        ),
+      );
+    }
     return OrderFlowScaffold(
       showHeader: false,
       bottomNavIndex: 0,

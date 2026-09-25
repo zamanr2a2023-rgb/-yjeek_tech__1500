@@ -740,8 +740,8 @@ class DineInOrderBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final count = itemCount ?? DineInData.cartItemCount;
-    final total = totalLabel ?? DineInData.cartTotal;
+    final count = itemCount ?? 0;
+    final total = totalLabel ?? '0.000';
     return Container(
       color: AppColors.white,
       padding: EdgeInsets.fromLTRB(20.w, 14.h, 20.w, 26.h),

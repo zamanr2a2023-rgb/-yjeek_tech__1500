@@ -26,17 +26,15 @@ class ServicesStatusScreen extends ConsumerStatefulWidget {
 
 class _ServicesStatusScreenState extends ConsumerState<ServicesStatusScreen> {
   Timer? _pollTimer;
-  String _subtitle =
-      '${ServicesOrderFlowData.providerName} · #${ServicesOrderFlowData.bookingId}';
+  String _subtitle = '';
   String _badge = ServicesOrderFlowStrings.statusConfirmed;
-  String _service = ServicesOrderFlowData.serviceName;
-  String _when = ServicesOrderFlowData.appointmentWhenShort;
-  String _location = ServicesOrderFlowData.locationLabel;
-  String _provider = ServicesOrderFlowData.providerName;
+  String _service = '';
+  String _when = '';
+  String _location = '';
+  String _provider = '';
   String? _directionsUrl;
   String? _venuePhone;
-  List<ServicesOrderTimelineStep> _timeline =
-      ServicesOrderFlowData.statusTimeline;
+  List<ServicesOrderTimelineStep> _timeline = const [];
   bool _loading = true;
 
   @override
@@ -79,7 +77,7 @@ class _ServicesStatusScreenState extends ConsumerState<ServicesStatusScreen> {
 
     setState(() {
       _subtitle =
-          '${vendorName ?? ServicesOrderFlowData.providerName}${orderNumber == null || orderNumber.isEmpty ? '' : ' · #$orderNumber'}';
+          '${vendorName ?? ''}${orderNumber == null || orderNumber.isEmpty ? '' : ' · #$orderNumber'}';
       _badge = '✅ $statusLabel · $when';
       _service = servicesServiceNameFromOrder(data);
       _when = when;

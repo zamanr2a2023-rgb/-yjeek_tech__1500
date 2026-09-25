@@ -203,7 +203,7 @@ class DineInOrderSummaryRow extends StatelessWidget {
         children: [
           Expanded(
             child: Text(
-              summary ?? DineInOrderFlowData.itemSummary,
+              summary ?? '',
               style: AppTextStyles.labelMedium(color: const Color(0xFF6B7A6E)).copyWith(
                 fontWeight: FontWeight.w400,
                 fontSize: 13.sp,
@@ -212,7 +212,7 @@ class DineInOrderSummaryRow extends StatelessWidget {
             ),
           ),
           Text(
-            total ?? DineInOrderFlowData.orderTotal,
+            total ?? '',
             style: AppTextStyles.labelMedium(color: AppColors.textPrimary).copyWith(
               fontWeight: FontWeight.w700,
               fontSize: 16.sp,
@@ -297,7 +297,7 @@ class DineInArrivalCodeCard extends StatelessWidget {
           ),
           SizedBox(height: 6.h),
           Text(
-            code ?? DineInOrderFlowData.arrivalCode,
+            code ?? '',
             style: AppTextStyles.titleMedium(color: AppColors.white).copyWith(
               fontWeight: FontWeight.w700,
               fontSize: 26.sp,
@@ -337,13 +337,13 @@ class DineInDetailsCard extends StatelessWidget {
       ),
       child: Column(
         children: [
-          _row('Venue', venue ?? DineInOrderFlowData.venue),
+          _row('Venue', venue ?? ''),
           SizedBox(height: 10.h),
-          _row('Dine-in time', dineInTime ?? DineInOrderFlowData.dineInTime),
+          _row('Dine-in time', dineInTime ?? ''),
           SizedBox(height: 10.h),
-          _row('Track', track ?? DineInOrderFlowData.prepTrack),
+          _row('Track', track ?? ''),
           SizedBox(height: 10.h),
-          _row('Status', status ?? DineInOrderFlowData.statusPreparing),
+          _row('Status', status ?? ''),
         ],
       ),
     );
@@ -534,11 +534,11 @@ class DineInStatusInfoCard extends StatelessWidget {
       ),
       child: Column(
         children: [
-          _row(DineInOrderFlowStrings.venue, venue ?? DineInOrderFlowData.venue),
+          _row(DineInOrderFlowStrings.venue, venue ?? ''),
           SizedBox(height: 10.h),
-          _row(DineInOrderFlowStrings.table, table ?? DineInOrderFlowData.tableLabel),
+          _row(DineInOrderFlowStrings.table, table ?? ''),
           SizedBox(height: 10.h),
-          _row(DineInOrderFlowStrings.time, time ?? DineInOrderFlowData.dineInTime),
+          _row(DineInOrderFlowStrings.time, time ?? ''),
         ],
       ),
     );
@@ -701,11 +701,11 @@ class DineInPayBreakdownCard extends StatelessWidget {
       ),
       child: Column(
         children: [
-          _line(DineInOrderFlowStrings.subtotal, subtotal ?? DineInOrderFlowData.subtotalAmount),
+          _line(DineInOrderFlowStrings.subtotal, subtotal ?? ''),
           SizedBox(height: 8.h),
-          _line(DineInOrderFlowStrings.serviceFee, serviceFee ?? DineInOrderFlowData.serviceFeeAmount),
+          _line(DineInOrderFlowStrings.serviceFee, serviceFee ?? ''),
           SizedBox(height: 8.h),
-          _line(DineInOrderFlowStrings.totalToPay, total ?? DineInOrderFlowData.orderTotal, bold: true),
+          _line(DineInOrderFlowStrings.totalToPay, total ?? '', bold: true),
         ],
       ),
     );
@@ -803,7 +803,7 @@ class DineInPayStickyFooter extends StatelessWidget {
                   padding: EdgeInsets.zero,
                 ),
                 child: Text(
-                  '${DineInOrderFlowStrings.pay} ${payAmount ?? DineInOrderFlowData.orderTotal}',
+                  '${DineInOrderFlowStrings.pay} ${payAmount ?? ''}',
                   style: AppTextStyles.labelMedium(color: AppColors.white).copyWith(
                     fontWeight: FontWeight.w600,
                     fontSize: 16.sp,
@@ -847,8 +847,8 @@ class DineInReceiptPaper extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final receiptItems = items ?? DineInOrderFlowData.receiptItems;
-    final receiptBill = billLines ?? DineInOrderFlowData.receiptBillLines;
+    final receiptItems = items ?? const <DineInReceiptItem>[];
+    final receiptBill = billLines ?? const <BillLine>[];
     return Container(
       width: double.infinity,
       padding: EdgeInsets.all(18.w),
@@ -879,7 +879,7 @@ class DineInReceiptPaper extends StatelessWidget {
               ),
               SizedBox(height: 4.h),
               Text(
-                venueTitle ?? DineInOrderFlowData.venueReceipt,
+                venueTitle ?? '',
                 textAlign: TextAlign.center,
                 style: AppTextStyles.titleSmall(color: AppColors.textPrimary).copyWith(
                   fontWeight: FontWeight.w700,
@@ -903,13 +903,13 @@ class DineInReceiptPaper extends StatelessWidget {
           SizedBox(height: 12.h),
           const _DineInReceiptDashedDivider(color: _dashColor),
           SizedBox(height: 12.h),
-          _metaRow('Order #', orderNumber ?? DineInOrderFlowData.receiptOrderId),
+          _metaRow('Order #', orderNumber ?? ''),
           SizedBox(height: 8.h),
           _metaRow('Type', DineInOrderFlowStrings.typeDineIn),
           SizedBox(height: 8.h),
-          _metaRow('Table', tableLabel ?? DineInOrderFlowData.tableLabel),
+          _metaRow('Table', tableLabel ?? ''),
           SizedBox(height: 8.h),
-          _metaRow('Time', timeLabel ?? DineInOrderFlowData.dineInTime),
+          _metaRow('Time', timeLabel ?? ''),
           SizedBox(height: 12.h),
           const _DineInReceiptDashedDivider(color: _dashColor),
           SizedBox(height: 12.h),

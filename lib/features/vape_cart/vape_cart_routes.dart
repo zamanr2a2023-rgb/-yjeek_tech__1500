@@ -4,6 +4,17 @@ abstract final class VapeCartRoutes {
   static const checkout = RouteNames.vapeCartCheckout;
   static const review = RouteNames.vapeCartReview;
   static const ageVerify = RouteNames.vapeCartAgeVerify;
+  static const idVerifyPath = RouteNames.vapeIdVerify;
+
+  static String ageVerifyFor({String? productName}) {
+    if (productName == null || productName.trim().isEmpty) return ageVerify;
+    return '$ageVerify?product=${Uri.encodeQueryComponent(productName.trim())}';
+  }
+
+  static String idVerify({String? productName}) {
+    if (productName == null || productName.trim().isEmpty) return idVerifyPath;
+    return '$idVerifyPath?product=${Uri.encodeQueryComponent(productName.trim())}';
+  }
 
   static String reviewWithDelivery(String methodId) =>
       '$review?delivery=$methodId';

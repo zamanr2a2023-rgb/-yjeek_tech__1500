@@ -219,9 +219,6 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                 CartSectionTitle(CartFlowStrings.billSummary),
                 UiPlacementBanner(
                   placementKey: 'checkout_banner',
-                  fallbackWhenEmpty: CartZoodPromoBanner(
-                    onTap: () => context.push(CartRoutes.zoodWaitingList),
-                  ),
                 ),
                 SizedBox(height: 12.h),
                 BillSummaryCard(

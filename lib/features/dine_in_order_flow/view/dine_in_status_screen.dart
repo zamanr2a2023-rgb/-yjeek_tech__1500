@@ -29,14 +29,14 @@ class _DineInStatusScreenState extends ConsumerState<DineInStatusScreen> {
 
   Timer? _pollTimer;
   String _subtitle = DineInOrderFlowStrings.orderHeaderSubtitle;
-  String _code = DineInOrderFlowData.arrivalCode;
+  String _code = '';
   String _pill = DineInOrderFlowStrings.preparingPill;
-  String _venue = DineInOrderFlowData.venue;
-  String _table = DineInOrderFlowData.tableLabel;
-  String _time = DineInOrderFlowData.dineInTime;
+  String _venue = '';
+  String _table = '';
+  String _time = '';
   String? _directionsUrl;
   String? _venuePhone;
-  List<DineInOrderTimelineStep> _timeline = DineInOrderFlowData.statusTimeline;
+  List<DineInOrderTimelineStep> _timeline = const [];
   bool _loading = true;
   bool _canMarkArrived = false;
   bool _markingArrived = false;
@@ -84,16 +84,14 @@ class _DineInStatusScreenState extends ConsumerState<DineInStatusScreen> {
 
     setState(() {
       _subtitle =
-          '${vendorName ?? DineInOrderFlowData.vendor}${orderNumber == null || orderNumber.isEmpty ? '' : ' · #$orderNumber'}';
-      _code = data['arrivalCode']?.toString() ??
-          orderNumber ??
-          _code;
+          '${vendorName ?? ''}${orderNumber == null || orderNumber.isEmpty ? '' : ' · #$orderNumber'}';
+      _code = data['arrivalCode']?.toString() ?? orderNumber ?? '';
       _pill = eta != null && eta.isNotEmpty
           ? '👨‍🍳 ${formatStatusLabel(status)} · $eta'
           : '👨‍🍳 ${formatStatusLabel(status)}';
-      _venue = venueLabel.isNotEmpty ? venueLabel : _venue;
-      _table = data['tableLabel']?.toString() ?? _table;
-      _time = data['dineInTimeLabel']?.toString() ?? _time;
+      _venue = venueLabel;
+      _table = data['tableLabel']?.toString() ?? '';
+      _time = data['dineInTimeLabel']?.toString() ?? '';
       _directionsUrl = venueMap?['directionsUrl']?.toString();
       _venuePhone = venueMap?['phone']?.toString();
       _timeline = dineInTimelineFromTrack(
@@ -167,7 +165,7 @@ class _DineInStatusScreenState extends ConsumerState<DineInStatusScreen> {
       bottomNavIndex: 0,
       body: _loading
           ? const Center(
-              child: CircularProgressIndicator(color: AppColors.white),
+              child: CircularProgressIndicator(color: AppColors.primary),
             )
           : ListView(
               padding: EdgeInsets.fromLTRB(20.w, 8.h, 20.w, 24.h),

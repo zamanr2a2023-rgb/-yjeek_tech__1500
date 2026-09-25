@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:yjeek_app/core/network/api_client.dart';
 import 'package:yjeek_app/core/services/storage_service.dart';
+import 'package:yjeek_app/core/utils/api_media_url.dart';
 import 'package:yjeek_app/features/browse/model/vape_data.dart';
 import 'package:yjeek_app/features/cart/model/addresses_repository.dart';
 import 'package:yjeek_app/features/cart/model/delivery_range.dart';
@@ -32,12 +33,17 @@ class VapeVendorsRepository {
 
   String? get _token => _storage.token;
 
-  /// GET /vendors?category=vape&sort=rating&q=
-  Future<List<VapeStore>> fetchStores({String? query}) async {
+  /// GET /vendors?category=vape&sort=&hasOffers=&q=
+  Future<List<VapeStore>> fetchStores({
+    String? query,
+    String sort = 'popular',
+    bool hasOffers = false,
+  }) async {
     final params = <String, String>{
       'category': 'vape',
-      'sort': 'rating',
+      'sort': sort,
     };
+    if (hasOffers) params['hasOffers'] = 'true';
     if (query != null && query.trim().isNotEmpty) {
       params['q'] = query.trim();
     }
@@ -52,10 +58,13 @@ class VapeVendorsRepository {
 
     final response = await _apiClient.getJson('/vendors?$qs');
     final data = response?['data'];
-    if (data is! List) return const [];
+    final list = data is List
+        ? data
+        : (data is Map<String, dynamic> ? data['items'] : null);
+    if (list is! List) return const [];
 
     final items = <VapeStore>[];
-    for (final raw in data) {
+    for (final raw in list) {
       if (raw is! Map<String, dynamic>) continue;
       final mapped = vapeStoreFromVendorJson(raw);
       if (mapped != null) items.add(mapped);
@@ -71,7 +80,7 @@ class VapeVendorsRepository {
       final mapped = vapeStoreFromVendorJson(data);
       if (mapped != null) return mapped;
     }
-    return VapeData.storeById(storeId);
+    throw StateError('Vape store not found: $storeId');
   }
 
   /// GET /vendors/:id/menu — filter products by category chip (section name).
@@ -95,7 +104,8 @@ class VapeVendorsRepository {
       if (section is! Map<String, dynamic>) continue;
       final sectionName = (section['name'] as String?)?.trim() ?? '';
       if (sectionName.isEmpty) continue;
-      if (category.isNotEmpty &&
+      final filterAll = category.toLowerCase() == 'all';
+      if (!filterAll &&
           sectionName.toLowerCase() != category.toLowerCase()) {
         continue;
       }
@@ -124,18 +134,21 @@ class VapeVendorsRepository {
     );
     final data = response?['data'];
     if (data is! Map<String, dynamic>) {
-      return VapeData.productById(productId);
+      throw StateError('Vape product not found: $productId');
     }
 
-    return vapeProductFromJson(
+    final mapped = vapeProductFromJson(
           data,
           storeId: storeId,
           category: data['menuSectionName'] as String? ??
               _categoryFromTags(data) ??
               'Disposables',
           detailed: true,
-        ) ??
-        VapeData.productById(productId);
+        );
+    if (mapped == null) {
+      throw StateError('Vape product not found: $productId');
+    }
+    return mapped;
   }
 
   /// GET /cart?type=DELIVERY
@@ -182,6 +195,7 @@ class VapeVendorsRepository {
     required String productId,
     required int quantity,
     List<String> optionIds = const [],
+    List<String> addonIds = const [],
     bool replaceCart = false,
     String? vendorId,
     String? geofenceTriggerId,
@@ -195,9 +209,10 @@ class VapeVendorsRepository {
       );
     }
 
-    if (_addresses != null && vendorId != null && vendorId.isNotEmpty) {
+    final addresses = _addresses;
+    if (addresses != null && vendorId != null && vendorId.isNotEmpty) {
       final range = await checkDeliveryRange(
-        addresses: _addresses!,
+        addresses: addresses,
         vendorId: vendorId,
         failClosed: false,
       );
@@ -221,6 +236,7 @@ class VapeVendorsRepository {
           'geofenceTriggerId': geofenceTriggerId,
         'options': {
           if (optionIds.isNotEmpty) 'optionIds': optionIds,
+          if (addonIds.isNotEmpty) 'addonIds': addonIds,
         },
       },
       bearerToken: _token,
@@ -257,14 +273,21 @@ VapeStore? vapeStoreFromVendorJson(Map<String, dynamic> json) {
   if (id == null || id.isEmpty || name == null || name.isEmpty) return null;
 
   final ratingRaw = json['rating'];
-  final rating = ratingRaw is num
+  final ratingParsed = ratingRaw is num
       ? ratingRaw.toDouble()
       : double.tryParse(ratingRaw?.toString() ?? '') ?? 0;
 
+  final reviewCountRaw = json['reviewCount'];
+  final reviewCountValue = reviewCountRaw is num ? reviewCountRaw.toInt() : 0;
+  final hasRating = json['hasRating'] == true ||
+      (reviewCountValue > 0 && ratingParsed > 0);
+  final rating = hasRating ? ratingParsed : 0.0;
+
+  final area = (json['area'] as String?)?.trim();
   final distanceKm = json['distanceKm'];
   final distance = distanceKm is num
       ? '${distanceKm.toStringAsFixed(1)} km'
-      : (json['area'] as String? ?? 'Nearby');
+      : (area != null && area.isNotEmpty ? area : 'Nearby');
 
   final etaMin = json['deliveryTimeMin'] ?? json['pickupEtaMin'];
   final eta = etaMin is num
@@ -283,6 +306,12 @@ VapeStore? vapeStoreFromVendorJson(Map<String, dynamic> json) {
     }
   }
 
+  final offer = json['offerBadge'] ?? json['badgeLabel'] ?? json['promoBadge'];
+  final offerBadge = offer?.toString().trim();
+  final imageUrl = resolveApiMediaUrl(json['coverUrl'] as String?) ??
+      resolveApiMediaUrl(json['logoUrl'] as String?) ??
+      resolveApiMediaUrlFromList(json['imageUrls']);
+
   final colors = _gradientForName(name);
   final shortName = name.split(' ').first;
 
@@ -290,12 +319,17 @@ VapeStore? vapeStoreFromVendorJson(Map<String, dynamic> json) {
     id: id,
     name: name,
     shortName: shortName.length > 12 ? name.substring(0, 12) : shortName,
-    rating: double.parse(rating.toStringAsFixed(1)),
+    rating: hasRating ? double.parse(rating.toStringAsFixed(1)) : 0,
     distance: distance,
     eta: eta,
     subtitle: subtitle,
     gradientStart: colors.$1,
     gradientEnd: colors.$2,
+    hasRating: hasRating,
+    area: (area != null && area.isNotEmpty) ? area : null,
+    imageUrl: imageUrl,
+    offerBadge:
+        (offerBadge != null && offerBadge.isNotEmpty) ? offerBadge : null,
   );
 }
 

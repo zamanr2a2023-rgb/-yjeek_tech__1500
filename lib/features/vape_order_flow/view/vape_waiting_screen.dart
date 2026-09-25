@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:yjeek_app/core/constants/app_colors.dart';
 import 'package:yjeek_app/core/constants/app_text_styles.dart';
 import 'package:yjeek_app/core/providers/app_providers.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
@@ -39,9 +40,10 @@ class _VapeWaitingScreenState extends ConsumerState<VapeWaitingScreen> {
   Timer? _tickTimer;
   bool _cancelling = false;
   bool _advanced = false;
+  bool _loading = true;
   String _title = VapeOrderFlowStrings.sentToVendor;
-  String _summary = '—';
-  String _total = '—';
+  String _summary = '';
+  String _total = '';
   DateTime? _deadline;
   Duration _totalWindow = _defaultWindow;
 
@@ -96,14 +98,22 @@ class _VapeWaitingScreenState extends ConsumerState<VapeWaitingScreen> {
 
   Future<void> _poll() async {
     final ids = widget.orderIds;
-    if (ids.isEmpty || !mounted || _advanced) return;
+    if (ids.isEmpty) {
+      if (mounted) setState(() => _loading = false);
+      return;
+    }
+    if (!mounted || _advanced) return;
 
     final orders = <Map<String, dynamic>>[];
     for (final id in ids) {
       final order = await ref.read(ordersRepositoryProvider).getOrder(id);
       if (order != null) orders.add(order);
     }
-    if (!mounted || orders.isEmpty) return;
+    if (!mounted) return;
+    if (orders.isEmpty) {
+      setState(() => _loading = false);
+      return;
+    }
 
     final first = orders.first;
     final vendor = first['vendor'];
@@ -149,6 +159,7 @@ class _VapeWaitingScreenState extends ConsumerState<VapeWaitingScreen> {
         _summary = itemLabel;
       }
       _total = formatBhd(total);
+      _loading = false;
       if (minDeadline != null) {
         _deadline = minDeadline;
         final created =
@@ -194,6 +205,16 @@ class _VapeWaitingScreenState extends ConsumerState<VapeWaitingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_loading) {
+      return OrderFlowScaffold(
+        showHeader: false,
+        bottomNavIndex: 0,
+        backgroundColor: const Color(0xFFF2F7F2),
+        body: const Center(
+          child: CircularProgressIndicator(color: AppColors.primary),
+        ),
+      );
+    }
     return OrderFlowScaffold(
       showHeader: false,
       bottomNavIndex: 0,

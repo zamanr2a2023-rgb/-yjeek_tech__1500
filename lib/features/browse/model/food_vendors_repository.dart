@@ -80,7 +80,7 @@ class FoodVendorsRepository {
     );
     final data = response?['data'];
     final list = data is Map<String, dynamic> ? data['cuisines'] : null;
-    if (list is! List || list.isEmpty) return BrowseData.cuisineFilters;
+    if (list is! List || list.isEmpty) return const ['All'];
 
     final names = <String>['All'];
     for (final item in list) {
@@ -91,29 +91,43 @@ class FoodVendorsRepository {
         names.add(item);
       }
     }
-    return names.length > 1 ? names : BrowseData.cuisineFilters;
+    return names.length > 1 ? names : const ['All'];
   }
 
-  /// GET /vendors?category=food&sort=&cuisine=&freeDelivery=&q=&latitude=&longitude=&withinDeliveryRadius=
+  /// GET /vendors?category=food&supportsDelivery=&sort=&cuisine=&freeDelivery=&openNow=&minRating=&maxDeliveryTime=&hasOffers=&q=&latitude=&longitude=&withinDeliveryRadius=
   Future<List<BrowseRestaurant>> fetchVendors({
     String? cuisine,
     bool freeDelivery = false,
+    bool openNow = false,
+    bool hasOffers = false,
+    double? minRating,
+    int? maxDeliveryTime,
     String sort = 'rating',
     String? query,
     double? latitude,
     double? longitude,
     bool withinDeliveryRadius = false,
+    bool supportsDelivery = true,
   }) async {
     final params = <String, String>{
       'category': 'food',
       'sort': sort,
     };
+    if (supportsDelivery) params['supportsDelivery'] = 'true';
     if (cuisine != null &&
         cuisine.isNotEmpty &&
         cuisine.toLowerCase() != 'all') {
       params['cuisine'] = cuisine;
     }
     if (freeDelivery) params['freeDelivery'] = 'true';
+    if (openNow) params['openNow'] = 'true';
+    if (hasOffers) params['hasOffers'] = 'true';
+    if (minRating != null && minRating > 0) {
+      params['minRating'] = minRating.toString();
+    }
+    if (maxDeliveryTime != null && maxDeliveryTime > 0) {
+      params['maxDeliveryTime'] = maxDeliveryTime.toString();
+    }
     if (query != null && query.trim().isNotEmpty) {
       params['q'] = query.trim();
     }
@@ -154,17 +168,25 @@ class FoodVendorsRepository {
       final mapped = browseRestaurantFromVendorJson(data);
       if (mapped != null) return mapped;
     }
-    return BrowseData.restaurantById(vendorId);
+    throw StateError('Food vendor not found: $vendorId');
   }
 
-  /// GET /vendors/:id/menu?q=
+  /// GET /vendors/:id/menu?q=&orderType=DELIVERY|PICKUP|DINE_IN
   Future<FoodVendorMenu> fetchVendorMenu(
     String vendorId, {
     String? query,
+    String? orderType,
   }) async {
-    final qs = (query != null && query.trim().isNotEmpty)
-        ? '?q=${Uri.encodeQueryComponent(query.trim())}'
-        : '';
+    final params = <String, String>{};
+    if (query != null && query.trim().isNotEmpty) {
+      params['q'] = query.trim();
+    }
+    if (orderType != null && orderType.trim().isNotEmpty) {
+      params['orderType'] = orderType.trim().toUpperCase();
+    }
+    final qs = params.isEmpty
+        ? ''
+        : '?${params.entries.map((e) => '${Uri.encodeQueryComponent(e.key)}=${Uri.encodeQueryComponent(e.value)}').join('&')}';
     final response = await _apiClient.getJson('/vendors/$vendorId/menu$qs');
     final data = response?['data'];
     if (data is! Map<String, dynamic>) {
@@ -256,6 +278,7 @@ class FoodVendorsRepository {
             id: id,
             label: name,
             price: priceNum.toStringAsFixed(3),
+            imageUrl: resolveApiMediaUrl(addon['imageUrl'] as String?),
           ),
         );
       }
@@ -277,12 +300,13 @@ class FoodVendorsRepository {
     );
   }
 
-  /// GET /cart?type=DELIVERY
-  Future<FoodCartSummary> fetchDeliveryCart() async {
+  /// GET /cart?type=DELIVERY|PICKUP|DINE_IN
+  Future<FoodCartSummary> fetchDeliveryCart({String cartType = 'DELIVERY'}) async {
     if (!_storage.hasSession) return FoodCartSummary.empty;
 
+    final type = _normalizeCartType(cartType);
     final response = await _apiClient.getJson(
-      '/cart?type=DELIVERY',
+      '/cart?type=$type',
       bearerToken: _token,
     );
     final data = response?['data'];
@@ -315,7 +339,7 @@ class FoodVendorsRepository {
     );
   }
 
-  /// POST /cart/items?type=DELIVERY|PICKUP
+  /// POST /cart/items?type=DELIVERY|PICKUP|DINE_IN
   /// Returns null on success, conflict message on vendor conflict, or error text.
   Future<({bool ok, bool vendorConflict, bool outOfRange, String? message})>
       addToCart({
@@ -328,7 +352,7 @@ class FoodVendorsRepository {
     String? vendorId,
     String? geofenceTriggerId,
   }) async {
-    final type = cartType.toUpperCase() == 'PICKUP' ? 'PICKUP' : 'DELIVERY';
+    final type = _normalizeCartType(cartType);
 
     if (type == 'DELIVERY' &&
         _addresses != null &&
@@ -390,6 +414,13 @@ class FoodVendorsRepository {
     );
   }
 
+  static String _normalizeCartType(String cartType) {
+    final t = cartType.trim().toUpperCase().replaceAll('-', '_');
+    if (t == 'PICKUP') return 'PICKUP';
+    if (t == 'DINE_IN' || t == 'DINEIN') return 'DINE_IN';
+    return 'DELIVERY';
+  }
+
   /// GET /search/history
   Future<List<String>> fetchRecentSearches() async {
     final response = await _apiClient.getJson(
@@ -400,7 +431,7 @@ class FoodVendorsRepository {
     final list = data is List
         ? data
         : (data is Map<String, dynamic> ? data['items'] ?? data['history'] : null);
-    if (list is! List || list.isEmpty) return BrowseData.recentSearches;
+    if (list is! List || list.isEmpty) return const [];
 
     final queries = <String>[];
     for (final raw in list) {
@@ -411,7 +442,7 @@ class FoodVendorsRepository {
         queries.add(raw.trim());
       }
     }
-    return queries.isNotEmpty ? queries : BrowseData.recentSearches;
+    return queries;
   }
 }
 
@@ -421,16 +452,31 @@ BrowseRestaurant? browseRestaurantFromVendorJson(Map<String, dynamic> json) {
   if (id == null || id.isEmpty || name == null || name.isEmpty) return null;
 
   final tags = json['cuisineTags'];
+  final categoryLabel = (json['categoryLabel'] as String?)?.trim() ??
+      (json['serviceCategory'] as String?)?.trim();
   final cuisine = tags is List && tags.isNotEmpty
       ? tags.map((e) => e.toString()).where((e) => e.isNotEmpty).join(' · ')
-      : (json['area'] as String? ?? 'Food');
+      : (categoryLabel != null && categoryLabel.isNotEmpty
+          ? categoryLabel
+          : 'Food');
 
+  final reviewCountRaw = json['reviewCount'];
+  final reviewCountValue = reviewCountRaw is num ? reviewCountRaw.toInt() : 0;
   final ratingRaw = json['rating'];
-  final rating = ratingRaw is num
+  final ratingParsed = ratingRaw is num
       ? ratingRaw.toDouble()
       : double.tryParse(ratingRaw?.toString() ?? '') ?? 0;
+  final hasRating = json['hasRating'] == true ||
+      (reviewCountValue > 0 && ratingParsed > 0);
+  final rating = hasRating ? ratingParsed : 0.0;
 
-  final deliveryMin = (json['deliveryTimeMin'] as num?)?.toInt() ?? 25;
+  final arrivesIn = (json['arrivesInMin'] as num?)?.toInt();
+  final readyIn = (json['readyInMin'] as num?)?.toInt() ??
+      (json['pickupEtaMin'] as num?)?.toInt();
+  final prepTime = (json['prepTimeMin'] as num?)?.toInt();
+  final deliveryMin = arrivesIn ??
+      (json['deliveryTimeMin'] as num?)?.toInt() ??
+      25;
   final freeDelivery = json['freeDelivery'] == true;
   final deliveryFeeRaw = json['deliveryFee'];
   final deliveryFee = deliveryFeeRaw is num
@@ -440,14 +486,14 @@ BrowseRestaurant? browseRestaurantFromVendorJson(Map<String, dynamic> json) {
   final minOrder = minOrderRaw is num
       ? minOrderRaw.toStringAsFixed(0)
       : (minOrderRaw?.toString() ?? '5');
-  final distanceKm = json['distanceKm'];
-  final distance = distanceKm is num
-      ? '${distanceKm.toStringAsFixed(1)} km away'
+  final distanceKmRaw = json['distanceKm'];
+  final distanceKm = distanceKmRaw is num ? distanceKmRaw.toDouble() : null;
+  final distance = distanceKm != null
+      ? '${distanceKm.toStringAsFixed(1)} km'
       : 'Nearby';
 
-  final reviewCountRaw = json['reviewCount'];
-  final reviewCount = reviewCountRaw is num
-      ? _formatReviewCount(reviewCountRaw.toInt())
+  final reviewCount = reviewCountValue > 0
+      ? _formatReviewCount(reviewCountValue)
       : '___';
 
   final badge = json['offerBadge'] as String?;
@@ -455,6 +501,25 @@ BrowseRestaurant? browseRestaurantFromVendorJson(Map<String, dynamic> json) {
       resolveApiMediaUrl(json['logoUrl'] as String?) ??
       resolveApiMediaUrlFromList(json['imageUrls']);
   final colors = _gradientForName(name);
+  final area = (json['area'] as String?)?.trim().isNotEmpty == true
+      ? (json['area'] as String).trim()
+      : ((json['city'] as String?)?.trim().isNotEmpty == true
+          ? (json['city'] as String).trim()
+          : null);
+  final openStatus = (json['openStatus'] as String?)?.toUpperCase();
+  // Only treat explicit OPEN as open — UNKNOWN used to pass Open now wrongly.
+  final isOpen = openStatus == 'OPEN';
+
+  final dineIn = json['dineInAvailability'];
+  String? dineInLabel;
+  int? dineInTables;
+  if (dineIn is Map<String, dynamic>) {
+    dineInLabel = dineIn['label'] as String?;
+    dineInTables = (dineIn['tablesAvailable'] as num?)?.toInt();
+  }
+
+  final lat = json['latitude'];
+  final lng = json['longitude'];
 
   return BrowseRestaurant(
     id: id,
@@ -471,6 +536,23 @@ BrowseRestaurant? browseRestaurantFromVendorJson(Map<String, dynamic> json) {
     distance: distance,
     imageUrl: imageUrl,
     reviewCount: reviewCount,
+    reviewCountValue: reviewCountValue,
+    hasRating: hasRating,
+    area: area,
+    isOpen: isOpen,
+    prepTimeMin: prepTime,
+    arrivesInMin: arrivesIn ?? deliveryMin,
+    readyInMin: readyIn,
+    distanceKm: distanceKm,
+    latitude: lat is num ? lat.toDouble() : null,
+    longitude: lng is num ? lng.toDouble() : null,
+    isBookable: json['isBookable'] == true,
+    dineInAvailableLabel: dineInLabel,
+    dineInTablesAvailable: dineInTables,
+    categoryLabel: categoryLabel,
+    supportsDelivery: json['supportsDelivery'] != false,
+    supportsPickup: json['supportsPickup'] == true,
+    supportsDineIn: json['supportsDineIn'] == true,
   );
 }
 
@@ -493,13 +575,26 @@ BrowseMenuItem? browseMenuItemFromProductJson(
 
   final optionGroups = json['optionGroups'];
   final addons = json['addons'];
-  // Legacy menu payloads without `hasModifiers` keep opening details (safe).
-  // Once the API sends the flag, plain items can add directly to cart.
-  final hasModifiers = !json.containsKey('hasModifiers')
-      ? true
-      : json['hasModifiers'] == true ||
-          (optionGroups is List && optionGroups.isNotEmpty) ||
-          (addons is List && addons.isNotEmpty);
+  final count = json['_count'];
+  final optionCount = optionGroups is List
+      ? optionGroups.length
+      : (count is Map ? (count['optionGroups'] as num?)?.toInt() ?? 0 : 0);
+  final addonCount = addons is List
+      ? addons.length
+      : (count is Map ? (count['addons'] as num?)?.toInt() ?? 0 : 0);
+  // Prefer explicit API flag; fall back to counts so plain items can "+" add.
+  final hasModifiers = json['hasModifiers'] == true ||
+      optionCount > 0 ||
+      addonCount > 0;
+
+  final badgesRaw = json['badges'];
+  final badges = <String>[];
+  if (badgesRaw is List) {
+    for (final b in badgesRaw) {
+      final s = b?.toString().trim();
+      if (s != null && s.isNotEmpty) badges.add(s);
+    }
+  }
 
   return BrowseMenuItem(
     id: id,
@@ -512,6 +607,7 @@ BrowseMenuItem? browseMenuItemFromProductJson(
     section: section,
     imageUrl: imageUrl,
     hasModifiers: hasModifiers,
+    badges: badges,
   );
 }
 

@@ -79,6 +79,7 @@ class _FoodSearchScreenState extends ConsumerState<FoodSearchScreen> {
       latitude: pos?.lat,
       longitude: pos?.lng,
       withinDeliveryRadius: pos != null,
+      supportsDelivery: true,
     );
     if (pos != null && results.isEmpty) {
       results = await repo.fetchVendors(
@@ -87,6 +88,7 @@ class _FoodSearchScreenState extends ConsumerState<FoodSearchScreen> {
         latitude: pos.lat,
         longitude: pos.lng,
         withinDeliveryRadius: false,
+        supportsDelivery: true,
       );
     }
     if (!mounted) return;

@@ -26,12 +26,12 @@ class PickupStatusScreen extends ConsumerStatefulWidget {
 
 class _PickupStatusScreenState extends ConsumerState<PickupStatusScreen> {
   Timer? _pollTimer;
-  String _subtitle = PickupOrderFlowData.statusSubtitle;
+  String _subtitle = '';
   String _preparing = PickupOrderFlowStrings.preparingBanner;
-  List<PickupOrderTimelineStep> _timeline = PickupOrderFlowData.statusTimeline;
-  String _items = PickupOrderFlowData.statusItems;
-  String _pickup = PickupOrderFlowData.statusPickup;
-  String _total = PickupOrderFlowData.confirmedTotal;
+  List<PickupOrderTimelineStep> _timeline = const [];
+  String _items = '';
+  String _pickup = '';
+  String _total = '';
   bool _loading = true;
   bool _canMarkArrived = false;
   bool _markingArrived = false;
@@ -108,7 +108,7 @@ class _PickupStatusScreenState extends ConsumerState<PickupStatusScreen> {
       }
       _total = data['totalAmount'] != null
           ? formatBhd(data['totalAmount'])
-          : _total;
+          : '';
       if (statusUpper == 'READY_FOR_PICKUP' ||
           statusUpper == 'READY' ||
           statusUpper == 'READY_FOR_YOU' ||

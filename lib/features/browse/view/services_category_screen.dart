@@ -2,13 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:yjeek_app/core/constants/app_colors.dart';
+import 'package:yjeek_app/core/constants/app_text_styles.dart';
 import 'package:yjeek_app/core/providers/app_providers.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/features/browse/browse_routes.dart';
 import 'package:yjeek_app/features/browse/model/services_data.dart';
+import 'package:yjeek_app/features/browse/view/widgets/fashion_vendors_widgets.dart';
 import 'package:yjeek_app/features/browse/view/widgets/services_widgets.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/navigation_widgets.dart';
+import 'package:yjeek_app/routes/app_router.dart';
 
+/// Services provider list for a sub-category (Cleaning / Beauty & Salon / …).
+/// Book again · Offers · Top rated · list/grid · availability-first sort.
 class ServicesCategoryScreen extends ConsumerStatefulWidget {
   const ServicesCategoryScreen({
     super.key,
@@ -26,11 +31,10 @@ class ServicesCategoryScreen extends ConsumerStatefulWidget {
 
 class _ServicesCategoryScreenState
     extends ConsumerState<ServicesCategoryScreen> {
-  bool _isGridView = true;
+  late bool _isGridView;
   bool _offersOnly = false;
-  String _sort = 'popular';
-  String _venueFilter = ServicesData.venueFilters.first;
-  ServiceCategoryItem _category = ServicesData.categories.first;
+  bool _topRated = false;
+  ServiceCategoryItem? _category;
   List<ServiceProvider> _providers = const [];
   bool _loading = true;
   bool _loadedOnce = false;
@@ -38,7 +42,34 @@ class _ServicesCategoryScreenState
   @override
   void initState() {
     super.initState();
+    _isGridView = ref.read(storageServiceProvider).retailCategoryGridView;
     WidgetsBinding.instance.addPostFrameCallback((_) => _load());
+  }
+
+  Future<void> _setGridView(bool isGrid) async {
+    setState(() => _isGridView = isGrid);
+    await ref.read(storageServiceProvider).setRetailCategoryGridView(isGrid);
+  }
+
+  /// Prior bookings in this subcategory (hidden when empty).
+  List<ServiceProvider> get _bookAgain {
+    final loggedIn = ref.watch(storageServiceProvider).hasSession;
+    if (!loggedIn || _providers.isEmpty) return const [];
+    final vendors = ref.watch(homeFeedProvider).valueOrNull?.reorderVendors;
+    if (vendors == null || vendors.isEmpty) return const [];
+    final byId = {for (final p in _providers) p.id: p};
+    final out = <ServiceProvider>[];
+    final seen = <String>{};
+    for (final brand in vendors) {
+      final id = brand.id;
+      if (id == null || id.isEmpty || seen.contains(id)) continue;
+      final p = byId[id];
+      if (p == null) continue;
+      seen.add(id);
+      out.add(p);
+      if (out.length >= 8) break;
+    }
+    return out;
   }
 
   Future<void> _load() async {
@@ -48,8 +79,7 @@ class _ServicesCategoryScreenState
       final category = await repo.fetchCategoryById(widget.categoryId);
       final providers = await repo.fetchProviders(
         subcategory: widget.categoryId,
-        venueFilter: _venueFilter,
-        sort: _sort,
+        sort: _topRated ? 'rating' : 'popular',
         offersOnly: _offersOnly,
       );
       if (!mounted) return;
@@ -69,11 +99,15 @@ class _ServicesCategoryScreenState
     }
   }
 
+  void _openProvider(ServiceProvider provider) {
+    context.push(BrowseRoutes.servicesProvider(providerId: provider.id));
+  }
+
   @override
   Widget build(BuildContext context) {
     if (!_loadedOnce && _loading) {
       return Scaffold(
-        backgroundColor: AppColors.background,
+        backgroundColor: AppColors.white,
         body: const Center(
           child: CircularProgressIndicator(color: AppColors.primary),
         ),
@@ -82,8 +116,12 @@ class _ServicesCategoryScreenState
         ),
       );
     }
+
+    final bookAgain = _bookAgain;
+    final title = _category?.name ?? 'Services';
+
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColors.white,
       body: RefreshIndicator(
         color: AppColors.primary,
         onRefresh: _load,
@@ -94,33 +132,33 @@ class _ServicesCategoryScreenState
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  ServicesCategoryHeader(title: _category.name),
+                  FashionVendorsHeader(title: title),
                   Padding(
-                    padding: EdgeInsets.fromLTRB(20.w, 12.h, 20.w, 0),
-                    child: ServicesVenueFilterChips(
-                      options: ServicesData.venueFilters,
-                      selected: _venueFilter,
-                      onSelected: (v) {
-                        setState(() => _venueFilter = v);
-                        _load();
-                      },
-                    ),
-                  ),
-                  Padding(
-                    padding: EdgeInsets.fromLTRB(20.w, 12.h, 20.w, 0),
-                    child: ServicesToolbar(
-                      isGridView: _isGridView,
-                      onViewChanged: (v) => setState(() => _isGridView = v),
-                      sort: _sort,
-                      onSortChanged: (v) {
-                        setState(() => _sort = v);
-                        _load();
-                      },
-                      offersOnly: _offersOnly,
-                      onOffersChanged: (v) {
-                        setState(() => _offersOnly = v);
-                        _load();
-                      },
+                    padding: EdgeInsets.fromLTRB(20.w, 2.h, 20.w, 0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        ServicesBookAgainRow(
+                          providers: bookAgain,
+                          onSeeAll: () => context.goHome(tab: 1),
+                          onProviderTap: _openProvider,
+                        ),
+                        if (bookAgain.isNotEmpty) SizedBox(height: 12.h),
+                        FashionFilterRow(
+                          isGridView: _isGridView,
+                          onViewChanged: _setGridView,
+                          offersOnly: _offersOnly,
+                          onOffersTap: () {
+                            setState(() => _offersOnly = !_offersOnly);
+                            _load();
+                          },
+                          topRated: _topRated,
+                          onTopRatedTap: () {
+                            setState(() => _topRated = !_topRated);
+                            _load();
+                          },
+                        ),
+                      ],
                     ),
                   ),
                 ],
@@ -133,44 +171,53 @@ class _ServicesCategoryScreenState
                   child: CircularProgressIndicator(color: AppColors.primary),
                 ),
               )
+            else if (_providers.isEmpty)
+              SliverFillRemaining(
+                hasScrollBody: false,
+                child: Center(
+                  child: Text(
+                    'No providers available right now',
+                    style: AppTextStyles.bodyMedium(
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ),
+              )
             else if (_isGridView)
               SliverPadding(
-                padding: EdgeInsets.fromLTRB(20.w, 14.h, 20.w, 24.h),
+                padding: EdgeInsets.fromLTRB(20.w, 12.h, 20.w, 24.h),
                 sliver: SliverGrid(
-                  // Design provider card: 169 × 196
                   gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 2,
                     mainAxisSpacing: 12.h,
                     crossAxisSpacing: 12.w,
-                    childAspectRatio: 169 / 196,
+                    childAspectRatio: 0.78,
                   ),
                   delegate: SliverChildBuilderDelegate(
-                    (context, index) => ServicesProviderGridCard(
-                      provider: _providers[index],
-                      onTap: () => context.push(
-                        BrowseRoutes.servicesProvider(
-                          providerId: _providers[index].id,
-                        ),
-                      ),
-                    ),
+                    (context, index) {
+                      final p = _providers[index];
+                      return ServicesListingGridCard(
+                        provider: p,
+                        onTap: () => _openProvider(p),
+                      );
+                    },
                     childCount: _providers.length,
                   ),
                 ),
               )
             else
               SliverPadding(
-                padding: EdgeInsets.fromLTRB(20.w, 14.h, 20.w, 24.h),
+                padding: EdgeInsets.fromLTRB(20.w, 12.h, 20.w, 24.h),
                 sliver: SliverList.separated(
                   itemCount: _providers.length,
-                  separatorBuilder: (_, _) => SizedBox(height: 10.h),
-                  itemBuilder: (context, index) => ServicesProviderListCard(
-                    provider: _providers[index],
-                    onTap: () => context.push(
-                      BrowseRoutes.servicesProvider(
-                        providerId: _providers[index].id,
-                      ),
-                    ),
-                  ),
+                  separatorBuilder: (_, _) => SizedBox(height: 12.h),
+                  itemBuilder: (context, index) {
+                    final p = _providers[index];
+                    return ServicesListingListCard(
+                      provider: p,
+                      onTap: () => _openProvider(p),
+                    );
+                  },
                 ),
               ),
           ],

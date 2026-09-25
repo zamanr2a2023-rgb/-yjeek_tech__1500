@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:yjeek_app/core/utils/api_media_url.dart';
 import 'package:yjeek_app/l10n/l10n.dart';
 
 class BrowseRestaurant {
@@ -18,6 +19,23 @@ class BrowseRestaurant {
     this.distance = '2.4 km',
     this.imageUrl,
     this.reviewCount = '___',
+    this.reviewCountValue = 0,
+    this.hasRating = false,
+    this.area,
+    this.isOpen = true,
+    this.prepTimeMin,
+    this.arrivesInMin,
+    this.readyInMin,
+    this.distanceKm,
+    this.latitude,
+    this.longitude,
+    this.isBookable = false,
+    this.dineInAvailableLabel,
+    this.dineInTablesAvailable,
+    this.categoryLabel,
+    this.supportsDelivery = true,
+    this.supportsPickup = false,
+    this.supportsDineIn = false,
   });
 
   final String id;
@@ -34,6 +52,69 @@ class BrowseRestaurant {
   final String distance;
   final String? imageUrl;
   final String reviewCount;
+  final int reviewCountValue;
+  /// True only when real customer reviews exist (not a placeholder 0.0).
+  final bool hasRating;
+  /// Vendor area / city for location-style filters when cuisineTags are empty.
+  final String? area;
+  final bool isOpen;
+  final int? prepTimeMin;
+  /// Delivery: prep + delivery leg (minutes).
+  final int? arrivesInMin;
+  /// Pickup / dine-in prep readiness (minutes).
+  final int? readyInMin;
+  final double? distanceKm;
+  final double? latitude;
+  final double? longitude;
+  final bool isBookable;
+  final String? dineInAvailableLabel;
+  final int? dineInTablesAvailable;
+  final String? categoryLabel;
+  final bool supportsDelivery;
+  final bool supportsPickup;
+  final bool supportsDineIn;
+
+  BrowseRestaurant copyWith({
+    double? distanceKm,
+    String? distance,
+    bool? supportsDelivery,
+    bool? supportsPickup,
+    bool? supportsDineIn,
+  }) {
+    return BrowseRestaurant(
+      id: id,
+      name: name,
+      cuisine: cuisine,
+      rating: rating,
+      gradientStart: gradientStart,
+      gradientEnd: gradientEnd,
+      badge: badge,
+      deliveryMin: deliveryMin,
+      freeDelivery: freeDelivery,
+      deliveryFee: deliveryFee,
+      minOrder: minOrder,
+      distance: distance ?? this.distance,
+      imageUrl: imageUrl,
+      reviewCount: reviewCount,
+      reviewCountValue: reviewCountValue,
+      hasRating: hasRating,
+      area: area,
+      isOpen: isOpen,
+      prepTimeMin: prepTimeMin,
+      arrivesInMin: arrivesInMin,
+      readyInMin: readyInMin,
+      distanceKm: distanceKm ?? this.distanceKm,
+      latitude: latitude,
+      longitude: longitude,
+      isBookable: isBookable,
+      dineInAvailableLabel: dineInAvailableLabel,
+      dineInTablesAvailable: dineInTablesAvailable,
+      categoryLabel: categoryLabel,
+      supportsDelivery: supportsDelivery ?? this.supportsDelivery,
+      supportsPickup: supportsPickup ?? this.supportsPickup,
+      supportsDineIn: supportsDineIn ?? this.supportsDineIn,
+    );
+  }
 }
 
 class BrowseMenuItem {
@@ -47,6 +128,7 @@ class BrowseMenuItem {
     this.nameAr,
     this.descriptionAr,
     this.hasModifiers = false,
+    this.badges = const [],
   });
 
   final String id;
@@ -60,6 +142,15 @@ class BrowseMenuItem {
   /// True when product has option groups and/or add-ons that must be chosen
   /// on the product details page before adding to cart.
   final bool hasModifiers;
+  /// Product restriction / handling badges from API (e.g. HIGH_VALUE, AGE_RESTRICTED).
+  final List<String> badges;
+
+  bool get isHighValue =>
+      badges.any((b) => b.toUpperCase().replaceAll('-', '_') == 'HIGH_VALUE');
+
+  bool get isAgeRestricted => badges.any(
+        (b) => b.toUpperCase().replaceAll('-', '_') == 'AGE_RESTRICTED',
+      );
 
   /// Active-locale product title (AR when set and locale is Arabic).
   String get localizedName {
@@ -86,14 +177,46 @@ class BrowseSizeOption {
     required this.subtitle,
     this.extraPrice,
     this.id,
+    this.imageUrl,
     this.isDefault = false,
+    this.isAvailable = true,
+    this.stockLabel,
   });
 
   final String? id;
   final String label;
   final String subtitle;
   final String? extraPrice;
+  final String? imageUrl;
   final bool isDefault;
+  final bool isAvailable;
+  /// e.g. In stock / Low stock / Out of stock (list view).
+  final String? stockLabel;
+
+  bool get isIncluded =>
+      extraPrice == null || (double.tryParse(extraPrice!) ?? 0) <= 0;
+
+  String get priceDisplay {
+    if (isIncluded) return 'Free';
+    final p = extraPrice;
+    if (p == null || p.isEmpty) return 'Free';
+    return '+BHD $p';
+  }
+
+  /// Solid colour from `color:#RRGGBB` imageUrl (electronics colour swatches).
+  Color? get swatchColor {
+    final raw = imageUrl?.trim();
+    if (raw == null || raw.isEmpty) return null;
+    final m = RegExp(r'^color:#?([0-9A-Fa-f]{6})$').firstMatch(raw);
+    if (m == null) return null;
+    return Color(int.parse('FF${m.group(1)}', radix: 16));
+  }
+
+  bool get hasNetworkImage {
+    final raw = imageUrl?.trim();
+    if (raw == null || raw.isEmpty) return false;
+    return swatchColor == null;
+  }
 }
 
 class BrowseOptionGroup {
@@ -112,6 +235,16 @@ class BrowseOptionGroup {
   final List<BrowseSizeOption> options;
 
   bool get allowsMultiple => maxSelect > 1;
+  bool get isRequired => minSelect > 0;
+
+  String get selectionHint {
+    if (isRequired) {
+      if (maxSelect <= 1) return 'Required · Select 1';
+      if (minSelect == maxSelect) return 'Required · Select $minSelect';
+      return 'Required · Select $minSelect–$maxSelect';
+    }
+    return 'Optional · Select up to $maxSelect';
+  }
 }
 
 List<BrowseOptionGroup> browseOptionGroupsFromJson(Object? raw) {
@@ -130,15 +263,22 @@ List<BrowseOptionGroup> browseOptionGroupsFromJson(Object? raw) {
       final name = opt['name'] as String? ?? 'Option';
       final delta = opt['priceDelta'];
       final deltaNum = delta is num ? delta.toDouble() : 0.0;
+      final available = opt['isAvailable'] != false;
+      final stockRaw = (opt['stockLabel'] as String?)?.trim();
       options.add(
         BrowseSizeOption(
           id: id,
           label: name,
           subtitle: deltaNum <= 0
-              ? 'Included'
-              : '+ BHD ${deltaNum.toStringAsFixed(1)}',
+              ? 'Free'
+              : '+BHD ${deltaNum.toStringAsFixed(3)}',
           extraPrice: deltaNum > 0 ? deltaNum.toStringAsFixed(3) : null,
-          isDefault: opt['isDefault'] == true,
+          imageUrl: resolveApiMediaUrl(opt['imageUrl'] as String?),
+          isDefault: opt['isDefault'] == true && available,
+          isAvailable: available,
+          stockLabel: (stockRaw != null && stockRaw.isNotEmpty)
+              ? stockRaw
+              : (available ? 'In stock' : 'Out of stock'),
         ),
       );
     }
@@ -231,11 +371,19 @@ class BrowseAddonOption {
     required this.label,
     required this.price,
     this.id,
+    this.imageUrl,
   });
 
   final String? id;
   final String label;
   final String price;
+  final String? imageUrl;
+
+  String get priceLabel {
+    final n = double.tryParse(price) ?? 0;
+    if (n <= 0) return 'Included';
+    return '+BHD ${n.toStringAsFixed(3)}';
+  }
 }
 
 abstract final class BrowseData {

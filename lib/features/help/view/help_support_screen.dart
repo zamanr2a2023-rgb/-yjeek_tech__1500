@@ -28,7 +28,7 @@ class HelpSupportScreen extends ConsumerStatefulWidget {
 class _HelpSupportScreenState extends ConsumerState<HelpSupportScreen> {
   HelpOrder? _order;
   String? _resolvedOrderId;
-  List<String> _popularTopics = HelpData.popularTopics;
+  List<String> _popularTopics = const [];
   bool _loadingTopics = true;
   bool _loadingOrder = true;
 
@@ -120,7 +120,7 @@ class _HelpSupportScreenState extends ConsumerState<HelpSupportScreen> {
     if (!mounted) return;
     final labels = help?.popularTopicLabels ?? const <String>[];
     setState(() {
-      if (labels.isNotEmpty) _popularTopics = labels;
+      _popularTopics = labels;
       _loadingTopics = false;
     });
   }
@@ -175,32 +175,35 @@ class _HelpSupportScreenState extends ConsumerState<HelpSupportScreen> {
                       ),
                     ),
                   ),
-                SizedBox(height: 16.h),
-                const HelpSectionTitle(label: 'Popular help topics'),
-                SizedBox(height: 10.h),
-                HelpCard(
-                  child: _loadingTopics
-                      ? Padding(
-                          padding: EdgeInsets.all(18.w),
-                          child: const Center(
-                            child: CircularProgressIndicator(
-                              color: AppColors.primary,
-                              strokeWidth: 2,
-                            ),
-                          ),
-                        )
-                      : Column(
-                          children: [
-                            for (var i = 0; i < _popularTopics.length; i++)
-                              HelpChevronRow(
-                                title: _popularTopics[i],
-                                dense: true,
-                                showDivider: i < _popularTopics.length - 1,
-                                onTap: () => _openPopularTopic(context, i),
+                if (_loadingTopics ||
+                    _popularTopics.isNotEmpty) ...[
+                  SizedBox(height: 16.h),
+                  const HelpSectionTitle(label: 'Popular help topics'),
+                  SizedBox(height: 10.h),
+                  HelpCard(
+                    child: _loadingTopics
+                        ? Padding(
+                            padding: EdgeInsets.all(18.w),
+                            child: const Center(
+                              child: CircularProgressIndicator(
+                                color: AppColors.primary,
+                                strokeWidth: 2,
                               ),
-                          ],
-                        ),
-                ),
+                            ),
+                          )
+                        : Column(
+                            children: [
+                              for (var i = 0; i < _popularTopics.length; i++)
+                                HelpChevronRow(
+                                  title: _popularTopics[i],
+                                  dense: true,
+                                  showDivider: i < _popularTopics.length - 1,
+                                  onTap: () => _openPopularTopic(context, i),
+                                ),
+                            ],
+                          ),
+                  ),
+                ],
                 SizedBox(height: 12.h),
                 HelpCard(
                   child: HelpChevronRow(

@@ -8,6 +8,7 @@ import 'package:yjeek_app/core/providers/app_providers.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/features/help/help_routes.dart';
 import 'package:yjeek_app/features/help/model/help_data.dart';
+import 'package:yjeek_app/features/navigation/model/navigation_data.dart';
 import 'package:yjeek_app/features/help/model/help_phase2_data.dart';
 import 'package:yjeek_app/features/help/view/help_phase2_issue_body.dart';
 import 'package:yjeek_app/features/help/view/widgets/help_widgets.dart';
@@ -62,6 +63,8 @@ class _HelpIssueScreenState extends ConsumerState<HelpIssueScreen> {
   String? _photoUrl;
   String? _statusLabel;
   String? _statusRaw;
+  OrderCategoryFilter _category = OrderCategoryFilter.orders;
+  bool _isScheduled = false;
   String? _phase2Remark;
   Map<String, dynamic>? _cancelQuote;
   final _noteController = TextEditingController();
@@ -87,7 +90,6 @@ class _HelpIssueScreenState extends ConsumerState<HelpIssueScreen> {
         await ref.read(ordersRepositoryProvider).getOrder(widget.orderId);
     if (!mounted) return;
 
-    final fallback = HelpData.contextForOrderId(widget.orderId).order;
     final parsed = <_OrderLineItem>[];
     if (order != null) {
       final rawItems = order['items'];
@@ -112,16 +114,24 @@ class _HelpIssueScreenState extends ConsumerState<HelpIssueScreen> {
       }
       final total = order['totalAmount'];
       _orderTotalBhd =
-          total is num ? total.toStringAsFixed(3) : fallback.totalBhd;
+          total is num ? total.toStringAsFixed(3) : '0.000';
       final orderNumber = order['orderNumber']?.toString();
       _shortId = orderNumber != null && orderNumber.isNotEmpty
           ? (orderNumber.startsWith('#') ? orderNumber : '#$orderNumber')
-          : fallback.shortId;
+          : '#${widget.orderId}';
       _canCancel = order['canCancel'] == true ||
           (order['cancelQuote'] is Map &&
               (order['cancelQuote'] as Map)['canCancel'] == true);
       _statusRaw = order['status']?.toString();
       _statusLabel = _statusRaw?.replaceAll('_', ' ');
+      final orderType = (order['orderType'] as String?)?.toUpperCase() ?? '';
+      _category = switch (orderType) {
+        'SERVICE' => OrderCategoryFilter.services,
+        'DINE_IN' => OrderCategoryFilter.dineIn,
+        'PICKUP' => OrderCategoryFilter.pickup,
+        _ => OrderCategoryFilter.orders,
+      };
+      _isScheduled = (order['fulfillmentType'] as String?) == 'SCHEDULED';
       final quote = order['cancelQuote'];
       if (quote is Map<String, dynamic>) {
         _cancelQuote = quote;
@@ -131,8 +141,8 @@ class _HelpIssueScreenState extends ConsumerState<HelpIssueScreen> {
         if (ot is num) _orderTotalBhd = ot.toStringAsFixed(3);
       }
     } else {
-      _orderTotalBhd = fallback.totalBhd;
-      _shortId = fallback.shortId;
+      _orderTotalBhd = '0.000';
+      _shortId = '';
       // Do not fall back to demo/static line items — Wrong order must use API items.
       setState(() {
         _items = const [];
@@ -430,21 +440,23 @@ class _HelpIssueScreenState extends ConsumerState<HelpIssueScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final orderContext = HelpData.contextForOrderId(widget.orderId);
+    final itemCount = _items.isNotEmpty
+        ? _items.fold<int>(0, (s, e) => s + e.quantity)
+        : 0;
     final hydratedContext = HelpOrderContext(
-      category: orderContext.category,
-      isScheduled: orderContext.isScheduled,
+      category: _category,
+      isScheduled: _isScheduled,
       order: HelpOrder(
-        vendorName: orderContext.order.vendorName,
+        vendorName: 'Order',
         orderId: widget.orderId,
-        shortId: _shortId.isNotEmpty ? _shortId : orderContext.order.shortId,
-        statusLabel: _statusLabel ?? orderContext.order.statusLabel,
-        itemCount: _items.isNotEmpty
-            ? _items.fold<int>(0, (s, e) => s + e.quantity)
-            : orderContext.order.itemCount,
+        shortId: _shortId.isNotEmpty ? _shortId : '#${widget.orderId}',
+        statusLabel: _statusLabel ?? 'Unknown',
+        itemCount: itemCount,
         totalBhd: _orderTotalBhd,
-        deliveredAt: orderContext.order.deliveredAt,
-        compactSubtitle: orderContext.order.compactSubtitle,
+        deliveredAt: _statusLabel ?? '',
+        compactSubtitle: _shortId.isNotEmpty
+            ? '$_shortId · BHD $_orderTotalBhd'
+            : widget.orderId,
       ),
     );
 

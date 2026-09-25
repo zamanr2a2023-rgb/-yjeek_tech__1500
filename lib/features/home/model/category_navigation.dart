@@ -33,10 +33,11 @@ void openHomeCategory(BuildContext context, CategoryItem category) {
     return;
   }
 
-  // Scheduled / retail categories — reuse browse layout with category filter.
+  // Scheduled / retail categories — sub-category landing (Fashion design).
   final scheduledSlug = switch (slug) {
     'grocery' || 'groceries' => 'grocery',
     'fashion' => 'fashion',
+    'flowers' || 'florist' => 'flowers',
     'prosthetics' || 'prosthetic' => 'prosthetics',
     'pharmacy' => 'pharmacy',
     'cosmetics' => 'cosmetics',
@@ -49,6 +50,23 @@ void openHomeCategory(BuildContext context, CategoryItem category) {
   };
 
   if (scheduledSlug != null) {
+    // Flowers Figma: vendor list first (Scheduled · Order again · Offers).
+    if (scheduledSlug == 'flowers') {
+      context.push(
+        BrowseRoutes.electronicsBrowse(
+          category: 'flowers',
+          title: 'Flowers',
+        ),
+      );
+      return;
+    }
+    // Fashion / Pharmacy / Gifts: sub-category grid first.
+    if (scheduledSlug == 'fashion' ||
+        scheduledSlug == 'pharmacy' ||
+        scheduledSlug == 'gifts') {
+      context.push(BrowseRoutes.retailCategory(slug: scheduledSlug));
+      return;
+    }
     context.push(BrowseRoutes.electronicsBrowse(category: scheduledSlug));
     return;
   }
@@ -56,16 +74,23 @@ void openHomeCategory(BuildContext context, CategoryItem category) {
   // Name-based fallback when slug is missing/odd.
   if (key.contains('grocery') || key.contains('grocer')) {
     context.push(BrowseRoutes.electronicsBrowse(category: 'grocery'));
+  } else if (key.contains('flower') || key.contains('florist')) {
+    context.push(
+      BrowseRoutes.electronicsBrowse(
+        category: 'flowers',
+        title: 'Flowers',
+      ),
+    );
   } else if (key.contains('fashion')) {
-    context.push(BrowseRoutes.electronicsBrowse(category: 'fashion'));
+    context.push(BrowseRoutes.retailCategory(slug: 'fashion'));
   } else if (key.contains('prosthetic')) {
     context.push(BrowseRoutes.electronicsBrowse(category: 'prosthetics'));
   } else if (key.contains('pharmacy')) {
-    context.push(BrowseRoutes.electronicsBrowse(category: 'pharmacy'));
+    context.push(BrowseRoutes.retailCategory(slug: 'pharmacy'));
   } else if (key.contains('cosmetic')) {
     context.push(BrowseRoutes.electronicsBrowse(category: 'cosmetics'));
   } else if (key.contains('gift')) {
-    context.push(BrowseRoutes.electronicsBrowse(category: 'gifts'));
+    context.push(BrowseRoutes.retailCategory(slug: 'gifts'));
   } else if (key.contains('jewel')) {
     context.push(BrowseRoutes.electronicsBrowse(category: 'jewelry'));
   } else if (key.contains('station')) {

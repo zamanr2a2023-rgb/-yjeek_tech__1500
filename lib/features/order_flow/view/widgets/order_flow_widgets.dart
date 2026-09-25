@@ -198,23 +198,23 @@ class OrderSummaryCard extends StatelessWidget {
       padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
       child: Column(
         children: [
-          _row(OrderFlowStrings.items, items ?? OrderFlowData.itemCount),
+          _row(OrderFlowStrings.items, items ?? ''),
           SizedBox(height: 10.h),
           _row(
             OrderFlowStrings.deliverTo,
-            deliverTo ?? OrderFlowData.deliveryAddress,
+            deliverTo ?? '',
           ),
           SizedBox(height: 10.h),
           _row(
             OrderFlowStrings.arrivesIn,
-            arrivesIn ?? OrderFlowData.arrivalWindow,
+            arrivesIn ?? '',
           ),
           SizedBox(height: 10.h),
           const Divider(height: 1, thickness: 1, color: Color(0xFFE0E6E0)),
           SizedBox(height: 10.h),
           _row(
             OrderFlowStrings.orderTotal,
-            orderTotal ?? OrderFlowData.orderTotal,
+            orderTotal ?? '',
             isTotal: true,
           ),
         ],
@@ -335,7 +335,7 @@ class OrderArrivalCard extends StatelessWidget {
             ),
           ),
           Text(
-            arrivalWindow ?? OrderFlowData.arrivalWindow,
+            arrivalWindow ?? '',
             style: AppTextStyles.titleSmall(color: AppColors.textPrimary).copyWith(
               fontWeight: FontWeight.w700,
               fontSize: 16.sp,
@@ -451,7 +451,7 @@ class OrderVendorSummaryCard extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  vendor ?? OrderFlowData.vendor,
+                  vendor ?? '',
                   style: AppTextStyles.labelMedium(color: const Color(0xFF6B756E)).copyWith(
                     fontWeight: FontWeight.w400,
                     fontSize: 13.sp,
@@ -460,7 +460,7 @@ class OrderVendorSummaryCard extends StatelessWidget {
                 ),
               ),
               Text(
-                itemCount ?? OrderFlowData.itemCount,
+                itemCount ?? '',
                 style: AppTextStyles.labelMedium(color: const Color(0xFF1A1A1A)).copyWith(
                   fontWeight: FontWeight.w500,
                   fontSize: 13.sp,
@@ -483,7 +483,7 @@ class OrderVendorSummaryCard extends StatelessWidget {
                 ),
               ),
               Text(
-                orderTotal ?? OrderFlowData.orderTotal,
+                orderTotal ?? '',
                 style: AppTextStyles.labelMedium(color: const Color(0xFF1A1A1A)).copyWith(
                   fontWeight: FontWeight.w700,
                   fontSize: 16.sp,
@@ -537,7 +537,7 @@ class OrderChampCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      subtitle ?? OrderFlowData.driverSubtitle,
+                      subtitle ?? '',
                       style: AppTextStyles.labelMedium(color: const Color(0xFF1A1A1A)).copyWith(
                         fontWeight: FontWeight.w600,
                         fontSize: 14.sp,
@@ -546,7 +546,7 @@ class OrderChampCard extends StatelessWidget {
                     ),
                     SizedBox(height: 2.h),
                     Text(
-                      meta ?? OrderFlowData.driverMeta,
+                      meta ?? '',
                       style: AppTextStyles.labelSmall(color: const Color(0xFF6B756E)).copyWith(
                         fontWeight: FontWeight.w400,
                         fontSize: 12.sp,
@@ -669,7 +669,7 @@ class OrderPaymentRow extends StatelessWidget {
           SizedBox(width: 12.w),
           Expanded(
             child: Text(
-              paymentMethod ?? OrderFlowData.paymentMethod,
+              paymentMethod ?? '',
               style: AppTextStyles.labelMedium(color: const Color(0xFF1A1A1A)).copyWith(
                 fontWeight: FontWeight.w600,
                 fontSize: 14.sp,

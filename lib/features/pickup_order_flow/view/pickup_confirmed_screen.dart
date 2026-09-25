@@ -24,11 +24,11 @@ class PickupConfirmedScreen extends ConsumerStatefulWidget {
 }
 
 class _PickupConfirmedScreenState extends ConsumerState<PickupConfirmedScreen> {
-  String _orderNumber = PickupOrderFlowData.orderId;
-  String _items = PickupOrderFlowData.confirmedItems;
-  String _pickup = PickupOrderFlowData.confirmedPickup;
-  String _payment = PickupOrderFlowData.confirmedPayment;
-  String _total = PickupOrderFlowData.confirmedTotal;
+  String _orderNumber = '';
+  String _items = '';
+  String _pickup = '';
+  String _payment = '';
+  String _total = '';
   bool _loading = true;
 
   @override
@@ -66,7 +66,7 @@ class _PickupConfirmedScreenState extends ConsumerState<PickupConfirmedScreen> {
 
     setState(() {
       _orderNumber =
-          order['orderNumber']?.toString() ?? order['id']?.toString() ?? _orderNumber;
+          order['orderNumber']?.toString() ?? order['id']?.toString() ?? '';
       _items = itemsSummaryFromOrderApi(order);
       if (vendorName != null && vendorName.isNotEmpty) {
         if (eta != null && eta.isNotEmpty) {

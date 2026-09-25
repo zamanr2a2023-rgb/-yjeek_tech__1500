@@ -34,6 +34,12 @@ class ServiceProvider {
     this.openHoursTitle = 'Open · 9–9',
     this.openHoursSubtitle = 'Today',
     this.bookingModeLabel = 'Walk-in / book',
+    this.offerBadge,
+    this.area,
+    this.imageUrl,
+    this.hasRating = false,
+    this.openStatus = 'UNKNOWN',
+    this.fullyBooked = false,
   });
 
   final String id;
@@ -53,6 +59,26 @@ class ServiceProvider {
   final String openHoursTitle;
   final String openHoursSubtitle;
   final String bookingModeLabel;
+  final String? offerBadge;
+  final String? area;
+  final String? imageUrl;
+  final bool hasRating;
+  /// OPEN | CLOSED | UNKNOWN — used to sort availability.
+  final String openStatus;
+  final bool fullyBooked;
+
+  String get locationLabel {
+    final a = area?.trim();
+    if (a != null && a.isNotEmpty) return a;
+    return distance;
+  }
+
+  /// Higher = more available (slots soon / open now).
+  int get availabilityRank {
+    if (fullyBooked || openStatus.toUpperCase() == 'CLOSED') return 0;
+    if (openStatus.toUpperCase() == 'OPEN') return 2;
+    return 1;
+  }
 }
 
 class ServiceMenuItem {
@@ -63,6 +89,7 @@ class ServiceMenuItem {
     required this.price,
     required this.section,
     required this.duration,
+    this.hasModifiers = false,
   });
 
   final String id;
@@ -71,6 +98,8 @@ class ServiceMenuItem {
   final String price;
   final String section;
   final String duration;
+  /// True → open item detail (>) before booking; false → quick-add (+).
+  final bool hasModifiers;
 }
 
 class ServiceOption {
@@ -101,34 +130,35 @@ class ServiceAddon {
 
 abstract final class ServicesData {
   static String get homeTitle => L10n.tr('Services');
-  static String get searchHint => L10n.tr('Search services or providers…');
+  static String get searchHint => L10n.tr('Search services & providers…');
   static String get popularNearYou => L10n.tr('Popular near you');
   static String get seeAll => L10n.tr('See all');
 
+  /// Figma services.md sub-categories (landing before provider list).
   static const List<ServiceCategoryItem> categories = [
     ServiceCategoryItem(
-      id: 'salon-beauty',
-      name: 'Salon & Beauty',
-      emoji: '✂',
-      iconBackground: Color(0xFFE3F2EB),
-    ),
-    ServiceCategoryItem(
-      id: 'spa-massage',
-      name: 'Spa & Massage',
-      emoji: '☯',
-      iconBackground: Color(0xFFE6F0FF),
-    ),
-    ServiceCategoryItem(
-      id: 'photoshoot',
-      name: 'Photoshoot',
-      emoji: '📷',
-      iconBackground: Color(0xFFEDE3FA),
-    ),
-    ServiceCategoryItem(
-      id: 'home-services',
-      name: 'Home services',
+      id: 'cleaning',
+      name: 'Cleaning',
       emoji: '🧹',
-      iconBackground: Color(0xFFFFF0D9),
+      iconBackground: Color(0xFFE8F5E9),
+    ),
+    ServiceCategoryItem(
+      id: 'ac-plumbing',
+      name: 'AC & Plumbing',
+      emoji: '🔧',
+      iconBackground: Color(0xFFE8F5E9),
+    ),
+    ServiceCategoryItem(
+      id: 'beauty-salon',
+      name: 'Beauty & Salon',
+      emoji: '✂️',
+      iconBackground: Color(0xFFE8F5E9),
+    ),
+    ServiceCategoryItem(
+      id: 'car-services',
+      name: 'Car Services',
+      emoji: '🚗',
+      iconBackground: Color(0xFFE8F5E9),
     ),
   ];
 

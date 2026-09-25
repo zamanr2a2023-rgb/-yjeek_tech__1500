@@ -10,6 +10,7 @@ class StorageService {
   static const _keyPhone = 'phone';
   static const _keyToken = 'auth_token';
   static const _keyLanguage = 'language_code';
+  static const _keyRetailGridView = 'retail_category_grid_view';
 
   static Future<StorageService> init() async {
     final prefs = await SharedPreferences.getInstance();
@@ -33,6 +34,13 @@ class StorageService {
 
   Future<void> saveLanguageCode(String value) =>
       _prefs.setString(_keyLanguage, value);
+
+  /// Customer preferred grid/list on Fashion/Flowers-style category pages.
+  bool get retailCategoryGridView =>
+      _prefs.getBool(_keyRetailGridView) ?? true;
+
+  Future<void> setRetailCategoryGridView(bool isGrid) =>
+      _prefs.setBool(_keyRetailGridView, isGrid);
 
   Future<void> clearSession() async {
     await _prefs.remove(_keyLoggedIn);

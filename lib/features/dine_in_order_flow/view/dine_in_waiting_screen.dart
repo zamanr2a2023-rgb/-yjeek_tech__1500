@@ -31,9 +31,10 @@ class _DineInWaitingScreenState extends ConsumerState<DineInWaitingScreen> {
   Timer? _pollTimer;
   Timer? _tickTimer;
   bool _cancelling = false;
-  String _vendor = DineInOrderFlowData.vendor;
-  String _summary = DineInOrderFlowData.itemSummary;
-  String _total = DineInOrderFlowData.orderTotal;
+  bool _loading = true;
+  String _vendor = '';
+  String _summary = '';
+  String _total = '';
   DateTime? _deadline;
   Duration _totalWindow = _defaultWindow;
 
@@ -93,7 +94,11 @@ class _DineInWaitingScreenState extends ConsumerState<DineInWaitingScreen> {
     final orderId = widget.orderId;
     if (orderId == null || orderId.isEmpty || !mounted) return;
     final order = await ref.read(ordersRepositoryProvider).getOrder(orderId);
-    if (!mounted || order == null) return;
+    if (!mounted) return;
+    if (order == null) {
+      setState(() => _loading = false);
+      return;
+    }
 
     final status = order['status']?.toString();
     final paymentMethod = order['paymentMethod']?.toString();
@@ -119,6 +124,7 @@ class _DineInWaitingScreenState extends ConsumerState<DineInWaitingScreen> {
         DateTime.tryParse(order['createdAt']?.toString() ?? '')?.toLocal();
 
     setState(() {
+      _loading = false;
       _vendor = vendorName;
       _summary =
           '$itemCount ${itemCount == 1 ? 'Item' : 'Items'} · Order $shortId';
@@ -183,6 +189,16 @@ class _DineInWaitingScreenState extends ConsumerState<DineInWaitingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_loading) {
+      return OrderFlowScaffold(
+        showHeader: false,
+        backgroundColor: _screenBg,
+        bottomNavIndex: 1,
+        body: const Center(
+          child: CircularProgressIndicator(color: AppColors.primary),
+        ),
+      );
+    }
     return OrderFlowScaffold(
       showHeader: false,
       backgroundColor: _screenBg,

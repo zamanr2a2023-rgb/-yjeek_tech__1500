@@ -1699,20 +1699,10 @@ class CartReviewSummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final lines = items.isEmpty
-        ? [
-            (
-              qty: '1×',
-              name: CartFlowData.itemName,
-              price: CartFlowData.itemPrice,
-            ),
-            (
-              qty: '1×',
-              name: CartFlowData.addonItemName,
-              price: CartFlowData.addonItemPrice,
-            ),
-          ]
-        : items;
+    final lines = items;
+    final vendorLabel = (vendorName ?? '').trim();
+    final deliverLabel = (deliverTo ?? '').trim();
+    final totalLabel = (orderTotal ?? '').trim();
 
     return CartFlowCard(
       padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
@@ -1720,7 +1710,7 @@ class CartReviewSummaryCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            (vendorName ?? CartFlowData.vendor).toUpperCase(),
+            vendorLabel.isEmpty ? '—' : vendorLabel.toUpperCase(),
             style: AppTextStyles.labelSmall(color: AppColors.textSecondary)
                 .copyWith(
               fontWeight: FontWeight.w600,
@@ -1742,7 +1732,7 @@ class CartReviewSummaryCard extends StatelessWidget {
           _detailRow(
             icon: Icons.location_on_outlined,
             label: CartFlowStrings.deliverToLabel,
-            value: deliverTo ?? CartFlowData.reviewAddressLine,
+            value: deliverLabel.isEmpty ? '—' : deliverLabel,
             trailing: onEditAddress == null
                 ? null
                 : GestureDetector(
@@ -1781,7 +1771,7 @@ class CartReviewSummaryCard extends StatelessWidget {
                 ),
               ),
               Text(
-                orderTotal ?? CartFlowData.orderTotal,
+                totalLabel.isEmpty ? '—' : totalLabel,
                 style: AppTextStyles.labelMedium(color: AppColors.textPrimary)
                     .copyWith(
                   fontWeight: FontWeight.w700,

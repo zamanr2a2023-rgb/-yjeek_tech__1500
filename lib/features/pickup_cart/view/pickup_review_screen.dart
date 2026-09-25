@@ -34,6 +34,7 @@ class _PickupReviewScreenState extends ConsumerState<PickupReviewScreen> {
   late int _secondsLeft;
   Timer? _timer;
   CartSnapshot? _cart;
+  bool _loading = true;
   bool _finishing = false;
   String? _checkoutError;
 
@@ -42,7 +43,6 @@ class _PickupReviewScreenState extends ConsumerState<PickupReviewScreen> {
     super.initState();
     _secondsLeft = _initialSeconds;
     WidgetsBinding.instance.addPostFrameCallback((_) => _load());
-    _startTimer();
   }
 
   void _startTimer() {
@@ -63,7 +63,19 @@ class _PickupReviewScreenState extends ConsumerState<PickupReviewScreen> {
     final cart =
         await ref.read(cartRepositoryProvider).fetchCart(CartOrderType.pickup);
     if (!mounted) return;
-    setState(() => _cart = cart);
+    if (cart.items.isEmpty) {
+      setState(() => _loading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Your pickup cart is empty')),
+      );
+      context.pop();
+      return;
+    }
+    setState(() {
+      _cart = cart;
+      _loading = false;
+    });
+    _startTimer();
   }
 
   Future<void> _finishOrder() async {
@@ -120,16 +132,22 @@ class _PickupReviewScreenState extends ConsumerState<PickupReviewScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final cart = _cart;
-    final vendor = cart?.vendorName.isNotEmpty == true
-        ? cart!.vendorName
-        : PickupCartData.vendor;
-    final collectAt = cart?.pickup?.address ??
-        cart?.pickup?.vendorLabel ??
-        PickupCartData.collectAt;
-    final total = cart != null
-        ? formatCheckoutTotal(cart, widget.tipAmount)
-        : PickupCartData.orderTotal;
+    if (_loading) {
+      return CartFlowScaffold(
+        title: PickupCartStrings.reviewConfirm,
+        lightHeader: true,
+        bottomNavIndex: 2,
+        backgroundColor: const Color(0xFFF2F7F2),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    final cart = _cart!;
+    final vendor = cart.vendorName.isNotEmpty ? cart.vendorName : '—';
+    final collectAt = cart.pickup?.address ??
+        cart.pickup?.vendorLabel ??
+        '—';
+    final total = formatCheckoutTotal(cart, widget.tipAmount);
     final payment = formatPaymentMethod(
       paymentMethodApiValue(widget.paymentId),
     );

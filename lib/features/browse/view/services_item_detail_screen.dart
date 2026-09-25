@@ -5,13 +5,17 @@ import 'package:yjeek_app/core/constants/app_colors.dart';
 import 'package:yjeek_app/core/constants/app_text_styles.dart';
 import 'package:yjeek_app/core/providers/app_providers.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
-import 'package:yjeek_app/features/browse/model/services_data.dart';
-import 'package:yjeek_app/features/browse/view/widgets/services_widgets.dart';
+import 'package:yjeek_app/core/widgets/app_network_image.dart';
 import 'package:yjeek_app/features/auth/utils/require_login.dart';
+import 'package:yjeek_app/features/browse/browse_routes.dart';
+import 'package:yjeek_app/features/browse/model/browse_data.dart';
+import 'package:yjeek_app/features/browse/model/services_data.dart';
+import 'package:yjeek_app/features/browse/view/widgets/item_detail_widgets.dart';
 import 'package:yjeek_app/features/cart/view/widgets/cart_flow_widgets.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/navigation_widgets.dart';
 import 'package:yjeek_app/features/services_booking/services_booking_routes.dart';
 
+/// Service booking customise page — help 2.md (grid/list · visits · Book now).
 class ServicesItemDetailScreen extends ConsumerStatefulWidget {
   const ServicesItemDetailScreen({
     super.key,
@@ -32,27 +36,27 @@ class ServicesItemDetailScreen extends ConsumerStatefulWidget {
 class _ServicesItemDetailScreenState
     extends ConsumerState<ServicesItemDetailScreen> {
   int _quantity = 1;
-  int _selectedOption = 0;
-  String _selectedSpecialist = ServicesData.specialists.first;
+  final Map<int, Set<int>> _selectedOptionsByGroup = {};
   final Set<int> _selectedAddons = {};
-
-  ServiceMenuItem _item = ServicesData.glowBeautyMenu.first;
-  String _description = ServicesData.haircutDescription;
-  List<ServiceOption> _options = ServicesData.haircutOptions;
-  List<ServiceAddon> _addons = ServicesData.haircutAddons;
-  List<String> _specialists = ServicesData.specialists;
+  final Set<int> _collapsedGroups = {};
+  bool _addonsExpanded = true;
+  bool _isGridView = true;
   bool _loading = true;
   bool _adding = false;
 
-  static const Color _muted = Color(0xFF6B7A6E);
-  static const Color _green = Color(0xFF2E9E4D);
-  static const Color _mint = Color(0xFFE3F2EB);
-  static const Color _border = Color(0xFFE0E6E0);
+  ServiceMenuItem? _item;
+  String _description = '';
+  List<BrowseOptionGroup> _optionGroups = const [];
+  List<BrowseAddonOption> _addons = const [];
+  String? _imageUrl;
+  String _quantityLabel = 'Sessions';
+
+  bool get _hasCustomize =>
+      _optionGroups.isNotEmpty || _addons.isNotEmpty;
 
   @override
   void initState() {
     super.initState();
-    _item = ServicesData.menuItemById(widget.itemId);
     WidgetsBinding.instance.addPostFrameCallback((_) => _load());
   }
 
@@ -69,12 +73,27 @@ class _ServicesItemDetailScreenState
       setState(() {
         _item = detail.item;
         _description = detail.description;
-        _options = detail.options;
+        _optionGroups = detail.optionGroups;
         _addons = detail.addons;
-        _specialists = detail.specialists;
-        _selectedSpecialist = _specialists.first;
-        _selectedOption = 0;
+        _imageUrl = detail.imageUrl;
+        _quantityLabel = detail.quantityLabel;
+        _selectedOptionsByGroup
+          ..clear()
+          ..addAll(initialOptionSelections(detail.optionGroups));
+        for (final entry in _selectedOptionsByGroup.entries) {
+          final gi = entry.key;
+          if (gi < 0 || gi >= _optionGroups.length) continue;
+          entry.value.removeWhere(
+            (oi) =>
+                oi < 0 ||
+                oi >= _optionGroups[gi].options.length ||
+                !_optionGroups[gi].options[oi].isAvailable,
+          );
+        }
         _selectedAddons.clear();
+        _collapsedGroups.clear();
+        _addonsExpanded = true;
+        _quantity = 1;
         _loading = false;
       });
     } catch (_) {
@@ -84,42 +103,75 @@ class _ServicesItemDetailScreenState
   }
 
   String get _displayPrice {
-    final base = double.tryParse(_item.price) ?? 8;
-    final option = _selectedOption >= 0 && _selectedOption < _options.length
-        ? _options[_selectedOption]
-        : null;
-    final optionExtra = double.tryParse(option?.extraPrice ?? '') ?? 0.0;
+    final item = _item;
+    if (item == null) return '0.000';
+    final base = double.tryParse(item.price) ?? 0;
+    final optionsExtra =
+        optionSelectionsExtraPrice(_optionGroups, _selectedOptionsByGroup);
     var addonTotal = 0.0;
     for (final index in _selectedAddons) {
       if (index >= 0 && index < _addons.length) {
         addonTotal += double.tryParse(_addons[index].price) ?? 0;
       }
     }
-    return ((base + optionExtra + addonTotal) * _quantity).toStringAsFixed(3);
+    return ((base + optionsExtra + addonTotal) * _quantity).toStringAsFixed(3);
   }
 
-  Future<void> _addToBooking({bool replaceCart = false}) async {
+  void _toggleOption(int gi, int oi) {
+    if (gi < 0 || gi >= _optionGroups.length) return;
+    final group = _optionGroups[gi];
+    if (oi < 0 ||
+        oi >= group.options.length ||
+        !group.options[oi].isAvailable) {
+      return;
+    }
+    setState(() {
+      final picks = _selectedOptionsByGroup.putIfAbsent(gi, () => <int>{});
+      if (group.allowsMultiple) {
+        if (picks.contains(oi)) {
+          picks.remove(oi);
+        } else {
+          if (picks.length >= group.maxSelect) {
+            picks.remove(picks.first);
+          }
+          picks.add(oi);
+        }
+      } else {
+        picks
+          ..clear()
+          ..add(oi);
+      }
+    });
+  }
+
+  void _toggleAddon(int i) {
+    setState(() {
+      if (_selectedAddons.contains(i)) {
+        _selectedAddons.remove(i);
+      } else {
+        _selectedAddons.add(i);
+      }
+    });
+  }
+
+  Future<void> _bookNow({bool replaceCart = false}) async {
     if (_adding) return;
     if (!await requireLogin(context, ref)) return;
 
     setState(() => _adding = true);
 
-    final optionIds = <String>[];
-    if (_selectedOption >= 0 &&
-        _selectedOption < _options.length &&
-        _options[_selectedOption].id != null) {
-      optionIds.add(_options[_selectedOption].id!);
-    }
+    final optionIds =
+        optionSelectionIds(_optionGroups, _selectedOptionsByGroup);
     final addonIds = <String>[];
     for (final index in _selectedAddons) {
-      if (index >= 0 && index < _addons.length && _addons[index].id != null) {
+      if (index >= 0 &&
+          index < _addons.length &&
+          _addons[index].id != null) {
         addonIds.add(_addons[index].id!);
       }
     }
 
-    final result = await ref
-        .read(servicesVendorsRepositoryProvider)
-        .addToCart(
+    final result = await ref.read(servicesVendorsRepositoryProvider).addToCart(
           productId: widget.itemId,
           quantity: _quantity,
           optionIds: optionIds,
@@ -131,14 +183,16 @@ class _ServicesItemDetailScreenState
     setState(() => _adding = false);
 
     if (result.ok) {
+      if (!mounted) return;
       context.push(ServicesBookingRoutes.booking);
       return;
     }
 
     if (result.vendorConflict) {
+      if (!mounted) return;
       showCartNewCartDialog(
         context,
-        onConfirm: () => _addToBooking(replaceCart: true),
+        onConfirm: () => _bookNow(replaceCart: true),
       );
       return;
     }
@@ -147,8 +201,9 @@ class _ServicesItemDetailScreenState
       return;
     }
 
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(result.message ?? 'Could not add to booking')),
+      SnackBar(content: Text(result.message ?? 'Could not start booking')),
     );
   }
 
@@ -156,7 +211,7 @@ class _ServicesItemDetailScreenState
   Widget build(BuildContext context) {
     if (_loading) {
       return Scaffold(
-        backgroundColor: AppColors.background,
+        backgroundColor: AppColors.white,
         body: const Center(
           child: CircularProgressIndicator(color: AppColors.primary),
         ),
@@ -166,253 +221,41 @@ class _ServicesItemDetailScreenState
       );
     }
 
-    final topInset = MediaQuery.paddingOf(context).top;
-    // Design hero is 260; scale with width so title stays on-screen (260.h was too tall).
-    final heroHeight = topInset + 200.w;
+    final item = _item;
+    if (item == null) {
+      return Scaffold(
+        backgroundColor: AppColors.white,
+        body: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Could not load service',
+                style: AppTextStyles.bodyMedium(
+                  color: AppColors.textSecondary,
+                ),
+              ),
+              SizedBox(height: 12.h),
+              TextButton(onPressed: _load, child: const Text('Retry')),
+            ],
+          ),
+        ),
+        bottomNavigationBar: ShellBottomNavBar(
+          currentIndex: widget.bottomNavIndex,
+        ),
+      );
+    }
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColors.white,
       body: Column(
         children: [
-          SizedBox(
-            height: heroHeight,
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                const ColoredBox(color: _mint),
-                Positioned(
-                  top: topInset + 12.w,
-                  left: 16.w,
-                  child: GestureDetector(
-                    onTap: () => context.pop(),
-                    child: Container(
-                      width: 38.w,
-                      height: 38.w,
-                      decoration: const BoxDecoration(
-                        color: AppColors.white,
-                        shape: BoxShape.circle,
-                      ),
-                      alignment: Alignment.center,
-                      child: Text(
-                        '‹',
-                        style: TextStyle(
-                          fontSize: 20.sp,
-                          fontWeight: FontWeight.w600,
-                          height: 1,
-                          color: AppColors.textPrimary,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Expanded(
-            child: ListView(
-                    padding: EdgeInsets.fromLTRB(20.w, 18.w, 20.w, 8.w),
-                    children: [
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          Expanded(
-                            child: Text(
-                              _item.name,
-                              style:
-                                  AppTextStyles.titleMedium(
-                                    color: AppColors.textPrimary,
-                                  ).copyWith(
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 24.sp,
-                                    height: 29 / 24,
-                                  ),
-                            ),
-                          ),
-                          Text(
-                            'BHD ${_item.price}',
-                            style: AppTextStyles.titleSmall(color: _green)
-                                .copyWith(
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 18.sp,
-                                  height: 22 / 18,
-                                ),
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: 8.w),
-                      Text(
-                        '🕒 ${_item.duration} · with a senior stylist',
-                        style: AppTextStyles.labelSmall(color: _muted).copyWith(
-                          fontWeight: FontWeight.w500,
-                          fontSize: 13.sp,
-                          height: 16 / 13,
-                        ),
-                      ),
-                      SizedBox(height: 12.w),
-                      Text(
-                        _description,
-                        style: AppTextStyles.bodySmall(color: _muted).copyWith(
-                          fontWeight: FontWeight.w400,
-                          fontSize: 14.sp,
-                          height: 17 / 14,
-                        ),
-                      ),
-                      SizedBox(height: 18.w),
-                      Text(
-                        'CHOOSE OPTION',
-                        style: AppTextStyles.labelSmall(color: _muted).copyWith(
-                          fontWeight: FontWeight.w700,
-                          fontSize: 12.sp,
-                          height: 15 / 12,
-                        ),
-                      ),
-                      SizedBox(height: 10.w),
-                      for (var i = 0; i < _options.length; i++) ...[
-                        if (i > 0) SizedBox(height: 8.w),
-                        ServicesOptionCard(
-                          option: _options[i],
-                          selected: _selectedOption == i,
-                          onTap: () => setState(() => _selectedOption = i),
-                        ),
-                      ],
-                      SizedBox(height: 18.w),
-                      Text(
-                        'SELECT SPECIALIST',
-                        style: AppTextStyles.labelSmall(color: _muted).copyWith(
-                          fontWeight: FontWeight.w700,
-                          fontSize: 12.sp,
-                          height: 15 / 12,
-                        ),
-                      ),
-                      SizedBox(height: 10.w),
-                      ServicesSpecialistChips(
-                        options: _specialists,
-                        selected: _selectedSpecialist,
-                        onSelected: (v) =>
-                            setState(() => _selectedSpecialist = v),
-                      ),
-                      SizedBox(height: 18.w),
-                      Text(
-                        'ADD-ONS',
-                        style: AppTextStyles.labelSmall(color: _muted).copyWith(
-                          fontWeight: FontWeight.w700,
-                          fontSize: 12.sp,
-                          height: 15 / 12,
-                        ),
-                      ),
-                      for (var i = 0; i < _addons.length; i++)
-                        ServicesAddonRow(
-                          addon: _addons[i],
-                          checked: _selectedAddons.contains(i),
-                          onChanged: (v) => setState(() {
-                            if (v) {
-                              _selectedAddons.add(i);
-                            } else {
-                              _selectedAddons.remove(i);
-                            }
-                          }),
-                        ),
-                    ],
-                  ),
-          ),
-          Container(
-            padding: EdgeInsets.fromLTRB(20.w, 15.w, 20.w, 15.w),
-            decoration: const BoxDecoration(
-              color: AppColors.white,
-              border: Border(top: BorderSide(color: _border)),
-            ),
-            child: Row(
-              children: [
-                // Design qty: #F2F7F2 bg, green − / +, black count, 92×46, radius 12
-                Container(
-                  width: 92.w,
-                  height: 46.w,
-                  padding: EdgeInsets.symmetric(horizontal: 8.w),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF2F7F2),
-                    border: Border.all(color: _border),
-                    borderRadius: BorderRadius.circular(12.r),
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: () {
-                            if (_quantity > 1) setState(() => _quantity--);
-                          },
-                          behavior: HitTestBehavior.opaque,
-                          child: Center(
-                            child: Text(
-                              '−',
-                              style: TextStyle(
-                                color: _green,
-                                fontSize: 22.sp,
-                                fontWeight: FontWeight.w700,
-                                height: 27 / 22,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                      Text(
-                        '$_quantity',
-                        style:
-                            AppTextStyles.labelMedium(
-                              color: AppColors.textPrimary,
-                            ).copyWith(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 16.sp,
-                              height: 19 / 16,
-                            ),
-                      ),
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: () => setState(() => _quantity++),
-                          behavior: HitTestBehavior.opaque,
-                          child: Center(
-                            child: Text(
-                              '+',
-                              style: TextStyle(
-                                color: _green,
-                                fontSize: 22.sp,
-                                fontWeight: FontWeight.w700,
-                                height: 27 / 22,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                SizedBox(width: 12.w),
-                Expanded(
-                  child: GestureDetector(
-                    onTap: _adding ? null : () => _addToBooking(),
-                    child: Container(
-                      height: 55.w,
-                      decoration: BoxDecoration(
-                        color: _green,
-                        // Design CSS: border-radius 14
-                        borderRadius: BorderRadius.circular(14.r),
-                      ),
-                      alignment: Alignment.center,
-                      child: Text(
-                        _adding
-                            ? 'Adding…'
-                            : 'Add to booking · BHD $_displayPrice',
-                        style: AppTextStyles.labelMedium(color: AppColors.white)
-                            .copyWith(
-                              fontWeight: FontWeight.w700,
-                              fontSize: 16.sp,
-                              height: 19 / 16,
-                            ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
+          Expanded(child: _buildBody(item)),
+          ItemAddToCartBar(
+            label: 'Book now · BHD $_displayPrice',
+            busyLabel: 'Booking…',
+            busy: _adding,
+            onTap: () => _bookNow(),
           ),
         ],
       ),
@@ -420,5 +263,232 @@ class _ServicesItemDetailScreenState
         currentIndex: widget.bottomNavIndex,
       ),
     );
+  }
+
+  Widget _buildBody(ServiceMenuItem item) {
+    return CustomScrollView(
+      slivers: [
+        SliverToBoxAdapter(child: _buildImageSection()),
+        SliverPadding(
+          padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 8.h),
+          sliver: SliverList(
+            delegate: SliverChildListDelegate([
+              Text(
+                item.name,
+                style: AppTextStyles.titleMedium(
+                  color: AppColors.textPrimary,
+                ).copyWith(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 20.sp,
+                  height: 1.2,
+                ),
+              ),
+              SizedBox(height: 6.h),
+              Text(
+                'BHD ${item.price}',
+                style: AppTextStyles.titleSmall(color: AppColors.primary)
+                    .copyWith(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 16.sp,
+                  height: 1.2,
+                ),
+              ),
+              if (_description.trim().isNotEmpty) ...[
+                SizedBox(height: 8.h),
+                Text(
+                  _description,
+                  style: AppTextStyles.bodyMedium(
+                    color: const Color(0xFF6B6B6B),
+                  ).copyWith(
+                    fontWeight: FontWeight.w400,
+                    fontSize: 14.sp,
+                    height: 1.25,
+                  ),
+                ),
+              ],
+              if (_hasCustomize) ...[
+                SizedBox(height: 12.h),
+                const Divider(
+                  height: 1,
+                  thickness: 1,
+                  color: Color(0xFFE2E2E2),
+                ),
+                SizedBox(height: 4.h),
+                ItemCustomizeHeader(
+                  title: 'Customise your booking',
+                  isGridView: _isGridView,
+                  onViewChanged: (v) => setState(() => _isGridView = v),
+                ),
+                for (var gi = 0; gi < _optionGroups.length; gi++)
+                  _buildOptionGroup(gi),
+                if (_addons.isNotEmpty) _buildAddonsSection(),
+                const Divider(
+                  height: 1,
+                  thickness: 1,
+                  color: Color(0xFFE2E2E2),
+                ),
+              ],
+              ItemQuantityRow(
+                label: _quantityLabel,
+                quantity: _quantity,
+                onMinus: () {
+                  if (_quantity > 1) setState(() => _quantity--);
+                },
+                onPlus: () => setState(() => _quantity++),
+              ),
+              SizedBox(height: 8.h),
+            ]),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildImageSection() {
+    return SizedBox(
+      height: 280.h,
+      width: double.infinity,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          ColoredBox(
+            color: const Color(0xFFE8F5E9),
+            child: _imageUrl != null && _imageUrl!.isNotEmpty
+                ? AppNetworkImage(
+                    url: _imageUrl!,
+                    fit: BoxFit.cover,
+                    errorWidget: const ColoredBox(color: Color(0xFFE8F5E9)),
+                  )
+                : null,
+          ),
+          Positioned(
+            top: 0,
+            left: 16.w,
+            child: SafeArea(
+              bottom: false,
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () {
+                  if (context.canPop()) {
+                    context.pop();
+                  } else {
+                    context.go(
+                      BrowseRoutes.servicesProvider(
+                        providerId: widget.providerId,
+                      ),
+                    );
+                  }
+                },
+                child: Container(
+                  width: 36.w,
+                  height: 36.w,
+                  decoration: const BoxDecoration(
+                    color: AppColors.white,
+                    shape: BoxShape.circle,
+                  ),
+                  alignment: Alignment.center,
+                  child: Icon(
+                    Icons.chevron_left_rounded,
+                    size: 22.sp,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOptionGroup(int gi) {
+    final group = _optionGroups[gi];
+    final expanded = !_collapsedGroups.contains(gi);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        ItemOptionAccordionHeader(
+          title: group.name,
+          hint: _groupHint(group, gi),
+          expanded: expanded,
+          onTap: () => setState(() {
+            if (expanded) {
+              _collapsedGroups.add(gi);
+            } else {
+              _collapsedGroups.remove(gi);
+            }
+          }),
+        ),
+        if (expanded)
+          ItemOptionsLayout(
+            isGridView: _isGridView,
+            gridStyle: ItemOptionGridStyle.chips,
+            multiple: group.allowsMultiple,
+            itemCount: group.options.length,
+            labelAt: (i) => group.options[i].label,
+            priceAt: (i) => _optionPriceLabel(group.options[i]),
+            selectedAt: (i) =>
+                _selectedOptionsByGroup[gi]?.contains(i) ?? false,
+            imageAt: (_) => null,
+            stockAt: (i) => group.options[i].stockLabel,
+            enabledAt: (i) => group.options[i].isAvailable,
+            onTapAt: (i) => _toggleOption(gi, i),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildAddonsSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        ItemOptionAccordionHeader(
+          title: 'Add extras',
+          hint: 'Optional · Select any',
+          expanded: _addonsExpanded,
+          onTap: () => setState(() => _addonsExpanded = !_addonsExpanded),
+        ),
+        if (_addonsExpanded)
+          ItemOptionsLayout(
+            isGridView: _isGridView,
+            gridStyle: ItemOptionGridStyle.cards,
+            multiple: true,
+            itemCount: _addons.length,
+            labelAt: (i) => _addons[i].label,
+            priceAt: (i) => _addons[i].priceLabel,
+            selectedAt: (i) => _selectedAddons.contains(i),
+            imageAt: (i) => _addons[i].imageUrl,
+            onTapAt: _toggleAddon,
+          ),
+      ],
+    );
+  }
+
+  String _optionPriceLabel(BrowseSizeOption opt) {
+    if (opt.isIncluded) return 'Included';
+    final p = opt.extraPrice;
+    if (p == null || p.isEmpty) return 'Included';
+    return '+BHD $p';
+  }
+
+  String _groupHint(BrowseOptionGroup group, int gi) {
+    final picks = _selectedOptionsByGroup[gi];
+    String? selectedLabel;
+    if (picks != null && picks.isNotEmpty) {
+      final oi = picks.first;
+      if (oi >= 0 && oi < group.options.length) {
+        selectedLabel = group.options[oi].label;
+      }
+    }
+    if (group.isRequired) {
+      if (selectedLabel != null && selectedLabel.isNotEmpty) {
+        return 'Required · $selectedLabel';
+      }
+      return 'Required';
+    }
+    if (selectedLabel != null && selectedLabel.isNotEmpty) {
+      return 'Optional · $selectedLabel';
+    }
+    return 'Optional · Select any';
   }
 }

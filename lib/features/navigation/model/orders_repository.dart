@@ -401,7 +401,9 @@ OrderHistoryItem? orderHistoryItemFromJson(Map<String, dynamic> json) {
   final vendorName = vendor is Map<String, dynamic>
       ? (vendor['name'] as String? ?? 'Vendor')
       : 'Vendor';
-
+  final vendorId = vendor is Map<String, dynamic>
+      ? vendor['id']?.toString()
+      : null;
   final statusRaw = (json['status'] as String?)?.toUpperCase() ?? '';
   final orderType = (json['orderType'] as String?)?.toUpperCase() ?? 'DELIVERY';
   final fulfillment = (json['fulfillmentType'] as String?)?.toUpperCase();
@@ -413,8 +415,9 @@ OrderHistoryItem? orderHistoryItemFromJson(Map<String, dynamic> json) {
       : 'BHD ${total?.toString() ?? '0.000'}';
 
   final itemCount = (json['itemCount'] as num?)?.toInt() ?? 0;
-  final createdAt = json['createdAt'] ?? json['relativeVisitAt'];
-  final whenLabel = _formatWhen(createdAt);
+  final createdAtRaw = json['createdAt'] ?? json['relativeVisitAt'];
+  final createdAt = DateTime.tryParse(createdAtRaw?.toString() ?? '');
+  final whenLabel = _formatWhen(createdAtRaw);
   final typeLabel = _typeLabel(orderType, fulfillment);
   final subtitle = itemCount > 0
       ? '$typeLabel · $whenLabel · $itemCount ${itemCount == 1 ? 'Item' : 'items'}'
@@ -457,6 +460,8 @@ OrderHistoryItem? orderHistoryItemFromJson(Map<String, dynamic> json) {
     actions: actions,
     badge: badge,
     arrivalText: arrivalText,
+    vendorId: vendorId,
+    createdAt: createdAt,
   );
 }
 

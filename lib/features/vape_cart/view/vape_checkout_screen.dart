@@ -75,10 +75,11 @@ class _VapeCheckoutScreenState extends ConsumerState<VapeCheckoutScreen> {
   List<BillLine> get _billLines {
     final cart = _cart;
     if (cart == null) return const [];
-    final base = billLinesWithTip(cart, _tipAmount);
     final fee = _selectedMethod.priceValue;
-    return [
-      for (final line in base)
+    final baseFee = deliveryFeeFromBillLines(cart.billLines) ?? 0;
+    final adjusted = cart.totalAmount - baseFee + fee;
+    final withDelivery = [
+      for (final line in cart.billLines)
         if (line.label.toLowerCase().contains('delivery'))
           BillLine(
             label: line.label,
@@ -87,6 +88,7 @@ class _VapeCheckoutScreenState extends ConsumerState<VapeCheckoutScreen> {
         else
           line,
     ];
+    return billLinesWithVatAndTip(withDelivery, adjusted, _tipAmount);
   }
 
   String get _totalLabel {
@@ -95,7 +97,7 @@ class _VapeCheckoutScreenState extends ConsumerState<VapeCheckoutScreen> {
     final baseFee = deliveryFeeFromBillLines(cart.billLines) ?? 0;
     final adjusted =
         cart.totalAmount - baseFee + _selectedMethod.priceValue;
-    return 'BHD ${(adjusted + _tipAmount).toStringAsFixed(3)}';
+    return 'BHD ${checkoutGrandTotal(adjusted, _tipAmount).toStringAsFixed(3)}';
   }
 
   @override

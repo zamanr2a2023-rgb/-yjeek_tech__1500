@@ -199,7 +199,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
     final snap = _snapshotForTab(tab);
     if (snap.vendorName.isNotEmpty) return snap.vendorName;
     return switch (tab) {
-      CartTab.orders => NavigationData.cartVendor,
+      CartTab.orders => 'Your cart',
       CartTab.dineIn => 'Dine-in',
       CartTab.pickup => 'Pickup',
       CartTab.services => 'Services',

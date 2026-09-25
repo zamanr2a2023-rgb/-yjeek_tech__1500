@@ -40,12 +40,12 @@ class _DineInReviewScreenState extends ConsumerState<DineInReviewScreen> {
   bool _placing = false;
   bool _loading = true;
 
-  String _vendor = DineInCartData.vendorFull;
-  String _items = 'Mixed Grill Platter + 2 more';
-  String _time = DineInCartData.dineInTime;
-  String _payment = DineInCartStrings.yjeekWallet;
-  String _total = DineInCartData.orderTotal;
-  List<BillLine> _bill = DineInCartData.billLines;
+  String _vendor = '';
+  String _items = '';
+  String _time = '';
+  String _payment = '';
+  String _total = '';
+  List<BillLine> _bill = const [];
   late DineInPrepMode _prepMode;
 
   @override
@@ -53,11 +53,7 @@ class _DineInReviewScreenState extends ConsumerState<DineInReviewScreen> {
     super.initState();
     _secondsLeft = _initialSeconds;
     _prepMode = widget.prepMode;
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      await _hydrate();
-      if (!mounted) return;
-      _startTimer();
-    });
+    WidgetsBinding.instance.addPostFrameCallback((_) => _hydrate());
   }
 
   @override
@@ -88,16 +84,24 @@ class _DineInReviewScreenState extends ConsumerState<DineInReviewScreen> {
         await ref.read(cartRepositoryProvider).fetchCart(CartOrderType.dineIn);
     if (!mounted) return;
 
+    if (cart.items.isEmpty) {
+      if (!mounted) return;
+      setState(() => _loading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Your dine-in cart is empty')),
+      );
+      context.pop();
+      return;
+    }
+
     final paymentId = pending?.paymentId ?? 'wallet';
-    final itemLabel = cart.items.isEmpty
-        ? _items
-        : (cart.items.length == 1
-            ? cart.items.first.name
-            : '${cart.items.first.name} + ${cart.items.length - 1} more');
+    final itemLabel = cart.items.length == 1
+        ? cart.items.first.name
+        : '${cart.items.first.name} + ${cart.items.length - 1} more';
     final readyLabel = formatDineInReadyLabel(
       dineIn: cart.dineIn,
       eta: cart.deliveryEta,
-      fallback: DineInCartData.dineInTime,
+      fallback: '—',
     );
     final timeLabel = _prepMode == DineInPrepMode.prepareOnArrival
         ? formatPickupTimeLabel(
@@ -115,6 +119,7 @@ class _DineInReviewScreenState extends ConsumerState<DineInReviewScreen> {
       _bill = cart.billLines;
       _loading = false;
     });
+    _startTimer();
   }
 
   Future<void> _confirmAndPlace() async {

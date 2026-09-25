@@ -4,11 +4,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:yjeek_app/core/constants/navigation_strings.dart';
 import 'package:yjeek_app/features/cart/model/cart_repository.dart';
+import 'package:yjeek_app/features/cart/model/checkout_pricing.dart';
 import 'package:yjeek_app/features/cart/model/pending_checkout.dart';
 import 'package:yjeek_app/features/geofence/model/active_geofence_order_context.dart';
 import 'package:yjeek_app/features/geofence/service/geofence_session_controller.dart';
 import 'package:yjeek_app/routes/app_router.dart';
 import 'package:yjeek_app/features/navigation/model/navigation_data.dart';
+
+export 'package:yjeek_app/features/cart/model/checkout_pricing.dart';
 
 /// Maps UI payment option ids → backend PaymentMethod enum values.
 String paymentMethodApiValue(String paymentId) {
@@ -155,9 +158,28 @@ double? parseTipInput(String raw) {
   return double.tryParse(cleaned);
 }
 
-List<BillLine> billLinesWithTip(CartSnapshot cart, double tipAmount) {
-  final lines = List<BillLine>.from(cart.billLines);
-  lines.removeWhere((l) => l.isBold);
+/// Appends VAT / tip / order total onto cart bill lines (strips any existing bold total).
+List<BillLine> billLinesWithVatAndTip(
+  List<BillLine> cartBillLines,
+  double amountBeforeVat,
+  double tipAmount, {
+  String totalLabel = 'Order total',
+}) {
+  final lines = List<BillLine>.from(cartBillLines);
+  lines.removeWhere((l) {
+    if (l.isBold) return true;
+    final label = l.label.toLowerCase();
+    return label.contains('vat') || label == 'tip';
+  });
+  final vat = checkoutVatAmount(amountBeforeVat);
+  if (vat > 0) {
+    lines.add(
+      BillLine(
+        label: 'VAT (10%)',
+        value: 'BHD ${vat.toStringAsFixed(3)}',
+      ),
+    );
+  }
   if (tipAmount > 0) {
     lines.add(
       BillLine(
@@ -166,10 +188,10 @@ List<BillLine> billLinesWithTip(CartSnapshot cart, double tipAmount) {
       ),
     );
   }
-  final total = cart.totalAmount + tipAmount;
+  final total = checkoutGrandTotal(amountBeforeVat, tipAmount);
   lines.add(
     BillLine(
-      label: 'Order total',
+      label: totalLabel,
       value: 'BHD ${total.toStringAsFixed(3)}',
       isBold: true,
     ),
@@ -177,8 +199,12 @@ List<BillLine> billLinesWithTip(CartSnapshot cart, double tipAmount) {
   return lines;
 }
 
+List<BillLine> billLinesWithTip(CartSnapshot cart, double tipAmount) {
+  return billLinesWithVatAndTip(cart.billLines, cart.totalAmount, tipAmount);
+}
+
 String formatCheckoutTotal(CartSnapshot cart, double tipAmount) {
-  return 'BHD ${(cart.totalAmount + tipAmount).toStringAsFixed(3)}';
+  return 'BHD ${checkoutGrandTotal(cart.totalAmount, tipAmount).toStringAsFixed(3)}';
 }
 
 /// Formats a pickup slot datetime for the time card.

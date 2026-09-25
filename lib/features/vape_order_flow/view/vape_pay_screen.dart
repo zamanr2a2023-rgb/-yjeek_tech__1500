@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:yjeek_app/core/constants/app_colors.dart';
 import 'package:yjeek_app/core/providers/app_providers.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/features/order_flow/model/order_api_mappers.dart';
@@ -33,16 +34,17 @@ class _VapePayScreenState extends ConsumerState<VapePayScreen> {
   bool _expiring = false;
   bool _expired = false;
   bool _methodBusy = false;
+  bool _loading = true;
   DateTime? _payArmedAt;
-  String _vendor = 'Vapeology';
+  String _vendor = '';
   String _method = 'BenefitPay';
   String _methodApi = 'BENEFIT_PAY';
   String _balance = 'Balance BHD 0.000';
   num _totalAmount = 0;
-  String _subtotal = '—';
-  String _delivery = '—';
+  String _subtotal = '';
+  String _delivery = '';
   String _deliveryLabel = VapeOrderFlowStrings.sameDayDelivery;
-  String _total = '—';
+  String _total = '';
   int _windowSeconds = _defaultSeconds;
   List<PayNowOption> _paymentOptions =
       List.of(PayNowHelper.defaultPaymentOptions);
@@ -84,7 +86,10 @@ class _VapePayScreenState extends ConsumerState<VapePayScreen> {
 
   Future<void> _hydrate() async {
     final ids = widget.orderIds;
-    if (ids.isEmpty) return;
+    if (ids.isEmpty) {
+      if (mounted) setState(() => _loading = false);
+      return;
+    }
 
     final wallet = await ref.read(walletRepositoryProvider).fetchWallet();
     final balanceNum = wallet.balance ?? parseMoney(wallet.balanceLabel) ?? 0;
@@ -159,6 +164,7 @@ class _VapePayScreenState extends ConsumerState<VapePayScreen> {
           _secondsLeft = 0;
         }
       }
+      _loading = false;
     });
 
     if (allPaid) {
@@ -257,6 +263,16 @@ class _VapePayScreenState extends ConsumerState<VapePayScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_loading) {
+      return OrderFlowScaffold(
+        showHeader: false,
+        bottomNavIndex: 0,
+        backgroundColor: const Color(0xFFF2F7F2),
+        body: const Center(
+          child: CircularProgressIndicator(color: AppColors.primary),
+        ),
+      );
+    }
     return OrderFlowScaffold(
       showHeader: false,
       bottomNavIndex: 0,

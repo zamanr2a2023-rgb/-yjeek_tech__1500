@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:yjeek_app/core/network/api_client.dart';
 import 'package:yjeek_app/core/services/storage_service.dart';
 import 'package:yjeek_app/features/cart/model/addresses_repository.dart';
+import 'package:yjeek_app/features/cart/model/checkout_pricing.dart';
 import 'package:yjeek_app/features/cart/model/delivery_range.dart';
 import 'package:yjeek_app/features/navigation/model/navigation_data.dart';
 
@@ -250,7 +251,7 @@ class CartSnapshot {
   /// Vape / nicotine store cart (scheduled delivery tiers). Not the same as ageRestricted.
   final bool isVape;
 
-  /// Raw order total from API (for tip math on checkout).
+  /// Raw pre-VAT order total from API (for tip / VAT math on checkout).
   final double totalAmount;
 
   /// PREPARE_NOW | PREPARE_ON_ARRIVAL (DINE_IN).
@@ -981,7 +982,7 @@ CartSnapshot cartSnapshotFromJson(
     seatingPreference: json['seatingPreference']?.toString(),
     specialOccasion: json['specialOccasion'] as String?,
     pickup: pickup,
-    totalLabel: _money(totalNum),
+    totalLabel: _money(checkoutGrandTotal(totalNum)),
     cashbackLabel: cashback == null
         ? '+ BHD 0.000'
         : '+ ${_money(cashback)}',
@@ -1122,7 +1123,7 @@ CartSnapshot? scheduledCartSnapshotFromJson(Map<String, dynamic> json) {
     upsell: upsellItems,
     upsellTitle: upsellMap?['title'] as String? ?? 'Add more … ?',
     includeCutlery: false,
-    totalLabel: _money(scheduledTotal),
+    totalLabel: _money(checkoutGrandTotal(scheduledTotal)),
     cashbackLabel: cashback == null
         ? '+ BHD 0.000'
         : '+ ${_money(cashback)}',
@@ -1153,12 +1154,21 @@ List<BillLine> _electronicsBillLines(Map<String, dynamic>? summary) {
   lines.addAll([
     BillLine(label: 'Delivery', value: _money(summary['deliveryFee'] ?? 0)),
     BillLine(label: 'Service fee', value: _money(summary['serviceFee'] ?? 0)),
+  ]);
+  final totalAmount = (summary['totalAmount'] as num?)?.toDouble() ??
+      double.tryParse(summary['totalAmount']?.toString() ?? '') ??
+      0;
+  final vat = checkoutVatAmount(totalAmount);
+  if (vat > 0) {
+    lines.add(BillLine(label: 'VAT (10%)', value: _money(vat)));
+  }
+  lines.add(
     BillLine(
       label: 'Total',
-      value: _money(summary['totalAmount'] ?? 0),
+      value: _money(checkoutGrandTotal(totalAmount)),
       isBold: true,
     ),
-  ]);
+  );
   return lines;
 }
 
@@ -1208,10 +1218,17 @@ List<BillLine> _billLinesFromSummary(
       BillLine(label: 'Service fee', value: _money(summary['serviceFee'] ?? 0)),
     );
   }
+  final totalAmount = (summary['totalAmount'] as num?)?.toDouble() ??
+      double.tryParse(summary['totalAmount']?.toString() ?? '') ??
+      0;
+  final vat = checkoutVatAmount(totalAmount);
+  if (vat > 0) {
+    lines.add(BillLine(label: 'VAT (10%)', value: _money(vat)));
+  }
   lines.add(
     BillLine(
       label: 'Order total',
-      value: _money(summary['totalAmount'] ?? 0),
+      value: _money(checkoutGrandTotal(totalAmount)),
       isBold: true,
     ),
   );

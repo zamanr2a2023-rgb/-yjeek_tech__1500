@@ -7,6 +7,7 @@ import 'package:yjeek_app/features/cart/view/widgets/cart_flow_widgets.dart';
 import 'package:yjeek_app/features/scheduled_cart/model/scheduled_cart_data.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/navigation_widgets.dart';
 
+/// DEPRECATED — use [LiveCartBody].
 class ScheduledCartBody extends StatefulWidget {
   const ScheduledCartBody({
     super.key,

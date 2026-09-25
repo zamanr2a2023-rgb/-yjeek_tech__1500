@@ -89,10 +89,39 @@ abstract final class VapeCartStrings {
   static String get phone => L10n.tr('+973 3558 0000');
   static const String paymentNote =
       "You won't be charged now. Once the vendor accepts, you'll have 5 minutes to pay";
-  static String get verifyTitle => L10n.tr('Verify your age first');
-  static String get verifyBody => L10n.tr('This is an age-restricted (18+) order. You need to upload your CPR and documents and get verified before you can place this order.');
-  static String get goToVerification => L10n.tr('Go to verification');
-  static String get notNow => L10n.tr('Not now');
+  static String get verifyTitle => L10n.tr('Verify your ID');
+  static String get verifyBody => L10n.tr(
+        'This store sells age-restricted products. Verification is a one-time check that unlocks 18+ purchases.',
+      );
+  static String get verifyNow => L10n.tr('Verify now');
+  static String get maybeLater => L10n.tr('Maybe later');
+  static String get goToVerification => L10n.tr('Verify now');
+  static String get notNow => L10n.tr('Maybe later');
+  static String get verifyBenefitInstant =>
+      L10n.tr('Instant: Checkout as soon as you verify (1-2 mins)');
+  static String get verifyBenefitOnce =>
+      L10n.tr('One time only: Works for every product and every store');
+  static String get verifyBenefitDelivery =>
+      L10n.tr('Checked again on delivery: Your order is checked on delivery.');
+  static String get verifyIdCta => L10n.tr('Verify your ID');
+  static String get scanCprTitle => L10n.tr('Scan your CPR');
+  static String get scanCprHint =>
+      L10n.tr('Your ID is encrypted and stored securely.');
+  static String get frontCpr => L10n.tr('Front of CPR - Tap to scan or upload');
+  static String get backCpr => L10n.tr('Back of CPR - Tap to scan or upload');
+  static String get confirmOwnership => L10n.tr(
+        'I confirm that the provided ID belongs to me and the information is correct.',
+      );
+  static String get verifyMyId => L10n.tr('Verify my ID');
+  static String get checkingTitle => L10n.tr('Checking your ID...');
+  static String get checkingBody =>
+      L10n.tr('This usually takes a few seconds. Do not close the app.');
+  static String get verifiedTitle => L10n.tr('You are verified');
+  static String get idAlreadyUsedTitle => L10n.tr('This ID is already in use');
+  static String get under18Title => L10n.tr('You are under 18');
+  static String get contactSupport => L10n.tr('Contact support');
+  static String get tryAnotherId => L10n.tr('Try another ID');
+  static String get continueShopping => L10n.tr('Continue shopping');
   static String get cashbackEarn => L10n.tr('Earn 3% cashback to your Wallet');
   static String get enterPromoCode => L10n.tr('Enter promo code');
   static String get submit => L10n.tr('Submit');
