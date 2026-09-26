@@ -24,7 +24,7 @@ class VapeStatusScreen extends ConsumerStatefulWidget {
 
 class _VapeStatusScreenState extends ConsumerState<VapeStatusScreen> {
   Timer? _pollTimer;
-  String _subtitle = VapeOrderFlowData.statusSubtitle;
+  String _subtitle = '';
   String _packed = VapeOrderFlowStrings.packedBanner;
   String _mapHint = VapeOrderFlowStrings.liveMapHint;
   bool _mapUnlocked = false;

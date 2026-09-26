@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:yjeek_app/core/constants/app_colors.dart';
 import 'package:yjeek_app/core/providers/app_providers.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/features/order_flow/model/order_api_mappers.dart';
@@ -33,18 +34,19 @@ class _PickupPayScreenState extends ConsumerState<PickupPayScreen> {
   bool _expiring = false;
   bool _expired = false;
   bool _methodBusy = false;
+  bool _loading = true;
   DateTime? _payArmedAt;
-  String _vendor = PickupOrderFlowData.vendorName;
+  String _vendor = '';
   String _method = 'BenefitPay';
   String _methodApi = 'BENEFIT_PAY';
   String _balance = 'Balance BHD 0.000';
   num _totalAmount = 0;
-  String _subtotal = PickupOrderFlowData.paySubtotal;
+  String _subtotal = '';
   String? _discountLabel;
   String? _discountValue;
-  String _serviceFee = PickupOrderFlowData.payServiceFee;
+  String _serviceFee = '';
   String? _vat;
-  String _total = PickupOrderFlowData.payTotal;
+  String _total = '';
   List<PayNowOption> _paymentOptions =
       List.of(PayNowHelper.defaultPaymentOptions);
 
@@ -79,7 +81,10 @@ class _PickupPayScreenState extends ConsumerState<PickupPayScreen> {
 
   Future<void> _hydrate() async {
     final orderId = widget.orderId;
-    if (orderId == null || orderId.isEmpty) return;
+    if (orderId == null || orderId.isEmpty) {
+      if (mounted) setState(() => _loading = false);
+      return;
+    }
 
     final orderFuture = ref.read(ordersRepositoryProvider).getOrder(orderId);
     final walletFuture = ref.read(walletRepositoryProvider).fetchWallet();
@@ -91,7 +96,10 @@ class _PickupPayScreenState extends ConsumerState<PickupPayScreen> {
     final balanceText = 'Balance ${formatBhd(balanceNum)}';
 
     if (order == null) {
-      setState(() => _balance = balanceText);
+      setState(() {
+        _balance = balanceText;
+        _loading = false;
+      });
       return;
     }
 
@@ -140,6 +148,7 @@ class _PickupPayScreenState extends ConsumerState<PickupPayScreen> {
           _secondsLeft = 0;
         }
       }
+      _loading = false;
     });
 
     if (PayNowHelper.isSettled(paymentStatus)) {
@@ -239,6 +248,15 @@ class _PickupPayScreenState extends ConsumerState<PickupPayScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_loading) {
+      return OrderFlowScaffold(
+        showHeader: false,
+        bottomNavIndex: 1,
+        body: const Center(
+          child: CircularProgressIndicator(color: AppColors.primary),
+        ),
+      );
+    }
     return OrderFlowScaffold(
       showHeader: false,
       bottomNavIndex: 1,

@@ -36,37 +36,58 @@ class CartFlowScaffold extends StatelessWidget {
   final bool showBottomNav;
   final Color? backgroundColor;
 
+  /// Dismiss keyboard when the pointer lands outside the focused input.
+  void _dismissKeyboardIfOutside(PointerDownEvent event) {
+    final focus = FocusManager.instance.primaryFocus;
+    if (focus == null || !focus.hasFocus) return;
+    final ctx = focus.context;
+    if (ctx == null) return;
+    final box = ctx.findRenderObject();
+    if (box is! RenderBox || !box.hasSize) {
+      focus.unfocus();
+      return;
+    }
+    final local = box.globalToLocal(event.position);
+    if (!(Offset.zero & box.size).contains(local)) {
+      focus.unfocus();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final bg = backgroundColor ?? AppColors.background;
-    return Scaffold(
-      backgroundColor: bg,
-      body: ColoredBox(
-        color: bg,
-        child: Column(
-          children: [
-            if (lightHeader)
-              _CheckoutLightHeader(
-                title: title,
-                subtitle: subtitle,
-                onBack: onBack,
-                trailing: trailing,
-              )
-            else
-              GreenScreenHeader(
-                title: title,
-                subtitle: subtitle,
-                onBack: onBack,
-                trailing: trailing,
-              ),
-            Expanded(child: body ?? const SizedBox.shrink()),
-            if (bottom != null) bottom!,
-          ],
+    return Listener(
+      behavior: HitTestBehavior.translucent,
+      onPointerDown: _dismissKeyboardIfOutside,
+      child: Scaffold(
+        backgroundColor: bg,
+        body: ColoredBox(
+          color: bg,
+          child: Column(
+            children: [
+              if (lightHeader)
+                _CheckoutLightHeader(
+                  title: title,
+                  subtitle: subtitle,
+                  onBack: onBack,
+                  trailing: trailing,
+                )
+              else
+                GreenScreenHeader(
+                  title: title,
+                  subtitle: subtitle,
+                  onBack: onBack,
+                  trailing: trailing,
+                ),
+              Expanded(child: body ?? const SizedBox.shrink()),
+              if (bottom != null) bottom!,
+            ],
+          ),
         ),
+        bottomNavigationBar: showBottomNav
+            ? ShellBottomNavBar(currentIndex: bottomNavIndex)
+            : null,
       ),
-      bottomNavigationBar: showBottomNav
-          ? ShellBottomNavBar(currentIndex: bottomNavIndex)
-          : null,
     );
   }
 }
@@ -419,6 +440,7 @@ class CartDropOffGrid extends StatelessWidget {
                     opacity: disabled ? 0.42 : 1,
                     child: GestureDetector(
                       onTap: () {
+                        FocusManager.instance.primaryFocus?.unfocus();
                         // Tapping a conflicting (disabled) chip switches to it.
                         onChanged(applyDropOffSelection(selectedIndices, index));
                       },
@@ -566,7 +588,10 @@ class CartTipSelector extends StatelessWidget {
           child: Padding(
             padding: EdgeInsets.only(right: index < options.length - 1 ? 8.w : 0),
             child: GestureDetector(
-              onTap: () => onSelected(index),
+              onTap: () {
+                FocusManager.instance.primaryFocus?.unfocus();
+                onSelected(index);
+              },
               child: Container(
                 padding: EdgeInsets.symmetric(vertical: 10.h),
                 decoration: BoxDecoration(
@@ -596,7 +621,13 @@ class CartTipSelector extends StatelessWidget {
             child: TextField(
               controller: customController,
               onChanged: onCustomChanged,
+              onTapOutside: (_) {
+                FocusManager.instance.primaryFocus?.unfocus();
+              },
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              textInputAction: TextInputAction.done,
+              onEditingComplete: () =>
+                  FocusManager.instance.primaryFocus?.unfocus(),
               style: AppTextStyles.bodyMedium().copyWith(
                 fontWeight: FontWeight.w600,
                 fontSize: 14.sp,
@@ -732,7 +763,10 @@ class CartPaymentMethodList extends StatelessWidget {
                       color: AppColors.border.withValues(alpha: 0.7),
                     ),
                   InkWell(
-                    onTap: () => onSelected(option.id),
+                    onTap: () {
+                      FocusManager.instance.primaryFocus?.unfocus();
+                      onSelected(option.id);
+                    },
                     child: Padding(
                       padding: EdgeInsets.symmetric(
                         horizontal: 14.w,
@@ -1665,20 +1699,10 @@ class CartReviewSummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final lines = items.isEmpty
-        ? [
-            (
-              qty: '1×',
-              name: CartFlowData.itemName,
-              price: CartFlowData.itemPrice,
-            ),
-            (
-              qty: '1×',
-              name: CartFlowData.addonItemName,
-              price: CartFlowData.addonItemPrice,
-            ),
-          ]
-        : items;
+    final lines = items;
+    final vendorLabel = (vendorName ?? '').trim();
+    final deliverLabel = (deliverTo ?? '').trim();
+    final totalLabel = (orderTotal ?? '').trim();
 
     return CartFlowCard(
       padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
@@ -1686,7 +1710,7 @@ class CartReviewSummaryCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            (vendorName ?? CartFlowData.vendor).toUpperCase(),
+            vendorLabel.isEmpty ? '—' : vendorLabel.toUpperCase(),
             style: AppTextStyles.labelSmall(color: AppColors.textSecondary)
                 .copyWith(
               fontWeight: FontWeight.w600,
@@ -1708,7 +1732,7 @@ class CartReviewSummaryCard extends StatelessWidget {
           _detailRow(
             icon: Icons.location_on_outlined,
             label: CartFlowStrings.deliverToLabel,
-            value: deliverTo ?? CartFlowData.reviewAddressLine,
+            value: deliverLabel.isEmpty ? '—' : deliverLabel,
             trailing: onEditAddress == null
                 ? null
                 : GestureDetector(
@@ -1747,7 +1771,7 @@ class CartReviewSummaryCard extends StatelessWidget {
                 ),
               ),
               Text(
-                orderTotal ?? CartFlowData.orderTotal,
+                totalLabel.isEmpty ? '—' : totalLabel,
                 style: AppTextStyles.labelMedium(color: AppColors.textPrimary)
                     .copyWith(
                   fontWeight: FontWeight.w700,

@@ -142,14 +142,34 @@ abstract final class BrowseRoutes {
     return buffer.toString();
   }
 
-  static String electronicsBrowse({int tab = 0, String category = 'electronics'}) {
+  static String electronicsBrowse({
+    int tab = 0,
+    String category = 'electronics',
+    String? subcategory,
+    String? title,
+  }) {
     final params = <String>[];
     if (tab != 0) params.add('tab=$tab');
     if (category != 'electronics') {
       params.add('category=${Uri.encodeQueryComponent(category)}');
     }
+    if (subcategory != null && subcategory.isNotEmpty) {
+      params.add('subcategory=${Uri.encodeQueryComponent(subcategory)}');
+    }
+    if (title != null && title.isNotEmpty) {
+      params.add('title=${Uri.encodeQueryComponent(title)}');
+    }
     if (params.isEmpty) return RouteNames.electronicsBrowse;
     return '${RouteNames.electronicsBrowse}?${params.join('&')}';
+  }
+
+  /// Fashion / Flowers-style sub-category landing (grid + list).
+  static String retailCategory({required String slug, int tab = 0}) {
+    final buffer = StringBuffer(
+      '${RouteNames.retailCategory}?slug=${Uri.encodeQueryComponent(slug)}',
+    );
+    if (tab != 0) buffer.write('&tab=$tab');
+    return buffer.toString();
   }
 
   static String electronicsStore({

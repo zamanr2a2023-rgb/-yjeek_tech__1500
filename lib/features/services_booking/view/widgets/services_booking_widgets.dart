@@ -271,6 +271,7 @@ class ServicesTipSelector extends StatelessWidget {
           TextField(
             controller: customController,
             onChanged: onCustomChanged,
+            onTapOutside: (_) => FocusManager.instance.primaryFocus?.unfocus(),
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             style: AppTextStyles.bodyMedium().copyWith(
               fontWeight: FontWeight.w600,

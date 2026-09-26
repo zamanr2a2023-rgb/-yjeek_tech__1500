@@ -12,6 +12,10 @@ class VapeStore {
     this.subtitle,
     required this.gradientStart,
     required this.gradientEnd,
+    this.hasRating = false,
+    this.area,
+    this.imageUrl,
+    this.offerBadge,
   });
 
   final String id;
@@ -23,6 +27,16 @@ class VapeStore {
   final String? subtitle;
   final Color gradientStart;
   final Color gradientEnd;
+  final bool hasRating;
+  final String? area;
+  final String? imageUrl;
+  final String? offerBadge;
+
+  String get areaLabel {
+    final a = area?.trim();
+    if (a != null && a.isNotEmpty) return a;
+    return distance;
+  }
 }
 
 class VapeProduct {
@@ -59,6 +73,8 @@ abstract final class VapeData {
   static String get storesSectionTitle => L10n.tr('Stores near you');
   static String get ageBannerShort =>
       L10n.tr('18+ only · your ID is checked on delivery');
+  static String get ageBannerDetailed =>
+      '18+ only. Your CPR will be checked & photographed on delivery to confirm age and name.';
   static String get nicotineStrengthLabel => L10n.tr('Nicotine strength');
 
   static const categories = [

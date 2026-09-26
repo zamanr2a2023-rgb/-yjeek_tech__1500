@@ -75,6 +75,24 @@ class ShellNotifier extends StateNotifier<ShellState> {
     state = state.copyWith(cartRevision: _nextRevision);
   }
 
+  /// After add-to-cart: update flags + revision without switching to the cart tab.
+  void markCartUpdated({
+    bool? delivery,
+    bool? dineIn,
+    bool? pickup,
+    bool? scheduled,
+    bool? vape,
+  }) {
+    state = state.copyWith(
+      cartHasItems: delivery ?? state.cartHasItems,
+      dineInHasItems: dineIn ?? state.dineInHasItems,
+      pickupHasItems: pickup ?? state.pickupHasItems,
+      scheduledHasItems: scheduled ?? state.scheduledHasItems,
+      vapeHasItems: vape ?? state.vapeHasItems,
+      cartRevision: _nextRevision,
+    );
+  }
+
   void setTab(int index) {
     if (index == state.currentIndex) return;
     state = state.copyWith(

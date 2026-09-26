@@ -65,15 +65,17 @@ class _ScheduledCheckoutScreenState
   List<BillLine> get _billLines {
     final cart = _cart;
     if (cart == null) return const [];
-    final base = billLinesWithTip(cart, _tipAmount);
     final fee = _selectedMethod.priceValue;
-    return [
-      for (final line in base)
+    final baseFee = deliveryFeeFromBillLines(cart.billLines) ?? 0;
+    final adjusted = cart.totalAmount - baseFee + fee;
+    final withDelivery = [
+      for (final line in cart.billLines)
         if (line.label.toLowerCase().contains('delivery'))
           BillLine(label: line.label, value: formatBhdMoney(fee))
         else
           line,
     ];
+    return billLinesWithVatAndTip(withDelivery, adjusted, _tipAmount);
   }
 
   String get _totalLabel {
@@ -81,7 +83,7 @@ class _ScheduledCheckoutScreenState
     if (cart == null) return 'BHD 0.000';
     final baseFee = deliveryFeeFromBillLines(cart.billLines) ?? 0;
     final adjusted = cart.totalAmount - baseFee + _selectedMethod.priceValue;
-    return formatBhdMoney(adjusted + _tipAmount);
+    return formatBhdMoney(checkoutGrandTotal(adjusted, _tipAmount));
   }
 
   @override

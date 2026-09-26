@@ -31,9 +31,10 @@ class _PickupWaitingScreenState extends ConsumerState<PickupWaitingScreen> {
   Timer? _pollTimer;
   Timer? _tickTimer;
   bool _cancelling = false;
+  bool _loading = true;
   String _title = PickupOrderFlowStrings.sentToVendor;
-  String _summary = PickupOrderFlowData.waitingSummary;
-  String _total = PickupOrderFlowData.payTotal;
+  String _summary = '';
+  String _total = '';
   DateTime? _deadline;
   Duration _totalWindow = _defaultWindow;
 
@@ -101,7 +102,11 @@ class _PickupWaitingScreenState extends ConsumerState<PickupWaitingScreen> {
     final orderId = widget.orderId;
     if (orderId == null || orderId.isEmpty || !mounted) return;
     final order = await ref.read(ordersRepositoryProvider).getOrder(orderId);
-    if (!mounted || order == null) return;
+    if (!mounted) return;
+    if (order == null) {
+      setState(() => _loading = false);
+      return;
+    }
 
     final status = order['status']?.toString();
     final paymentMethod = order['paymentMethod']?.toString();
@@ -124,6 +129,7 @@ class _PickupWaitingScreenState extends ConsumerState<PickupWaitingScreen> {
         DateTime.tryParse(order['createdAt']?.toString() ?? '')?.toLocal();
 
     setState(() {
+      _loading = false;
       if (vendorName != null && vendorName.isNotEmpty) {
         _title = 'Sent to $vendorName';
       }
@@ -191,6 +197,15 @@ class _PickupWaitingScreenState extends ConsumerState<PickupWaitingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_loading) {
+      return OrderFlowScaffold(
+        showHeader: false,
+        bottomNavIndex: 1,
+        body: const Center(
+          child: CircularProgressIndicator(color: AppColors.primary),
+        ),
+      );
+    }
     return OrderFlowScaffold(
       showHeader: false,
       bottomNavIndex: 1,

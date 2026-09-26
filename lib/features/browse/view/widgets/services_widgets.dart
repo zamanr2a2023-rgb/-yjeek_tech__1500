@@ -16,6 +16,551 @@ abstract final class _ServicesDesign {
   static const Color mutedAlt = Color(0xFF6B756E);
 }
 
+/// Search field on Services sub-category landing (services.md).
+class ServicesSubcategorySearchField extends StatelessWidget {
+  const ServicesSubcategorySearchField({
+    super.key,
+    required this.hint,
+    required this.onChanged,
+  });
+
+  final String hint;
+  final ValueChanged<String> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 44.h,
+      decoration: BoxDecoration(
+        color: const Color(0xFFE8F5E9),
+        borderRadius: BorderRadius.circular(12.r),
+      ),
+      alignment: Alignment.centerLeft,
+      padding: EdgeInsets.symmetric(horizontal: 14.w),
+      child: TextField(
+        onChanged: onChanged,
+        style: AppTextStyles.bodyMedium(color: AppColors.textPrimary)
+            .copyWith(fontSize: 14.sp),
+        decoration: InputDecoration(
+          isDense: true,
+          border: InputBorder.none,
+          hintText: hint,
+          hintStyle: AppTextStyles.bodyMedium(color: const Color(0xFF6B7A6E))
+              .copyWith(fontSize: 14.sp),
+        ),
+      ),
+    );
+  }
+}
+
+/// Grid / list toggle for Services landing.
+class ServicesSubcategoryViewToggle extends StatelessWidget {
+  const ServicesSubcategoryViewToggle({
+    super.key,
+    required this.isGridView,
+    required this.onChanged,
+  });
+
+  final bool isGridView;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.all(2.w),
+      decoration: BoxDecoration(
+        color: const Color(0xFFE8F5E9),
+        borderRadius: BorderRadius.circular(8.r),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _Toggle(
+            icon: Icons.grid_view_rounded,
+            active: isGridView,
+            onTap: () => onChanged(true),
+          ),
+          _Toggle(
+            icon: Icons.view_list_rounded,
+            active: !isGridView,
+            onTap: () => onChanged(false),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _Toggle extends StatelessWidget {
+  const _Toggle({
+    required this.icon,
+    required this.active,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final bool active;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 32.w,
+        height: 32.w,
+        decoration: BoxDecoration(
+          color: active ? AppColors.primary : Colors.transparent,
+          borderRadius: BorderRadius.circular(6.r),
+        ),
+        alignment: Alignment.center,
+        child: Icon(
+          icon,
+          size: 16.sp,
+          color: active ? AppColors.white : const Color(0xFF6B6B6B),
+        ),
+      ),
+    );
+  }
+}
+
+/// Figma grid cards: mint image area + white label.
+class ServicesSubcategoryGrid extends StatelessWidget {
+  const ServicesSubcategoryGrid({
+    super.key,
+    required this.categories,
+    required this.onCategoryTap,
+  });
+
+  final List<ServiceCategoryItem> categories;
+  final ValueChanged<ServiceCategoryItem> onCategoryTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: categories.length,
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        crossAxisSpacing: 12.w,
+        mainAxisSpacing: 12.h,
+        childAspectRatio: 0.92,
+      ),
+      itemBuilder: (context, index) {
+        final category = categories[index];
+        return GestureDetector(
+          onTap: () => onCategoryTap(category),
+          child: Container(
+            decoration: BoxDecoration(
+              color: AppColors.white,
+              borderRadius: BorderRadius.circular(14.r),
+              border: Border.all(color: const Color(0xFFE2E2E2)),
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(
+                  child: ColoredBox(
+                    color: const Color(0xFFE8F5E9),
+                    child: Icon(
+                      _iconFor(category.name),
+                      size: 36.sp,
+                      color: AppColors.primary.withValues(alpha: 0.55),
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding:
+                      EdgeInsets.symmetric(vertical: 12.h, horizontal: 8.w),
+                  child: Text(
+                    category.name,
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTextStyles.labelMedium(
+                      color: AppColors.textPrimary,
+                    ).copyWith(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14.sp,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// Figma list row: mint thumb · name · chevron.
+class ServicesSubcategoryListRow extends StatelessWidget {
+  const ServicesSubcategoryListRow({
+    super.key,
+    required this.category,
+    required this.onTap,
+    this.showDivider = true,
+  });
+
+  final ServiceCategoryItem category;
+  final VoidCallback onTap;
+  final bool showDivider;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        InkWell(
+          onTap: onTap,
+          child: Padding(
+            padding: EdgeInsets.symmetric(vertical: 14.h),
+            child: Row(
+              children: [
+                Container(
+                  width: 48.w,
+                  height: 48.w,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE8F5E9),
+                    borderRadius: BorderRadius.circular(12.r),
+                  ),
+                  alignment: Alignment.center,
+                  child: Icon(
+                    _iconFor(category.name),
+                    size: 22.sp,
+                    color: AppColors.primary.withValues(alpha: 0.7),
+                  ),
+                ),
+                SizedBox(width: 12.w),
+                Expanded(
+                  child: Text(
+                    category.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTextStyles.labelMedium(
+                      color: AppColors.textPrimary,
+                    ).copyWith(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 15.sp,
+                    ),
+                  ),
+                ),
+                Icon(
+                  Icons.chevron_right_rounded,
+                  size: 22.sp,
+                  color: const Color(0xFF6B6B6B),
+                ),
+              ],
+            ),
+          ),
+        ),
+        if (showDivider)
+          const Divider(height: 1, thickness: 1, color: Color(0xFFE2E2E2)),
+      ],
+    );
+  }
+}
+
+IconData _iconFor(String name) {
+  final n = name.toLowerCase();
+  if (n.contains('clean')) return Icons.cleaning_services_outlined;
+  if (n.contains('plumb') || n.contains('ac')) return Icons.plumbing_outlined;
+  if (n.contains('beauty') || n.contains('salon')) {
+    return Icons.content_cut_outlined;
+  }
+  if (n.contains('car') || n.contains('auto')) return Icons.directions_car_outlined;
+  return Icons.handyman_outlined;
+}
+
+/// "Book again" row — prior providers in this subcategory.
+class ServicesBookAgainRow extends StatelessWidget {
+  const ServicesBookAgainRow({
+    super.key,
+    required this.providers,
+    this.onSeeAll,
+    this.onProviderTap,
+  });
+
+  final List<ServiceProvider> providers;
+  final VoidCallback? onSeeAll;
+  final ValueChanged<ServiceProvider>? onProviderTap;
+
+  @override
+  Widget build(BuildContext context) {
+    if (providers.isEmpty) return const SizedBox.shrink();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Text(
+              'Book again',
+              style: AppTextStyles.titleSmall(color: AppColors.textPrimary)
+                  .copyWith(
+                fontWeight: FontWeight.w600,
+                fontSize: 16.sp,
+              ),
+            ),
+            const Spacer(),
+            if (onSeeAll != null)
+              GestureDetector(
+                onTap: onSeeAll,
+                child: Text(
+                  'See all',
+                  style: AppTextStyles.labelSmall(color: AppColors.primary)
+                      .copyWith(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13.sp,
+                  ),
+                ),
+              ),
+          ],
+        ),
+        SizedBox(height: 10.h),
+        SizedBox(
+          height: 75.h,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: providers.length.clamp(0, 8),
+            separatorBuilder: (_, _) => SizedBox(width: 14.w),
+            itemBuilder: (context, index) {
+              final p = providers[index];
+              return GestureDetector(
+                onTap: () => onProviderTap?.call(p),
+                child: SizedBox(
+                  width: 56.w,
+                  child: Column(
+                    children: [
+                      Container(
+                        width: 56.w,
+                        height: 56.w,
+                        decoration: const BoxDecoration(
+                          color: Color(0xFFE8F5E9),
+                          shape: BoxShape.circle,
+                        ),
+                        alignment: Alignment.center,
+                        child: Text(
+                          p.name.isNotEmpty ? p.name[0].toUpperCase() : '?',
+                          style: AppTextStyles.titleSmall(
+                            color: AppColors.primary,
+                          ).copyWith(fontWeight: FontWeight.w700),
+                        ),
+                      ),
+                      SizedBox(height: 4.h),
+                      Text(
+                        p.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
+                        style: AppTextStyles.caption(
+                          color: AppColors.textPrimary,
+                        ).copyWith(fontSize: 11.sp),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// help 2.md list card: thumb · name · area · rating · offer badge.
+class ServicesListingListCard extends StatelessWidget {
+  const ServicesListingListCard({
+    super.key,
+    required this.provider,
+    this.onTap,
+  });
+
+  final ServiceProvider provider;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: 72.h,
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          borderRadius: BorderRadius.circular(14.r),
+          border: Border.all(color: const Color(0xFFDEDEDE)),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Row(
+          children: [
+            SizedBox(
+              width: 88.w,
+              height: 72.h,
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  const ColoredBox(color: Color(0xFFE8F5E9)),
+                  if (provider.offerBadge != null &&
+                      provider.offerBadge!.isNotEmpty)
+                    Positioned(
+                      left: 6.w,
+                      top: 6.h,
+                      child: _OfferBadge(label: provider.offerBadge!),
+                    ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(12.w, 10.h, 12.w, 10.h),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      provider.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTextStyles.labelMedium(
+                        color: AppColors.textPrimary,
+                      ).copyWith(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14.sp,
+                      ),
+                    ),
+                    SizedBox(height: 4.h),
+                    Text(
+                      provider.locationLabel,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTextStyles.caption(
+                        color: const Color(0xFF6B6B6B),
+                      ).copyWith(fontSize: 12.sp),
+                    ),
+                    if (provider.hasRating) ...[
+                      SizedBox(height: 2.h),
+                      Text(
+                        '★ ${provider.rating.toStringAsFixed(1)}',
+                        style: AppTextStyles.caption(
+                          color: const Color(0xFFD98C1A),
+                        ).copyWith(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 12.sp,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// help 2.md grid card.
+class ServicesListingGridCard extends StatelessWidget {
+  const ServicesListingGridCard({
+    super.key,
+    required this.provider,
+    this.onTap,
+  });
+
+  final ServiceProvider provider;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                Container(
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE8F5E9),
+                    borderRadius: BorderRadius.circular(12.r),
+                    border: Border.all(color: const Color(0xFFDEDEDE)),
+                  ),
+                ),
+                if (provider.offerBadge != null &&
+                    provider.offerBadge!.isNotEmpty)
+                  Positioned(
+                    left: 8.w,
+                    top: 8.h,
+                    child: _OfferBadge(label: provider.offerBadge!),
+                  ),
+              ],
+            ),
+          ),
+          SizedBox(height: 8.h),
+          Text(
+            provider.name,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: AppTextStyles.labelMedium(color: AppColors.textPrimary)
+                .copyWith(
+              fontWeight: FontWeight.w700,
+              fontSize: 13.sp,
+            ),
+          ),
+          SizedBox(height: 2.h),
+          Text(
+            provider.locationLabel,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: AppTextStyles.caption(color: const Color(0xFF6B6B6B))
+                .copyWith(fontSize: 11.sp),
+          ),
+          if (provider.hasRating) ...[
+            SizedBox(height: 2.h),
+            Text(
+              '★ ${provider.rating.toStringAsFixed(1)}',
+              style: AppTextStyles.caption(color: const Color(0xFFD98C1A))
+                  .copyWith(
+                fontWeight: FontWeight.w600,
+                fontSize: 11.sp,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _OfferBadge extends StatelessWidget {
+  const _OfferBadge({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.h),
+      decoration: BoxDecoration(
+        color: AppColors.primary,
+        borderRadius: BorderRadius.circular(6.r),
+      ),
+      child: Text(
+        label,
+        style: AppTextStyles.caption(color: AppColors.white).copyWith(
+          fontWeight: FontWeight.w600,
+          fontSize: 10.sp,
+        ),
+      ),
+    );
+  }
+}
+
 class ServicesCategoryGrid extends StatelessWidget {
   const ServicesCategoryGrid({
     super.key,
@@ -28,7 +573,7 @@ class ServicesCategoryGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final items = categories ?? ServicesData.categories;
+    final items = categories ?? const <ServiceCategoryItem>[];
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
@@ -121,20 +666,21 @@ class ServicesPopularSection extends StatelessWidget {
                 ),
               ),
             ),
-            GestureDetector(
-              onTap: onSeeAll,
-              child: Text(
-                ServicesData.seeAll,
-                style:
-                    AppTextStyles.labelSmall(
-                      color: _ServicesDesign.greenDeep,
-                    ).copyWith(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 13.sp,
-                      height: 16 / 13,
-                    ),
+            if (onSeeAll != null)
+              GestureDetector(
+                onTap: onSeeAll,
+                child: Text(
+                  ServicesData.seeAll,
+                  style:
+                      AppTextStyles.labelSmall(
+                        color: _ServicesDesign.greenDeep,
+                      ).copyWith(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13.sp,
+                        height: 16 / 13,
+                      ),
+                ),
               ),
-            ),
           ],
         ),
         SizedBox(height: 14.w),

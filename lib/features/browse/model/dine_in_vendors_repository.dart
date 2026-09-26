@@ -66,7 +66,7 @@ class DineInVendorsRepository {
     final data = response?['data'];
     final list = data is Map<String, dynamic> ? data['cuisines'] : null;
     if (list is! List || list.isEmpty) {
-      return DineInData.cuisineFilters;
+      return const ['All'];
     }
 
     final names = <String>['All'];
@@ -78,7 +78,7 @@ class DineInVendorsRepository {
         names.add(item);
       }
     }
-    return names.length > 1 ? names : DineInData.cuisineFilters;
+    return names.length > 1 ? names : const ['All'];
   }
 
   /// GET /vendors?supportsDineIn=true&category=dine_in&sort=&cuisine=&isBookable=&hasOffers=&q=
@@ -134,7 +134,7 @@ class DineInVendorsRepository {
       final mapped = dineInRestaurantFromVendorJson(data);
       if (mapped != null) return mapped;
     }
-    return DineInData.restaurantById(vendorId);
+    throw StateError('Dine-in vendor not found: $vendorId');
   }
 
   /// GET /vendors/:id/menu?q=
@@ -235,6 +235,7 @@ class DineInVendorsRepository {
             id: id,
             label: name,
             price: priceNum.toStringAsFixed(3),
+            imageUrl: resolveApiMediaUrl(addon['imageUrl'] as String?),
           ),
         );
       }
@@ -459,12 +460,6 @@ String _formatReviewCount(int count) {
 }
 
 (Color, Color) _gradientForName(String name) {
-  for (final r in DineInData.restaurants) {
-    if (r.name.toLowerCase() == name.toLowerCase() ||
-        r.id.toLowerCase() == name.toLowerCase()) {
-      return (r.gradientStart, r.gradientEnd);
-    }
-  }
   final base = HomeBrandStyle.forName(name);
   return (base, const Color(0xFF15302B));
 }

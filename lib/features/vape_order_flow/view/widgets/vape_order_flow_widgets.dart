@@ -164,7 +164,7 @@ class VapeOrderSummaryRow extends StatelessWidget {
         children: [
           Expanded(
             child: Text(
-              summary ?? VapeOrderFlowData.waitingSummary,
+              summary ?? '',
               style: AppTextStyles.labelSmall(color: const Color(0xFF6B7B6E)).copyWith(
                 fontWeight: FontWeight.w500,
                 fontSize: 13.sp,
@@ -173,7 +173,7 @@ class VapeOrderSummaryRow extends StatelessWidget {
             ),
           ),
           Text(
-            total ?? VapeOrderFlowData.payTotal,
+            total ?? '',
             style: AppTextStyles.labelMedium(color: const Color(0xFF1A1A1A)).copyWith(
               fontWeight: FontWeight.w700,
               fontSize: 14.sp,
@@ -497,16 +497,16 @@ class VapePayBreakdownCard extends StatelessWidget {
         children: [
           _row(
             VapeOrderFlowStrings.subtotal,
-            subtotal ?? VapeOrderFlowData.paySubtotal,
+            subtotal ?? '',
           ),
           _row(
             deliveryLabel ?? VapeOrderFlowStrings.sameDayDelivery,
-            delivery ?? VapeOrderFlowData.payDelivery,
+            delivery ?? '',
           ),
           Divider(height: 16.h, thickness: 1, color: const Color(0xFFE2E8DD)),
           _row(
             VapeOrderFlowStrings.totalToPay,
-            total ?? VapeOrderFlowData.payTotal,
+            total ?? '',
             bold: true,
           ),
         ],
@@ -605,7 +605,7 @@ class VapePayStickyFooter extends StatelessWidget {
                 ),
                 alignment: Alignment.center,
                 child: Text(
-                  '${VapeOrderFlowStrings.pay} ${payAmount ?? VapeOrderFlowData.payTotal}',
+                  '${VapeOrderFlowStrings.pay} ${payAmount ?? ''}',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: AppTextStyles.labelMedium(color: AppColors.white).copyWith(
@@ -677,19 +677,19 @@ class VapeOrderDetailsCard extends StatelessWidget {
         children: [
           _row(
             VapeOrderFlowStrings.orderNumber,
-            orderNumber ?? VapeOrderFlowData.orderId,
+            orderNumber ?? '',
           ),
           _row(
             VapeOrderFlowStrings.items,
-            items ?? VapeOrderFlowData.confirmedItems,
+            items ?? '',
           ),
           _row(
             VapeOrderFlowStrings.delivery,
-            delivery ?? VapeOrderFlowData.confirmedDelivery,
+            delivery ?? '',
           ),
           _row(
             VapeOrderFlowStrings.payment,
-            payment ?? VapeOrderFlowData.confirmedPayment,
+            payment ?? '',
           ),
           Padding(
             padding: EdgeInsets.symmetric(vertical: 5.h),
@@ -697,7 +697,7 @@ class VapeOrderDetailsCard extends StatelessWidget {
           ),
           _row(
             VapeOrderFlowStrings.total,
-            total ?? VapeOrderFlowData.confirmedTotal,
+            total ?? '',
             bold: true,
           ),
         ],
@@ -921,11 +921,11 @@ class VapeStatusSummaryCard extends StatelessWidget {
         children: [
           _row(
             VapeOrderFlowStrings.items,
-            items ?? VapeOrderFlowData.statusItems,
+            items ?? '',
           ),
           _row(
             VapeOrderFlowStrings.delivery,
-            delivery ?? VapeOrderFlowData.statusDelivery,
+            delivery ?? '',
           ),
           Padding(
             padding: EdgeInsets.symmetric(vertical: 5.h),
@@ -933,7 +933,7 @@ class VapeStatusSummaryCard extends StatelessWidget {
           ),
           _row(
             VapeOrderFlowStrings.orderTotal,
-            total ?? VapeOrderFlowData.confirmedTotal,
+            total ?? '',
             bold: true,
           ),
         ],
@@ -992,8 +992,8 @@ class VapeReceiptPaper extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final receiptItems = items ?? VapeOrderFlowData.receiptItems;
-    final lines = billLines ?? VapeOrderFlowData.receiptBillLines;
+    final receiptItems = items ?? const <VapeReceiptLine>[];
+    final lines = billLines ?? const <BillLine>[];
     // Figma: white paper · mint ✓ PAID · dashed dividers · flat bill rows (no grey box).
     return Container(
       width: double.infinity,
@@ -1029,7 +1029,7 @@ class VapeReceiptPaper extends StatelessWidget {
           ),
           SizedBox(height: 4.h),
           Text(
-            vendorName ?? VapeOrderFlowData.receiptVendor,
+            vendorName ?? '',
             style: AppTextStyles.titleSmall(color: const Color(0xFF1A1A1A)).copyWith(
               fontWeight: FontWeight.w700,
               fontSize: 16.sp,
@@ -1038,7 +1038,7 @@ class VapeReceiptPaper extends StatelessWidget {
           ),
           SizedBox(height: 4.h),
           Text(
-            dateLabel ?? VapeOrderFlowData.receiptDate,
+            dateLabel ?? '',
             style: AppTextStyles.caption(color: const Color(0xFF6B756E)).copyWith(
               fontWeight: FontWeight.w400,
               fontSize: 12.sp,

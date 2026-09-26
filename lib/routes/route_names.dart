@@ -20,6 +20,7 @@ abstract final class RouteNames {
   static const String servicesProvider = '/browse/services/provider';
   static const String servicesItemDetail = '/browse/services/item';
   static const String electronicsBrowse = '/browse/electronics';
+  static const String retailCategory = '/browse/retail';
   static const String electronicsStore = '/browse/electronics/store';
   static const String electronicsProductDetail = '/browse/electronics/product';
   static const String vapeBrowse = '/browse/vape';
@@ -39,6 +40,8 @@ abstract final class RouteNames {
   static const String vapeCartCheckout = '/vape/cart/checkout';
   static const String vapeCartReview = '/vape/cart/review';
   static const String vapeCartAgeVerify = '/vape/cart/age-verify';
+  /// CPR / ID verification flow (cart flow age-gate).
+  static const String vapeIdVerify = '/vape/id-verify';
   static const String vapeOrderWaiting = '/vape/order/waiting';
   static const String vapeOrderPay = '/vape/order/pay';
   static const String vapeOrderConfirmed = '/vape/order/confirmed';

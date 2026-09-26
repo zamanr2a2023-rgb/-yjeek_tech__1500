@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:yjeek_app/core/network/api_client.dart';
 import 'package:yjeek_app/core/services/storage_service.dart';
+import 'package:yjeek_app/core/utils/api_media_url.dart';
 import 'package:yjeek_app/features/browse/model/electronics_data.dart';
 import 'package:yjeek_app/features/home/model/home_ui_mapper.dart';
 
@@ -36,20 +37,26 @@ class ElectronicsVendorsRepository {
 
   String? get _token => _storage.token;
 
-  /// GET /vendors?category=&sort=&freeDelivery=&q=
+  /// GET /vendors?category=&sort=&freeDelivery=&hasOffers=&q=&subcategory=
   Future<List<ElectronicsStore>> fetchStores({
     String category = 'electronics',
     String sort = 'rating',
     bool freeDelivery = false,
+    bool hasOffers = false,
     String? query,
+    String? subcategory,
   }) async {
     final params = <String, String>{
       'category': category,
       'sort': sort,
     };
     if (freeDelivery) params['freeDelivery'] = 'true';
+    if (hasOffers) params['hasOffers'] = 'true';
     if (query != null && query.trim().isNotEmpty) {
       params['q'] = query.trim();
+    }
+    if (subcategory != null && subcategory.trim().isNotEmpty) {
+      params['subcategory'] = subcategory.trim();
     }
 
     final qs = params.entries
@@ -62,10 +69,13 @@ class ElectronicsVendorsRepository {
 
     final response = await _apiClient.getJson('/vendors?$qs');
     final data = response?['data'];
-    if (data is! List) return const [];
+    final list = data is List
+        ? data
+        : (data is Map<String, dynamic> ? data['items'] : null);
+    if (list is! List) return const [];
 
     final items = <ElectronicsStore>[];
-    for (final raw in data) {
+    for (final raw in list) {
       if (raw is! Map<String, dynamic>) continue;
       final mapped = electronicsStoreFromVendorJson(
         raw,
@@ -84,7 +94,7 @@ class ElectronicsVendorsRepository {
       final mapped = electronicsStoreFromVendorJson(data);
       if (mapped != null) return mapped;
     }
-    return ElectronicsData.storeById(storeId);
+    throw StateError('Electronics store not found: $storeId');
   }
 
   /// GET /vendors/:id/products?q=&maxPrice=&has5G=&inStock=
@@ -134,23 +144,30 @@ class ElectronicsVendorsRepository {
     );
     final data = response?['data'];
     if (data is! Map<String, dynamic>) {
-      final fallback = ElectronicsData.productById(productId);
-      return ElectronicsProductDetail(
-        product: fallback,
-        reviewCountLabel: '812',
-      );
+      throw StateError('Electronics product not found: $productId');
     }
 
     final product = electronicsProductFromJson(
-          data,
-          storeId: storeId,
-          detailed: true,
-        ) ??
-        ElectronicsData.productById(productId);
+      data,
+      storeId: storeId,
+      detailed: true,
+    );
+    if (product == null) {
+      throw StateError('Electronics product not found: $productId');
+    }
+
+    final reviewRaw = data['reviewCount'] ??
+        data['reviewsCount'] ??
+        data['review_count'];
+    final reviewCountLabel = reviewRaw is num
+        ? _formatReviewCount(reviewRaw.toInt())
+        : (reviewRaw?.toString().trim().isNotEmpty == true
+            ? reviewRaw.toString().trim()
+            : '0');
 
     return ElectronicsProductDetail(
       product: product,
-      reviewCountLabel: '___',
+      reviewCountLabel: reviewCountLabel,
     );
   }
 
@@ -198,6 +215,7 @@ class ElectronicsVendorsRepository {
     required String productId,
     required int quantity,
     List<String> optionIds = const [],
+    List<String> addonIds = const [],
     bool replaceCart = false,
   }) async {
     final response = await _apiClient.postJson(
@@ -208,6 +226,7 @@ class ElectronicsVendorsRepository {
         'replaceCart': replaceCart,
         'options': {
           if (optionIds.isNotEmpty) 'optionIds': optionIds,
+          if (addonIds.isNotEmpty) 'addonIds': addonIds,
         },
       },
       bearerToken: _token,
@@ -244,14 +263,17 @@ ElectronicsStore? electronicsStoreFromVendorJson(
   if (id == null || id.isEmpty || name == null || name.isEmpty) return null;
 
   final ratingRaw = json['rating'];
-  final rating = ratingRaw is num
+  final ratingParsed = ratingRaw is num
       ? ratingRaw.toDouble()
       : double.tryParse(ratingRaw?.toString() ?? '') ?? 0;
 
   final reviewCountRaw = json['reviewCount'];
-  final reviewCount = reviewCountRaw is num
-      ? _formatReviewCount(reviewCountRaw.toInt())
-      : '0';
+  final reviewCountValue = reviewCountRaw is num ? reviewCountRaw.toInt() : 0;
+  final hasRating = json['hasRating'] == true ||
+      (reviewCountValue > 0 && ratingParsed > 0);
+  final rating = hasRating ? ratingParsed : 0.0;
+  final reviewCount =
+      reviewCountValue > 0 ? _formatReviewCount(reviewCountValue) : '0';
 
   final distanceKm = json['distanceKm'];
   final distance = distanceKm is num
@@ -296,11 +318,40 @@ ElectronicsStore? electronicsStoreFromVendorJson(
 
   final productCount = (json['productCount'] as num?)?.toInt() ?? 0;
   final colors = _gradientForName(name);
+  final area = (json['area'] as String?)?.trim();
+  final offer = json['offerBadge'] ?? json['badgeLabel'] ?? json['promoBadge'];
+  final offerBadge = offer?.toString().trim();
+  final logoUrl = resolveApiMediaUrl(json['logoUrl'] as String?);
+  final imageUrl = resolveApiMediaUrl(json['coverUrl'] as String?) ??
+      logoUrl ??
+      resolveApiMediaUrlFromList(json['imageUrls']);
+  final categoryLabelRaw = (json['categoryLabel'] as String?)?.trim();
+  final minOrderRaw = json['minOrderAmount'];
+  final minOrderAmount = minOrderRaw is num
+      ? minOrderRaw.toDouble()
+      : double.tryParse(minOrderRaw?.toString() ?? '');
+
+  final deliveryFeeRaw = json['deliveryFee'];
+  final deliveryFee = deliveryFeeRaw is num
+      ? deliveryFeeRaw.toDouble()
+      : double.tryParse(deliveryFeeRaw?.toString() ?? '');
+  final deliveryTimeMin = (json['deliveryTimeMin'] as num?)?.toInt() ??
+      (json['arrivesInMin'] as num?)?.toInt();
+  final deliveryRadiusKm = (json['deliveryRadiusKm'] as num?)?.toDouble();
+  final distKm = distanceKm is num ? distanceKm.toDouble() : null;
+  final lat = (json['latitude'] as num?)?.toDouble();
+  final lng = (json['longitude'] as num?)?.toDouble();
+  final isPharmacyLabel = [
+    categoryLabelRaw,
+    categories,
+    storeTypeSlug,
+    storeTypeName,
+  ].whereType<String>().any((s) => s.toLowerCase().contains('pharm'));
 
   return ElectronicsStore(
     id: id,
     name: name,
-    rating: double.parse(rating.toStringAsFixed(1)),
+    rating: hasRating ? double.parse(rating.toStringAsFixed(1)) : 0,
     reviewCount: reviewCount,
     distance: distance,
     categories: categories,
@@ -309,6 +360,25 @@ ElectronicsStore? electronicsStoreFromVendorJson(
     gradientEnd: colors.$2,
     freeDelivery: json['freeDelivery'] == true ||
         ((json['deliveryFee'] as num?)?.toDouble() ?? 1) == 0,
+    hasRating: hasRating,
+    area: (area != null && area.isNotEmpty) ? area : null,
+    imageUrl: imageUrl,
+    logoUrl: logoUrl,
+    offerBadge: (offerBadge != null && offerBadge.isNotEmpty) ? offerBadge : null,
+    categoryLabel: (categoryLabelRaw != null && categoryLabelRaw.isNotEmpty)
+        ? categoryLabelRaw
+        : (isPharmacyLabel ? 'Pharmacy' : null),
+    minOrderAmount: minOrderAmount,
+    supportsDelivery: json['supportsDelivery'] == true,
+    supportsScheduled: json['supportsScheduled'] == true,
+    deliveryFee: deliveryFee,
+    deliveryTimeMin: deliveryTimeMin,
+    deliveryRadiusKm: deliveryRadiusKm,
+    distanceKm: distKm,
+    latitude: lat,
+    longitude: lng,
+    scheduledDeliveryFee: isPharmacyLabel ? (deliveryFee != null ? 1.0 : 1.0) : null,
+    scheduledMinOrderAmount: isPharmacyLabel ? 5.0 : null,
   );
 }
 
@@ -445,12 +515,6 @@ String _formatReviewCount(int count) {
 }
 
 (Color, Color) _gradientForName(String name) {
-  for (final s in ElectronicsData.stores) {
-    if (s.name.toLowerCase() == name.toLowerCase() ||
-        s.id.toLowerCase() == name.toLowerCase()) {
-      return (s.gradientStart, s.gradientEnd);
-    }
-  }
   final base = HomeBrandStyle.forName(name);
   return (Color.lerp(base, Colors.white, 0.85) ?? const Color(0xFFE3F2EB),
       Color.lerp(base, Colors.white, 0.7) ?? const Color(0xFFC8E6D4));

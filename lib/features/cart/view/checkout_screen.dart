@@ -167,6 +167,8 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       body: _loading
           ? Center(child: CircularProgressIndicator())
           : ListView(
+              keyboardDismissBehavior:
+                  ScrollViewKeyboardDismissBehavior.onDrag,
               padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 16.h),
               children: [
                 CartSectionTitle(CartFlowStrings.deliveryDetails),
@@ -217,9 +219,6 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                 CartSectionTitle(CartFlowStrings.billSummary),
                 UiPlacementBanner(
                   placementKey: 'checkout_banner',
-                  fallbackWhenEmpty: CartZoodPromoBanner(
-                    onTap: () => context.push(CartRoutes.zoodWaitingList),
-                  ),
                 ),
                 SizedBox(height: 12.h),
                 BillSummaryCard(

@@ -4,11 +4,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:yjeek_app/core/constants/navigation_strings.dart';
 import 'package:yjeek_app/features/cart/model/cart_repository.dart';
+import 'package:yjeek_app/features/cart/model/checkout_pricing.dart';
 import 'package:yjeek_app/features/cart/model/pending_checkout.dart';
 import 'package:yjeek_app/features/geofence/model/active_geofence_order_context.dart';
 import 'package:yjeek_app/features/geofence/service/geofence_session_controller.dart';
 import 'package:yjeek_app/routes/app_router.dart';
 import 'package:yjeek_app/features/navigation/model/navigation_data.dart';
+
+export 'package:yjeek_app/features/cart/model/checkout_pricing.dart';
 
 /// Maps UI payment option ids → backend PaymentMethod enum values.
 String paymentMethodApiValue(String paymentId) {
@@ -86,25 +89,32 @@ bool dropOffConflicts(int a, int b) {
   return false;
 }
 
-/// Toggle [tapped] into selection. Only one option may be selected overall;
-/// choosing a new option replaces the previous one (and clears conflicts).
+/// Toggle [tapped] into selection.
+/// Options in the same [kDropOffConflictGroups] entry stay mutually exclusive;
+/// options from different groups can be combined (e.g. Don't ring + Call on arrival).
 Set<int> applyDropOffSelection(Set<int> current, int tapped) {
-  if (current.contains(tapped)) {
-    return <int>{};
+  final next = Set<int>.from(current);
+  if (next.contains(tapped)) {
+    next.remove(tapped);
+    return next;
   }
-  return {tapped};
+  next.removeAll(dropOffConflictPeers(tapped));
+  next.add(tapped);
+  return next;
 }
 
-/// Map saved address drop-off prefs → chip indices (single selection; first wins).
+/// Map saved address drop-off prefs → chip indices (multi-select; conflicts resolved).
 Set<int> dropOffIndicesFromPrefs(List<String>? prefs, {Set<int>? fallback}) {
   final defaults = fallback ?? {0};
   if (prefs == null || prefs.isEmpty) return Set<int>.from(defaults);
 
+  var next = <int>{};
   for (final pref in prefs) {
     final i = kDropOffApiValues.indexOf(pref);
-    if (i >= 0) return {i};
+    if (i >= 0) next = applyDropOffSelection(next, i);
   }
-  return Set<int>.from(defaults);
+  if (next.isEmpty) return Set<int>.from(defaults);
+  return next;
 }
 
 /// Legacy single-index helper (first known pref wins).
@@ -148,9 +158,28 @@ double? parseTipInput(String raw) {
   return double.tryParse(cleaned);
 }
 
-List<BillLine> billLinesWithTip(CartSnapshot cart, double tipAmount) {
-  final lines = List<BillLine>.from(cart.billLines);
-  lines.removeWhere((l) => l.isBold);
+/// Appends VAT / tip / order total onto cart bill lines (strips any existing bold total).
+List<BillLine> billLinesWithVatAndTip(
+  List<BillLine> cartBillLines,
+  double amountBeforeVat,
+  double tipAmount, {
+  String totalLabel = 'Order total',
+}) {
+  final lines = List<BillLine>.from(cartBillLines);
+  lines.removeWhere((l) {
+    if (l.isBold) return true;
+    final label = l.label.toLowerCase();
+    return label.contains('vat') || label == 'tip';
+  });
+  final vat = checkoutVatAmount(amountBeforeVat);
+  if (vat > 0) {
+    lines.add(
+      BillLine(
+        label: 'VAT (10%)',
+        value: 'BHD ${vat.toStringAsFixed(3)}',
+      ),
+    );
+  }
   if (tipAmount > 0) {
     lines.add(
       BillLine(
@@ -159,10 +188,10 @@ List<BillLine> billLinesWithTip(CartSnapshot cart, double tipAmount) {
       ),
     );
   }
-  final total = cart.totalAmount + tipAmount;
+  final total = checkoutGrandTotal(amountBeforeVat, tipAmount);
   lines.add(
     BillLine(
-      label: 'Order total',
+      label: totalLabel,
       value: 'BHD ${total.toStringAsFixed(3)}',
       isBold: true,
     ),
@@ -170,8 +199,12 @@ List<BillLine> billLinesWithTip(CartSnapshot cart, double tipAmount) {
   return lines;
 }
 
+List<BillLine> billLinesWithTip(CartSnapshot cart, double tipAmount) {
+  return billLinesWithVatAndTip(cart.billLines, cart.totalAmount, tipAmount);
+}
+
 String formatCheckoutTotal(CartSnapshot cart, double tipAmount) {
-  return 'BHD ${(cart.totalAmount + tipAmount).toStringAsFixed(3)}';
+  return 'BHD ${checkoutGrandTotal(cart.totalAmount, tipAmount).toStringAsFixed(3)}';
 }
 
 /// Formats a pickup slot datetime for the time card.

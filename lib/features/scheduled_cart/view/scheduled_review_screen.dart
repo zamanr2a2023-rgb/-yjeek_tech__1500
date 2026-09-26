@@ -33,9 +33,11 @@ class _ScheduledReviewScreenState extends ConsumerState<ScheduledReviewScreen> {
   late int _secondsLeft;
   Timer? _timer;
   bool _leaving = false;
+  bool _loading = true;
+  List<String> _orderIds = const [];
 
-  String _vendorLabel = 'SCHEDULED DELIVERY';
-  String _deliveryLabel = 'Same Day';
+  String _vendorLabel = '';
+  late String _deliveryLabel;
   String _address = '—';
   String _payment = '—';
   String _total = '—';
@@ -50,6 +52,18 @@ class _ScheduledReviewScreenState extends ConsumerState<ScheduledReviewScreen> {
         )
         .label;
     _secondsLeft = _initialSeconds;
+    _orderIds = List<String>.from(widget.orderIds);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _hydrate());
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  void _startTimer() {
+    _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (!mounted || _leaving) return;
       if (_secondsLeft <= 1) {
@@ -60,20 +74,44 @@ class _ScheduledReviewScreenState extends ConsumerState<ScheduledReviewScreen> {
       }
       setState(() => _secondsLeft--);
     });
-    WidgetsBinding.instance.addPostFrameCallback((_) => _hydrate());
   }
 
-  @override
-  void dispose() {
-    _timer?.cancel();
-    super.dispose();
+  void _abort(String message) {
+    if (!mounted) return;
+    setState(() => _loading = false);
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    context.pop();
   }
 
   Future<void> _hydrate() async {
-    final ids = widget.orderIds;
-    if (ids.isEmpty) return;
+    var ids = _orderIds.where((id) => id.isNotEmpty).toList();
+    if (ids.isEmpty) {
+      final detailed =
+          await ref.read(cartRepositoryProvider).fetchScheduledCartDetailed();
+      if (!mounted) return;
+      final cart = detailed.cart;
+      if (cart == null || cart.items.isEmpty) {
+        _abort('Could not load order for review');
+        return;
+      }
+      final vendorName = cart.vendorName;
+      if (vendorName.isNotEmpty) {
+        _vendorLabel = '${vendorName.toUpperCase()} · SCHEDULED DELIVERY';
+      }
+      _total = cart.totalLabel;
+      setState(() => _loading = false);
+      _startTimer();
+      return;
+    }
+
+    _orderIds = ids;
     final order = await ref.read(ordersRepositoryProvider).getOrder(ids.first);
-    if (!mounted || order == null) return;
+    if (!mounted) return;
+    if (order == null) {
+      _abort('Could not load order for review');
+      return;
+    }
+
     final vendor = order['vendor'];
     final vendorName = vendor is Map ? vendor['name']?.toString() : null;
     final address = order['address'];
@@ -103,22 +141,28 @@ class _ScheduledReviewScreenState extends ConsumerState<ScheduledReviewScreen> {
       }
       _payment = formatPaymentMethod(order['paymentMethod']?.toString());
       _total = formatBhd(order['totalAmount']);
+      _loading = false;
     });
+    _startTimer();
   }
 
   Future<void> _goWaiting() async {
     if (_leaving) return;
+    if (_orderIds.isEmpty) {
+      _abort('Order not ready — go back and try again');
+      return;
+    }
     _leaving = true;
     _timer?.cancel();
     if (!mounted) return;
     context.pushReplacement(
-      ScheduledOrderFlowRoutes.waitingFor(widget.orderIds),
+      ScheduledOrderFlowRoutes.waitingFor(_orderIds),
     );
   }
 
   Future<void> _edit() async {
     _timer?.cancel();
-    final ids = widget.orderIds;
+    final ids = _orderIds;
     for (final id in ids) {
       await ref
           .read(ordersRepositoryProvider)
@@ -130,6 +174,16 @@ class _ScheduledReviewScreenState extends ConsumerState<ScheduledReviewScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_loading) {
+      return CartFlowScaffold(
+        title: ScheduledCartStrings.reviewConfirm,
+        lightHeader: true,
+        bottomNavIndex: 0,
+        backgroundColor: const Color(0xFFF2F7F2),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
     return CartFlowScaffold(
       title: ScheduledCartStrings.reviewConfirm,
       lightHeader: true,
@@ -146,7 +200,9 @@ class _ScheduledReviewScreenState extends ConsumerState<ScheduledReviewScreen> {
                 ScheduledReviewSummaryCard(
                   deliveryLabel: _deliveryLabel,
                   total: _total,
-                  vendorLabel: _vendorLabel,
+                  vendorLabel: _vendorLabel.isNotEmpty
+                      ? _vendorLabel
+                      : 'SCHEDULED DELIVERY',
                   addressLabel: _address,
                   paymentLabel: _payment,
                 ),

@@ -24,12 +24,12 @@ class DineInConfirmedScreen extends ConsumerStatefulWidget {
 class _DineInConfirmedScreenState extends ConsumerState<DineInConfirmedScreen> {
   static const Color _screenBg = AppColors.background;
 
-  String _vendor = DineInOrderFlowData.vendor;
-  String _code = DineInOrderFlowData.arrivalCode;
-  String _venue = DineInOrderFlowData.venue;
-  String _time = DineInOrderFlowData.dineInTime;
-  String _track = DineInOrderFlowData.prepTrack;
-  String _status = DineInOrderFlowData.statusPreparing;
+  String _vendor = '';
+  String _code = '';
+  String _venue = '';
+  String _time = '';
+  String _track = '';
+  String _status = '';
   bool _loading = true;
 
   @override
@@ -61,19 +61,17 @@ class _DineInConfirmedScreenState extends ConsumerState<DineInConfirmedScreen> {
     ].whereType<String>().where((s) => s.isNotEmpty).join(' - ');
     final prep = order['dineInPrepMode']?.toString();
     final track = order['dineInTimeLabel']?.toString() ??
-        (prep == 'PREPARE_NOW'
-            ? 'Start preparing now'
-            : DineInOrderFlowData.prepTrack);
+        (prep == 'PREPARE_NOW' ? 'Start preparing now' : '');
     final statusLabel = formatStatusLabel(order['status']?.toString());
     final paid = formatBhd(order['totalAmount']);
 
     setState(() {
-      _vendor = vendorName ?? _vendor;
+      _vendor = vendorName ?? '';
       _code = order['arrivalCode']?.toString() ??
           order['orderNumber']?.toString() ??
-          _code;
-      _venue = venue.isNotEmpty ? venue : _venue;
-      _time = order['dineInTimeLabel']?.toString() ?? _time;
+          '';
+      _venue = venue;
+      _time = order['dineInTimeLabel']?.toString() ?? '';
       _track = track;
       _status = '$statusLabel · Paid $paid';
       _loading = false;
@@ -88,7 +86,9 @@ class _DineInConfirmedScreenState extends ConsumerState<DineInConfirmedScreen> {
       backgroundColor: _screenBg,
       bottomNavIndex: 0,
       body: _loading
-          ? const Center(child: CircularProgressIndicator(color: AppColors.white))
+          ? const Center(
+              child: CircularProgressIndicator(color: AppColors.primary),
+            )
           : ListView(
               padding: EdgeInsets.fromLTRB(24.w, 14.h, 24.w, 16.h),
               children: [

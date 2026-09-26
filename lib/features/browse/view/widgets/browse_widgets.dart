@@ -14,11 +14,13 @@ class BrowseTopBar extends StatelessWidget {
     super.key,
     required this.title,
     this.onBack,
+    this.onSearch,
     this.onCart,
   });
 
   final String title;
   final VoidCallback? onBack;
+  final VoidCallback? onSearch;
   final VoidCallback? onCart;
 
   @override
@@ -63,6 +65,28 @@ class BrowseTopBar extends StatelessWidget {
                     ),
               ),
             ),
+            if (onSearch != null) ...[
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: onSearch,
+                child: Container(
+                  width: 36.w,
+                  height: 36.w,
+                  decoration: BoxDecoration(
+                    color: AppColors.white,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: const Color(0xFFDEDEDE)),
+                  ),
+                  alignment: Alignment.center,
+                  child: Icon(
+                    Icons.search,
+                    size: 18.sp,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+              ),
+              SizedBox(width: 8.w),
+            ],
             if (onCart != null)
               GestureDetector(
                 behavior: HitTestBehavior.opaque,
@@ -73,7 +97,7 @@ class BrowseTopBar extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: AppColors.white,
                     shape: BoxShape.circle,
-                    border: Border.all(color: const Color(0xFFE2E8DD)),
+                    border: Border.all(color: const Color(0xFFDEDEDE)),
                   ),
                   alignment: Alignment.center,
                   child: Icon(
@@ -1074,8 +1098,8 @@ class BrowseCartBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final count = itemCount ?? BrowseData.cartItemCount;
-    final total = totalLabel ?? BrowseData.cartTotal;
+    final count = itemCount ?? 0;
+    final total = totalLabel ?? '0.000';
     if (count <= 0) return const SizedBox.shrink();
 
     return GestureDetector(

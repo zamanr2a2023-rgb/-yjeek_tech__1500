@@ -146,14 +146,14 @@ class PickupOrderSummaryRow extends StatelessWidget {
         children: [
           Expanded(
             child: Text(
-              summary ?? PickupOrderFlowData.waitingSummary,
+              summary ?? '',
               style: AppTextStyles.labelSmall(
                 color: AppColors.textSecondary,
               ).copyWith(fontSize: 13.sp),
             ),
           ),
           Text(
-            total ?? PickupOrderFlowData.payTotal,
+            total ?? '',
             style: AppTextStyles.labelMedium().copyWith(
               fontWeight: FontWeight.w700,
               fontSize: 14.sp,
@@ -174,7 +174,7 @@ class PickupAcceptedBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     final name = (vendorName != null && vendorName!.trim().isNotEmpty)
         ? vendorName!.trim()
-        : PickupOrderFlowData.vendorName;
+        : '';
     return Container(
       width: double.infinity,
       padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
@@ -367,7 +367,7 @@ class PickupPayBreakdownCard extends StatelessWidget {
         children: [
           _row(
             PickupOrderFlowStrings.subtotal,
-            subtotal ?? PickupOrderFlowData.paySubtotal,
+            subtotal ?? '',
           ),
           if (showDiscount) ...[
             SizedBox(height: 8.h),
@@ -384,7 +384,7 @@ class PickupPayBreakdownCard extends StatelessWidget {
           SizedBox(height: 8.h),
           _row(
             PickupOrderFlowStrings.serviceFee,
-            serviceFee ?? PickupOrderFlowData.payServiceFee,
+            serviceFee ?? '',
           ),
           if (vat != null && vat!.trim().isNotEmpty) ...[
             SizedBox(height: 8.h),
@@ -397,7 +397,7 @@ class PickupPayBreakdownCard extends StatelessWidget {
           Divider(height: 20.h, color: AppColors.border),
           _row(
             PickupOrderFlowStrings.totalToPay,
-            total ?? PickupOrderFlowData.payTotal,
+            total ?? '',
             bold: true,
           ),
         ],
@@ -453,7 +453,7 @@ class PickupPayStickyFooter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final amount = payAmount ?? PickupOrderFlowData.payTotal;
+    final amount = payAmount ?? '';
     return Container(
       padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 16.h),
       decoration: BoxDecoration(
@@ -551,24 +551,24 @@ class PickupOrderDetailsCard extends StatelessWidget {
         children: [
           _row(
             PickupOrderFlowStrings.orderNumber,
-            orderNumber ?? PickupOrderFlowData.orderId,
+            orderNumber ?? '',
           ),
           _row(
             PickupOrderFlowStrings.items,
-            items ?? PickupOrderFlowData.confirmedItems,
+            items ?? '',
           ),
           _row(
             PickupOrderFlowStrings.pickup,
-            pickup ?? PickupOrderFlowData.confirmedPickup,
+            pickup ?? '',
           ),
           _row(
             PickupOrderFlowStrings.payment,
-            payment ?? PickupOrderFlowData.confirmedPayment,
+            payment ?? '',
           ),
           Divider(height: 20.h, color: AppColors.border),
           _row(
             PickupOrderFlowStrings.total,
-            total ?? PickupOrderFlowData.confirmedTotal,
+            total ?? '',
             bold: true,
           ),
         ],
@@ -792,16 +792,16 @@ class PickupStatusSummaryCard extends StatelessWidget {
         children: [
           _row(
             PickupOrderFlowStrings.items,
-            items ?? PickupOrderFlowData.statusItems,
+            items ?? '',
           ),
           _row(
             PickupOrderFlowStrings.pickup,
-            pickup ?? PickupOrderFlowData.statusPickup,
+            pickup ?? '',
           ),
           Divider(height: 20.h, color: AppColors.border),
           _row(
             PickupOrderFlowStrings.orderTotal,
-            total ?? PickupOrderFlowData.confirmedTotal,
+            total ?? '',
             bold: true,
           ),
         ],
@@ -854,8 +854,8 @@ class PickupReceiptPaper extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final receiptItems = items ?? PickupOrderFlowData.receiptItems;
-    final lines = billLines ?? PickupOrderFlowData.receiptBillLines;
+    final receiptItems = items ?? const <PickupReceiptLine>[];
+    final lines = billLines ?? const <BillLine>[];
     final paidWith = paymentMethod != null && paymentMethod!.isNotEmpty
         ? 'Paid: $paymentMethod'
         : PickupOrderFlowStrings.paidWith;
@@ -877,7 +877,7 @@ class PickupReceiptPaper extends StatelessWidget {
           ),
           SizedBox(height: 12.h),
           Text(
-            vendorName ?? PickupOrderFlowData.vendorName,
+            vendorName ?? '',
             style: AppTextStyles.titleSmall().copyWith(
               fontWeight: FontWeight.w800,
               fontSize: 18.sp,
@@ -885,7 +885,7 @@ class PickupReceiptPaper extends StatelessWidget {
           ),
           SizedBox(height: 4.h),
           Text(
-            dateLabel ?? PickupOrderFlowData.receiptDate,
+            dateLabel ?? '',
             style: AppTextStyles.caption(
               color: AppColors.textSecondary,
             ).copyWith(fontSize: 12.sp),

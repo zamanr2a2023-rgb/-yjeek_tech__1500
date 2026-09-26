@@ -96,7 +96,7 @@ class ServicesBookingSummaryRow extends StatelessWidget {
         children: [
           Expanded(
             child: Text(
-              summary ?? ServicesOrderFlowData.bookingSummary,
+              summary ?? '',
               style: AppTextStyles.labelSmall(color: _muted).copyWith(
                 fontWeight: FontWeight.w400,
                 fontSize: 13.sp,
@@ -106,7 +106,7 @@ class ServicesBookingSummaryRow extends StatelessWidget {
           ),
           SizedBox(width: 8.w),
           Text(
-            total ?? ServicesOrderFlowData.payTotal,
+            total ?? '',
             style: AppTextStyles.labelMedium(
               color: AppColors.textPrimary,
             ).copyWith(
@@ -396,17 +396,17 @@ class ServicesPayBreakdownCard extends StatelessWidget {
         children: [
           _line(
             ServicesOrderFlowStrings.subtotal,
-            subtotal ?? ServicesOrderFlowData.subtotalAmount,
+            subtotal ?? '',
           ),
           SizedBox(height: 8.h),
           _line(
             ServicesOrderFlowStrings.serviceFee,
-            serviceFee ?? ServicesOrderFlowData.serviceFeeAmount,
+            serviceFee ?? '',
           ),
           Divider(height: 20.h, color: AppColors.border),
           _line(
             ServicesOrderFlowStrings.totalToPay,
-            total ?? ServicesOrderFlowData.payTotal,
+            total ?? '',
             bold: true,
           ),
         ],
@@ -514,7 +514,7 @@ class ServicesPayStickyFooter extends StatelessWidget {
                   ),
                 ),
                 child: Text(
-                  '${ServicesOrderFlowStrings.pay} ${payAmount ?? ServicesOrderFlowData.payTotal}',
+                  '${ServicesOrderFlowStrings.pay} ${payAmount ?? ''}',
                   style: AppTextStyles.labelMedium(color: AppColors.white).copyWith(
                     fontWeight: FontWeight.w600,
                     fontSize: 16.sp,
@@ -586,24 +586,24 @@ class ServicesBookingDetailsCard extends StatelessWidget {
     final rows = <(String, String)>[
       (
         ServicesOrderFlowStrings.service,
-        serviceName ?? ServicesOrderFlowData.serviceName,
+        serviceName ?? '',
       ),
       (
         ServicesOrderFlowStrings.provider,
-        providerName ?? ServicesOrderFlowData.providerName,
+        providerName ?? '',
       ),
       (
         ServicesOrderFlowStrings.when,
-        whenLabel ?? ServicesOrderFlowData.appointmentWhen,
+        whenLabel ?? '',
       ),
       (
         ServicesOrderFlowStrings.location,
-        locationLabel ?? ServicesOrderFlowData.locationLabel,
+        locationLabel ?? '',
       ),
       if (showPaid)
         (
           ServicesOrderFlowStrings.paid,
-          paidLabel ?? ServicesOrderFlowData.confirmedPaid,
+          paidLabel ?? '',
         ),
     ];
 
@@ -819,19 +819,19 @@ class ServicesStatusDetailsCard extends StatelessWidget {
     final rows = <(String, String)>[
       (
         ServicesOrderFlowStrings.service,
-        serviceName ?? ServicesOrderFlowData.serviceName,
+        serviceName ?? '',
       ),
       (
         ServicesOrderFlowStrings.when,
-        whenLabel ?? ServicesOrderFlowData.appointmentWhenShort,
+        whenLabel ?? '',
       ),
       (
         ServicesOrderFlowStrings.location,
-        locationLabel ?? ServicesOrderFlowData.locationLabel,
+        locationLabel ?? '',
       ),
       (
         ServicesOrderFlowStrings.provider,
-        providerName ?? ServicesOrderFlowData.providerName,
+        providerName ?? '',
       ),
     ];
 
@@ -1033,7 +1033,7 @@ class ServicesReceiptPaper extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final lines = billLines ?? ServicesOrderFlowData.receiptBillLines;
+    final lines = billLines ?? const <BillLine>[];
     // Figma receipt: centered header block, then label/value rows.
     return OrderFlowCard(
       padding: EdgeInsets.all(18.w),
@@ -1060,7 +1060,7 @@ class ServicesReceiptPaper extends StatelessWidget {
               ),
               SizedBox(height: 4.h),
               Text(
-                venueTitle ?? ServicesOrderFlowData.venueReceipt,
+                venueTitle ?? '',
                 textAlign: TextAlign.center,
                 style: GoogleFonts.inter(
                   color: _text,
@@ -1071,7 +1071,7 @@ class ServicesReceiptPaper extends StatelessWidget {
               ),
               SizedBox(height: 4.h),
               Text(
-                venueSubtitle ?? ServicesOrderFlowData.venueAddress,
+                venueSubtitle ?? '',
                 textAlign: TextAlign.center,
                 style: GoogleFonts.inter(
                   color: _muted,
@@ -1087,22 +1087,22 @@ class ServicesReceiptPaper extends StatelessWidget {
           SizedBox(height: 12.h),
           _metaRow(
             'Booking #',
-            bookingNumber ?? ServicesOrderFlowData.bookingId,
+            bookingNumber ?? '',
           ),
           SizedBox(height: 8.h),
           _metaRow(
             ServicesOrderFlowStrings.service,
-            serviceName ?? ServicesOrderFlowData.serviceName,
+            serviceName ?? '',
           ),
           SizedBox(height: 8.h),
           _metaRow(
             ServicesOrderFlowStrings.when,
-            whenLabel ?? ServicesOrderFlowData.appointmentWhen,
+            whenLabel ?? '',
           ),
           SizedBox(height: 8.h),
           _metaRow(
             ServicesOrderFlowStrings.location,
-            locationLabel ?? ServicesOrderFlowData.locationLabel,
+            locationLabel ?? '',
           ),
           SizedBox(height: 12.h),
           const _ServicesReceiptDashedDivider(color: _dash),

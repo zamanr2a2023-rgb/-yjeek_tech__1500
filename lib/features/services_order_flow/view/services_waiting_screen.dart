@@ -32,9 +32,10 @@ class _ServicesWaitingScreenState extends ConsumerState<ServicesWaitingScreen> {
   Timer? _pollTimer;
   Timer? _tickTimer;
   bool _cancelling = false;
-  String _vendor = ServicesOrderFlowData.providerName;
-  String _summary = ServicesOrderFlowData.bookingSummary;
-  String _total = ServicesOrderFlowData.payTotal;
+  bool _loading = true;
+  String _vendor = '';
+  String _summary = '';
+  String _total = '';
   DateTime? _deadline;
   Duration _totalWindow = _defaultWindow;
 
@@ -94,7 +95,11 @@ class _ServicesWaitingScreenState extends ConsumerState<ServicesWaitingScreen> {
     final orderId = widget.orderId;
     if (orderId == null || orderId.isEmpty || !mounted) return;
     final order = await ref.read(ordersRepositoryProvider).getOrder(orderId);
-    if (!mounted || order == null) return;
+    if (!mounted) return;
+    if (order == null) {
+      setState(() => _loading = false);
+      return;
+    }
 
     final status = order['status']?.toString();
     final paymentMethod = order['paymentMethod']?.toString();
@@ -118,6 +123,7 @@ class _ServicesWaitingScreenState extends ConsumerState<ServicesWaitingScreen> {
         DateTime.tryParse(order['createdAt']?.toString() ?? '')?.toLocal();
 
     setState(() {
+      _loading = false;
       _vendor = vendorName;
       _summary = '$serviceName · Booking $shortId';
       _total = formatBhd(order['totalAmount']);
@@ -171,6 +177,15 @@ class _ServicesWaitingScreenState extends ConsumerState<ServicesWaitingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_loading) {
+      return OrderFlowScaffold(
+        showHeader: false,
+        bottomNavIndex: 0,
+        body: const Center(
+          child: CircularProgressIndicator(color: AppColors.primary),
+        ),
+      );
+    }
     return OrderFlowScaffold(
       showHeader: false,
       bottomNavIndex: 0,

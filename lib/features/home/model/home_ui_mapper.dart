@@ -25,6 +25,8 @@ abstract final class HomeCategoryStyle {
     'baby-kids': (Icons.child_care_outlined, Color(0xFFFBE8F3)),
     'baby_kids': (Icons.child_care_outlined, Color(0xFFFBE8F3)),
     'sports': (Icons.sports_soccer_outlined, Color(0xFFE4F7EA)),
+    'flowers': (Icons.local_florist_outlined, Color(0xFFFFE8F0)),
+    'florist': (Icons.local_florist_outlined, Color(0xFFFFE8F0)),
   };
 
   static const _fallback = (Icons.category_outlined, Color(0xFFE8F0FE));

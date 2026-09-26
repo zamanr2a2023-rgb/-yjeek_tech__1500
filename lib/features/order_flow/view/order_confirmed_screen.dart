@@ -22,11 +22,11 @@ class OrderConfirmedScreen extends ConsumerStatefulWidget {
 }
 
 class _OrderConfirmedScreenState extends ConsumerState<OrderConfirmedScreen> {
-  String _subtitle = OrderFlowData.confirmedSubtitle();
-  String _items = OrderFlowData.itemCount;
-  String _deliverTo = OrderFlowData.deliveryAddress;
-  String _arrives = OrderFlowData.arrivalWindow;
-  String _total = OrderFlowData.orderTotal;
+  String _subtitle = '';
+  String _items = '';
+  String _deliverTo = '';
+  String _arrives = '';
+  String _total = '';
   bool _loading = true;
 
   @override
@@ -64,7 +64,7 @@ class _OrderConfirmedScreenState extends ConsumerState<OrderConfirmedScreen> {
               })
             : null);
     final addressLabel = deliverToFromOrderApi(order);
-    String deliverTo = addressLabel ?? OrderFlowData.deliveryAddress;
+    String deliverTo = addressLabel ?? '';
     final etaMin = order['estimatedArrivalMin'] ?? order['etaMin'];
     final etaMax = order['estimatedArrivalMax'] ?? order['etaMax'];
     final etaLabel = order['etaLabel']?.toString();
@@ -72,13 +72,13 @@ class _OrderConfirmedScreenState extends ConsumerState<OrderConfirmedScreen> {
       _subtitle =
           'Order ${orderNumber.isEmpty ? '' : '#$orderNumber'} · sent to $vendorName.';
       _items = itemCount == null
-          ? OrderFlowData.itemCount
+          ? '—'
           : '$itemCount ${itemCount == 1 ? 'item' : 'items'}';
-      _deliverTo = deliverTo.isEmpty ? OrderFlowData.deliveryAddress : deliverTo;
+      _deliverTo = deliverTo.isEmpty ? '—' : deliverTo;
       _arrives = etaLabel ??
           (etaMin != null
               ? '$etaMin–${etaMax ?? etaMin} min'
-              : OrderFlowData.arrivalWindow);
+              : '—');
       _total = formatBhd(order['totalAmount']);
       _loading = false;
     });

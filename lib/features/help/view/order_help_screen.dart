@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:yjeek_app/core/constants/app_colors.dart';
 import 'package:yjeek_app/core/providers/app_providers.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/features/help/help_routes.dart';
 import 'package:yjeek_app/features/help/model/help_data.dart';
 import 'package:yjeek_app/features/help/model/help_phase2_data.dart';
 import 'package:yjeek_app/features/help/view/widgets/help_widgets.dart';
+import 'package:yjeek_app/features/navigation/model/navigation_data.dart';
 import 'package:yjeek_app/features/order_flow/order_flow_routes.dart';
 
 class OrderHelpScreen extends ConsumerStatefulWidget {
@@ -24,8 +26,8 @@ class OrderHelpScreen extends ConsumerStatefulWidget {
 }
 
 class _OrderHelpScreenState extends ConsumerState<OrderHelpScreen> {
-  late HelpOrderContext _contextData =
-      HelpData.contextForOrderId(widget.orderId);
+  HelpOrderContext? _contextData;
+  bool _loading = true;
 
   @override
   void initState() {
@@ -34,13 +36,21 @@ class _OrderHelpScreenState extends ConsumerState<OrderHelpScreen> {
   }
 
   Future<void> _hydrate() async {
+    setState(() => _loading = true);
     final order =
         await ref.read(ordersRepositoryProvider).getOrder(widget.orderId);
-    if (!mounted || order == null) return;
+    if (!mounted) return;
+    if (order == null) {
+      setState(() {
+        _contextData = null;
+        _loading = false;
+      });
+      return;
+    }
     final vendor = order['vendor'];
     final vendorName = vendor is Map<String, dynamic>
-        ? (vendor['name'] as String? ?? _contextData.order.vendorName)
-        : _contextData.order.vendorName;
+        ? (vendor['name'] as String? ?? 'Order')
+        : 'Order';
     final itemCount = (order['itemCount'] as num?)?.toInt() ??
         ((order['items'] is List) ? (order['items'] as List).length : 0);
     final total = order['totalAmount'];
@@ -48,11 +58,18 @@ class _OrderHelpScreenState extends ConsumerState<OrderHelpScreen> {
     final orderNumber = order['orderNumber']?.toString() ?? widget.orderId;
     final statusRaw = order['status']?.toString() ?? '';
     final statusLabel = statusRaw.isEmpty
-        ? _contextData.order.statusLabel
+        ? 'Unknown'
         : statusRaw.replaceAll('_', ' ');
+    final orderType = (order['orderType'] as String?)?.toUpperCase() ?? '';
+    final category = switch (orderType) {
+      'SERVICE' => OrderCategoryFilter.services,
+      'DINE_IN' => OrderCategoryFilter.dineIn,
+      'PICKUP' => OrderCategoryFilter.pickup,
+      _ => OrderCategoryFilter.orders,
+    };
     setState(() {
       _contextData = HelpOrderContext(
-        category: _contextData.category,
+        category: category,
         isScheduled: (order['fulfillmentType'] as String?) == 'SCHEDULED',
         order: HelpOrder(
           vendorName: vendorName,
@@ -61,10 +78,11 @@ class _OrderHelpScreenState extends ConsumerState<OrderHelpScreen> {
           statusLabel: statusLabel,
           itemCount: itemCount,
           totalBhd: totalStr,
-          deliveredAt: _contextData.order.deliveredAt,
+          deliveredAt: statusLabel,
           compactSubtitle: '$orderNumber · $itemCount items · BHD $totalStr',
         ),
       );
+      _loading = false;
     });
   }
 
@@ -74,7 +92,8 @@ class _OrderHelpScreenState extends ConsumerState<OrderHelpScreen> {
       return;
     }
 
-    if (type == HelpIssueType.cancelOrder && _contextData.isScheduled) {
+    if (type == HelpIssueType.cancelOrder &&
+        (_contextData?.isScheduled ?? false)) {
       context.push(
         HelpRoutes.helpFlow(
           flow: HelpFlowType.scheduledCancelFree,
@@ -114,7 +133,24 @@ class _OrderHelpScreenState extends ConsumerState<OrderHelpScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final options = HelpData.visibleOrderHelpOptionsFor(_contextData);
+    if (_loading) {
+      return HelpScreenScaffold(
+        title: 'Order help',
+        bottomNavIndex: widget.bottomNavIndex,
+        body: const Center(
+          child: CircularProgressIndicator(color: AppColors.primary),
+        ),
+      );
+    }
+    final contextData = _contextData;
+    if (contextData == null) {
+      return HelpScreenScaffold(
+        title: 'Order help',
+        bottomNavIndex: widget.bottomNavIndex,
+        body: const Center(child: Text('Order not found')),
+      );
+    }
+    final options = HelpData.visibleOrderHelpOptionsFor(contextData);
 
     return HelpScreenScaffold(
       title: 'Order help',
@@ -122,7 +158,7 @@ class _OrderHelpScreenState extends ConsumerState<OrderHelpScreen> {
       body: ListView(
         padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 24.h),
         children: [
-          HelpOrderDetailCard(order: _contextData.order),
+          HelpOrderDetailCard(order: contextData.order),
           SizedBox(height: 16.h),
           const HelpSectionTitle(label: 'What do you need?'),
           SizedBox(height: 10.h),

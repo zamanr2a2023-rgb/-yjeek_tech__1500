@@ -3,9 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yjeek_app/core/constants/app_strings.dart';
 import 'package:yjeek_app/core/providers/app_providers.dart';
 import 'package:yjeek_app/features/auth/model/social_auth_service.dart';
+import 'package:yjeek_app/features/auth/utils/require_login.dart';
 import 'package:yjeek_app/features/notifications/service/push_notification_service.dart';
 import 'package:yjeek_app/l10n/locale_controller.dart';
-import 'package:yjeek_app/routes/app_router.dart';
 
 final socialAuthServiceProvider = Provider<SocialAuthService>(
   (ref) => SocialAuthService(),
@@ -95,7 +95,7 @@ Future<void> completeSocialLogin({
     } catch (_) {}
 
     if (!context.mounted) return;
-    context.goHome();
+    await navigateAfterLogin(context, ref);
     PushNotificationService.instance.syncToken();
     PushNotificationService.instance.consumePendingOpen();
   } on UnsupportedError catch (e) {

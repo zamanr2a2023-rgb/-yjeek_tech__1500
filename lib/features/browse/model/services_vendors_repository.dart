@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:yjeek_app/core/network/api_client.dart';
 import 'package:yjeek_app/core/services/storage_service.dart';
+import 'package:yjeek_app/core/utils/api_media_url.dart';
+import 'package:yjeek_app/features/browse/model/browse_data.dart';
 import 'package:yjeek_app/features/browse/model/services_data.dart';
 import 'package:yjeek_app/features/home/model/home_ui_mapper.dart';
 
@@ -20,19 +22,26 @@ class ServicesProductDetail {
   const ServicesProductDetail({
     required this.item,
     required this.description,
-    required this.options,
+    required this.optionGroups,
     required this.addons,
     required this.specialists,
     required this.specialistIds,
+    this.imageUrl,
+    this.quantityLabel = 'Sessions',
+    this.categoryLabel,
   });
 
   final ServiceMenuItem item;
   final String description;
-  final List<ServiceOption> options;
-  final List<ServiceAddon> addons;
+  final List<BrowseOptionGroup> optionGroups;
+  final List<BrowseAddonOption> addons;
   final List<String> specialists;
   /// Parallel to [specialists]; null means "Any".
   final List<String?> specialistIds;
+  final String? imageUrl;
+  /// Cleaning → Visits; Beauty & others → Sessions (chekc.md / help 2.md).
+  final String quantityLabel;
+  final String? categoryLabel;
 }
 
 class ServicesCartSummary {
@@ -71,22 +80,27 @@ class ServicesVendorsRepository {
 
   String? get _token => _storage.token;
 
-  /// GET /categories/services — menuCategories for the home grid.
+  /// GET /categories/services — menuCategories (preferred) or subTypes.
   Future<List<ServiceCategoryItem>> fetchServiceCategories() async {
     final response = await _apiClient.getJson('/categories/services');
     final data = response?['data'];
-    if (data is! Map<String, dynamic>) return ServicesData.categories;
-
-    final list = data['menuCategories'];
-    if (list is! List || list.isEmpty) return ServicesData.categories;
+    if (data is! Map<String, dynamic>) return const [];
 
     final items = <ServiceCategoryItem>[];
-    for (final raw in list) {
-      if (raw is! Map<String, dynamic>) continue;
-      final mapped = serviceCategoryFromMenuJson(raw);
-      if (mapped != null) items.add(mapped);
+
+    void addFromList(Object? list) {
+      if (list is! List) return;
+      for (final raw in list) {
+        if (raw is! Map<String, dynamic>) continue;
+        final mapped = serviceCategoryFromMenuJson(raw);
+        if (mapped != null) items.add(mapped);
+      }
     }
-    return items.isNotEmpty ? items : ServicesData.categories;
+
+    addFromList(data['menuCategories']);
+    if (items.isEmpty) addFromList(data['subTypes']);
+    if (items.isEmpty) addFromList(data['children']);
+    return items;
   }
 
   Future<ServiceCategoryItem> fetchCategoryById(String categoryId) async {
@@ -98,7 +112,7 @@ class ServicesVendorsRepository {
         return c;
       }
     }
-    return ServicesData.categoryById(categoryId);
+    throw StateError('Service category not found: $categoryId');
   }
 
   /// GET /vendors?category=services&isBookable=true&sort=&subcategory=&q=&hasOffers=
@@ -149,7 +163,18 @@ class ServicesVendorsRepository {
       final mapped = serviceProviderFromVendorJson(raw);
       if (mapped == null) continue;
       if (!_matchesVenue(mapped, venueFilter)) continue;
+      // Fully booked can be hidden when sorting by availability (default).
+      if (sort != 'rating' && mapped.fullyBooked) continue;
       items.add(mapped);
+    }
+
+    // Availability first (open / slots soon), then rating as tie-break.
+    if (sort != 'rating' && sort != 'name') {
+      items.sort((a, b) {
+        final byAvail = b.availabilityRank.compareTo(a.availabilityRank);
+        if (byAvail != 0) return byAvail;
+        return b.rating.compareTo(a.rating);
+      });
     }
     return items;
   }
@@ -169,7 +194,7 @@ class ServicesVendorsRepository {
       final mapped = serviceProviderFromVendorJson(data);
       if (mapped != null) return mapped;
     }
-    return ServicesData.providerById(providerId);
+    throw StateError('Service provider not found: $providerId');
   }
 
   /// GET /vendors/:id/menu?q=
@@ -243,6 +268,12 @@ class ServicesVendorsRepository {
       if (data is Map<String, dynamic>) product = data;
     } catch (_) {}
 
+    String? providerCategory;
+    try {
+      final provider = await fetchProvider(providerId);
+      providerCategory = provider.category;
+    } catch (_) {}
+
     var specialists = <String>['Any'];
     var specialistIds = <String?>[null];
     try {
@@ -267,60 +298,49 @@ class ServicesVendorsRepository {
       }
     } catch (_) {}
 
-    if (specialists.length == 1) {
-      specialists = List<String>.from(ServicesData.specialists);
-      specialistIds = List<String?>.filled(specialists.length, null);
-    }
-
     if (product == null) {
-      final fallback = ServicesData.menuItemById(itemId);
-      return ServicesProductDetail(
-        item: fallback,
-        description: ServicesData.haircutDescription,
-        options: ServicesData.haircutOptions,
-        addons: ServicesData.haircutAddons,
-        specialists: specialists,
-        specialistIds: specialistIds,
-      );
+      throw StateError('Service product not found: $itemId');
     }
 
-    final item =
-        serviceMenuItemFromProductJson(product, section: 'Services') ??
-        ServicesData.menuItemById(itemId);
+    final item = serviceMenuItemFromProductJson(product, section: 'Services');
+    if (item == null) {
+      throw StateError('Service product not found: $itemId');
+    }
 
     final description =
         (product['description'] as String?)?.trim().isNotEmpty == true
         ? (product['description'] as String).trim()
         : item.description;
 
-    final options = <ServiceOption>[];
-    final optionGroups = product['optionGroups'];
-    if (optionGroups is List) {
-      for (final group in optionGroups) {
-        if (group is! Map<String, dynamic>) continue;
-        final opts = group['options'];
-        if (opts is! List) continue;
-        for (final opt in opts) {
-          if (opt is! Map<String, dynamic>) continue;
-          final name = opt['name'] as String?;
-          if (name == null || name.isEmpty) continue;
-          final delta = (opt['priceDelta'] as num?)?.toDouble() ?? 0;
-          options.add(
-            ServiceOption(
-              id: opt['id']?.toString(),
-              name: name,
-              subtitle: delta <= 0
-                  ? 'Included'
-                  : '+ BHD ${_formatMoney(delta)}',
-              extraPrice: delta > 0 ? _formatMoney(delta) : null,
-            ),
-          );
-        }
-      }
-    }
-    if (options.isEmpty) options.addAll(ServicesData.haircutOptions);
+    final optionGroups = browseOptionGroupsFromJson(product['optionGroups']);
 
-    final addons = <ServiceAddon>[];
+    // Help 2.md list view: cleaner count under duration (not stock status).
+    final patchedGroups = [
+      for (final group in optionGroups)
+        BrowseOptionGroup(
+          id: group.id,
+          name: group.name,
+          minSelect: group.minSelect,
+          maxSelect: group.maxSelect,
+          options: [
+            for (final opt in group.options)
+              BrowseSizeOption(
+                id: opt.id,
+                label: opt.label,
+                subtitle: opt.isIncluded
+                    ? 'Included'
+                    : '+BHD ${opt.extraPrice}',
+                extraPrice: opt.extraPrice,
+                imageUrl: opt.imageUrl,
+                isDefault: opt.isDefault,
+                isAvailable: opt.isAvailable,
+                stockLabel: _serviceOptionHint(opt.label),
+              ),
+          ],
+        ),
+    ];
+
+    final addons = <BrowseAddonOption>[];
     final addonsRaw = product['addons'];
     if (addonsRaw is List) {
       for (final addon in addonsRaw) {
@@ -329,23 +349,30 @@ class ServicesVendorsRepository {
         if (name == null || name.isEmpty) continue;
         final price = (addon['price'] as num?)?.toDouble() ?? 0;
         addons.add(
-          ServiceAddon(
+          BrowseAddonOption(
             id: addon['id']?.toString(),
-            name: name,
+            label: name,
             price: _formatMoney(price),
+            imageUrl: resolveApiMediaUrl(addon['imageUrl'] as String?),
           ),
         );
       }
     }
-    if (addons.isEmpty) addons.addAll(ServicesData.haircutAddons);
+
+    final category = providerCategory ??
+        product['serviceCategory'] as String? ??
+        product['categoryLabel'] as String?;
 
     return ServicesProductDetail(
       item: item,
       description: description,
-      options: options,
+      optionGroups: patchedGroups,
       addons: addons,
       specialists: specialists,
       specialistIds: specialistIds,
+      imageUrl: resolveApiMediaUrl(product['imageUrl'] as String?),
+      quantityLabel: serviceQuantityLabel(category),
+      categoryLabel: category,
     );
   }
 
@@ -488,7 +515,7 @@ class ServicesVendorsRepository {
             ? data['items'] ?? data['history']
             : null);
     if (list is! List || list.isEmpty) {
-      return const ['Glow Beauty', 'Spa', 'Haircut', 'Home cleaning'];
+      return const [];
     }
 
     final queries = <String>[];
@@ -500,9 +527,7 @@ class ServicesVendorsRepository {
         queries.add(raw.trim());
       }
     }
-    return queries.isNotEmpty
-        ? queries
-        : const ['Glow Beauty', 'Spa', 'Haircut', 'Home cleaning'];
+    return queries;
   }
 }
 
@@ -510,14 +535,29 @@ ServiceCategoryItem? serviceCategoryFromMenuJson(Map<String, dynamic> json) {
   final name = (json['name'] as String?)?.trim();
   if (name == null || name.isEmpty) return null;
 
-  final known = _knownServiceCategory(name);
   final apiId = json['id']?.toString();
+  final slug = json['slug']?.toString();
   return ServiceCategoryItem(
-    id: known?.id ?? _slugify(name) ?? apiId ?? name,
+    id: apiId ?? slug ?? _slugify(name) ?? name,
     name: name,
-    emoji: known?.emoji ?? '✂',
-    iconBackground: known?.iconBackground ?? const Color(0xFFE3F2EB),
+    emoji: (json['emoji'] as String?)?.trim().isNotEmpty == true
+        ? (json['emoji'] as String).trim()
+        : _emojiForServiceName(name),
+    iconBackground: const Color(0xFFE8F5E9),
   );
+}
+
+String _emojiForServiceName(String name) {
+  final n = name.toLowerCase();
+  if (n.contains('clean')) return '🧹';
+  if (n.contains('plumb') || n.contains('ac') || n.contains('a/c')) return '🔧';
+  if (n.contains('beauty') || n.contains('salon') || n.contains('hair')) {
+    return '✂️';
+  }
+  if (n.contains('car') || n.contains('auto')) return '🚗';
+  if (n.contains('photo')) return '📷';
+  if (n.contains('spa') || n.contains('massage')) return '🧘';
+  return '🛠️';
 }
 
 ServiceProvider? serviceProviderFromVendorJson(Map<String, dynamic> json) {
@@ -531,10 +571,9 @@ ServiceProvider? serviceProviderFromVendorJson(Map<String, dynamic> json) {
       _firstCategoryName(json) ??
       'Services';
 
-  final knownCat = _knownServiceCategory(serviceCategory);
   final categoryId =
-      knownCat?.id ??
       (json['serviceCategoryId']?.toString()) ??
+      _slugify(serviceCategory) ??
       'services';
 
   final ratingRaw = json['rating'];
@@ -560,7 +599,9 @@ ServiceProvider? serviceProviderFromVendorJson(Map<String, dynamic> json) {
       : serviceCategory;
 
   final colors = _gradientForName(name);
-  final emoji = knownCat?.emoji ?? '💇‍♀';
+  final emoji = (json['emoji'] as String?)?.trim().isNotEmpty == true
+      ? (json['emoji'] as String).trim()
+      : '💇‍♀';
 
   final openHoursTitle =
       (json['openHoursTitle'] as String?)?.trim().isNotEmpty == true
@@ -575,12 +616,23 @@ ServiceProvider? serviceProviderFromVendorJson(Map<String, dynamic> json) {
           ? (json['bookingModeLabel'] as String).trim()
           : 'Walk-in / book';
 
+  final offer = json['offerBadge'] ?? json['badgeLabel'] ?? json['promoBadge'];
+  final offerBadge = offer?.toString().trim();
+  final area = (json['area'] as String?)?.trim();
+  final imageUrl = resolveApiMediaUrl(json['logoUrl'] as String?) ??
+      resolveApiMediaUrl(json['coverUrl'] as String?);
+  final openStatus = (json['openStatus'] as String?)?.toUpperCase() ?? 'UNKNOWN';
+  final hasRating = json['hasRating'] == true || (reviewCount > 0 && rating > 0);
+  final fullyBooked = json['fullyBooked'] == true ||
+      (json['bookingModeLabel'] as String?)?.toLowerCase().contains('full') ==
+          true;
+
   return ServiceProvider(
     id: id,
     name: name,
     category: serviceCategory,
     categoryId: categoryId,
-    rating: double.parse(rating.toStringAsFixed(1)),
+    rating: hasRating ? double.parse(rating.toStringAsFixed(1)) : 0,
     reviewCount: reviewCount,
     distance: distance,
     tags: tags,
@@ -596,6 +648,13 @@ ServiceProvider? serviceProviderFromVendorJson(Map<String, dynamic> json) {
     openHoursTitle: openHoursTitle,
     openHoursSubtitle: openHoursSubtitle,
     bookingModeLabel: bookingModeLabel,
+    offerBadge:
+        (offerBadge != null && offerBadge.isNotEmpty) ? offerBadge : null,
+    area: (area != null && area.isNotEmpty) ? area : null,
+    imageUrl: imageUrl,
+    hasRating: hasRating,
+    openStatus: openStatus,
+    fullyBooked: fullyBooked,
   );
 }
 
@@ -619,6 +678,22 @@ ServiceMenuItem? serviceMenuItemFromProductJson(
       ? (json['description'] as String).trim()
       : '$name · $duration';
 
+  final mods = json['modifiers'];
+  final optionGroups = json['optionGroups'];
+  final count = json['_count'];
+  final optionCount = optionGroups is List
+      ? optionGroups.length
+      : (count is Map
+          ? (count['optionGroups'] as num?)?.toInt() ?? 0
+          : 0);
+  final addonCount = count is Map
+      ? (count['addons'] as num?)?.toInt() ?? 0
+      : (json['addons'] is List ? (json['addons'] as List).length : 0);
+  final hasModifiers = json['hasModifiers'] == true ||
+      (mods is List && mods.isNotEmpty) ||
+      optionCount > 0 ||
+      addonCount > 0;
+
   return ServiceMenuItem(
     id: id,
     name: name,
@@ -626,6 +701,7 @@ ServiceMenuItem? serviceMenuItemFromProductJson(
     price: price,
     section: section,
     duration: duration,
+    hasModifiers: hasModifiers,
   );
 }
 
@@ -641,24 +717,18 @@ bool _matchesVenue(ServiceProvider provider, String? venueFilter) {
   }
 }
 
-ServiceCategoryItem? _knownServiceCategory(String name) {
-  final lower = name.toLowerCase();
-  for (final c in ServicesData.categories) {
-    if (c.name.toLowerCase() == lower ||
-        c.id.toLowerCase() == lower ||
-        lower.contains(c.id.replaceAll('-', ' '))) {
-      return c;
-    }
-  }
-  if (lower.contains('salon') || lower.contains('beauty')) {
-    return ServicesData.categories[0];
-  }
-  if (lower.contains('spa') || lower.contains('massage')) {
-    return ServicesData.categories[1];
-  }
-  if (lower.contains('photo')) return ServicesData.categories[2];
-  if (lower.contains('home')) return ServicesData.categories[3];
+String? _serviceOptionHint(String label) {
+  final n = label.toLowerCase().trim();
+  if (n == '2 hours') return '1 cleaner';
+  if (n == '3 hours' || n == '4 hours' || n == '6 hours') return '2 cleaners';
   return null;
+}
+
+/// Quantity row label: Cleaning → Visits; Beauty & other services → Sessions.
+String serviceQuantityLabel(String? category) {
+  final c = (category ?? '').toLowerCase();
+  if (c.contains('clean')) return 'Visits';
+  return 'Sessions';
 }
 
 String? _slugify(String name) {
@@ -685,14 +755,6 @@ String _formatPrice(double value) {
 String _formatMoney(double value) => value.toStringAsFixed(3);
 
 (Color, Color) _gradientForName(String name) {
-  for (final p in [
-    ...ServicesData.popularProviders,
-    ...ServicesData.salonBeautyProviders,
-  ]) {
-    if (p.name.toLowerCase() == name.toLowerCase()) {
-      return (p.gradientStart, p.gradientEnd);
-    }
-  }
   final base = HomeBrandStyle.forName(name);
   return (base, const Color(0xFF15302B));
 }

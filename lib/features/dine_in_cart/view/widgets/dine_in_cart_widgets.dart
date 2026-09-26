@@ -7,6 +7,7 @@ import 'package:yjeek_app/features/cart/view/widgets/cart_flow_widgets.dart';
 import 'package:yjeek_app/features/dine_in_cart/model/dine_in_cart_data.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/navigation_widgets.dart';
 
+/// DEPRECATED — use [LiveCartBody].
 class DineInBasketBody extends StatefulWidget {
   const DineInBasketBody({
     super.key,
@@ -640,10 +641,12 @@ class DineInReviewStatusCard extends StatelessWidget {
     super.key,
     required this.secondsLeft,
     this.totalSeconds = 10,
+    this.vendorName,
   });
 
   final int secondsLeft;
   final int totalSeconds;
+  final String? vendorName;
 
   static const Color _ringTrack = Color(0xFF2C6B47);
   static const Color _ringProgress = Color(0xFFC9A84C);
@@ -654,6 +657,10 @@ class DineInReviewStatusCard extends StatelessWidget {
     final progress = totalSeconds <= 0
         ? 0.0
         : (secondsLeft / totalSeconds).clamp(0.0, 1.0);
+    final vendor = (vendorName ?? '').trim();
+    final title = vendor.isEmpty
+        ? DineInCartStrings.sendingOrderTo('restaurant')
+        : DineInCartStrings.sendingOrderTo(vendor);
 
     return Container(
       width: double.infinity,
@@ -694,7 +701,7 @@ class DineInReviewStatusCard extends StatelessWidget {
           ),
           SizedBox(height: 12.h),
           Text(
-            DineInCartStrings.sendingOrder,
+            title,
             textAlign: TextAlign.center,
             style: AppTextStyles.labelMedium(color: AppColors.white).copyWith(
               fontWeight: FontWeight.w700,

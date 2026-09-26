@@ -31,11 +31,11 @@ class _ServicesConfirmedScreenState
   static const Color _bg = Color(0xFFF2F7F2);
 
   String _refLine = ServicesOrderFlowStrings.appointmentBooked;
-  String _service = ServicesOrderFlowData.serviceName;
-  String _provider = ServicesOrderFlowData.providerName;
-  String _when = ServicesOrderFlowData.appointmentWhen;
-  String _location = ServicesOrderFlowData.locationLabel;
-  String _paid = ServicesOrderFlowData.confirmedPaid;
+  String _service = '';
+  String _provider = '';
+  String _when = '';
+  String _location = '';
+  String _paid = '';
   bool _loading = true;
 
   @override

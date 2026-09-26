@@ -6,6 +6,7 @@ import 'package:yjeek_app/features/cart/view/widgets/cart_flow_widgets.dart';
 import 'package:yjeek_app/features/navigation/model/navigation_data.dart';
 import 'package:yjeek_app/features/pickup_cart/model/pickup_cart_data.dart';
 
+/// DEPRECATED — use [LiveCartBody].
 class PickupCartBody extends StatefulWidget {
   const PickupCartBody({
     super.key,

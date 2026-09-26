@@ -12,10 +12,11 @@ import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/features/auth/utils/require_login.dart';
 import 'package:yjeek_app/features/browse/browse_routes.dart';
 import 'package:yjeek_app/features/browse/model/browse_data.dart';
-import 'package:yjeek_app/features/browse/model/dine_in_data.dart';
+import 'package:yjeek_app/features/browse/model/dine_in_data.dart' show DineInRestaurant;
 import 'package:yjeek_app/features/browse/model/dine_in_vendors_repository.dart';
 import 'package:yjeek_app/features/browse/view/widgets/browse_widgets.dart';
 import 'package:yjeek_app/features/browse/view/widgets/dine_in_widgets.dart';
+import 'package:yjeek_app/features/cart/model/pending_add_to_cart.dart';
 import 'package:yjeek_app/features/cart/view/widgets/cart_flow_widgets.dart';
 import 'package:yjeek_app/features/home/view/widgets/home_widgets.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/navigation_widgets.dart';
@@ -36,10 +37,10 @@ class DineInMenuScreen extends ConsumerStatefulWidget {
 }
 
 class _DineInMenuScreenState extends ConsumerState<DineInMenuScreen> {
-  DineInRestaurant _restaurant = DineInData.restaurants.first;
-  List<String> _sections = DineInData.menuSections;
+  DineInRestaurant? _restaurant;
+  List<String> _sections = const [];
   List<BrowseMenuItem> _allItems = const [];
-  String _selectedSection = DineInData.menuSections.first;
+  String _selectedSection = '';
   String _menuQuery = '';
   DineInCartSummary _cart = DineInCartSummary.empty;
   bool _loading = true;
@@ -86,9 +87,7 @@ class _DineInMenuScreenState extends ConsumerState<DineInMenuScreen> {
       if (!mounted) return;
       setState(() {
         _restaurant = menu.restaurant;
-        _sections = menu.sections.isNotEmpty
-            ? menu.sections
-            : DineInData.menuSections;
+        _sections = menu.sections;
         _allItems = menu.items;
         if (!_sections.contains(_selectedSection) && _sections.isNotEmpty) {
           _selectedSection = _sections.first;
@@ -100,6 +99,10 @@ class _DineInMenuScreenState extends ConsumerState<DineInMenuScreen> {
     } catch (_) {
       if (!mounted) return;
       setState(() {
+        _restaurant = null;
+        _sections = const [];
+        _allItems = const [];
+        _selectedSection = '';
         _loading = false;
         _loadedOnce = true;
       });
@@ -143,7 +146,22 @@ class _DineInMenuScreenState extends ConsumerState<DineInMenuScreen> {
 
   Future<void> _addItemDirectly(BrowseMenuItem item) async {
     if (_addingItemId != null) return;
+
+    if (!ref.read(storageServiceProvider).hasSession) {
+      rememberPendingAddToCart(
+        ref,
+        PendingAddToCart(
+          productId: item.id,
+          quantity: 1,
+          cartType: 'DINE_IN',
+          vendorId: widget.restaurantId,
+          returnPath: currentReturnPath(context),
+          vertical: PendingCartVertical.dineIn,
+        ),
+      );
+    }
     if (!await requireLogin(context, ref)) return;
+    if (!mounted) return;
 
     final cartVendorId = _cart.vendorId;
     final needsReplace = cartVendorId != null &&
@@ -162,8 +180,20 @@ class _DineInMenuScreenState extends ConsumerState<DineInMenuScreen> {
       setState(() => _addingItemId = null);
 
       if (result.ok) {
-        ref.read(shellProvider.notifier).openDineInCartWithItems();
-        context.goHome(tab: 2, dineInCart: true);
+        clearPendingAddToCart(ref);
+        ref.read(shellProvider.notifier).markCartUpdated(dineIn: true);
+        try {
+          final cart =
+              await ref.read(dineInVendorsRepositoryProvider).fetchDineInCart();
+          if (mounted) setState(() => _cart = cart);
+        } catch (_) {}
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${item.localizedName} added to cart'),
+            duration: const Duration(seconds: 1),
+          ),
+        );
         return;
       }
       if (result.vendorConflict) {
@@ -201,11 +231,26 @@ class _DineInMenuScreenState extends ConsumerState<DineInMenuScreen> {
         ),
       );
     }
+    final restaurant = _restaurant;
+    if (restaurant == null) {
+      return Scaffold(
+        backgroundColor: _screenBg,
+        body: Center(
+          child: Text(
+            'Could not load this menu',
+            style: AppTextStyles.bodyMedium(color: AppColors.textSecondary),
+          ),
+        ),
+        bottomNavigationBar: ShellBottomNavBar(
+          currentIndex: widget.bottomNavIndex,
+        ),
+      );
+    }
     return Scaffold(
       backgroundColor: _screenBg,
       body: Column(
         children: [
-          DineInVendorHero(restaurant: _restaurant),
+          DineInVendorHero(restaurant: restaurant),
           Expanded(
             child: _loading
                 ? const Center(
@@ -220,10 +265,10 @@ class _DineInMenuScreenState extends ConsumerState<DineInMenuScreen> {
                       ),
                       SizedBox(height: 14.h),
                       DineInStatusCard(
-                        leftTitle: _restaurant.statusLabel,
-                        leftSubtitle: _restaurant.modeLabel,
-                        rightTitle: 'Table ${_restaurant.tableMin}+',
-                        rightSubtitle: _restaurant.entryLabel,
+                        leftTitle: restaurant.statusLabel,
+                        leftSubtitle: restaurant.modeLabel,
+                        rightTitle: 'Table ${restaurant.tableMin}+',
+                        rightSubtitle: restaurant.entryLabel,
                       ),
                       SizedBox(height: 14.h),
                       if (_sections.isNotEmpty)
@@ -260,8 +305,8 @@ class _DineInMenuScreenState extends ConsumerState<DineInMenuScreen> {
                         for (var i = 0; i < _items.length; i++) ...[
                           DineInMenuItemRow(
                             item: _items[i],
-                            gradientStart: _restaurant.gradientStart,
-                            gradientEnd: _restaurant.gradientEnd,
+                            gradientStart: restaurant.gradientStart,
+                            gradientEnd: restaurant.gradientEnd,
                             onTap: () => _openItem(_items[i]),
                             onAdd: () => _onItemAction(_items[i]),
                             isAdding: _addingItemId == _items[i].id,

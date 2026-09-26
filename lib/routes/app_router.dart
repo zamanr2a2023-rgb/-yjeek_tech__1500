@@ -20,10 +20,12 @@ import 'package:yjeek_app/features/browse/view/services_search_screen.dart';
 import 'package:yjeek_app/features/browse/view/electronics_browse_screen.dart';
 import 'package:yjeek_app/features/browse/view/electronics_product_detail_screen.dart';
 import 'package:yjeek_app/features/browse/view/electronics_store_screen.dart';
+import 'package:yjeek_app/features/browse/view/retail_category_screen.dart';
 import 'package:yjeek_app/features/geofence/view/geofence_offer_screen.dart';
 import 'package:yjeek_app/features/home/view/home_screen.dart';
 import 'package:yjeek_app/features/vape_cart/view/vape_age_verify_screen.dart';
 import 'package:yjeek_app/features/vape_cart/view/vape_checkout_screen.dart';
+import 'package:yjeek_app/features/vape_cart/view/vape_id_verify_flow_screen.dart';
 import 'package:yjeek_app/features/vape_cart/view/vape_review_screen.dart';
 import 'package:yjeek_app/features/vape_order_flow/view/vape_confirmed_screen.dart';
 import 'package:yjeek_app/features/vape_order_flow/view/vape_pay_screen.dart';
@@ -348,9 +350,24 @@ class AppRouter {
             final tab = int.tryParse(state.uri.queryParameters['tab'] ?? '') ?? 0;
             final category =
                 state.uri.queryParameters['category'] ?? 'electronics';
+            final subcategory = state.uri.queryParameters['subcategory'];
+            final title = state.uri.queryParameters['title'];
             return ElectronicsBrowseScreen(
               bottomNavIndex: tab,
               category: category,
+              subcategory: subcategory,
+              title: title,
+            );
+          },
+        ),
+        GoRoute(
+          path: RouteNames.retailCategory,
+          builder: (_, state) {
+            final tab = int.tryParse(state.uri.queryParameters['tab'] ?? '') ?? 0;
+            final slug = state.uri.queryParameters['slug'] ?? 'flowers';
+            return RetailCategoryScreen(
+              slug: slug,
+              bottomNavIndex: tab,
             );
           },
         ),
@@ -906,7 +923,17 @@ class AppRouter {
         ),
         GoRoute(
           path: RouteNames.vapeCartAgeVerify,
-          builder: (_, _) => const VapeAgeVerifyScreen(),
+          builder: (_, state) {
+            final product = state.uri.queryParameters['product'];
+            return VapeAgeVerifyScreen(productName: product);
+          },
+        ),
+        GoRoute(
+          path: RouteNames.vapeIdVerify,
+          builder: (_, state) {
+            final product = state.uri.queryParameters['product'];
+            return VapeIdVerifyFlowScreen(productName: product);
+          },
         ),
         GoRoute(
           path: RouteNames.vapeOrderWaiting,
