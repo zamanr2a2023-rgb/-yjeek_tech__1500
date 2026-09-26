@@ -10,6 +10,7 @@ import 'package:yjeek_app/core/widgets/app_network_image.dart';
 import 'package:yjeek_app/features/browse/model/browse_data.dart';
 import 'package:yjeek_app/features/browse/view/widgets/browse_widgets.dart';
 import 'package:yjeek_app/features/auth/utils/require_login.dart';
+import 'package:yjeek_app/features/cart/model/pending_add_to_cart.dart';
 import 'package:yjeek_app/features/cart/view/widgets/cart_flow_widgets.dart';
 import 'package:yjeek_app/features/home/view/widgets/home_widgets.dart';
 import 'package:yjeek_app/l10n/locale_controller.dart';
@@ -129,7 +130,6 @@ class _DineInItemDetailScreenState
 
   Future<void> _addToCart({bool replaceCart = false}) async {
     if (_adding) return;
-    if (!await requireLogin(context, ref)) return;
 
     final validationError = validateOptionSelections(
       _optionGroups,
@@ -142,7 +142,6 @@ class _DineInItemDetailScreenState
       return;
     }
 
-    setState(() => _adding = true);
     final optionIds = optionSelectionIds(
       _optionGroups,
       _selectedOptionsByGroup,
@@ -156,6 +155,26 @@ class _DineInItemDetailScreenState
       }
     }
 
+    if (!ref.read(storageServiceProvider).hasSession) {
+      rememberPendingAddToCart(
+        ref,
+        PendingAddToCart(
+          productId: widget.itemId,
+          quantity: _quantity,
+          optionIds: optionIds,
+          addonIds: addonIds,
+          cartType: 'DINE_IN',
+          vendorId: widget.restaurantId,
+          replaceCart: replaceCart,
+          returnPath: currentReturnPath(context),
+          vertical: PendingCartVertical.dineIn,
+        ),
+      );
+    }
+    if (!await requireLogin(context, ref)) return;
+    if (!mounted) return;
+
+    setState(() => _adding = true);
     final result = await ref.read(dineInVendorsRepositoryProvider).addToCart(
           productId: widget.itemId,
           quantity: _quantity,
@@ -168,6 +187,7 @@ class _DineInItemDetailScreenState
     setState(() => _adding = false);
 
     if (result.ok) {
+      clearPendingAddToCart(ref);
       ref.read(shellProvider.notifier).markCartUpdated(dineIn: true);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

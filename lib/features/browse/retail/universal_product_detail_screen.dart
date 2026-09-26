@@ -4,40 +4,40 @@ import 'package:go_router/go_router.dart';
 import 'package:yjeek_app/core/constants/app_colors.dart';
 import 'package:yjeek_app/core/constants/app_text_styles.dart';
 import 'package:yjeek_app/core/providers/app_providers.dart';
-import 'package:yjeek_app/core/providers/shell_provider.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/core/widgets/app_network_image.dart';
-import 'package:yjeek_app/features/browse/model/browse_data.dart';
-import 'package:yjeek_app/features/browse/view/widgets/item_detail_widgets.dart';
 import 'package:yjeek_app/features/auth/utils/require_login.dart';
+import 'package:yjeek_app/features/browse/model/browse_data.dart';
+import 'package:yjeek_app/features/browse/retail/product_detail_strategies.dart';
+import 'package:yjeek_app/features/browse/view/widgets/item_detail_widgets.dart';
+import 'package:yjeek_app/features/browse/view/widgets/vape_widgets.dart';
 import 'package:yjeek_app/features/cart/model/delivery_range.dart';
 import 'package:yjeek_app/features/cart/model/pending_add_to_cart.dart';
 import 'package:yjeek_app/features/cart/view/widgets/cart_flow_widgets.dart';
-import 'package:yjeek_app/features/geofence/model/active_geofence_order_context.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/navigation_widgets.dart';
-import 'package:yjeek_app/l10n/locale_controller.dart';
 
-class ItemDetailScreen extends ConsumerStatefulWidget {
-  const ItemDetailScreen({
+/// Shared product customize page for Electronics / Vape / Services.
+class UniversalProductDetailScreen extends ConsumerStatefulWidget {
+  const UniversalProductDetailScreen({
     super.key,
-    required this.vendorId,
-    required this.itemId,
+    required this.storeId,
+    required this.productId,
+    required this.strategy,
     this.bottomNavIndex = 0,
-    this.cartType,
   });
 
-  final String vendorId;
-  final String itemId;
+  final String storeId;
+  final String productId;
+  final ProductDetailStrategy strategy;
   final int bottomNavIndex;
 
-  /// `pickup` → PICKUP; `dine_in` → DINE_IN; otherwise DELIVERY.
-  final String? cartType;
-
   @override
-  ConsumerState<ItemDetailScreen> createState() => _ItemDetailScreenState();
+  ConsumerState<UniversalProductDetailScreen> createState() =>
+      _UniversalProductDetailScreenState();
 }
 
-class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
+class _UniversalProductDetailScreenState
+    extends ConsumerState<UniversalProductDetailScreen> {
   int _quantity = 1;
   final Map<int, Set<int>> _selectedOptionsByGroup = {};
   final Set<int> _selectedAddons = {};
@@ -48,16 +48,15 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
   bool _adding = false;
   bool _loadError = false;
 
-  late BrowseRestaurant _restaurant;
-  late BrowseMenuItem _item;
-  String _description = '';
-  String? _descriptionAr;
-  List<BrowseOptionGroup> _optionGroups = const [];
-  List<BrowseAddonOption> _addons = const [];
-  String? _imageUrl;
+  UniversalProductDetail? _detail;
 
-  bool get _hasCustomize =>
-      _optionGroups.isNotEmpty || _addons.isNotEmpty;
+  ProductDetailStrategy get strategy => widget.strategy;
+
+  bool get _hasCustomize {
+    final d = _detail;
+    if (d == null) return false;
+    return d.optionGroups.isNotEmpty || d.addons.isNotEmpty;
+  }
 
   @override
   void initState() {
@@ -71,27 +70,31 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
       _loadError = false;
     });
     try {
-      final repo = ref.read(foodVendorsRepositoryProvider);
-      final vendor = await repo.fetchVendor(widget.vendorId);
-      final detail = await repo.fetchProductDetail(
-        vendorId: widget.vendorId,
-        itemId: widget.itemId,
+      final detail = await strategy.load(
+        ref,
+        storeId: widget.storeId,
+        productId: widget.productId,
       );
       if (!mounted) return;
       setState(() {
-        _restaurant = vendor;
-        _item = detail.item;
-        _description = detail.description;
-        _descriptionAr = detail.descriptionAr;
-        _optionGroups = detail.optionGroups;
-        _addons = detail.addons;
-        _imageUrl = detail.imageUrl ?? detail.item.imageUrl;
+        _detail = detail;
         _selectedOptionsByGroup
           ..clear()
           ..addAll(initialOptionSelections(detail.optionGroups));
+        for (final entry in _selectedOptionsByGroup.entries) {
+          final gi = entry.key;
+          if (gi < 0 || gi >= detail.optionGroups.length) continue;
+          entry.value.removeWhere(
+            (oi) =>
+                oi < 0 ||
+                oi >= detail.optionGroups[gi].options.length ||
+                !detail.optionGroups[gi].options[oi].isAvailable,
+          );
+        }
         _selectedAddons.clear();
         _collapsedGroups.clear();
         _addonsExpanded = true;
+        _quantity = 1;
         _loading = false;
       });
     } catch (_) {
@@ -104,39 +107,34 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
     }
   }
 
-  String get _localizedDescription {
-    final ar = _descriptionAr?.trim();
-    if (ref.watch(localeControllerProvider).code == 'ar' &&
-        ar != null &&
-        ar.isNotEmpty) {
-      return ar;
-    }
-    return _description;
-  }
-
   String get _displayPrice {
-    final base = double.tryParse(_item.price) ?? 0;
+    final item = _detail;
+    if (item == null) return '0.000';
+    final base = double.tryParse(item.price) ?? 0;
     final optionExtra = optionSelectionsExtraPrice(
-      _optionGroups,
+      item.optionGroups,
       _selectedOptionsByGroup,
     );
     var addonTotal = 0.0;
     for (final index in _selectedAddons) {
-      if (index >= 0 && index < _addons.length) {
-        addonTotal += double.tryParse(_addons[index].price) ?? 0;
+      if (index >= 0 && index < item.addons.length) {
+        addonTotal += double.tryParse(item.addons[index].price) ?? 0;
       }
     }
     return ((base + optionExtra + addonTotal) * _quantity).toStringAsFixed(3);
   }
 
   String get _basePriceLabel {
-    final p = double.tryParse(_item.price) ?? 0;
+    final item = _detail;
+    if (item == null) return 'BHD 0.000';
+    final p = double.tryParse(item.price) ?? 0;
     return 'BHD ${p.toStringAsFixed(3)}';
   }
 
   void _toggleOption(int groupIndex, int optionIndex) {
-    if (groupIndex < 0 || groupIndex >= _optionGroups.length) return;
-    final group = _optionGroups[groupIndex];
+    final groups = _detail?.optionGroups ?? const [];
+    if (groupIndex < 0 || groupIndex >= groups.length) return;
+    final group = groups[groupIndex];
     if (optionIndex < 0 || optionIndex >= group.options.length) return;
     if (!group.options[optionIndex].isAvailable) return;
 
@@ -158,22 +156,23 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
   }
 
   void _toggleAddon(int index) {
+    final addons = _detail?.addons ?? const [];
     setState(() {
       if (_selectedAddons.contains(index)) {
         _selectedAddons.remove(index);
         return;
       }
-      // Soft cap matches the "Select up to N" hint (all extras when no schema max).
-      if (_selectedAddons.length >= _addons.length) return;
+      if (_selectedAddons.length >= addons.length) return;
       _selectedAddons.add(index);
     });
   }
 
   Future<void> _addToCart({bool replaceCart = false}) async {
-    if (_adding) return;
+    final detail = _detail;
+    if (_adding || detail == null) return;
 
     final validationError = validateOptionSelections(
-      _optionGroups,
+      detail.optionGroups,
       _selectedOptionsByGroup,
     );
     if (validationError != null) {
@@ -184,78 +183,78 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
     }
 
     final optionIds = optionSelectionIds(
-      _optionGroups,
+      detail.optionGroups,
       _selectedOptionsByGroup,
     );
     final addonIds = <String>[];
     for (final index in _selectedAddons) {
       if (index >= 0 &&
-          index < _addons.length &&
-          _addons[index].id != null) {
-        addonIds.add(_addons[index].id!);
+          index < detail.addons.length &&
+          detail.addons[index].id != null) {
+        addonIds.add(detail.addons[index].id!);
       }
     }
-
-    final raw = (widget.cartType ?? '').toLowerCase().replaceAll('-', '_');
-    final orderType = raw == 'pickup'
-        ? 'PICKUP'
-        : (raw == 'dine_in' || raw == 'dinein')
-            ? 'DINE_IN'
-            : 'DELIVERY';
-    final geofenceTriggerId = resolveGeofenceTriggerId(
-      ref,
-      vendorId: widget.vendorId,
-      orderType: orderType,
-    );
 
     if (!ref.read(storageServiceProvider).hasSession) {
       rememberPendingAddToCart(
         ref,
         PendingAddToCart(
-          productId: widget.itemId,
+          productId: widget.productId,
           quantity: _quantity,
           optionIds: optionIds,
           addonIds: addonIds,
-          cartType: orderType,
-          vendorId: widget.vendorId,
-          geofenceTriggerId: geofenceTriggerId,
+          vendorId: widget.storeId,
           replaceCart: replaceCart,
+          cartType: strategy.cartType,
           returnPath: currentReturnPath(context),
-          vertical: PendingCartVertical.food,
+          vertical: strategy.pendingVertical,
         ),
       );
     }
-    if (!await requireLogin(context, ref)) return;
+
+    if (strategy.beforeAdd != null) {
+      if (!await strategy.beforeAdd!(
+        context,
+        ref,
+        productName: detail.name,
+      )) {
+        return;
+      }
+    } else {
+      if (!await requireLogin(context, ref)) return;
+    }
     if (!mounted) return;
 
     setState(() => _adding = true);
-    final result = await ref.read(foodVendorsRepositoryProvider).addToCart(
-          productId: widget.itemId,
-          quantity: _quantity,
-          optionIds: optionIds,
-          addonIds: addonIds,
-          replaceCart: replaceCart,
-          cartType: orderType,
-          vendorId: widget.vendorId,
-          geofenceTriggerId: geofenceTriggerId,
-        );
+    final result = await strategy.add(
+      ref,
+      storeId: widget.storeId,
+      productId: widget.productId,
+      quantity: _quantity,
+      optionIds: optionIds,
+      addonIds: addonIds,
+      replaceCart: replaceCart,
+    );
 
     if (!mounted) return;
     setState(() => _adding = false);
 
     if (result.ok) {
       clearPendingAddToCart(ref);
-      ref.read(shellProvider.notifier).markCartUpdated(
-            delivery: orderType == 'DELIVERY',
-            pickup: orderType == 'PICKUP',
-            dineIn: orderType == 'DINE_IN',
-          );
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('${_item.localizedName} added to cart'),
-          duration: const Duration(seconds: 1),
-        ),
-      );
+      if (strategy.afterSuccess != null) {
+        await strategy.afterSuccess!(
+          context,
+          ref,
+          productName: detail.name,
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${detail.name} added to cart'),
+            duration: const Duration(seconds: 1),
+          ),
+        );
+      }
       return;
     }
 
@@ -263,15 +262,13 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
       rememberPendingAddToCart(
         ref,
         PendingAddToCart(
-          productId: widget.itemId,
+          productId: widget.productId,
           quantity: _quantity,
           optionIds: optionIds,
           addonIds: addonIds,
-          cartType: orderType,
-          vendorId: widget.vendorId,
-          geofenceTriggerId: geofenceTriggerId,
+          vendorId: widget.storeId,
           replaceCart: replaceCart,
-          vertical: PendingCartVertical.food,
+          vertical: strategy.pendingVertical,
         ),
       );
       await pushOutOfDelivery(context);
@@ -303,7 +300,7 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
           ? const Center(
               child: CircularProgressIndicator(color: AppColors.primary),
             )
-          : _loadError
+          : _loadError || _detail == null
               ? Center(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
@@ -323,7 +320,7 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
                   children: [
                     Expanded(child: _buildBody()),
                     ItemAddToCartBar(
-                      label: 'Add to Cart · BHD $_displayPrice',
+                      label: '${strategy.ctaVerb} · BHD $_displayPrice',
                       busy: _adding,
                       onTap: () => _addToCart(),
                     ),
@@ -335,15 +332,23 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
   }
 
   Widget _buildBody() {
+    final item = _detail!;
     return CustomScrollView(
       slivers: [
         SliverToBoxAdapter(child: _buildImageSection()),
+        if (strategy.showAgeBanner)
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(16.w, 10.h, 16.w, 0),
+              child: const VapeAgeBanner(),
+            ),
+          ),
         SliverPadding(
           padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 8.h),
           sliver: SliverList(
             delegate: SliverChildListDelegate([
               Text(
-                _item.localizedName,
+                item.name,
                 style: AppTextStyles.titleMedium(
                   color: AppColors.textPrimary,
                 ).copyWith(
@@ -362,10 +367,11 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
                   height: 1.2,
                 ),
               ),
-              if (_localizedDescription.trim().isNotEmpty) ...[
+              if (item.description.trim().isNotEmpty &&
+                  item.description.trim() != '___') ...[
                 SizedBox(height: 8.h),
                 Text(
-                  _localizedDescription,
+                  item.description,
                   style: AppTextStyles.bodyMedium(
                     color: const Color(0xFF6B6B6B),
                   ).copyWith(
@@ -387,9 +393,9 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
                   isGridView: _isGridView,
                   onViewChanged: (v) => setState(() => _isGridView = v),
                 ),
-                for (var gi = 0; gi < _optionGroups.length; gi++)
+                for (var gi = 0; gi < item.optionGroups.length; gi++)
                   _buildOptionGroup(gi),
-                if (_addons.isNotEmpty) _buildAddonsSection(),
+                if (item.addons.isNotEmpty) _buildAddonsSection(),
                 const Divider(
                   height: 1,
                   thickness: 1,
@@ -398,6 +404,7 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
               ],
               ItemQuantityRow(
                 quantity: _quantity,
+                label: item.quantityLabel,
                 onMinus: () {
                   if (_quantity > 1) setState(() => _quantity--);
                 },
@@ -412,43 +419,22 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
   }
 
   Widget _buildImageSection() {
+    final imageUrl = _detail?.imageUrl;
     return SizedBox(
-      height: 300.h,
+      height: 280.h,
       width: double.infinity,
       child: Stack(
         fit: StackFit.expand,
         children: [
           ColoredBox(
             color: const Color(0xFFE8F5E9),
-            child: _imageUrl != null && _imageUrl!.isNotEmpty
+            child: imageUrl != null && imageUrl.isNotEmpty
                 ? AppNetworkImage(
-                    url: _imageUrl!,
+                    url: imageUrl,
                     fit: BoxFit.cover,
-                    errorWidget: DecoratedBox(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: const Alignment(-0.8, -0.6),
-                          end: const Alignment(0.8, 0.8),
-                          colors: [
-                            _restaurant.gradientStart,
-                            _restaurant.gradientEnd,
-                          ],
-                        ),
-                      ),
-                    ),
+                    errorWidget: const ColoredBox(color: Color(0xFFE8F5E9)),
                   )
-                : DecoratedBox(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: const Alignment(-0.8, -0.6),
-                        end: const Alignment(0.8, 0.8),
-                        colors: [
-                          _restaurant.gradientStart,
-                          _restaurant.gradientEnd,
-                        ],
-                      ),
-                    ),
-                  ),
+                : null,
           ),
           Positioned(
             top: 0,
@@ -457,7 +443,13 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
               bottom: false,
               child: GestureDetector(
                 behavior: HitTestBehavior.opaque,
-                onTap: () => context.pop(),
+                onTap: () {
+                  if (context.canPop()) {
+                    context.pop();
+                  } else {
+                    context.go(strategy.fallbackStoreRoute(widget.storeId));
+                  }
+                },
                 child: Container(
                   width: 36.w,
                   height: 36.w,
@@ -466,14 +458,10 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
                     shape: BoxShape.circle,
                   ),
                   alignment: Alignment.center,
-                  child: Text(
-                    '‹',
-                    style: TextStyle(
-                      fontSize: 18.sp,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.textPrimary,
-                      height: 1.2,
-                    ),
+                  child: Icon(
+                    Icons.chevron_left_rounded,
+                    size: 22.sp,
+                    color: AppColors.textPrimary,
                   ),
                 ),
               ),
@@ -485,14 +473,15 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
   }
 
   Widget _buildOptionGroup(int gi) {
-    final group = _optionGroups[gi];
+    final group = _detail!.optionGroups[gi];
     final expanded = !_collapsedGroups.contains(gi);
+    final style = _gridStyleFor(group.name);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         ItemOptionAccordionHeader(
           title: group.name,
-          hint: group.selectionHint,
+          hint: _groupHint(group, gi),
           expanded: expanded,
           onTap: () => setState(() {
             if (expanded) {
@@ -505,13 +494,17 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
         if (expanded)
           ItemOptionsLayout(
             isGridView: _isGridView,
+            gridStyle: style,
             multiple: group.allowsMultiple,
             itemCount: group.options.length,
             labelAt: (i) => group.options[i].label,
             priceAt: (i) => group.options[i].priceDisplay,
             selectedAt: (i) =>
                 _selectedOptionsByGroup[gi]?.contains(i) ?? false,
-            imageAt: (i) => group.options[i].imageUrl,
+            imageAt: (i) => group.options[i].hasNetworkImage
+                ? group.options[i].imageUrl
+                : null,
+            swatchColorAt: (i) => group.options[i].swatchColor,
             stockAt: (i) => group.options[i].stockLabel,
             enabledAt: (i) => group.options[i].isAvailable,
             onTapAt: (i) => _toggleOption(gi, i),
@@ -521,27 +514,72 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
   }
 
   Widget _buildAddonsSection() {
+    final addons = _detail!.addons;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         ItemOptionAccordionHeader(
           title: 'Add extras',
-          hint: 'Optional · Select up to ${_addons.length}',
+          hint: 'Optional · Select any',
           expanded: _addonsExpanded,
           onTap: () => setState(() => _addonsExpanded = !_addonsExpanded),
         ),
         if (_addonsExpanded)
           ItemOptionsLayout(
             isGridView: _isGridView,
+            gridStyle: _addonsGridStyle,
             multiple: true,
-            itemCount: _addons.length,
-            labelAt: (i) => _addons[i].label,
-            priceAt: (i) => _addons[i].priceLabel,
+            itemCount: addons.length,
+            labelAt: (i) => addons[i].label,
+            priceAt: (i) => addons[i].priceLabel,
             selectedAt: (i) => _selectedAddons.contains(i),
-            imageAt: (i) => _addons[i].imageUrl,
+            imageAt: (i) => addons[i].imageUrl,
             onTapAt: _toggleAddon,
           ),
       ],
     );
+  }
+
+  ItemOptionGridStyle get _addonsGridStyle {
+    final flowerish = (_detail?.optionGroups ?? const []).any((g) {
+      final n = g.name.toLowerCase();
+      return n.contains('bouquet') || n.contains('flower');
+    });
+    return flowerish ? ItemOptionGridStyle.chips : ItemOptionGridStyle.cards;
+  }
+
+  String _groupHint(BrowseOptionGroup group, int gi) {
+    final picks = _selectedOptionsByGroup[gi];
+    String? selectedLabel;
+    if (picks != null && picks.isNotEmpty) {
+      final oi = picks.first;
+      if (oi >= 0 && oi < group.options.length) {
+        selectedLabel = group.options[oi].label;
+      }
+    }
+    if (group.isRequired) {
+      if (selectedLabel != null && selectedLabel.isNotEmpty) {
+        return 'Required · $selectedLabel';
+      }
+      return 'Required';
+    }
+    if (selectedLabel != null && selectedLabel.isNotEmpty) {
+      return 'Optional · $selectedLabel';
+    }
+    return 'Optional · Select any';
+  }
+
+  ItemOptionGridStyle _gridStyleFor(String name) {
+    final n = name.toLowerCase();
+    if (n.contains('colour') || n.contains('color')) {
+      return ItemOptionGridStyle.swatches;
+    }
+    if (n.contains('storage') ||
+        n.contains('size') ||
+        n.contains('memory') ||
+        n.contains('bouquet')) {
+      return ItemOptionGridStyle.chips;
+    }
+    return ItemOptionGridStyle.cards;
   }
 }

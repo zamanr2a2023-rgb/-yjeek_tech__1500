@@ -16,6 +16,7 @@ import 'package:yjeek_app/features/browse/model/dine_in_data.dart' show DineInRe
 import 'package:yjeek_app/features/browse/model/dine_in_vendors_repository.dart';
 import 'package:yjeek_app/features/browse/view/widgets/browse_widgets.dart';
 import 'package:yjeek_app/features/browse/view/widgets/dine_in_widgets.dart';
+import 'package:yjeek_app/features/cart/model/pending_add_to_cart.dart';
 import 'package:yjeek_app/features/cart/view/widgets/cart_flow_widgets.dart';
 import 'package:yjeek_app/features/home/view/widgets/home_widgets.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/navigation_widgets.dart';
@@ -145,7 +146,22 @@ class _DineInMenuScreenState extends ConsumerState<DineInMenuScreen> {
 
   Future<void> _addItemDirectly(BrowseMenuItem item) async {
     if (_addingItemId != null) return;
+
+    if (!ref.read(storageServiceProvider).hasSession) {
+      rememberPendingAddToCart(
+        ref,
+        PendingAddToCart(
+          productId: item.id,
+          quantity: 1,
+          cartType: 'DINE_IN',
+          vendorId: widget.restaurantId,
+          returnPath: currentReturnPath(context),
+          vertical: PendingCartVertical.dineIn,
+        ),
+      );
+    }
     if (!await requireLogin(context, ref)) return;
+    if (!mounted) return;
 
     final cartVendorId = _cart.vendorId;
     final needsReplace = cartVendorId != null &&
@@ -164,6 +180,7 @@ class _DineInMenuScreenState extends ConsumerState<DineInMenuScreen> {
       setState(() => _addingItemId = null);
 
       if (result.ok) {
+        clearPendingAddToCart(ref);
         ref.read(shellProvider.notifier).markCartUpdated(dineIn: true);
         try {
           final cart =

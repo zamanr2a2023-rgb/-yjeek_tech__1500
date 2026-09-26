@@ -414,7 +414,27 @@ class _VendorMenuScreenState extends ConsumerState<VendorMenuScreen> {
 
   Future<void> _addItemDirectly(BrowseMenuItem item) async {
     if (_addingItemId != null) return;
+
+    if (!ref.read(storageServiceProvider).hasSession) {
+      rememberPendingAddToCart(
+        ref,
+        PendingAddToCart(
+          productId: item.id,
+          quantity: 1,
+          cartType: _apiCartType,
+          vendorId: widget.vendorId,
+          geofenceTriggerId: resolveGeofenceTriggerId(
+            ref,
+            vendorId: widget.vendorId,
+            orderType: _apiCartType,
+          ),
+          returnPath: currentReturnPath(context),
+          vertical: PendingCartVertical.food,
+        ),
+      );
+    }
     if (!await requireLogin(context, ref)) return;
+    if (!mounted) return;
 
     final cartVendorId = _cart.vendorId;
     final needsReplace = cartVendorId != null &&
@@ -440,6 +460,7 @@ class _VendorMenuScreenState extends ConsumerState<VendorMenuScreen> {
       setState(() => _addingItemId = null);
 
       if (result.ok) {
+        clearPendingAddToCart(ref);
         ref.read(shellProvider.notifier).markCartUpdated(
               delivery: _cartMode == 'DELIVERY',
               pickup: _cartMode == 'PICKUP',
@@ -474,6 +495,7 @@ class _VendorMenuScreenState extends ConsumerState<VendorMenuScreen> {
               orderType: _apiCartType,
             ),
             replaceCart: replace,
+            vertical: PendingCartVertical.food,
           ),
         );
         await pushOutOfDelivery(context);
