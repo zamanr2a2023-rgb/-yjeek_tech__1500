@@ -3,6 +3,7 @@ import 'package:yjeek_app/core/network/api_client.dart';
 import 'package:yjeek_app/core/services/storage_service.dart';
 import 'package:yjeek_app/core/utils/api_media_url.dart';
 import 'package:yjeek_app/features/browse/model/browse_data.dart';
+import 'package:yjeek_app/features/catalog/model/catalog_product.dart';
 import 'package:yjeek_app/features/cart/model/addresses_repository.dart';
 import 'package:yjeek_app/features/cart/model/delivery_range.dart';
 import 'package:yjeek_app/features/home/model/home_ui_mapper.dart';
@@ -28,6 +29,7 @@ class FoodProductDetail {
     required this.addons,
     this.imageUrl,
     this.descriptionAr,
+    this.catalog,
   });
 
   final BrowseMenuItem item;
@@ -36,6 +38,11 @@ class FoodProductDetail {
   final List<BrowseOptionGroup> optionGroups;
   final List<BrowseAddonOption> addons;
   final String? imageUrl;
+
+  /// Catalog axes and variants from the same payload. Food item detail ignores
+  /// this and keeps using [optionGroups]. Null only when a caller builds the
+  /// detail without a product JSON body.
+  final CatalogProduct? catalog;
 
   String get localizedDescription {
     if (L10n.isArabic) {
@@ -109,10 +116,7 @@ class FoodVendorsRepository {
     bool withinDeliveryRadius = false,
     bool supportsDelivery = true,
   }) async {
-    final params = <String, String>{
-      'category': 'food',
-      'sort': sort,
-    };
+    final params = <String, String>{'category': 'food', 'sort': sort};
     if (supportsDelivery) params['supportsDelivery'] = 'true';
     if (cuisine != null &&
         cuisine.isNotEmpty &&
@@ -201,11 +205,11 @@ class FoodVendorsRepository {
     final vendorRaw = data['vendor'];
     final restaurant = vendorRaw is Map<String, dynamic>
         ? (browseRestaurantFromVendorJson({
-              ...vendorRaw,
-              'id': vendorRaw['id'] ?? vendorId,
-              'slug': vendorRaw['slug'] ?? vendorId,
-            }) ??
-            await fetchVendor(vendorId))
+                ...vendorRaw,
+                'id': vendorRaw['id'] ?? vendorId,
+                'slug': vendorRaw['slug'] ?? vendorId,
+              }) ??
+              await fetchVendor(vendorId))
         : await fetchVendor(vendorId);
 
     final sectionsRaw = data['sections'];
@@ -251,9 +255,9 @@ class FoodVendorsRepository {
     }
 
     final item = browseMenuItemFromProductJson(
-          data,
-          section: data['menuSectionName'] as String? ?? 'Menu',
-        );
+      data,
+      section: data['menuSectionName'] as String? ?? 'Menu',
+    );
     if (item == null) {
       throw StateError('Product not found');
     }
@@ -294,14 +298,18 @@ class FoodVendorsRepository {
       descriptionAr: descAr.isNotEmpty ? descAr : item.descriptionAr,
       optionGroups: optionGroups,
       addons: addons,
-      imageUrl: resolveApiMediaUrl(data['imageUrl'] as String?) ??
+      imageUrl:
+          resolveApiMediaUrl(data['imageUrl'] as String?) ??
           resolveApiMediaUrlFromList(data['imageUrls']) ??
           item.imageUrl,
+      catalog: CatalogProduct.fromJson(data),
     );
   }
 
   /// GET /cart?type=DELIVERY|PICKUP|DINE_IN
-  Future<FoodCartSummary> fetchDeliveryCart({String cartType = 'DELIVERY'}) async {
+  Future<FoodCartSummary> fetchDeliveryCart({
+    String cartType = 'DELIVERY',
+  }) async {
     if (!_storage.hasSession) return FoodCartSummary.empty;
 
     final type = _normalizeCartType(cartType);
@@ -342,7 +350,7 @@ class FoodVendorsRepository {
   /// POST /cart/items?type=DELIVERY|PICKUP|DINE_IN
   /// Returns null on success, conflict message on vendor conflict, or error text.
   Future<({bool ok, bool vendorConflict, bool outOfRange, String? message})>
-      addToCart({
+  addToCart({
     required String productId,
     required int quantity,
     List<String> optionIds = const [],
@@ -374,34 +382,37 @@ class FoodVendorsRepository {
       }
     }
 
-    final response = await _apiClient.postJson(
-      '/cart/items?type=$type',
-      {
-        'productId': productId,
-        'quantity': quantity,
-        'replaceCart': replaceCart,
-        if (geofenceTriggerId != null && geofenceTriggerId.isNotEmpty)
-          'geofenceTriggerId': geofenceTriggerId,
-        'options': {
-          if (optionIds.isNotEmpty) 'optionIds': optionIds,
-          if (addonIds.isNotEmpty) 'addonIds': addonIds,
-        },
+    final response = await _apiClient.postJson('/cart/items?type=$type', {
+      'productId': productId,
+      'quantity': quantity,
+      'replaceCart': replaceCart,
+      if (geofenceTriggerId != null && geofenceTriggerId.isNotEmpty)
+        'geofenceTriggerId': geofenceTriggerId,
+      'options': {
+        if (optionIds.isNotEmpty) 'optionIds': optionIds,
+        if (addonIds.isNotEmpty) 'addonIds': addonIds,
       },
-      bearerToken: _token,
-    );
+    }, bearerToken: _token);
 
     if (response.ok) {
-      return (ok: true, vendorConflict: false, outOfRange: false, message: null);
+      return (
+        ok: true,
+        vendorConflict: false,
+        outOfRange: false,
+        message: null,
+      );
     }
 
     final error = response.json?['error'];
     final details = error is Map ? error['details'] : null;
     final detailCode = details is Map ? details['code']?.toString() : null;
     final code = error is Map ? error['code']?.toString() : null;
-    final outOfRange = isOutOfDeliveryRangeCode(code) ||
+    final outOfRange =
+        isOutOfDeliveryRangeCode(code) ||
         isOutOfDeliveryRangeCode(detailCode) ||
         isOutOfDeliveryRangeMessage(response.message);
-    final conflict = !outOfRange &&
+    final conflict =
+        !outOfRange &&
         (response.statusCode == 409 ||
             code == 'VENDOR_CART_CONFLICT' ||
             detailCode == 'VENDOR_CART_CONFLICT' ||
@@ -430,7 +441,9 @@ class FoodVendorsRepository {
     final data = response?['data'];
     final list = data is List
         ? data
-        : (data is Map<String, dynamic> ? data['items'] ?? data['history'] : null);
+        : (data is Map<String, dynamic>
+              ? data['items'] ?? data['history']
+              : null);
     if (list is! List || list.isEmpty) return const [];
 
     final queries = <String>[];
@@ -452,13 +465,14 @@ BrowseRestaurant? browseRestaurantFromVendorJson(Map<String, dynamic> json) {
   if (id == null || id.isEmpty || name == null || name.isEmpty) return null;
 
   final tags = json['cuisineTags'];
-  final categoryLabel = (json['categoryLabel'] as String?)?.trim() ??
+  final categoryLabel =
+      (json['categoryLabel'] as String?)?.trim() ??
       (json['serviceCategory'] as String?)?.trim();
   final cuisine = tags is List && tags.isNotEmpty
       ? tags.map((e) => e.toString()).where((e) => e.isNotEmpty).join(' · ')
       : (categoryLabel != null && categoryLabel.isNotEmpty
-          ? categoryLabel
-          : 'Food');
+            ? categoryLabel
+            : 'Food');
 
   final reviewCountRaw = json['reviewCount'];
   final reviewCountValue = reviewCountRaw is num ? reviewCountRaw.toInt() : 0;
@@ -466,17 +480,17 @@ BrowseRestaurant? browseRestaurantFromVendorJson(Map<String, dynamic> json) {
   final ratingParsed = ratingRaw is num
       ? ratingRaw.toDouble()
       : double.tryParse(ratingRaw?.toString() ?? '') ?? 0;
-  final hasRating = json['hasRating'] == true ||
-      (reviewCountValue > 0 && ratingParsed > 0);
+  final hasRating =
+      json['hasRating'] == true || (reviewCountValue > 0 && ratingParsed > 0);
   final rating = hasRating ? ratingParsed : 0.0;
 
   final arrivesIn = (json['arrivesInMin'] as num?)?.toInt();
-  final readyIn = (json['readyInMin'] as num?)?.toInt() ??
+  final readyIn =
+      (json['readyInMin'] as num?)?.toInt() ??
       (json['pickupEtaMin'] as num?)?.toInt();
   final prepTime = (json['prepTimeMin'] as num?)?.toInt();
-  final deliveryMin = arrivesIn ??
-      (json['deliveryTimeMin'] as num?)?.toInt() ??
-      25;
+  final deliveryMin =
+      arrivesIn ?? (json['deliveryTimeMin'] as num?)?.toInt() ?? 25;
   final freeDelivery = json['freeDelivery'] == true;
   final deliveryFeeRaw = json['deliveryFee'];
   final deliveryFee = deliveryFeeRaw is num
@@ -497,15 +511,16 @@ BrowseRestaurant? browseRestaurantFromVendorJson(Map<String, dynamic> json) {
       : '___';
 
   final badge = json['offerBadge'] as String?;
-  final imageUrl = resolveApiMediaUrl(json['coverUrl'] as String?) ??
+  final imageUrl =
+      resolveApiMediaUrl(json['coverUrl'] as String?) ??
       resolveApiMediaUrl(json['logoUrl'] as String?) ??
       resolveApiMediaUrlFromList(json['imageUrls']);
   final colors = _gradientForName(name);
   final area = (json['area'] as String?)?.trim().isNotEmpty == true
       ? (json['area'] as String).trim()
       : ((json['city'] as String?)?.trim().isNotEmpty == true
-          ? (json['city'] as String).trim()
-          : null);
+            ? (json['city'] as String).trim()
+            : null);
   final openStatus = (json['openStatus'] as String?)?.toUpperCase();
   // Only treat explicit OPEN as open — UNKNOWN used to pass Open now wrongly.
   final isOpen = openStatus == 'OPEN';
@@ -570,7 +585,8 @@ BrowseMenuItem? browseMenuItemFromProductJson(
   final description = (json['description'] as String?)?.trim() ?? '';
   final nameAr = (json['nameAr'] as String?)?.trim();
   final descriptionAr = (json['descriptionAr'] as String?)?.trim();
-  final imageUrl = resolveApiMediaUrl(json['imageUrl'] as String?) ??
+  final imageUrl =
+      resolveApiMediaUrl(json['imageUrl'] as String?) ??
       resolveApiMediaUrlFromList(json['imageUrls']);
 
   final optionGroups = json['optionGroups'];
@@ -583,9 +599,8 @@ BrowseMenuItem? browseMenuItemFromProductJson(
       ? addons.length
       : (count is Map ? (count['addons'] as num?)?.toInt() ?? 0 : 0);
   // Prefer explicit API flag; fall back to counts so plain items can "+" add.
-  final hasModifiers = json['hasModifiers'] == true ||
-      optionCount > 0 ||
-      addonCount > 0;
+  final hasModifiers =
+      json['hasModifiers'] == true || optionCount > 0 || addonCount > 0;
 
   final badgesRaw = json['badges'];
   final badges = <String>[];
@@ -595,14 +610,21 @@ BrowseMenuItem? browseMenuItemFromProductJson(
       if (s != null && s.isNotEmpty) badges.add(s);
     }
   }
+  final singleBadge = json['badge']?.toString().trim();
+  if (singleBadge != null &&
+      singleBadge.isNotEmpty &&
+      !badges.contains(singleBadge)) {
+    badges.add(singleBadge);
+  }
 
   return BrowseMenuItem(
     id: id,
     name: name,
     nameAr: (nameAr != null && nameAr.isNotEmpty) ? nameAr : null,
     description: description.isNotEmpty ? description : '___',
-    descriptionAr:
-        (descriptionAr != null && descriptionAr.isNotEmpty) ? descriptionAr : null,
+    descriptionAr: (descriptionAr != null && descriptionAr.isNotEmpty)
+        ? descriptionAr
+        : null,
     price: priceStr,
     section: section,
     imageUrl: imageUrl,

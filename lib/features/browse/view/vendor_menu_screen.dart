@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:yjeek_app/core/constants/app_colors.dart';
 import 'package:yjeek_app/core/constants/app_text_styles.dart';
 import 'package:yjeek_app/core/providers/app_providers.dart';
@@ -50,7 +51,7 @@ class _VendorMenuScreenState extends ConsumerState<VendorMenuScreen> {
   List<BrowseMenuItem> _allItems = const [];
   List<VendorMenuChipGroup> _chipGroups = const [];
   String _selectedChip = '';
-  String _expandedAccordion = '';
+  final Set<String> _expandedAccordions = {};
   String _menuQuery = '';
   FoodCartSummary _cart = FoodCartSummary.empty;
   bool _loading = true;
@@ -64,8 +65,10 @@ class _VendorMenuScreenState extends ConsumerState<VendorMenuScreen> {
   late String _cartMode;
   int _loadGen = 0;
   final TextEditingController _searchController = TextEditingController();
+  final ScrollController _menuScroll = ScrollController();
   final Map<String, ({List<String> sections, List<BrowseMenuItem> items})>
       _menuCache = {};
+  double? _expandedHeaderHeight;
 
   VendorMenuChipGroup? get _activeChipGroup {
     for (final g in _chipGroups) {
@@ -97,7 +100,7 @@ class _VendorMenuScreenState extends ConsumerState<VendorMenuScreen> {
     );
     if (_chipGroups.isEmpty) {
       _selectedChip = '';
-      _expandedAccordion = '';
+      _expandedAccordions.clear();
       return;
     }
     if (!_chipGroups.any((g) => g.label == _selectedChip)) {
@@ -105,8 +108,9 @@ class _VendorMenuScreenState extends ConsumerState<VendorMenuScreen> {
     }
     final chip = _activeChipGroup;
     final titles = chip?.accordions.map((a) => a.title).toList() ?? const [];
-    if (!titles.contains(_expandedAccordion)) {
-      _expandedAccordion = titles.isNotEmpty ? titles.first : '';
+    _expandedAccordions.removeWhere((title) => !titles.contains(title));
+    if (_expandedAccordions.isEmpty && titles.isNotEmpty) {
+      _expandedAccordions.add(titles.first);
     }
   }
 
@@ -114,16 +118,23 @@ class _VendorMenuScreenState extends ConsumerState<VendorMenuScreen> {
     setState(() {
       _selectedChip = chip;
       final group = _activeChipGroup;
-      _expandedAccordion =
+      _expandedAccordions
+        ..clear()
+        ..addAll(
           group != null && group.accordions.isNotEmpty
-              ? group.accordions.first.title
-              : '';
+              ? [group.accordions.first.title]
+              : const <String>[],
+        );
     });
   }
 
   void _onAccordionTap(String title) {
     setState(() {
-      _expandedAccordion = _expandedAccordion == title ? '' : title;
+      if (_expandedAccordions.contains(title)) {
+        _expandedAccordions.remove(title);
+      } else {
+        _expandedAccordions.add(title);
+      }
     });
   }
 
@@ -154,6 +165,7 @@ class _VendorMenuScreenState extends ConsumerState<VendorMenuScreen> {
   void dispose() {
     _searchDebounce?.cancel();
     _searchController.dispose();
+    _menuScroll.dispose();
     super.dispose();
   }
 
@@ -168,6 +180,7 @@ class _VendorMenuScreenState extends ConsumerState<VendorMenuScreen> {
   void _toggleSearch() {
     setState(() {
       _searchVisible = !_searchVisible;
+      _expandedHeaderHeight = null;
       if (!_searchVisible) {
         _searchController.clear();
         if (_menuQuery.isNotEmpty) {
@@ -175,6 +188,53 @@ class _VendorMenuScreenState extends ConsumerState<VendorMenuScreen> {
         }
       }
     });
+    if (_menuScroll.hasClients) _menuScroll.jumpTo(0);
+  }
+
+  Future<void> _openVendorMap(BrowseRestaurant restaurant) async {
+    final lat = restaurant.latitude;
+    final lng = restaurant.longitude;
+    final uri = lat != null && lng != null
+        ? Uri.parse('https://www.google.com/maps/search/?api=1&query=$lat,$lng')
+        : Uri.parse(
+            'https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(restaurant.name)}',
+          );
+    await launchUrl(uri, mode: LaunchMode.externalApplication);
+  }
+
+  void _onExpandedHeaderSize(Size size) {
+    if (size.height < 1) return;
+    final current = _expandedHeaderHeight;
+    if (current != null && (current - size.height).abs() < 0.5) return;
+    setState(() => _expandedHeaderHeight = size.height);
+  }
+
+  double _pinnedFiltersHeight() => 8.h + 34.h + 10.h + 27.h + 6.w;
+
+  Widget _pinnedFilters() {
+    return ColoredBox(
+      color: AppColors.white,
+      child: SizedBox(
+        height: _pinnedFiltersHeight(),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: EdgeInsets.only(top: 8.h),
+              child: VendorMenuCategoryChips(
+                sections: _chipGroups.map((g) => g.label).toList(),
+                selected: _selectedChip,
+                onSelected: _onChipSelected,
+              ),
+            ),
+            VendorMenuViewToggleRow(
+              isGridView: _isGridView,
+              onViewChanged: (v) => setState(() => _isGridView = v),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   void _onOrderTypeChanged(FoodOrderType type) {
@@ -346,7 +406,7 @@ class _VendorMenuScreenState extends ConsumerState<VendorMenuScreen> {
           _allItems = const [];
           _chipGroups = const [];
           _selectedChip = '';
-          _expandedAccordion = '';
+          _expandedAccordions.clear();
           _restaurant = null;
         }
         _loading = false;
@@ -539,7 +599,7 @@ class _VendorMenuScreenState extends ConsumerState<VendorMenuScreen> {
 
     final children = <Widget>[];
     for (final accordion in chip.accordions) {
-      final expanded = accordion.title == _expandedAccordion;
+      final expanded = _expandedAccordions.contains(accordion.title);
       children.add(
         VendorMenuSectionHeader(
           title: accordion.title,
@@ -597,7 +657,8 @@ class _VendorMenuScreenState extends ConsumerState<VendorMenuScreen> {
             ),
           );
         } else {
-          for (final item in group.items) {
+          for (var i = 0; i < group.items.length; i++) {
+            final item = group.items[i];
             children.add(
               VendorMenuItemRow(
                 item: item,
@@ -606,6 +667,18 @@ class _VendorMenuScreenState extends ConsumerState<VendorMenuScreen> {
                 isAdding: _addingItemId == item.id,
               ),
             );
+            if (i < group.items.length - 1) {
+              children.add(
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 16.w),
+                  child: const Divider(
+                    height: 1,
+                    thickness: 1,
+                    color: Color(0xFFE2E2E2),
+                  ),
+                ),
+              );
+            }
           }
         }
       }
@@ -646,9 +719,18 @@ class _VendorMenuScreenState extends ConsumerState<VendorMenuScreen> {
         ),
       );
     }
-    return Scaffold(
-      backgroundColor: AppColors.white,
-      body: Column(
+    final showFilters = _chipGroups.isNotEmpty;
+    final collapsedHeight = VendorMenuCollapsedBar.contentHeight(context);
+    final footerHeight = showFilters ? _pinnedFiltersHeight() : 0.0;
+    final expandedHeight = math.max(
+      _expandedHeaderHeight ?? (137.h + 64.h + 48.h + 56.h),
+      collapsedHeight,
+    );
+    final expandedHeader = _MeasureSize(
+      onChange: _onExpandedHeaderSize,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           VendorMenuCoverHeader(
             restaurant: restaurant,
@@ -670,52 +752,78 @@ class _VendorMenuScreenState extends ConsumerState<VendorMenuScreen> {
             orderType: _orderType,
           ),
           const Divider(height: 1, color: Color(0xFFE2E2E2)),
-          const UiPlacementBanner(
-            placementKey: 'store_top',
-            padding: EdgeInsets.fromLTRB(16, 8, 16, 0),
-          ),
-          if (_chipGroups.isNotEmpty) ...[
-            SizedBox(height: 10.h),
-            VendorMenuCategoryChips(
-              sections: _chipGroups.map((g) => g.label).toList(),
-              selected: _selectedChip,
-              onSelected: _onChipSelected,
-            ),
-            VendorMenuViewToggleRow(
-              isGridView: _isGridView,
-              onViewChanged: (v) => setState(() => _isGridView = v),
-            ),
-          ],
-          const UiPlacementBanner(
-            placementKey: 'store_mid',
-            padding: EdgeInsets.fromLTRB(16, 8, 16, 0),
-          ),
+        ],
+      ),
+    );
+
+    return Scaffold(
+      backgroundColor: AppColors.white,
+      body: Column(
+        children: [
           Expanded(
-            child: Stack(
-              children: [
-                _loading && !_loadedOnce
-                    ? const Center(
-                        child: CircularProgressIndicator(
+            child: CustomScrollView(
+                  controller: _menuScroll,
+                  slivers: [
+                    if (_expandedHeaderHeight == null)
+                      SliverToBoxAdapter(child: expandedHeader)
+                    else
+                      SliverPersistentHeader(
+                        pinned: true,
+                        delegate: _VendorMenuCollapseDelegate(
+                          expanded: expandedHeader,
+                          collapsed: VendorMenuCollapsedBar(
+                            restaurant: restaurant,
+                            onBack: () => context.pop(),
+                            onPinTap: () => _openVendorMap(restaurant),
+                          ),
+                          pinnedFooter: showFilters
+                              ? _pinnedFilters()
+                              : const SizedBox.shrink(),
+                          expandedBodyHeight: expandedHeight,
+                          collapsedBodyHeight: collapsedHeight,
+                          footerHeight: footerHeight,
+                        ),
+                      ),
+                    if (_expandedHeaderHeight == null && showFilters)
+                      SliverToBoxAdapter(child: _pinnedFilters()),
+                    const SliverToBoxAdapter(
+                      child: UiPlacementBanner(
+                        placementKey: 'store_top',
+                        padding: EdgeInsets.fromLTRB(16, 8, 16, 0),
+                      ),
+                    ),
+                    const SliverToBoxAdapter(
+                      child: UiPlacementBanner(
+                        placementKey: 'store_mid',
+                        padding: EdgeInsets.fromLTRB(16, 8, 16, 0),
+                      ),
+                    ),
+                    if (_menuSwitching)
+                      const SliverToBoxAdapter(
+                        child: LinearProgressIndicator(
+                          minHeight: 2,
                           color: AppColors.primary,
+                          backgroundColor: Color(0xFFE8F5E9),
+                        ),
+                      ),
+                    if (_loading && !_loadedOnce)
+                      const SliverFillRemaining(
+                        hasScrollBody: false,
+                        child: Center(
+                          child: CircularProgressIndicator(
+                            color: AppColors.primary,
+                          ),
                         ),
                       )
-                    : ListView(
-                        padding: EdgeInsets.only(bottom: 8.h),
-                        children: [_buildMenuBody()],
+                    else
+                      SliverToBoxAdapter(
+                        child: Padding(
+                          padding: EdgeInsets.only(bottom: 8.h),
+                          child: _buildMenuBody(),
+                        ),
                       ),
-                if (_menuSwitching)
-                  const Positioned(
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    child: LinearProgressIndicator(
-                      minHeight: 2,
-                      color: AppColors.primary,
-                      backgroundColor: Color(0xFFE8F5E9),
-                    ),
-                  ),
-              ],
-            ),
+                  ],
+                ),
           ),
           BrowseCartBar(
             itemCount: _cart.itemCount,
@@ -727,5 +835,104 @@ class _VendorMenuScreenState extends ConsumerState<VendorMenuScreen> {
       bottomNavigationBar:
           ShellBottomNavBar(currentIndex: widget.bottomNavIndex),
     );
+  }
+}
+
+class _VendorMenuCollapseDelegate extends SliverPersistentHeaderDelegate {
+  _VendorMenuCollapseDelegate({
+    required this.expanded,
+    required this.collapsed,
+    required this.pinnedFooter,
+    required this.expandedBodyHeight,
+    required this.collapsedBodyHeight,
+    required this.footerHeight,
+  });
+
+  final Widget expanded;
+  final Widget collapsed;
+  final Widget pinnedFooter;
+  final double expandedBodyHeight;
+  final double collapsedBodyHeight;
+  final double footerHeight;
+
+  @override
+  double get maxExtent => expandedBodyHeight + footerHeight;
+
+  @override
+  double get minExtent => collapsedBodyHeight + footerHeight;
+
+  @override
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) {
+    final range = maxExtent - minExtent;
+    final t = range <= 0 ? 1.0 : (shrinkOffset / range).clamp(0.0, 1.0);
+    final bodyHeight = expandedBodyHeight - shrinkOffset;
+    final visibleBody =
+        bodyHeight < collapsedBodyHeight ? collapsedBodyHeight : bodyHeight;
+    final showCollapsed = t >= 0.92;
+
+    return ColoredBox(
+      color: AppColors.white,
+      child: Column(
+        children: [
+          SizedBox(
+            height: visibleBody,
+            child: ClipRect(
+              child: showCollapsed
+                  ? collapsed
+                  : OverflowBox(
+                      alignment: Alignment.bottomCenter,
+                      minHeight: expandedBodyHeight,
+                      maxHeight: expandedBodyHeight,
+                      child: expanded,
+                    ),
+            ),
+          ),
+          if (footerHeight > 0)
+            SizedBox(height: footerHeight, child: pinnedFooter),
+        ],
+      ),
+    );
+  }
+
+  @override
+  bool shouldRebuild(covariant _VendorMenuCollapseDelegate oldDelegate) {
+    return expandedBodyHeight != oldDelegate.expandedBodyHeight ||
+        collapsedBodyHeight != oldDelegate.collapsedBodyHeight ||
+        footerHeight != oldDelegate.footerHeight ||
+        expanded != oldDelegate.expanded ||
+        collapsed != oldDelegate.collapsed ||
+        pinnedFooter != oldDelegate.pinnedFooter;
+  }
+}
+
+class _MeasureSize extends StatefulWidget {
+  const _MeasureSize({required this.onChange, required this.child});
+
+  final ValueChanged<Size> onChange;
+  final Widget child;
+
+  @override
+  State<_MeasureSize> createState() => _MeasureSizeState();
+}
+
+class _MeasureSizeState extends State<_MeasureSize> {
+  Size? _old;
+
+  @override
+  Widget build(BuildContext context) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final box = context.findRenderObject() as RenderBox?;
+      if (box == null || !box.hasSize) return;
+      final size = box.size;
+      if (_old == size) return;
+      _old = size;
+      widget.onChange(size);
+    });
+    return widget.child;
   }
 }

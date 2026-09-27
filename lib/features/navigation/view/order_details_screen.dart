@@ -13,6 +13,7 @@ import 'package:yjeek_app/features/home/view/widgets/home_widgets.dart';
 import 'package:yjeek_app/features/navigation/model/navigation_data.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/navigation_widgets.dart';
 import 'package:yjeek_app/features/dine_in_order_flow/dine_in_order_flow_routes.dart';
+import 'package:yjeek_app/features/cart/model/delivery_quote.dart';
 import 'package:yjeek_app/features/order_flow/model/order_api_mappers.dart';
 import 'package:yjeek_app/features/order_flow/order_flow_routes.dart';
 import 'package:yjeek_app/routes/app_router.dart';
@@ -119,6 +120,9 @@ class _OrderDetailsScreenState extends ConsumerState<OrderDetailsScreen> {
         }
       }
 
+      final deliveryQuote = DeliveryQuote.tryParse(data['delivery']);
+      final omitDeliveryLine =
+          data.containsKey('delivery') && data['delivery'] == null;
       final deliveryFee = data['deliveryFee'];
       final tipRaw = data['tipAmount'] ??
           (data['totals'] is Map ? data['totals']['tipAmount'] : null);
@@ -137,12 +141,14 @@ class _OrderDetailsScreenState extends ConsumerState<OrderDetailsScreen> {
             value: '− ${formatBhd(data['discountAmount'])}',
             isDiscount: true,
           ),
-        BillLine(
-          label: 'Delivery fee',
-          value: deliveryFee is num && deliveryFee == 0
-              ? 'Free'
-              : formatBhd(deliveryFee),
-        ),
+        if (!omitDeliveryLine)
+          BillLine(
+            label: 'Delivery fee',
+            value: deliveryFeeReceiptLabel(
+              fee: deliveryFee,
+              quote: deliveryQuote,
+            ),
+          ),
         BillLine(
           label: 'Service fee',
           value: formatBhd(data['serviceFee']),

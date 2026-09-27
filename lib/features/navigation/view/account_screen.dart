@@ -97,6 +97,11 @@ class AccountScreen extends ConsumerWidget {
                   onTap: () => context.goHome(tab: 1),
                 ),
                 ProfileMenuTile(
+                  iconAsset: AppAssets.walletCashBack,
+                  title: 'My Rewards',
+                  onTap: () => context.push(RouteNames.rewards),
+                ),
+                ProfileMenuTile(
                   iconAsset: AppAssets.accountWallet,
                   title: NavigationStrings.yjeekWallet,
                   onTap: () => context.push(RouteNames.wallet),

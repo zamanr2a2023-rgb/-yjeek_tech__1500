@@ -84,6 +84,11 @@ class WalletScreen extends ConsumerWidget {
                       iconAsset: AppAssets.walletRefunds,
                       onView: () => context.push(RouteNames.walletRefunds),
                     ),
+                    SizedBox(height: 14.h),
+                    TextButton(
+                      onPressed: () => context.push(RouteNames.rewards),
+                      child: const Text('My Rewards'),
+                    ),
                   ],
                 ],
               ),

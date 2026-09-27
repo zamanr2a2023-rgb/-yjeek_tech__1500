@@ -575,19 +575,21 @@ class _CategoryListRow extends StatelessWidget {
             padding: EdgeInsets.symmetric(vertical: 14.h),
             child: Row(
               children: [
-                Container(
-                  width: 56.w,
-                  height: 56.w,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFE8F5E9),
-                    borderRadius: BorderRadius.circular(12.r),
-                  ),
-                  clipBehavior: Clip.antiAlias,
-                  alignment: Alignment.center,
-                  child: _CategoryThumb(
-                    tile: tile,
-                    categorySlug: categorySlug,
-                    iconSize: 26.sp,
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(12.r),
+                  child: SizedBox(
+                    width: 56.w,
+                    height: 56.w,
+                    child: ColoredBox(
+                      color: const Color(0xFFE8F5E9),
+                      child: _CategoryThumb(
+                        tile: tile,
+                        categorySlug: categorySlug,
+                        iconSize: 26.sp,
+                        width: 56.w,
+                        height: 56.w,
+                      ),
+                    ),
                   ),
                 ),
                 SizedBox(width: 12.w),
@@ -626,11 +628,15 @@ class _CategoryThumb extends StatelessWidget {
     required this.tile,
     required this.categorySlug,
     required this.iconSize,
+    this.width,
+    this.height,
   });
 
   final RetailCategoryTile tile;
   final String categorySlug;
   final double iconSize;
+  final double? width;
+  final double? height;
 
   @override
   Widget build(BuildContext context) {
@@ -643,7 +649,10 @@ class _CategoryThumb extends StatelessWidget {
     if (url != null && url.isNotEmpty) {
       return AppNetworkImage(
         url: url,
+        width: width,
+        height: height,
         fit: BoxFit.cover,
+        borderRadius: BorderRadius.circular(12.r),
         errorWidget: _iconFallback(),
       );
     }

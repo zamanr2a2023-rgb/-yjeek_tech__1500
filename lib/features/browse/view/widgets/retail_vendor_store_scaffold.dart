@@ -1,4 +1,7 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:yjeek_app/core/constants/app_colors.dart';
 import 'package:yjeek_app/core/constants/app_text_styles.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
@@ -72,104 +75,301 @@ class RetailVendorStoreScaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final categoryLabels =
-        chipGroups.map((g) => g.label).toList(growable: false);
-
     return Scaffold(
       backgroundColor: AppColors.white,
       body: Column(
         children: [
-          FashionVendorTopBar(
-            searchOpen: searchOpen,
-            onBack: onBack,
-            onSearch: onSearchToggle,
-          ),
-          FashionVendorBrandBand(store: store),
           Expanded(
-            child: loading
-                ? const Center(
-                    child: CircularProgressIndicator(color: AppColors.primary),
-                  )
-                : RefreshIndicator(
-                    color: AppColors.primary,
-                    onRefresh: onRefresh,
-                    child: CustomScrollView(
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      slivers: [
-                        SliverToBoxAdapter(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              if (banner != null) banner!,
-                              if (orderMeta != null) orderMeta!,
-                              if (searchOpen)
-                                Padding(
-                                  padding: EdgeInsets.fromLTRB(
-                                    16.w,
-                                    8.h,
-                                    16.w,
-                                    4.h,
-                                  ),
-                                  child: BrowseSearchBar(
-                                    hint: searchHint,
-                                    value: query,
-                                    autofocus: true,
-                                    onChanged: onQueryChanged,
-                                    showCancel: true,
-                                    onCancel: onCancelSearch,
-                                  ),
-                                ),
-                              SizedBox(height: 8.h),
-                              FashionVendorCategoryChips(
-                                categories: categoryLabels,
-                                selected: selectedChip,
-                                onSelected: onChipSelected,
-                              ),
-                              FashionVendorViewToggle(
-                                isGridView: isGridView,
-                                onChanged: onGridChanged,
-                              ),
-                            ],
-                          ),
-                        ),
-                        if (chipGroups.isEmpty)
-                          SliverFillRemaining(
-                            hasScrollBody: false,
-                            child: Center(
-                              child: Text(
-                                query.trim().isEmpty
-                                    ? emptyMessage
-                                    : emptySearchMessage,
-                                style: AppTextStyles.bodyMedium(
-                                  color: AppColors.textSecondary,
-                                ),
-                              ),
-                            ),
-                          )
-                        else
-                          SliverList(
-                            delegate: SliverChildListDelegate(
-                              buildRetailVendorAccordionChildren(
-                                chipGroups: chipGroups,
-                                expandedAccordion: expandedAccordion,
-                                isGridView: isGridView,
-                                addingItemId: addingItemId,
-                                onAccordionTap: onAccordionTap,
-                                onOpenItem: onOpenItem,
-                                onAddItem: onAddItem,
-                              ),
-                            ),
-                          ),
-                        SliverToBoxAdapter(child: SizedBox(height: 24.h)),
-                      ],
-                    ),
-                  ),
+            child: _RetailVendorStoreBody(scaffold: this),
           ),
           if (bottomBar != null) bottomBar!,
         ],
       ),
       bottomNavigationBar: ShellBottomNavBar(currentIndex: bottomNavIndex),
     );
+  }
+}
+
+class _RetailVendorStoreBody extends StatefulWidget {
+  const _RetailVendorStoreBody({required this.scaffold});
+
+  final RetailVendorStoreScaffold scaffold;
+
+  @override
+  State<_RetailVendorStoreBody> createState() => _RetailVendorStoreBodyState();
+}
+
+class _RetailVendorStoreBodyState extends State<_RetailVendorStoreBody> {
+  final ScrollController _scroll = ScrollController();
+  double? _expandedHeaderHeight;
+
+  RetailVendorStoreScaffold get s => widget.scaffold;
+
+  @override
+  void dispose() {
+    _scroll.dispose();
+    super.dispose();
+  }
+
+  void _onExpandedHeaderSize(Size size) {
+    if (size.height < 1) return;
+    final current = _expandedHeaderHeight;
+    if (current != null && (current - size.height).abs() < 0.5) return;
+    setState(() => _expandedHeaderHeight = size.height);
+  }
+
+  double _filtersHeight() {
+    if (s.chipGroups.isEmpty) return 0;
+    final row = math.max(36.h, 28.w + 4.w);
+    return 8.h + row + 4.h;
+  }
+
+  Future<void> _openMap() async {
+    final lat = s.store.latitude;
+    final lng = s.store.longitude;
+    final uri = lat != null && lng != null
+        ? Uri.parse('https://www.google.com/maps/search/?api=1&query=$lat,$lng')
+        : Uri.parse(
+            'https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(s.store.name)}',
+          );
+    await launchUrl(uri, mode: LaunchMode.externalApplication);
+  }
+
+  Widget _expandedHeader() {
+    return _MeasureSize(
+      onChange: _onExpandedHeaderSize,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          FashionVendorTopBar(
+            searchOpen: s.searchOpen,
+            onBack: s.onBack,
+            onSearch: s.onSearchToggle,
+          ),
+          FashionVendorBrandBand(store: s.store),
+          if (s.banner != null) s.banner!,
+          if (s.orderMeta != null) s.orderMeta!,
+          if (s.searchOpen)
+            Padding(
+              padding: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 4.h),
+              child: BrowseSearchBar(
+                hint: s.searchHint,
+                value: s.query,
+                autofocus: true,
+                onChanged: s.onQueryChanged,
+                showCancel: true,
+                onCancel: s.onCancelSearch,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _pinnedFilters() {
+    final labels = s.chipGroups.map((g) => g.label).toList(growable: false);
+    return ColoredBox(
+      color: AppColors.white,
+      child: SizedBox(
+        height: _filtersHeight(),
+        child: Padding(
+          padding: EdgeInsets.only(top: 8.h, right: 12.w, bottom: 4.h),
+          child: Row(
+            children: [
+              Expanded(
+                child: FashionVendorCategoryChips(
+                  categories: labels,
+                  selected: s.selectedChip,
+                  onSelected: s.onChipSelected,
+                ),
+              ),
+              FashionVendorViewToggle(
+                isGridView: s.isGridView,
+                docked: true,
+                onChanged: s.onGridChanged,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final expanded = _expandedHeader();
+    final collapsedHeight = RetailVendorCollapsedBar.contentHeight(context);
+    final footerHeight = _filtersHeight();
+    final expandedHeight = math.max(
+      _expandedHeaderHeight ?? (collapsedHeight + 120.h),
+      collapsedHeight,
+    );
+    final showFilters = s.chipGroups.isNotEmpty;
+
+    return RefreshIndicator(
+      color: AppColors.primary,
+      onRefresh: s.onRefresh,
+      child: CustomScrollView(
+        controller: _scroll,
+        physics: const AlwaysScrollableScrollPhysics(),
+        slivers: [
+          if (_expandedHeaderHeight == null)
+            SliverToBoxAdapter(child: expanded)
+          else
+            SliverPersistentHeader(
+              pinned: true,
+              delegate: _RetailCollapseDelegate(
+                expanded: expanded,
+                collapsed: RetailVendorCollapsedBar(
+                  store: s.store,
+                  onBack: s.onBack,
+                  onPinTap: _openMap,
+                ),
+                pinnedFooter:
+                    showFilters ? _pinnedFilters() : const SizedBox.shrink(),
+                expandedBodyHeight: expandedHeight,
+                collapsedBodyHeight: collapsedHeight,
+                footerHeight: footerHeight,
+              ),
+            ),
+          if (_expandedHeaderHeight == null && showFilters)
+            SliverToBoxAdapter(child: _pinnedFilters()),
+          if (s.loading)
+            const SliverFillRemaining(
+              hasScrollBody: false,
+              child: Center(
+                child: CircularProgressIndicator(color: AppColors.primary),
+              ),
+            )
+          else if (s.chipGroups.isEmpty)
+            SliverFillRemaining(
+              hasScrollBody: false,
+              child: Center(
+                child: Text(
+                  s.query.trim().isEmpty ? s.emptyMessage : s.emptySearchMessage,
+                  style: AppTextStyles.bodyMedium(
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ),
+            )
+          else
+            SliverList(
+              delegate: SliverChildListDelegate(
+                buildRetailVendorAccordionChildren(
+                  chipGroups: s.chipGroups,
+                  expandedAccordion: s.expandedAccordion,
+                  isGridView: s.isGridView,
+                  addingItemId: s.addingItemId,
+                  onAccordionTap: s.onAccordionTap,
+                  onOpenItem: s.onOpenItem,
+                  onAddItem: s.onAddItem,
+                ),
+              ),
+            ),
+          SliverToBoxAdapter(child: SizedBox(height: 24.h)),
+        ],
+      ),
+    );
+  }
+}
+
+class _RetailCollapseDelegate extends SliverPersistentHeaderDelegate {
+  _RetailCollapseDelegate({
+    required this.expanded,
+    required this.collapsed,
+    required this.pinnedFooter,
+    required this.expandedBodyHeight,
+    required this.collapsedBodyHeight,
+    required this.footerHeight,
+  });
+
+  final Widget expanded;
+  final Widget collapsed;
+  final Widget pinnedFooter;
+  final double expandedBodyHeight;
+  final double collapsedBodyHeight;
+  final double footerHeight;
+
+  @override
+  double get maxExtent => expandedBodyHeight + footerHeight;
+
+  @override
+  double get minExtent => collapsedBodyHeight + footerHeight;
+
+  @override
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) {
+    final range = maxExtent - minExtent;
+    final t = range <= 0 ? 1.0 : (shrinkOffset / range).clamp(0.0, 1.0);
+    final bodyHeight = expandedBodyHeight - shrinkOffset;
+    final visibleBody =
+        bodyHeight < collapsedBodyHeight ? collapsedBodyHeight : bodyHeight;
+    final showCollapsed = t >= 0.92;
+
+    return ColoredBox(
+      color: AppColors.white,
+      child: Column(
+        children: [
+          SizedBox(
+            height: visibleBody,
+            child: ClipRect(
+              child: showCollapsed
+                  ? collapsed
+                  : OverflowBox(
+                      alignment: Alignment.bottomCenter,
+                      minHeight: expandedBodyHeight,
+                      maxHeight: expandedBodyHeight,
+                      child: expanded,
+                    ),
+            ),
+          ),
+          if (footerHeight > 0) SizedBox(height: footerHeight, child: pinnedFooter),
+        ],
+      ),
+    );
+  }
+
+  @override
+  bool shouldRebuild(covariant _RetailCollapseDelegate oldDelegate) {
+    return expandedBodyHeight != oldDelegate.expandedBodyHeight ||
+        collapsedBodyHeight != oldDelegate.collapsedBodyHeight ||
+        footerHeight != oldDelegate.footerHeight ||
+        expanded != oldDelegate.expanded ||
+        collapsed != oldDelegate.collapsed ||
+        pinnedFooter != oldDelegate.pinnedFooter;
+  }
+}
+
+class _MeasureSize extends StatefulWidget {
+  const _MeasureSize({required this.onChange, required this.child});
+
+  final ValueChanged<Size> onChange;
+  final Widget child;
+
+  @override
+  State<_MeasureSize> createState() => _MeasureSizeState();
+}
+
+class _MeasureSizeState extends State<_MeasureSize> {
+  Size? _old;
+
+  @override
+  Widget build(BuildContext context) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final box = context.findRenderObject() as RenderBox?;
+      if (box == null || !box.hasSize) return;
+      final size = box.size;
+      if (_old == size) return;
+      _old = size;
+      widget.onChange(size);
+    });
+    return widget.child;
   }
 }
 

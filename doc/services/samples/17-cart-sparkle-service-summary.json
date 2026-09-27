@@ -1,0 +1,30 @@
+﻿{
+    "data":  {
+                 "vendor":  {
+                                "isBookable":  null,
+                                "name":  "Sparkle Home Services",
+                                "id":  "cmuihhxm5000av9h8qim3h7vj",
+                                "slug":  "sparkle-home"
+                            },
+                 "itemCount":  1,
+                 "delivery":  null,
+                 "orderType":  "SERVICE",
+                 "serviceMode":  null,
+                 "summary":  {
+                                 "subtotal":  15,
+                                 "discountAmount":  0,
+                                 "pickupDiscountAmount":  0,
+                                 "pickupDiscountPct":  null,
+                                 "deliveryFee":  0,
+                                 "deliveryFeeOriginal":  null,
+                                 "deliveryLabel":  null,
+                                 "serviceFee":  0.45,
+                                 "totalAmount":  15.45,
+                                 "cashbackEarn":  0.463,
+                                 "currency":  "BHD",
+                                 "appliedPromotion":  null
+                             }
+             },
+    "note":  "GET /cart?type=SERVICE — top-level delivery is null (no food delivery quote)",
+    "success":  true
+}

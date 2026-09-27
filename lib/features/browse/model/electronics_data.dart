@@ -69,17 +69,8 @@ class ElectronicsStore {
     return c.contains('pharm');
   }
 
-  /// Dual Deliver Now + Scheduled (pharmacy.md).
+  /// Dual Deliver Now + Scheduled. Availability comes from order-modes.
   bool get hasPharmacyDeliveryModes => isPharmacy;
-
-  /// Inside on-demand radius when distance unknown → treat as available.
-  bool get onDemandInRadius {
-    if (!supportsDelivery && !isPharmacy) return false;
-    final dist = distanceKm;
-    final radius = deliveryRadiusKm ?? 10;
-    if (dist == null) return true;
-    return dist <= radius;
-  }
 
   /// Branch area from vendor settings (no distance fallback).
   String get areaLabel {

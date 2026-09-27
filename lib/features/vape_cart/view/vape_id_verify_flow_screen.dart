@@ -5,12 +5,13 @@ import 'package:image_picker/image_picker.dart';
 import 'package:yjeek_app/core/constants/app_colors.dart';
 import 'package:yjeek_app/core/constants/app_text_styles.dart';
 import 'package:yjeek_app/core/providers/app_providers.dart';
+import 'package:yjeek_app/features/browse/model/age_verification_repository.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/core/widgets/app_network_image.dart';
 import 'package:yjeek_app/features/vape_cart/model/vape_cart_data.dart';
 import 'package:yjeek_app/routes/app_router.dart';
 
-enum _VapeIdStep { upload, checking, success, alreadyUsed, underage }
+enum _VapeIdStep { upload, checking, success, alreadyUsed, underage, rejected }
 
 /// Vape CPR upload → checking → success / already used / under 18.
 class VapeIdVerifyFlowScreen extends ConsumerStatefulWidget {
@@ -32,6 +33,7 @@ class _VapeIdVerifyFlowScreenState
   bool _confirmed = false;
   bool _busy = false;
   String? _error;
+  String? _rejectMessage;
   DateTime? _verifiedAt;
 
   String get _productLabel {
@@ -71,11 +73,9 @@ class _VapeIdVerifyFlowScreenState
     if (file == null || !mounted) return;
 
     setState(() => _busy = true);
-    final url = await ref.read(userRepositoryProvider).uploadFile(
-          file.path,
-          filename: file.name,
-          category: 'avatars',
-        );
+    final url = await ref
+        .read(ageVerificationRepositoryProvider)
+        .uploadIdImage(file.path, filename: file.name);
     if (!mounted) return;
     setState(() => _busy = false);
 
@@ -107,92 +107,35 @@ class _VapeIdVerifyFlowScreenState
       _error = null;
     });
 
-    final response = await ref.read(userRepositoryProvider).submitKyc({
-      'idFrontUrl': _frontUrl,
-      'idBackUrl': _backUrl,
-    });
+    final result = await ref
+        .read(ageVerificationRepositoryProvider)
+        .submit(idFrontUrl: _frontUrl!, idBackUrl: _backUrl!, consent: true);
 
     if (!mounted) return;
+    ref.invalidate(ageVerificationStatusProvider);
 
-    if (!response.ok) {
-      final msg = response.message?.toLowerCase() ?? '';
-      setState(() {
-        _busy = false;
-        if (msg.contains('already') || msg.contains('in use')) {
-          _step = _VapeIdStep.alreadyUsed;
-        } else if (msg.contains('under') ||
-            msg.contains('age') ||
-            msg.contains('18')) {
-          _step = _VapeIdStep.underage;
-        } else {
-          _step = _VapeIdStep.upload;
-          _error = response.message ?? 'Could not verify ID';
-        }
-      });
-      return;
-    }
-
-    // Poll briefly for instant verify / rejection.
-    for (var i = 0; i < 4; i++) {
-      await Future<void>.delayed(const Duration(milliseconds: 700));
-      if (!mounted) return;
-      ref.invalidate(userMeProvider);
-      try {
-        final me = await ref.read(userMeProvider.future);
-        final status = me?.verification.status.toUpperCase() ?? '';
-        if (status == 'VERIFIED') {
-          setState(() {
-            _busy = false;
-            _verifiedAt = DateTime.now();
-            _step = _VapeIdStep.success;
-          });
-          return;
-        }
-      } catch (_) {}
-
-      try {
-        final kyc = await ref.read(userRepositoryProvider).fetchKyc();
-        final reason = (kyc.id.rejectReason ?? '').toLowerCase();
-        if (kyc.id.isRejected) {
-          setState(() {
-            _busy = false;
-            if (reason.contains('under') ||
-                reason.contains('age') ||
-                reason.contains('18')) {
-              _step = _VapeIdStep.underage;
-            } else {
-              _step = _VapeIdStep.alreadyUsed;
-            }
-          });
-          return;
-        }
-        if (kyc.id.isVerified) {
-          setState(() {
-            _busy = false;
-            _verifiedAt = DateTime.now();
-            _step = _VapeIdStep.success;
-          });
-          return;
-        }
-      } catch (_) {}
-    }
-
-    // Still pending — success UX with review note (external IDV may finish later).
-    if (!mounted) return;
     setState(() {
       _busy = false;
-      _verifiedAt = DateTime.now();
-      _step = _VapeIdStep.success;
+      _rejectMessage = result.rejectMessage;
+      switch (result.screen) {
+        case AgeVerificationScreen.verified:
+          _verifiedAt = DateTime.now();
+          _step = _VapeIdStep.success;
+        case AgeVerificationScreen.under18:
+          _step = _VapeIdStep.underage;
+        case AgeVerificationScreen.idAlreadyUsed:
+          _step = _VapeIdStep.alreadyUsed;
+        case AgeVerificationScreen.rejected:
+          _step = _VapeIdStep.rejected;
+        case AgeVerificationScreen.unknown:
+          _step = _VapeIdStep.upload;
+          _error = result.rejectMessage ?? 'Could not verify ID';
+      }
     });
   }
 
   void _backToProduct() {
-    // Pop upload + age sheet (if present).
-    var pops = 0;
-    while (context.canPop() && pops < 3) {
-      context.pop(true);
-      pops++;
-    }
+    if (context.canPop()) context.pop(true);
   }
 
   @override
@@ -220,37 +163,54 @@ class _VapeIdVerifyFlowScreenState
         _VapeIdStep.upload => _buildUpload(),
         _VapeIdStep.checking => _buildChecking(),
         _VapeIdStep.success => _buildResult(
-            success: true,
-            title: VapeCartStrings.verifiedTitle,
-            body: _verifiedBody(),
-            primary: 'Back to $_productLabel',
-            onPrimary: _backToProduct,
-          ),
+          success: true,
+          title: VapeCartStrings.verifiedTitle,
+          body: _verifiedBody(),
+          primary: 'Back to $_productLabel',
+          onPrimary: _backToProduct,
+        ),
         _VapeIdStep.alreadyUsed => _buildResult(
-            success: false,
-            title: VapeCartStrings.idAlreadyUsedTitle,
-            body:
-                'This CPR is already linked to another account. If this is a mistake, contact support.',
-            primary: VapeCartStrings.contactSupport,
-            onPrimary: () => context.goHome(tab: 4),
-            secondary: VapeCartStrings.tryAnotherId,
-            onSecondary: () => setState(() {
-              _step = _VapeIdStep.upload;
-              _frontUrl = null;
-              _backUrl = null;
-              _confirmed = false;
-            }),
-          ),
+          success: false,
+          title: VapeCartStrings.idAlreadyUsedTitle,
+          body:
+              'This CPR is already linked to another account. If this is a mistake, contact support.',
+          primary: VapeCartStrings.contactSupport,
+          onPrimary: () => context.goHome(tab: 4),
+          secondary: VapeCartStrings.tryAnotherId,
+          onSecondary: () => setState(() {
+            _step = _VapeIdStep.upload;
+            _frontUrl = null;
+            _backUrl = null;
+            _confirmed = false;
+          }),
+        ),
         _VapeIdStep.underage => _buildResult(
-            success: false,
-            title: VapeCartStrings.under18Title,
-            body:
-                'Your ID was verified but you are under 18. You can’t buy tobacco or vape items, but you can use the app for other products.',
-            primary: VapeCartStrings.continueShopping,
-            onPrimary: () => context.goHome(tab: 0),
-            secondary: 'Back',
-            onSecondary: () => context.pop(),
-          ),
+          success: false,
+          title: VapeCartStrings.under18Title,
+          body:
+              'Your ID was verified but you are under 18. You can’t buy tobacco or vape items, but you can use the app for other products.',
+          primary: VapeCartStrings.continueShopping,
+          onPrimary: () => context.goHome(tab: 0),
+          secondary: 'Back',
+          onSecondary: () => context.pop(),
+        ),
+        _VapeIdStep.rejected => _buildResult(
+          success: false,
+          title: 'Verification rejected',
+          body:
+              _rejectMessage ??
+              'We could not verify this ID. Upload a clear photo of the front and back.',
+          primary: VapeCartStrings.tryAnotherId,
+          onPrimary: () => setState(() {
+            _step = _VapeIdStep.upload;
+            _frontUrl = null;
+            _backUrl = null;
+            _confirmed = false;
+            _rejectMessage = null;
+          }),
+          secondary: VapeCartStrings.contactSupport,
+          onSecondary: () => context.goHome(tab: 4),
+        ),
       },
     );
   }
@@ -295,8 +255,9 @@ class _VapeIdVerifyFlowScreenState
               SizedBox(height: 6.h),
               Text(
                 VapeCartStrings.scanCprHint,
-                style: AppTextStyles.bodySmall(color: AppColors.textSecondary)
-                    .copyWith(fontSize: 13.sp),
+                style: AppTextStyles.bodySmall(
+                  color: AppColors.textSecondary,
+                ).copyWith(fontSize: 13.sp),
               ),
               SizedBox(height: 16.h),
               _ScanSlot(
@@ -321,9 +282,7 @@ class _VapeIdVerifyFlowScreenState
                       height: 22.w,
                       margin: EdgeInsets.only(top: 1.h),
                       decoration: BoxDecoration(
-                        color: _confirmed
-                            ? AppColors.primary
-                            : AppColors.white,
+                        color: _confirmed ? AppColors.primary : AppColors.white,
                         borderRadius: BorderRadius.circular(5.r),
                         border: Border.all(
                           color: _confirmed
@@ -333,8 +292,11 @@ class _VapeIdVerifyFlowScreenState
                         ),
                       ),
                       child: _confirmed
-                          ? Icon(Icons.check,
-                              size: 14.sp, color: AppColors.white)
+                          ? Icon(
+                              Icons.check,
+                              size: 14.sp,
+                              color: AppColors.white,
+                            )
                           : null,
                     ),
                     SizedBox(width: 10.w),
@@ -372,8 +334,9 @@ class _VapeIdVerifyFlowScreenState
                   onPressed: canSubmit ? _submit : null,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
-                    disabledBackgroundColor:
-                        AppColors.primary.withValues(alpha: 0.4),
+                    disabledBackgroundColor: AppColors.primary.withValues(
+                      alpha: 0.4,
+                    ),
                     foregroundColor: AppColors.white,
                     elevation: 0,
                     shape: RoundedRectangleBorder(
@@ -382,16 +345,18 @@ class _VapeIdVerifyFlowScreenState
                   ),
                   child: Text(
                     _busy ? 'Uploading…' : VapeCartStrings.verifyMyId,
-                    style: AppTextStyles.labelMedium(color: AppColors.white)
-                        .copyWith(fontWeight: FontWeight.w600),
+                    style: AppTextStyles.labelMedium(
+                      color: AppColors.white,
+                    ).copyWith(fontWeight: FontWeight.w600),
                   ),
                 ),
               ),
               SizedBox(height: 8.h),
               Text(
                 'Terms and conditions  ·  Privacy policy',
-                style: AppTextStyles.caption(color: AppColors.textSecondary)
-                    .copyWith(fontSize: 11.sp),
+                style: AppTextStyles.caption(
+                  color: AppColors.textSecondary,
+                ).copyWith(fontSize: 11.sp),
               ),
               SizedBox(height: 8.h),
             ],
@@ -429,8 +394,9 @@ class _VapeIdVerifyFlowScreenState
             Text(
               VapeCartStrings.checkingBody,
               textAlign: TextAlign.center,
-              style: AppTextStyles.bodySmall(color: AppColors.textSecondary)
-                  .copyWith(fontSize: 13.sp, height: 1.4),
+              style: AppTextStyles.bodySmall(
+                color: AppColors.textSecondary,
+              ).copyWith(fontSize: 13.sp, height: 1.4),
             ),
           ],
         ),
@@ -482,8 +448,9 @@ class _VapeIdVerifyFlowScreenState
             Text(
               body,
               textAlign: TextAlign.center,
-              style: AppTextStyles.bodySmall(color: AppColors.textSecondary)
-                  .copyWith(fontSize: 13.sp, height: 1.4),
+              style: AppTextStyles.bodySmall(
+                color: AppColors.textSecondary,
+              ).copyWith(fontSize: 13.sp, height: 1.4),
             ),
             const Spacer(),
             SizedBox(
@@ -501,8 +468,9 @@ class _VapeIdVerifyFlowScreenState
                 ),
                 child: Text(
                   primary,
-                  style: AppTextStyles.labelMedium(color: AppColors.white)
-                      .copyWith(fontWeight: FontWeight.w600),
+                  style: AppTextStyles.labelMedium(
+                    color: AppColors.white,
+                  ).copyWith(fontWeight: FontWeight.w600),
                 ),
               ),
             ),
@@ -537,11 +505,7 @@ class _VapeIdVerifyFlowScreenState
 }
 
 class _ScanSlot extends StatelessWidget {
-  const _ScanSlot({
-    required this.label,
-    this.imageUrl,
-    this.onTap,
-  });
+  const _ScanSlot({required this.label, this.imageUrl, this.onTap});
 
   final String label;
   final String? imageUrl;
@@ -558,9 +522,7 @@ class _ScanSlot extends StatelessWidget {
         decoration: BoxDecoration(
           color: const Color(0xFFF7F7F7),
           borderRadius: BorderRadius.circular(14.r),
-          border: hasImage
-              ? Border.all(color: const Color(0xFFDEDEDE))
-              : null,
+          border: hasImage ? Border.all(color: const Color(0xFFDEDEDE)) : null,
         ),
         clipBehavior: Clip.antiAlias,
         child: hasImage
@@ -614,12 +576,13 @@ class _ScanSlot extends StatelessWidget {
                         Text(
                           label,
                           textAlign: TextAlign.center,
-                          style: AppTextStyles.labelSmall(
-                            color: AppColors.textPrimary,
-                          ).copyWith(
-                            fontWeight: FontWeight.w500,
-                            fontSize: 12.sp,
-                          ),
+                          style:
+                              AppTextStyles.labelSmall(
+                                color: AppColors.textPrimary,
+                              ).copyWith(
+                                fontWeight: FontWeight.w500,
+                                fontSize: 12.sp,
+                              ),
                         ),
                       ],
                     ),

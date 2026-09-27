@@ -1,0 +1,125 @@
+﻿{
+    "success":  true,
+    "data":  {
+                 "vendorId":  "cmuihhxng000ov9h8ux08mbqs",
+                 "bookable":  true,
+                 "date":  "2026-09-28",
+                 "staffId":  null,
+                 "durationMin":  60,
+                 "bufferMin":  15,
+                 "bookingWindowDays":  30,
+                 "coveredAreas":  [
+                                      {
+                                          "key":  "seef",
+                                          "label":  "Seef",
+                                          "callOutFee":  0
+                                      }
+                                  ],
+                 "slots":  [
+                               {
+                                   "id":  "slot_2026-09-28T03:00:00.000Z",
+                                   "startAt":  "2026-09-28T03:00:00.000Z",
+                                   "endAt":  "2026-09-28T04:00:00.000Z",
+                                   "label":  "9:00",
+                                   "durationMin":  60,
+                                   "bufferMin":  15,
+                                   "available":  true,
+                                   "remainingCapacity":  3,
+                                   "fulfillmentModes":  [
+                                                            "IN_SALON"
+                                                        ]
+                               },
+                               {
+                                   "id":  "slot_2026-09-28T04:00:00.000Z",
+                                   "startAt":  "2026-09-28T04:00:00.000Z",
+                                   "endAt":  "2026-09-28T05:00:00.000Z",
+                                   "label":  "10:00",
+                                   "durationMin":  60,
+                                   "bufferMin":  15,
+                                   "available":  true,
+                                   "remainingCapacity":  3,
+                                   "fulfillmentModes":  [
+                                                            "IN_SALON"
+                                                        ]
+                               },
+                               {
+                                   "id":  "slot_2026-09-28T05:00:00.000Z",
+                                   "startAt":  "2026-09-28T05:00:00.000Z",
+                                   "endAt":  "2026-09-28T06:00:00.000Z",
+                                   "label":  "11:00",
+                                   "durationMin":  60,
+                                   "bufferMin":  15,
+                                   "available":  true,
+                                   "remainingCapacity":  3,
+                                   "fulfillmentModes":  [
+                                                            "IN_SALON"
+                                                        ]
+                               },
+                               {
+                                   "id":  "slot_2026-09-28T07:00:00.000Z",
+                                   "startAt":  "2026-09-28T07:00:00.000Z",
+                                   "endAt":  "2026-09-28T08:00:00.000Z",
+                                   "label":  "1:00 PM",
+                                   "durationMin":  60,
+                                   "bufferMin":  15,
+                                   "available":  true,
+                                   "remainingCapacity":  3,
+                                   "fulfillmentModes":  [
+                                                            "IN_SALON"
+                                                        ]
+                               },
+                               {
+                                   "id":  "slot_2026-09-28T08:00:00.000Z",
+                                   "startAt":  "2026-09-28T08:00:00.000Z",
+                                   "endAt":  "2026-09-28T09:00:00.000Z",
+                                   "label":  "2:00 PM",
+                                   "durationMin":  60,
+                                   "bufferMin":  15,
+                                   "available":  true,
+                                   "remainingCapacity":  3,
+                                   "fulfillmentModes":  [
+                                                            "IN_SALON"
+                                                        ]
+                               },
+                               {
+                                   "id":  "slot_2026-09-28T09:00:00.000Z",
+                                   "startAt":  "2026-09-28T09:00:00.000Z",
+                                   "endAt":  "2026-09-28T10:00:00.000Z",
+                                   "label":  "3:00 PM",
+                                   "durationMin":  60,
+                                   "bufferMin":  15,
+                                   "available":  true,
+                                   "remainingCapacity":  3,
+                                   "fulfillmentModes":  [
+                                                            "IN_SALON"
+                                                        ]
+                               },
+                               {
+                                   "id":  "slot_2026-09-28T10:00:00.000Z",
+                                   "startAt":  "2026-09-28T10:00:00.000Z",
+                                   "endAt":  "2026-09-28T11:00:00.000Z",
+                                   "label":  "4:00 PM",
+                                   "durationMin":  60,
+                                   "bufferMin":  15,
+                                   "available":  true,
+                                   "remainingCapacity":  3,
+                                   "fulfillmentModes":  [
+                                                            "IN_SALON"
+                                                        ]
+                               },
+                               {
+                                   "id":  "slot_2026-09-28T11:00:00.000Z",
+                                   "startAt":  "2026-09-28T11:00:00.000Z",
+                                   "endAt":  "2026-09-28T12:00:00.000Z",
+                                   "label":  "5:00 PM",
+                                   "durationMin":  60,
+                                   "bufferMin":  15,
+                                   "available":  true,
+                                   "remainingCapacity":  3,
+                                   "fulfillmentModes":  [
+                                                            "IN_SALON"
+                                                        ]
+                               }
+                           ]
+             }
+}

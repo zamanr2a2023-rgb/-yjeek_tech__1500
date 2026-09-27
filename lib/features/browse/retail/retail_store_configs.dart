@@ -42,11 +42,12 @@ RetailStoreConfig electronicsStoreConfig() {
       required store,
       required PharmacyDeliveryMode pharmacyMode,
       required ValueChanged<PharmacyDeliveryMode> onPharmacyModeChanged,
+      PharmacyOrderModes? pharmacyModes,
     }) {
       if (store.hasPharmacyDeliveryModes) {
         return PharmacyVendorOrderMeta(
-          store: store,
           mode: pharmacyMode,
+          modes: pharmacyModes,
           onModeChanged: onPharmacyModeChanged,
         );
       }
@@ -81,6 +82,7 @@ RetailStoreConfig vapeStoreConfig({
       required store,
       required pharmacyMode,
       required onPharmacyModeChanged,
+      pharmacyModes,
     }) =>
         FashionVendorOrderMeta(store: store),
     bannerBuilder: () => Padding(

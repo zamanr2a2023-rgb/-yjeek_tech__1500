@@ -83,6 +83,7 @@ typedef RetailOrderMetaBuilder = Widget? Function({
   required ElectronicsStore store,
   required PharmacyDeliveryMode pharmacyMode,
   required ValueChanged<PharmacyDeliveryMode> onPharmacyModeChanged,
+  PharmacyOrderModes? pharmacyModes,
 });
 
 typedef RetailBannerBuilder = Widget? Function();

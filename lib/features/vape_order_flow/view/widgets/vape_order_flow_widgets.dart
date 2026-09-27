@@ -473,14 +473,24 @@ class VapePayBreakdownCard extends StatelessWidget {
   const VapePayBreakdownCard({
     super.key,
     this.subtotal,
+    this.discount,
+    this.pickupDiscount,
     this.delivery,
     this.deliveryLabel,
+    this.serviceFee,
+    this.vat,
+    this.tip,
     this.total,
   });
 
   final String? subtotal;
+  final String? discount;
+  final String? pickupDiscount;
   final String? delivery;
   final String? deliveryLabel;
+  final String? serviceFee;
+  final String? vat;
+  final String? tip;
   final String? total;
 
   @override
@@ -495,14 +505,17 @@ class VapePayBreakdownCard extends StatelessWidget {
       ),
       child: Column(
         children: [
-          _row(
-            VapeOrderFlowStrings.subtotal,
-            subtotal ?? '',
-          ),
+          _row(VapeOrderFlowStrings.subtotal, subtotal ?? ''),
+          if (discount != null) _row(VapeOrderFlowStrings.discount, discount!),
+          if (pickupDiscount != null)
+            _row(VapeOrderFlowStrings.pickupDiscount, pickupDiscount!),
           _row(
             deliveryLabel ?? VapeOrderFlowStrings.sameDayDelivery,
             delivery ?? '',
           ),
+          _row(VapeOrderFlowStrings.serviceFee, serviceFee ?? ''),
+          _row(VapeOrderFlowStrings.vat, vat ?? ''),
+          if (tip != null) _row(VapeOrderFlowStrings.tip, tip!),
           Divider(height: 16.h, thickness: 1, color: const Color(0xFFE2E8DD)),
           _row(
             VapeOrderFlowStrings.totalToPay,

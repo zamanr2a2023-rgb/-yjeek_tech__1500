@@ -22,11 +22,15 @@ class OutOfDeliveryScreen extends ConsumerStatefulWidget {
     this.addressId,
     this.latitude,
     this.longitude,
+    this.message,
   });
 
   final String? addressId;
   final double? latitude;
   final double? longitude;
+
+  /// Server sentence when the quote or checkout error provided one.
+  final String? message;
 
   @override
   ConsumerState<OutOfDeliveryScreen> createState() =>
@@ -168,7 +172,10 @@ class _OutOfDeliveryScreenState extends ConsumerState<OutOfDeliveryScreen> {
                             ),
                             SizedBox(height: 8.h),
                             Text(
-                              CartFlowStrings.outOfRangeBody,
+                              (widget.message != null &&
+                                      widget.message!.trim().isNotEmpty)
+                                  ? widget.message!.trim()
+                                  : CartFlowStrings.outOfRangeBody,
                               textAlign: TextAlign.center,
                               style: AppTextStyles.bodySmall(
                                 color: AppColors.textSecondary,

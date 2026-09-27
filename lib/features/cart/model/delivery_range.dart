@@ -143,6 +143,7 @@ Future<void> pushOutOfDelivery(
   String? addressId,
   double? latitude,
   double? longitude,
+  String? message,
 }) {
   final location = address != null
       ? outOfDeliveryLocationFor(address)
@@ -151,5 +152,13 @@ Future<void> pushOutOfDelivery(
           latitude: latitude,
           longitude: longitude,
         );
-  return context.push(location);
+  final trimmed = message?.trim();
+  if (trimmed == null || trimmed.isEmpty) return context.push(location);
+  final uri = Uri.parse(location).replace(
+    queryParameters: {
+      ...Uri.parse(location).queryParameters,
+      'message': trimmed,
+    },
+  );
+  return context.push(uri.toString());
 }

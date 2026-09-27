@@ -7,6 +7,7 @@ import 'package:yjeek_app/features/cart/cart_routes.dart';
 import 'package:yjeek_app/features/cart/model/addresses_repository.dart';
 import 'package:yjeek_app/features/cart/model/cart_repository.dart';
 import 'package:yjeek_app/features/cart/model/checkout_helpers.dart';
+import 'package:yjeek_app/features/cart/model/delivery_quote.dart';
 import 'package:yjeek_app/features/cart/model/delivery_range.dart';
 import 'package:yjeek_app/features/cart/model/payment_methods_repository.dart';
 import 'package:yjeek_app/features/cart/view/widgets/cart_flow_widgets.dart';
@@ -15,6 +16,7 @@ import 'package:yjeek_app/features/navigation/view/widgets/navigation_widgets.da
 import 'package:yjeek_app/features/scheduled_cart/model/scheduled_cart_data.dart';
 import 'package:yjeek_app/features/scheduled_cart/scheduled_cart_routes.dart';
 import 'package:yjeek_app/features/scheduled_cart/view/widgets/scheduled_cart_widgets.dart';
+import 'package:yjeek_app/features/vouchers/widgets/checkout_vouchers_section.dart';
 
 class ScheduledCheckoutScreen extends ConsumerStatefulWidget {
   const ScheduledCheckoutScreen({
@@ -33,7 +35,7 @@ class _ScheduledCheckoutScreenState
     extends ConsumerState<ScheduledCheckoutScreen> {
   late String _deliveryId;
   Set<int> _dropOffIndices = {0};
-  int _tipIndex = 0;
+  int _tipIndex = -1;
   double _customTipAmount = 0;
   final _customTipController = TextEditingController();
   String _paymentId = 'cod';
@@ -41,11 +43,11 @@ class _ScheduledCheckoutScreenState
   DeliveryAddressSnapshot? _address;
   CheckoutPaymentMethods _payments =
       CheckoutPaymentMethods.fallback(defaultId: 'cod');
-  List<ScheduledDeliveryMethod> _deliveryMethods =
-      ScheduledCartData.deliveryMethods;
+  List<ScheduledDeliveryMethod> _deliveryMethods = const [];
   List<Map<String, dynamic>> _deliveryOptions = const [];
   bool _loading = true;
   bool _placing = false;
+  String? _selectedVoucherId;
 
   double get _tipAmount => tipAmountFrom(
         ScheduledCartData.tipOptions,
@@ -59,31 +61,24 @@ class _ScheduledCheckoutScreenState
     }
     return _deliveryMethods.isNotEmpty
         ? _deliveryMethods.first
-        : ScheduledCartData.deliveryMethods.first;
+        : const ScheduledDeliveryMethod(
+            id: 'same-day',
+            label: 'Same Day',
+            price: '',
+            priceValue: 0,
+          );
   }
 
   List<BillLine> get _billLines {
     final cart = _cart;
     if (cart == null) return const [];
-    final fee = _selectedMethod.priceValue;
-    final baseFee = deliveryFeeFromBillLines(cart.billLines) ?? 0;
-    final adjusted = cart.totalAmount - baseFee + fee;
-    final withDelivery = [
-      for (final line in cart.billLines)
-        if (line.label.toLowerCase().contains('delivery'))
-          BillLine(label: line.label, value: formatBhdMoney(fee))
-        else
-          line,
-    ];
-    return billLinesWithVatAndTip(withDelivery, adjusted, _tipAmount);
+    return billLinesWithTip(cart, _tipAmount, totalLabel: 'Total');
   }
 
   String get _totalLabel {
     final cart = _cart;
     if (cart == null) return 'BHD 0.000';
-    final baseFee = deliveryFeeFromBillLines(cart.billLines) ?? 0;
-    final adjusted = cart.totalAmount - baseFee + _selectedMethod.priceValue;
-    return formatBhdMoney(checkoutGrandTotal(adjusted, _tipAmount));
+    return formatCheckoutTotal(cart, _tipAmount);
   }
 
   @override
@@ -103,7 +98,19 @@ class _ScheduledCheckoutScreenState
       'BHD ${value.toDouble().toStringAsFixed(3)}';
 
   List<ScheduledDeliveryMethod> _mapOptions(List<Map<String, dynamic>> raw) {
-    if (raw.isEmpty) return ScheduledCartData.deliveryMethods;
+    if (raw.isEmpty) {
+      return [
+        for (final method in ScheduledCartData.deliveryMethods)
+          ScheduledDeliveryMethod(
+            id: method.id,
+            label: method.label,
+            subtitle: method.subtitle,
+            priceValue: 0,
+            price: '',
+            available: method.available,
+          ),
+      ];
+    }
     return [
       for (final o in raw)
         ScheduledDeliveryMethod(
@@ -112,9 +119,8 @@ class _ScheduledCheckoutScreenState
           subtitle: o['windowLabel']?.toString() ??
               o['subtitle']?.toString() ??
               o['note']?.toString(),
-          priceValue: (o['fee'] as num?)?.toDouble() ?? 0,
-          price:
-              'BHD ${((o['fee'] as num?)?.toDouble() ?? 0).toStringAsFixed(3)}',
+          priceValue: parseApiMoney(o['fee']) ?? 0,
+          price: formatBhdAmount(o['fee']),
           available: o['available'] != false,
           unavailableNote: o['note']?.toString() ??
               (o['unavailableReason'] == 'CUTOFF_PASSED'
@@ -135,11 +141,24 @@ class _ScheduledCheckoutScreenState
     return windowStartForDelivery(_deliveryId);
   }
 
-  Future<void> _load() async {
-    setState(() => _loading = true);
+  Future<void> _load({bool quoteOnly = false}) async {
+    if (!quoteOnly) setState(() => _loading = true);
     try {
-      final detailed =
-          await ref.read(cartRepositoryProvider).fetchScheduledCartDetailed();
+      final detailed = await ref
+          .read(cartRepositoryProvider)
+          .fetchScheduledCartDetailed(
+            deliverySpeed: deliverySpeedApiValue(_deliveryId),
+          );
+      if (!mounted) return;
+      final methods = _mapOptions(detailed.deliveryOptions);
+      if (quoteOnly) {
+        setState(() {
+          _cart = detailed.cart;
+          _deliveryMethods = methods;
+          _deliveryOptions = detailed.deliveryOptions;
+        });
+        return;
+      }
       final address =
           await ref.read(addressesRepositoryProvider).defaultAddress();
       final payments = await ref
@@ -148,12 +167,15 @@ class _ScheduledCheckoutScreenState
             preferredDefaultId: 'cod',
           );
       if (!mounted) return;
-      final methods = _mapOptions(detailed.deliveryOptions);
       var deliveryId = _deliveryId;
       final selected = methods.where((m) => m.id == deliveryId);
       if (selected.isEmpty || !selected.first.available) {
         final firstAvail = methods.where((m) => m.available);
         if (firstAvail.isNotEmpty) deliveryId = firstAvail.first.id;
+      }
+      if (deliveryId != _deliveryId) {
+        _deliveryId = deliveryId;
+        return _load();
       }
       setState(() {
         _cart = detailed.cart;
@@ -168,7 +190,10 @@ class _ScheduledCheckoutScreenState
       });
     } catch (_) {
       if (!mounted) return;
-      setState(() => _loading = false);
+      setState(() {
+        _deliveryMethods = _mapOptions(const []);
+        _loading = false;
+      });
     }
   }
 
@@ -187,6 +212,15 @@ class _ScheduledCheckoutScreenState
       );
       return;
     }
+    if (_cart?.delivery?.outOfRange == true) {
+      await pushOutOfDelivery(
+        context,
+        address: _address,
+        message: kOutOfDeliveryRangeMessage,
+      );
+      return;
+    }
+    if (_cart?.delivery?.blocksCheckout == true) return;
 
     final vendorId = _cart?.vendorId;
     if (vendorId != null && vendorId.isNotEmpty) {
@@ -217,6 +251,7 @@ class _ScheduledCheckoutScreenState
             deliverySpeed: deliverySpeedApiValue(_deliveryId),
             dropOffPreferences: dropOff.isEmpty ? null : dropOff,
             tipAmount: _tipAmount,
+            voucherId: _selectedVoucherId,
           );
       if (!mounted) return;
       final orders = result?['orders'];
@@ -276,7 +311,13 @@ class _ScheduledCheckoutScreenState
                   (method) => ScheduledDeliveryMethodCard(
                     method: method,
                     selected: _deliveryId == method.id,
-                    onTap: () => setState(() => _deliveryId = method.id),
+                    onTap: () {
+                      if (!method.available || method.id == _deliveryId) {
+                        return;
+                      }
+                      setState(() => _deliveryId = method.id);
+                      _load(quoteOnly: true);
+                    },
                   ),
                 ),
                 SizedBox(height: 8.h),
@@ -287,11 +328,40 @@ class _ScheduledCheckoutScreenState
                   onChanged: (next) => setState(() => _dropOffIndices = next),
                 ),
                 SizedBox(height: 14.h),
+                CheckoutVouchersSection(
+                  orderType: 'DELIVERY',
+                  selectedVoucherId: _selectedVoucherId,
+                  onSelected: (id) async {
+                    setState(() {
+                      _selectedVoucherId = id;
+                      if (id != null &&
+                          id.isNotEmpty &&
+                          _paymentId == 'wallet') {
+                        final next =
+                            _payments.options.where((o) => o.id != 'wallet');
+                        if (next.isNotEmpty) _paymentId = next.first.id;
+                      }
+                    });
+                    try {
+                      final cart = await ref
+                          .read(cartRepositoryProvider)
+                          .fetchScheduledCart();
+                      if (!mounted) return;
+                      setState(() => _cart = cart);
+                    } catch (_) {}
+                  },
+                ),
+                SizedBox(height: 14.h),
                 CartSectionTitle(ScheduledCartStrings.paymentMethod),
                 const ScheduledPaymentNoteBanner(),
                 SizedBox(height: 12.h),
                 CartPaymentMethodList(
-                  options: _payments.options,
+                  options: (_selectedVoucherId != null &&
+                          _selectedVoucherId!.isNotEmpty)
+                      ? _payments.options
+                          .where((o) => o.id != 'wallet')
+                          .toList()
+                      : _payments.options,
                   selectedId: _paymentId,
                   onSelected: (id) => setState(() => _paymentId = id),
                   showSecurityNotes: true,
@@ -315,15 +385,24 @@ class _ScheduledCheckoutScreenState
                 ),
                 SizedBox(height: 14.h),
                 CartSectionTitle(ScheduledCartStrings.billSummary),
-                BillSummaryCard(lines: _billLines),
-                SizedBox(height: 10.h),
-                ScheduledCashbackBanner(amount: cart?.cashbackLabel),
+                BillSummaryCard(
+                  lines: _billLines,
+                  showCashback: true,
+                  cashbackAmount: cart?.cashbackPreview?.amountLabel ??
+                      cart?.cashbackLabel,
+                  cashbackMessage: cart?.cashbackPreview?.message,
+                ),
+                deliveryQuoteNotices(cart?.delivery),
               ],
             ),
       bottom: CartStickyFooter(
         total: _totalLabel,
         buttonLabel: _placing ? '…' : ScheduledCartStrings.placeOrder,
-        onPressed: _placing || _loading ? () {} : _placeOrder,
+        onPressed: _placing ||
+                _loading ||
+                deliveryQuoteBlocksPlaceOrder(cart?.delivery)
+            ? null
+            : _placeOrder,
       ),
     );
   }

@@ -275,6 +275,97 @@ class VendorMenuIdentityBar extends StatelessWidget {
   }
 }
 
+/// Compact green bar shown once the vendor header has scrolled away.
+class VendorMenuCollapsedBar extends StatelessWidget {
+  const VendorMenuCollapsedBar({
+    super.key,
+    required this.restaurant,
+    required this.onBack,
+    this.onPinTap,
+  });
+
+  final BrowseRestaurant restaurant;
+  final VoidCallback onBack;
+  final VoidCallback? onPinTap;
+
+  static double contentHeight(BuildContext context) {
+    return MediaQuery.paddingOf(context).top + 6.h + 30.w + 8.h;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ColoredBox(
+      color: AppColors.primary,
+      child: Padding(
+        padding: EdgeInsets.only(top: MediaQuery.paddingOf(context).top),
+        child: SizedBox(
+          height: 6.h + 30.w + 8.h,
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(12.w, 6.h, 12.w, 8.h),
+            child: Row(
+              children: [
+                _CircleIconButton(
+                  onTap: onBack,
+                  background: AppColors.white,
+                  borderColor: AppColors.white,
+                  child: Icon(
+                    Icons.arrow_back_ios_new_rounded,
+                    size: 16.sp,
+                    color: _textDark,
+                  ),
+                ),
+                SizedBox(width: 10.w),
+                Expanded(
+                  child: Text(
+                    restaurant.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTextStyles.labelMedium(color: AppColors.white)
+                        .copyWith(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 15.sp,
+                    ),
+                  ),
+                ),
+                if (restaurant.hasRating) ...[
+                  Text(
+                    '★',
+                    style: TextStyle(
+                      color: _starGold,
+                      fontSize: 13.sp,
+                      height: 1.2,
+                    ),
+                  ),
+                  SizedBox(width: 3.w),
+                  Text(
+                    restaurant.rating.toStringAsFixed(1),
+                    style: AppTextStyles.labelSmall(color: AppColors.white)
+                        .copyWith(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13.sp,
+                    ),
+                  ),
+                  SizedBox(width: 8.w),
+                ],
+                _CircleIconButton(
+                  onTap: onPinTap ?? () {},
+                  background: AppColors.white,
+                  borderColor: AppColors.white,
+                  child: Icon(
+                    Icons.location_on_outlined,
+                    size: 16.sp,
+                    color: _textDark,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 /// Pill-style order type row (Figma MENU OPTION E).
 class VendorMenuOrderTypeTabs extends StatelessWidget {
   const VendorMenuOrderTypeTabs({
@@ -500,41 +591,46 @@ class VendorMenuViewToggleRow extends StatelessWidget {
     super.key,
     required this.isGridView,
     required this.onViewChanged,
+    this.docked = false,
   });
 
   final bool isGridView;
   final ValueChanged<bool> onViewChanged;
 
+  /// Sits on the category-chip row (MENU OPTION E) instead of its own line.
+  final bool docked;
+
   @override
   Widget build(BuildContext context) {
+    final toggle = Container(
+      padding: EdgeInsets.all(3.w),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF2F2F2),
+        borderRadius: BorderRadius.circular(8.r),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _ViewToggleBtn(
+            icon: Icons.grid_view_rounded,
+            active: isGridView,
+            onTap: () => onViewChanged(true),
+          ),
+          _ViewToggleBtn(
+            icon: Icons.view_list_rounded,
+            active: !isGridView,
+            onTap: () => onViewChanged(false),
+          ),
+        ],
+      ),
+    );
+    if (docked) return toggle;
     return Padding(
       padding: EdgeInsets.fromLTRB(16.w, 10.h, 16.w, 0),
       child: Row(
         children: [
           const Spacer(),
-          // Figma PinnedCategoryTabsWrap: compact white/active toggle.
-          Container(
-            padding: EdgeInsets.all(3.w),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF2F2F2),
-              borderRadius: BorderRadius.circular(8.r),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _ViewToggleBtn(
-                  icon: Icons.grid_view_rounded,
-                  active: isGridView,
-                  onTap: () => onViewChanged(true),
-                ),
-                _ViewToggleBtn(
-                  icon: Icons.view_list_rounded,
-                  active: !isGridView,
-                  onTap: () => onViewChanged(false),
-                ),
-              ],
-            ),
-          ),
+          toggle,
         ],
       ),
     );

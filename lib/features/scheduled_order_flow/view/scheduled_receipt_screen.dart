@@ -91,7 +91,11 @@ class _ScheduledReceiptScreenState
     final apiItems = scheduledReceiptItemsFromApi(
       receipt['items'] is List ? receipt['items'] as List : null,
     );
-    final billLines = receiptBillFromTotals(totalsMap);
+    final billLines = receiptBillFromTotals(
+      totalsMap,
+      delivery: receipt['delivery'],
+      omitDeliveryLine: receiptOmitsDeliveryLine(receipt),
+    );
     final shareText = (_shareText != null && _shareText!.isNotEmpty)
         ? _shareText!
         : 'Yjeek Receipt · $orderNumber';
@@ -134,7 +138,11 @@ class _ScheduledReceiptScreenState
     final items = scheduledReceiptItemsFromApi(
       receipt?['items'] is List ? receipt!['items'] as List : null,
     );
-    final billLines = receiptBillFromTotals(totalsMap);
+    final billLines = receiptBillFromTotals(
+      totalsMap,
+      delivery: receipt?['delivery'],
+      omitDeliveryLine: receiptOmitsDeliveryLine(receipt),
+    );
     final badgeLabel = receiptBadgeLabel(receipt);
     final placed = receipt?['placedAt'];
     final dateLabel = orderNumber == null

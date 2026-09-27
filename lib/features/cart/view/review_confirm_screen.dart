@@ -9,6 +9,7 @@ import 'package:yjeek_app/core/providers/app_providers.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/features/cart/cart_routes.dart';
 import 'package:yjeek_app/features/cart/model/cart_flow_data.dart';
+import 'package:yjeek_app/features/browse/model/pharmacy_order_modes.dart';
 import 'package:yjeek_app/features/cart/model/cart_repository.dart';
 import 'package:yjeek_app/features/cart/model/checkout_helpers.dart';
 import 'package:yjeek_app/features/cart/model/delivery_range.dart';
@@ -225,6 +226,17 @@ class _ReviewConfirmScreenState extends ConsumerState<ReviewConfirmScreen> {
         return;
       }
       final dropOff = dropOffApiValues(pending.dropOffIndices);
+      final session = ref.read(pharmacySessionProvider);
+      String? fulfillmentType;
+      String? deliverySpeed;
+      if (session != null && session.matches(cart.vendorId)) {
+        if (session.continueDeliveryAsScheduled) {
+          fulfillmentType = 'SCHEDULED';
+          deliverySpeed = 'NEXT_DAY';
+        } else if (session.mode == PharmacyDeliveryMode.deliverNow) {
+          fulfillmentType = 'ON_DEMAND';
+        }
+      }
       final order = await ref.read(cartRepositoryProvider).checkout(
             type: CartOrderType.delivery,
             paymentMethod: paymentMethodApiValue(pending.paymentId),
@@ -232,6 +244,9 @@ class _ReviewConfirmScreenState extends ConsumerState<ReviewConfirmScreen> {
             addressId: pending.addressId,
             dropOffPreferences: dropOff.isEmpty ? null : dropOff,
             saveDropOffPreferences: pending.saveDropOff,
+            voucherId: pending.voucherId,
+            fulfillmentType: fulfillmentType,
+            deliverySpeed: deliverySpeed,
           );
       if (!mounted) return;
       _finishing = true;
@@ -246,6 +261,20 @@ class _ReviewConfirmScreenState extends ConsumerState<ReviewConfirmScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() => _placing = false);
+      if (e is InstantDeliveryUnavailableException && e.offerMoveToScheduled) {
+        final session = ref.read(pharmacySessionProvider);
+        if (session != null && e.keepCart) {
+          ref.read(pharmacySessionProvider.notifier).state = session.copyWith(
+            mode: PharmacyDeliveryMode.scheduled,
+            continueDeliveryAsScheduled: true,
+            banner: e.banner,
+          );
+        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.banner)),
+        );
+        return;
+      }
       _finishing = true;
       if (e is OutOfDeliveryRangeException ||
           isOutOfDeliveryRangeMessage(e.toString())) {
@@ -254,6 +283,13 @@ class _ReviewConfirmScreenState extends ConsumerState<ReviewConfirmScreen> {
           context,
           addressId: pending?.addressId,
         );
+        return;
+      }
+      if (e is CheckoutVoucherException) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.message)),
+        );
+        context.go(CartRoutes.checkout);
         return;
       }
       ScaffoldMessenger.of(context).showSnackBar(

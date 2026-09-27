@@ -9,6 +9,7 @@ class PendingCheckout {
     required this.addressId,
     this.dropOffIndices = const {0},
     this.saveDropOff = false,
+    this.voucherId,
   });
 
   final String paymentId;
@@ -16,6 +17,7 @@ class PendingCheckout {
   final String addressId;
   final Set<int> dropOffIndices;
   final bool saveDropOff;
+  final String? voucherId;
 }
 
 final pendingCheckoutProvider = StateProvider<PendingCheckout?>((ref) => null);

@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:yjeek_app/core/network/api_client.dart';
 import 'package:yjeek_app/core/services/storage_service.dart';
 import 'package:yjeek_app/features/auth/model/auth_api.dart';
+import 'package:yjeek_app/features/browse/model/age_verification_repository.dart';
 import 'package:yjeek_app/features/browse/model/electronics_vendors_repository.dart';
 import 'package:yjeek_app/features/browse/model/food_vendors_repository.dart';
 import 'package:yjeek_app/features/browse/model/dine_in_vendors_repository.dart';
@@ -30,8 +31,12 @@ import 'package:yjeek_app/features/navigation/model/wallet_repository.dart';
 import 'package:yjeek_app/features/help/model/support_repository.dart';
 import 'package:yjeek_app/features/order_flow/model/order_chat_repository.dart';
 import 'package:yjeek_app/features/payments/model/wallet_pay_repository.dart';
+import 'package:yjeek_app/features/rewards/model/rewards_repository.dart';
+import 'package:yjeek_app/features/rewards/model/rewards_summary.dart';
 import 'package:yjeek_app/features/ui_content/model/banner_models.dart';
 import 'package:yjeek_app/features/ui_content/model/banners_repository.dart';
+import 'package:yjeek_app/features/vouchers/model/voucher_models.dart';
+import 'package:yjeek_app/features/vouchers/model/vouchers_repository.dart';
 
 final storageServiceProvider = Provider<StorageService>(
   (ref) => Get.find<StorageService>(),
@@ -77,6 +82,35 @@ final walletSnapshotProvider = FutureProvider<WalletSnapshot>((ref) {
   return ref.watch(walletRepositoryProvider).fetchWallet();
 });
 
+final rewardsRepositoryProvider = Provider<RewardsRepository>(
+  (ref) => RewardsRepository(
+    ref.watch(apiClientProvider),
+    ref.watch(storageServiceProvider),
+  ),
+);
+
+final rewardsSummaryProvider = FutureProvider<RewardsSummary>((ref) {
+  final storage = ref.watch(storageServiceProvider);
+  if (!storage.hasSession) return Future.value(RewardsSummary.empty);
+  return ref.watch(rewardsRepositoryProvider).fetchSummary();
+});
+
+final vouchersRepositoryProvider = Provider<VouchersRepository>(
+  (ref) => VouchersRepository(
+    ref.watch(apiClientProvider),
+    ref.watch(storageServiceProvider),
+  ),
+);
+
+final customerVouchersProvider =
+    FutureProvider.family<List<CustomerVoucher>, String>((ref, status) {
+      final storage = ref.watch(storageServiceProvider);
+      if (!storage.hasSession) return Future.value(const []);
+      return ref
+          .watch(vouchersRepositoryProvider)
+          .fetchVouchers(status: status);
+    });
+
 final homeRepositoryProvider = Provider<HomeRepository>(
   (ref) => HomeRepository(
     ref.watch(apiClientProvider),
@@ -96,12 +130,14 @@ final bannersRepositoryProvider = Provider<BannersRepository>(
 );
 
 /// Per-placement CMS banners. No long-lived disk cache — refetch on invalidate.
-final cmsBannersProvider =
-    FutureProvider.family<List<UiBanner>, String>((ref, placementKey) {
-  return ref.watch(bannersRepositoryProvider).fetchBanners(
-        placementKey: placementKey,
-      );
-    });
+final cmsBannersProvider = FutureProvider.family<List<UiBanner>, String>((
+  ref,
+  placementKey,
+) {
+  return ref
+      .watch(bannersRepositoryProvider)
+      .fetchBanners(placementKey: placementKey);
+});
 
 /// Invalidate all placement banner fetches (pull-to-refresh / app resume).
 void invalidateCmsBanners(WidgetRef ref) {
@@ -144,11 +180,11 @@ final servicesVendorsRepositoryProvider = Provider<ServicesVendorsRepository>(
 
 final electronicsVendorsRepositoryProvider =
     Provider<ElectronicsVendorsRepository>(
-  (ref) => ElectronicsVendorsRepository(
-    ref.watch(apiClientProvider),
-    ref.watch(storageServiceProvider),
-  ),
-);
+      (ref) => ElectronicsVendorsRepository(
+        ref.watch(apiClientProvider),
+        ref.watch(storageServiceProvider),
+      ),
+    );
 
 final vapeVendorsRepositoryProvider = Provider<VapeVendorsRepository>(
   (ref) => VapeVendorsRepository(
@@ -228,6 +264,26 @@ final dineInVendorsRepositoryProvider = Provider<DineInVendorsRepository>(
     ref.watch(storageServiceProvider),
   ),
 );
+
+final ageVerificationRepositoryProvider = Provider<AgeVerificationRepository>(
+  (ref) => AgeVerificationRepository(
+    ref.watch(apiClientProvider),
+    ref.watch(storageServiceProvider),
+  ),
+);
+
+final ageVerificationStatusProvider = FutureProvider<AgeVerificationStatus>((
+  ref,
+) async {
+  final storage = ref.watch(storageServiceProvider);
+  if (!storage.hasSession) {
+    return const AgeVerificationStatus(
+      status: 'NOT_VERIFIED',
+      canPurchaseAgeRestricted: false,
+    );
+  }
+  return ref.watch(ageVerificationRepositoryProvider).fetchStatus();
+});
 
 final userRepositoryProvider = Provider<UserRepository>(
   (ref) => UserRepository(

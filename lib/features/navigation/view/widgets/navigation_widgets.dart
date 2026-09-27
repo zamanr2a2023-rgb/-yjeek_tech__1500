@@ -807,14 +807,22 @@ class BillSummaryCard extends StatelessWidget {
     required this.lines,
     this.showCashback = false,
     this.cashbackAmount,
+    this.cashbackMessage,
   });
 
   final List<BillLine> lines;
   final bool showCashback;
   final String? cashbackAmount;
+  final String? cashbackMessage;
 
   @override
   Widget build(BuildContext context) {
+    final message = cashbackMessage?.trim();
+    final amount = cashbackAmount?.trim();
+    final showBanner = showCashback &&
+        ((message != null && message.isNotEmpty) ||
+            (amount != null && amount.isNotEmpty));
+
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -870,12 +878,12 @@ class BillSummaryCard extends StatelessWidget {
               ),
             );
           }),
-          if (showCashback) ...[
+          if (showBanner) ...[
             const SizedBox(height: 4),
             Container(
               width: double.infinity,
-              height: 34,
-              padding: const EdgeInsets.symmetric(horizontal: 11),
+              constraints: const BoxConstraints(minHeight: 34),
+              padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 8),
               decoration: BoxDecoration(
                 color: const Color(0xFFF7F0DC),
                 borderRadius: BorderRadius.circular(10),
@@ -889,28 +897,31 @@ class BillSummaryCard extends StatelessWidget {
                   ),
                   const SizedBox(width: 8),
                   Expanded(
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        NavigationStrings.cashbackBanner,
-                        maxLines: 1,
-                        softWrap: false,
-                        style: AppTextStyles.labelSmall(
-                          color: const Color(0xFF7A5E12),
-                        ).copyWith(fontWeight: FontWeight.w600, fontSize: 12),
-                      ),
+                    child: Text(
+                      (message != null && message.isNotEmpty)
+                          ? message
+                          : (amount ?? ''),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTextStyles.labelSmall(
+                        color: const Color(0xFF7A5E12),
+                      ).copyWith(fontWeight: FontWeight.w600, fontSize: 12),
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  Text(
-                    cashbackAmount ?? NavigationStrings.cashbackBannerAmount,
-                    maxLines: 1,
-                    softWrap: false,
-                    style: AppTextStyles.labelSmall(
-                      color: const Color(0xFF7A5E12),
-                    ).copyWith(fontWeight: FontWeight.w700, fontSize: 12.5),
-                  ),
+                  if (message != null &&
+                      message.isNotEmpty &&
+                      amount != null &&
+                      amount.isNotEmpty) ...[
+                    const SizedBox(width: 8),
+                    Text(
+                      amount,
+                      maxLines: 1,
+                      softWrap: false,
+                      style: AppTextStyles.labelSmall(
+                        color: const Color(0xFF7A5E12),
+                      ).copyWith(fontWeight: FontWeight.w700, fontSize: 12.5),
+                    ),
+                  ],
                 ],
               ),
             ),

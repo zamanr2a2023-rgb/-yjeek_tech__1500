@@ -87,6 +87,8 @@ import 'package:yjeek_app/features/navigation/view/saved_addresses_screen.dart';
 import 'package:yjeek_app/features/payments/view/benefit_pay_cert_test_screen.dart';
 import 'package:yjeek_app/features/navigation/view/wallet_screen.dart';
 import 'package:yjeek_app/features/navigation/view/withdraw_bank_screen.dart';
+import 'package:yjeek_app/features/rewards/view/my_rewards_screen.dart';
+import 'package:yjeek_app/features/vouchers/view/vouchers_screen.dart';
 import 'package:yjeek_app/features/dine_in_cart/view/dine_in_checkout_screen.dart';
 import 'package:yjeek_app/features/dine_in_order_flow/view/dine_in_confirmed_screen.dart';
 import 'package:yjeek_app/features/dine_in_order_flow/view/dine_in_complete_screen.dart';
@@ -529,6 +531,14 @@ class AppRouter {
           builder: (_, _) => const WalletScreen(),
         ),
         GoRoute(
+          path: RouteNames.rewards,
+          builder: (_, _) => const MyRewardsScreen(),
+        ),
+        GoRoute(
+          path: RouteNames.vouchers,
+          builder: (_, _) => const VouchersScreen(),
+        ),
+        GoRoute(
           path: RouteNames.walletCashback,
           builder: (_, _) => const CashbackScreen(),
         ),
@@ -752,6 +762,7 @@ class AppRouter {
                 double.tryParse(state.uri.queryParameters['lat'] ?? ''),
             longitude:
                 double.tryParse(state.uri.queryParameters['lng'] ?? ''),
+            message: state.uri.queryParameters['message'],
           ),
         ),
         GoRoute(

@@ -5,49 +5,39 @@ import 'package:yjeek_app/core/providers/app_providers.dart';
 import 'package:yjeek_app/features/auth/utils/require_login.dart';
 import 'package:yjeek_app/features/vape_cart/vape_cart_routes.dart';
 
-/// Returns true if the signed-in user has completed ID / age verification.
-bool isVapeAgeVerified(WidgetRef ref) {
-  final me = ref.watch(userMeProvider).valueOrNull;
-  return me?.verification.status.toUpperCase() == 'VERIFIED';
+/// Purchase is allowed only when GET /users/me/age-verification says so.
+Future<bool> customerCanPurchaseAgeRestricted(WidgetRef ref) async {
+  ref.invalidate(ageVerificationStatusProvider);
+  try {
+    final status = await ref.read(ageVerificationStatusProvider.future);
+    return status.canPurchaseAgeRestricted;
+  } catch (_) {
+    return false;
+  }
 }
 
-/// Opens the Verify ID intro sheet (then CPR flow). Returns true if verified after.
+/// Opens the age-verification sheet when the customer cannot purchase 18+ items.
+/// Returns true only after the age API reports `canPurchaseAgeRestricted`.
 Future<bool> openVapeAgeVerificationFlow(
   BuildContext context,
   WidgetRef ref, {
   String? productName,
 }) async {
   if (!await requireLogin(context, ref)) return false;
-
-  ref.invalidate(userMeProvider);
-  try {
-    await ref.read(userMeProvider.future);
-  } catch (_) {}
   if (!context.mounted) return false;
-  if (isVapeAgeVerified(ref)) return true;
-
-  await context.push(
-    VapeCartRoutes.ageVerifyFor(productName: productName),
-  );
+  if (await customerCanPurchaseAgeRestricted(ref)) return true;
   if (!context.mounted) return false;
 
-  ref.invalidate(userMeProvider);
-  try {
-    await ref.read(userMeProvider.future);
-  } catch (_) {}
+  await context.push(VapeCartRoutes.ageVerifyFor(productName: productName));
   if (!context.mounted) return false;
-  return isVapeAgeVerified(ref);
+  return customerCanPurchaseAgeRestricted(ref);
 }
 
-/// Ensures login + age verification before vape add-to-cart.
+/// Ensures login + age verification before a vape purchase.
 Future<bool> ensureVapeAgeVerifiedForPurchase(
   BuildContext context,
   WidgetRef ref, {
   String? productName,
 }) {
-  return openVapeAgeVerificationFlow(
-    context,
-    ref,
-    productName: productName,
-  );
+  return openVapeAgeVerificationFlow(context, ref, productName: productName);
 }
