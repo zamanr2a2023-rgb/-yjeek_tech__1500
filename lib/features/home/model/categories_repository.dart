@@ -52,6 +52,13 @@ class CategoriesRepository {
       if (item is! Map<String, dynamic>) continue;
       final name = item['name'] as String?;
       if (name == null || name.isEmpty) continue;
+      if (isOrderModeCategory(
+        kind: item['kind'] as String?,
+        slug: item['slug'] as String?,
+        name: name,
+      )) {
+        continue;
+      }
       items.add(
         categoryItemFromApi(
           id: item['id'] as String?,
