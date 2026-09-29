@@ -40,14 +40,16 @@ class AppNetworkImage extends StatelessWidget {
         ? null
         : (height! * dpr).round();
 
+    final lowerUrl = trimmed.toLowerCase();
+    final keepAlpha = lowerUrl.contains('.png') || lowerUrl.contains('.webp');
     final image = CachedNetworkImage(
       imageUrl: trimmed,
       width: width,
       height: height,
       fit: fit,
       cacheManager: appCacheManager,
-      memCacheWidth: memW,
-      memCacheHeight: memH,
+      memCacheWidth: keepAlpha ? null : memW,
+      memCacheHeight: keepAlpha ? null : memH,
       fadeInDuration: const Duration(milliseconds: 150),
       placeholder: showShimmer
           ? (_, _) => ShimmerBox(

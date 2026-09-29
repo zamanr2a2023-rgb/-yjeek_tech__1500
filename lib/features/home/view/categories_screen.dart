@@ -5,10 +5,12 @@ import 'package:yjeek_app/core/constants/app_colors.dart';
 import 'package:yjeek_app/core/constants/app_text_styles.dart';
 import 'package:yjeek_app/core/constants/home_strings.dart';
 import 'package:yjeek_app/core/providers/app_providers.dart';
-import 'package:yjeek_app/core/widgets/app_network_image.dart';
+import 'package:yjeek_app/features/auth/utils/require_login.dart';
 import 'package:yjeek_app/features/browse/browse_routes.dart';
+import 'package:yjeek_app/features/cart/cart_routes.dart';
 import 'package:yjeek_app/features/home/model/category_item.dart';
 import 'package:yjeek_app/features/home/model/category_navigation.dart';
+import 'package:yjeek_app/features/home/view/widgets/category_icon_image.dart';
 import 'package:yjeek_app/features/home/view/widgets/home_widgets.dart';
 import 'package:yjeek_app/features/ui_content/view/ui_banner_widgets.dart';
 import 'package:yjeek_app/routes/app_router.dart';
@@ -64,41 +66,51 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
                       child: Row(
                         children: [
                           Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  HomeStrings.deliverToLabel,
-                                  style: AppTextStyles.caption(
-                                    color: AppColors.textSecondary,
-                                  ).copyWith(
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 10,
-                                    letterSpacing: 0.5,
+                            child: GestureDetector(
+                              onTap: () async {
+                                final ok = await requireLogin(context, ref);
+                                if (!ok || !context.mounted) return;
+                                await context.push(CartRoutes.changeAddress);
+                                if (!context.mounted) return;
+                                ref.invalidate(homeFeedProvider);
+                              },
+                              behavior: HitTestBehavior.opaque,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    HomeStrings.deliverToLabel,
+                                    style: AppTextStyles.caption(
+                                      color: AppColors.textSecondary,
+                                    ).copyWith(
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 10,
+                                      letterSpacing: 0.5,
+                                    ),
                                   ),
-                                ),
-                                const SizedBox(height: 1),
-                                Row(
-                                  children: [
-                                    Flexible(
-                                      child: Text(
-                                        deliverTo,
-                                        style: AppTextStyles.bodyLarge(
-                                          color: AppColors.textPrimary,
-                                        ).copyWith(fontSize: 15),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
+                                  const SizedBox(height: 1),
+                                  Row(
+                                    children: [
+                                      Flexible(
+                                        child: Text(
+                                          deliverTo,
+                                          style: AppTextStyles.bodyLarge(
+                                            color: AppColors.textPrimary,
+                                          ).copyWith(fontSize: 15),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
                                       ),
-                                    ),
-                                    const SizedBox(width: 4),
-                                    const Icon(
-                                      Icons.keyboard_arrow_down_rounded,
-                                      size: 18,
-                                      color: AppColors.textPrimary,
-                                    ),
-                                  ],
-                                ),
-                              ],
+                                      const SizedBox(width: 4),
+                                      const Icon(
+                                        Icons.keyboard_arrow_down_rounded,
+                                        size: 18,
+                                        color: AppColors.textPrimary,
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                           GestureDetector(
@@ -203,19 +215,17 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
                                       width: 48,
                                       height: 48,
                                       decoration: BoxDecoration(
-                                        color: category.backgroundColor,
+                                        color: category.hasNetworkIcon
+                                            ? AppColors.white
+                                            : category.backgroundColor,
                                         borderRadius:
                                             BorderRadius.circular(14),
                                       ),
                                       clipBehavior: Clip.antiAlias,
                                       child: category.hasNetworkIcon
-                                          ? AppNetworkImage(
+                                          ? CategoryIconImage(
                                               url: category.iconUrl!,
-                                              width: 48,
-                                              height: 48,
-                                              fit: BoxFit.cover,
-                                              borderRadius:
-                                                  BorderRadius.circular(14),
+                                              size: 48,
                                             )
                                           : Icon(
                                               category.icon,

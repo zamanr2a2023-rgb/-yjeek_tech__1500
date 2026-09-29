@@ -7,6 +7,7 @@ import 'package:yjeek_app/core/constants/app_text_styles.dart';
 import 'package:yjeek_app/core/constants/home_strings.dart';
 import 'package:yjeek_app/core/widgets/app_network_image.dart';
 import 'package:yjeek_app/features/home/model/category_item.dart';
+import 'package:yjeek_app/features/home/view/widgets/category_icon_image.dart';
 import 'package:yjeek_app/features/home/model/home_data.dart';
 import 'package:yjeek_app/l10n/locale_controller.dart';
 
@@ -67,10 +68,16 @@ class HomeGreenHeader extends StatelessWidget {
 }
 
 class HomeGreetingHeader extends StatelessWidget {
-  const HomeGreetingHeader({super.key, this.greeting, this.deliveryLocation});
+  const HomeGreetingHeader({
+    super.key,
+    this.greeting,
+    this.deliveryLocation,
+    this.onLocationTap,
+  });
 
   final String? greeting;
   final String? deliveryLocation;
+  final VoidCallback? onLocationTap;
 
   @override
   Widget build(BuildContext context) {
@@ -84,35 +91,39 @@ class HomeGreetingHeader extends StatelessWidget {
           ).copyWith(fontSize: 13),
         ),
         const SizedBox(height: 2),
-        Row(
-          children: [
-            Text(
-              HomeStrings.deliverTo,
-              style: AppTextStyles.labelSmall(
-                color: const Color(0xFFCFE8D8),
-              ).copyWith(fontSize: 12),
-            ),
-            const SizedBox(width: 5),
-            Flexible(
-              child: Text(
-                deliveryLocation ?? HomeData.deliveryLocation,
-                style: AppTextStyles.bodyLarge(
+        GestureDetector(
+          onTap: onLocationTap,
+          behavior: HitTestBehavior.opaque,
+          child: Row(
+            children: [
+              Text(
+                HomeStrings.deliverTo,
+                style: AppTextStyles.labelSmall(
+                  color: const Color(0xFFCFE8D8),
+                ).copyWith(fontSize: 12),
+              ),
+              const SizedBox(width: 5),
+              Flexible(
+                child: Text(
+                  deliveryLocation ?? HomeData.deliveryLocation,
+                  style: AppTextStyles.bodyLarge(
+                    color: AppColors.white,
+                  ).copyWith(fontSize: 16),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(width: 5),
+              const Text(
+                '▾',
+                style: TextStyle(
                   color: AppColors.white,
-                ).copyWith(fontSize: 16),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 12,
+                ),
               ),
-            ),
-            const SizedBox(width: 5),
-            const Text(
-              '▾',
-              style: TextStyle(
-                color: AppColors.white,
-                fontWeight: FontWeight.w700,
-                fontSize: 12,
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ],
     );
@@ -386,6 +397,7 @@ class CategoryIconTile extends StatelessWidget {
 
     final borderRadius = BorderRadius.circular(compact ? 18 : 17);
     final iconUrl = category.iconUrl?.trim();
+    final hasNetworkIcon = iconUrl != null && iconUrl.isNotEmpty;
 
     return SizedBox(
       height: compact ? 96 : 93,
@@ -396,24 +408,23 @@ class CategoryIconTile extends StatelessWidget {
             width: size,
             height: size,
             decoration: BoxDecoration(
-              color: category.backgroundColor,
+              color: hasNetworkIcon ? AppColors.white : category.backgroundColor,
               borderRadius: borderRadius,
-              boxShadow: const [
-                BoxShadow(
-                  color: Color(0x29000000),
-                  blurRadius: 12,
-                  offset: Offset(0, 5),
-                ),
-              ],
+              boxShadow: hasNetworkIcon
+                  ? null
+                  : const [
+                      BoxShadow(
+                        color: Color(0x29000000),
+                        blurRadius: 12,
+                        offset: Offset(0, 5),
+                      ),
+                    ],
             ),
             clipBehavior: Clip.antiAlias,
-            child: iconUrl != null && iconUrl.isNotEmpty
-                ? AppNetworkImage(
+            child: hasNetworkIcon
+                ? CategoryIconImage(
                     url: iconUrl,
-                    width: size,
-                    height: size,
-                    fit: BoxFit.cover,
-                    borderRadius: borderRadius,
+                    size: size,
                   )
                 : Icon(
                     category.icon,

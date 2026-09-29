@@ -138,6 +138,7 @@ class AppRouter {
 
   static GoRouter create() {
     return instance ??= GoRouter(
+      restorationScopeId: 'yjeek_router',
       initialLocation: RouteNames.splash,
       routes: [
         GoRoute(

@@ -11,6 +11,7 @@ class StorageService {
   static const _keyToken = 'auth_token';
   static const _keyLanguage = 'language_code';
   static const _keyRetailGridView = 'retail_category_grid_view';
+  static const _keyResumeLocation = 'resume_location';
 
   static Future<StorageService> init() async {
     final prefs = await SharedPreferences.getInstance();
@@ -42,10 +43,21 @@ class StorageService {
   Future<void> setRetailCategoryGridView(bool isGrid) =>
       _prefs.setBool(_keyRetailGridView, isGrid);
 
+  /// Last in-app screen, so a later launch can reopen it instead of the splash.
+  String? get resumeLocation {
+    final value = _prefs.getString(_keyResumeLocation)?.trim();
+    if (value == null || value.isEmpty) return null;
+    return value;
+  }
+
+  Future<void> setResumeLocation(String value) =>
+      _prefs.setString(_keyResumeLocation, value);
+
   Future<void> clearSession() async {
     await _prefs.remove(_keyLoggedIn);
     await _prefs.remove(_keyPhone);
     await _prefs.remove(_keyToken);
+    await _prefs.remove(_keyResumeLocation);
   }
 
   bool get hasSession => isLoggedIn && (token?.isNotEmpty ?? false);

@@ -5,7 +5,9 @@ import 'package:yjeek_app/core/constants/app_colors.dart';
 import 'package:yjeek_app/core/constants/home_strings.dart';
 import 'package:yjeek_app/core/providers/app_providers.dart';
 import 'package:yjeek_app/core/providers/shell_provider.dart';
+import 'package:yjeek_app/features/auth/utils/require_login.dart';
 import 'package:yjeek_app/features/browse/browse_routes.dart';
+import 'package:yjeek_app/features/cart/cart_routes.dart';
 import 'package:yjeek_app/features/cart/model/cart_repository.dart';
 import 'package:yjeek_app/features/cart/model/delivery_range.dart';
 import 'package:yjeek_app/features/cart/model/pending_add_to_cart.dart';
@@ -188,6 +190,13 @@ class HomeScreen extends ConsumerWidget {
                     HomeGreetingHeader(
                       greeting: greeting,
                       deliveryLocation: deliverTo,
+                      onLocationTap: () async {
+                        final ok = await requireLogin(context, ref);
+                        if (!ok || !context.mounted) return;
+                        await context.push(CartRoutes.changeAddress);
+                        if (!context.mounted) return;
+                        ref.invalidate(homeFeedProvider);
+                      },
                     ),
                     const SizedBox(height: 14),
                     HomeSearchBar(
