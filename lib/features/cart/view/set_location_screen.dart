@@ -8,6 +8,8 @@ import 'package:yjeek_app/core/constants/app_colors.dart';
 import 'package:yjeek_app/core/constants/app_text_styles.dart';
 import 'package:yjeek_app/core/constants/maps_config.dart';
 import 'package:yjeek_app/core/providers/app_providers.dart';
+import 'package:yjeek_app/features/location/model/customer_delivery_location.dart';
+import 'package:yjeek_app/features/location/provider/delivery_location_provider.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/core/widgets/app_google_map.dart';
 import 'package:yjeek_app/features/cart/model/cart_flow_data.dart';
@@ -121,6 +123,27 @@ class _SetLocationScreenState extends ConsumerState<SetLocationScreen> {
 
   Future<void> _confirm() async {
     final loc = _location;
+    final storage = ref.read(storageServiceProvider);
+    final title = loc?.label ?? CartFlowData.detectedLocation;
+    final detail = [
+      if (loc?.area != null && loc!.area!.isNotEmpty) loc.area,
+      if (loc?.road != null && loc!.road!.isNotEmpty) loc.road,
+    ].whereType<String>().join(' · ');
+
+    await storage.saveDeliveryLocationCache(
+      kind: CustomerDeliveryLocationKind.detected.name,
+      latitude: _lat,
+      longitude: _lng,
+      displayTitle: title,
+      displaySubtitle: detail.isEmpty ? null : detail,
+    );
+    await ref.read(deliveryLocationProvider.notifier).refresh(force: true);
+
+    if (!storage.hasSession) {
+      if (mounted) context.pop(true);
+      return;
+    }
+
     final params = <String, String>{
       'lat': _lat.toStringAsFixed(6),
       'lng': _lng.toStringAsFixed(6),

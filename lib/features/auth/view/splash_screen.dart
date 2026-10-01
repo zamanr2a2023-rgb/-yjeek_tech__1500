@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -10,6 +12,7 @@ import 'package:yjeek_app/features/auth/view/widgets/auth_widgets.dart';
 import 'package:yjeek_app/features/notifications/service/push_notification_service.dart';
 import 'package:yjeek_app/l10n/locale_controller.dart';
 import 'package:yjeek_app/routes/app_router.dart';
+import 'package:yjeek_app/routes/resume_location.dart';
 import 'package:yjeek_app/routes/route_names.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
@@ -32,7 +35,44 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
         statusBarBrightness: Brightness.dark,
       ),
     );
-    _startSplashSequence();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final resume = ref.read(storageServiceProvider).resumeLocation;
+      if (resume != null && isResumableLocation(resume)) {
+        _resume(resume);
+        return;
+      }
+      _startSplashSequence();
+    });
+  }
+
+  Future<void> _resume(String location) async {
+    final storage = ref.read(storageServiceProvider);
+    if (storage.hasSession) {
+      unawaited(_syncLanguage());
+      PushNotificationService.instance.syncToken();
+      PushNotificationService.instance.consumePendingOpen();
+    }
+    if (!mounted) return;
+    context.go(location);
+  }
+
+  Future<void> _syncLanguage() async {
+    try {
+      final me = await ref.read(userRepositoryProvider).fetchMe();
+      final lang = me?.profile.language;
+      if (lang != null && lang.isNotEmpty) {
+        await ref.read(localeControllerProvider.notifier).setLanguage(lang);
+      } else {
+        await ref
+            .read(localeControllerProvider.notifier)
+            .ensureTranslationsLoaded(force: true);
+      }
+    } catch (_) {
+      await ref
+          .read(localeControllerProvider.notifier)
+          .ensureTranslationsLoaded(force: true);
+    }
   }
 
   Future<void> _startSplashSequence() async {
@@ -48,21 +88,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
 
     final storage = ref.read(storageServiceProvider);
     if (storage.hasSession) {
-      try {
-        final me = await ref.read(userRepositoryProvider).fetchMe();
-        final lang = me?.profile.language;
-        if (lang != null && lang.isNotEmpty) {
-          await ref.read(localeControllerProvider.notifier).setLanguage(lang);
-        } else {
-          await ref
-              .read(localeControllerProvider.notifier)
-              .ensureTranslationsLoaded(force: true);
-        }
-      } catch (_) {
-        await ref
-            .read(localeControllerProvider.notifier)
-            .ensureTranslationsLoaded(force: true);
-      }
+      await _syncLanguage();
       if (!mounted) return;
       context.goHome();
       PushNotificationService.instance.syncToken();

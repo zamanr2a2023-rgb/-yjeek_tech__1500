@@ -10,6 +10,7 @@ import 'package:yjeek_app/core/providers/app_providers.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/core/widgets/app_google_map.dart';
 import 'package:yjeek_app/features/cart/model/addresses_repository.dart';
+import 'package:yjeek_app/features/location/provider/delivery_location_provider.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/account_widgets.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/navigation_widgets.dart';
 
@@ -181,6 +182,8 @@ class _AddAddressScreenState extends ConsumerState<AddAddressScreen> {
 
     if (response.ok) {
       ref.invalidate(userMeProvider);
+      ref.invalidate(deliveryLocationProvider);
+      await ref.read(deliveryLocationProvider.notifier).refresh(force: true);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(

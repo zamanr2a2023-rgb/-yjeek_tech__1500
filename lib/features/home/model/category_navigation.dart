@@ -2,11 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:yjeek_app/features/browse/browse_routes.dart';
 import 'package:yjeek_app/features/home/model/category_item.dart';
+import 'package:yjeek_app/routes/route_names.dart';
 
 /// Shared home + Categories screen routing (no UI change).
 void openHomeCategory(BuildContext context, CategoryItem category) {
   final key = (category.slug ?? category.name).toLowerCase().trim();
   final slug = (category.slug ?? '').toLowerCase().trim();
+
+  if (slug == 'marketing-offers' ||
+      key == 'offers' ||
+      (key.contains('offer') && !key.contains('exclusive'))) {
+    context.push(RouteNames.marketingOffers);
+    return;
+  }
 
   if (key.contains('food') && !key.contains('baby')) {
     context.push(BrowseRoutes.foodBrowse());
@@ -46,24 +54,33 @@ void openHomeCategory(BuildContext context, CategoryItem category) {
     'stationery' => 'stationery',
     'baby-kids' || 'baby_kids' || 'baby' => 'baby-kids',
     'sports' || 'sport' => 'sports',
+    'health-wellness' ||
+    'health_wellness' ||
+    'health' ||
+    'wellness' =>
+      'health-wellness',
+    'pets' || 'pet' => 'pets',
+    'fragrance' || 'fragrances' => 'fragrance',
     _ => null,
   };
 
   if (scheduledSlug != null) {
-    // Flowers Figma: vendor list first (Scheduled · Order again · Offers).
-    if (scheduledSlug == 'flowers') {
+    // Vendor list first (no empty sub-category landing).
+    if (scheduledSlug == 'flowers' ||
+        scheduledSlug == 'fashion' ||
+        scheduledSlug == 'health-wellness' ||
+        scheduledSlug == 'pets' ||
+        scheduledSlug == 'fragrance') {
       context.push(
         BrowseRoutes.electronicsBrowse(
-          category: 'flowers',
-          title: 'Flowers',
+          category: scheduledSlug,
+          title: _vendorListTitle(scheduledSlug, category.name),
         ),
       );
       return;
     }
-    // Fashion / Pharmacy / Gifts: sub-category grid first.
-    if (scheduledSlug == 'fashion' ||
-        scheduledSlug == 'pharmacy' ||
-        scheduledSlug == 'gifts') {
+    // Pharmacy / Gifts: sub-category grid when configured in admin.
+    if (scheduledSlug == 'pharmacy' || scheduledSlug == 'gifts') {
       context.push(BrowseRoutes.retailCategory(slug: scheduledSlug));
       return;
     }
@@ -82,7 +99,27 @@ void openHomeCategory(BuildContext context, CategoryItem category) {
       ),
     );
   } else if (key.contains('fashion')) {
-    context.push(BrowseRoutes.retailCategory(slug: 'fashion'));
+    context.push(
+      BrowseRoutes.electronicsBrowse(category: 'fashion', title: 'Fashion'),
+    );
+  } else if (key.contains('health') || key.contains('wellness')) {
+    context.push(
+      BrowseRoutes.electronicsBrowse(
+        category: 'health-wellness',
+        title: 'Health & Wellness',
+      ),
+    );
+  } else if (key.contains('fragrance')) {
+    context.push(
+      BrowseRoutes.electronicsBrowse(
+        category: 'fragrance',
+        title: 'Fragrance',
+      ),
+    );
+  } else if (key.contains('pet')) {
+    context.push(
+      BrowseRoutes.electronicsBrowse(category: 'pets', title: 'Pets'),
+    );
   } else if (key.contains('prosthetic')) {
     context.push(BrowseRoutes.electronicsBrowse(category: 'prosthetics'));
   } else if (key.contains('pharmacy')) {
@@ -99,5 +136,23 @@ void openHomeCategory(BuildContext context, CategoryItem category) {
     context.push(BrowseRoutes.electronicsBrowse(category: 'baby-kids'));
   } else if (key.contains('sport')) {
     context.push(BrowseRoutes.electronicsBrowse(category: 'sports'));
+  } else if (slug.isNotEmpty) {
+    context.push(
+      BrowseRoutes.electronicsBrowse(
+        category: slug,
+        title: category.name,
+      ),
+    );
   }
+}
+
+String _vendorListTitle(String slug, String fallbackName) {
+  return switch (slug) {
+    'fashion' => 'Fashion',
+    'flowers' => 'Flowers',
+    'health-wellness' => 'Health & Wellness',
+    'pets' => 'Pets',
+    'fragrance' => 'Fragrance',
+    _ => fallbackName,
+  };
 }

@@ -3,8 +3,10 @@ import 'package:yjeek_app/core/network/api_client.dart';
 import 'package:yjeek_app/core/services/storage_service.dart';
 import 'package:yjeek_app/core/utils/api_media_url.dart';
 import 'package:yjeek_app/features/browse/model/browse_data.dart';
+import 'package:yjeek_app/features/catalog/model/catalog_product.dart';
 import 'package:yjeek_app/features/cart/model/addresses_repository.dart';
 import 'package:yjeek_app/features/cart/model/delivery_range.dart';
+import 'package:yjeek_app/features/browse/model/vendor_order_modes.dart';
 import 'package:yjeek_app/features/home/model/home_ui_mapper.dart';
 import 'package:yjeek_app/l10n/l10n.dart';
 
@@ -28,6 +30,7 @@ class FoodProductDetail {
     required this.addons,
     this.imageUrl,
     this.descriptionAr,
+    this.catalog,
   });
 
   final BrowseMenuItem item;
@@ -36,6 +39,11 @@ class FoodProductDetail {
   final List<BrowseOptionGroup> optionGroups;
   final List<BrowseAddonOption> addons;
   final String? imageUrl;
+
+  /// Catalog axes and variants from the same payload. Food item detail ignores
+  /// this and keeps using [optionGroups]. Null only when a caller builds the
+  /// detail without a product JSON body.
+  final CatalogProduct? catalog;
 
   String get localizedDescription {
     if (L10n.isArabic) {
@@ -100,6 +108,7 @@ class FoodVendorsRepository {
     bool freeDelivery = false,
     bool openNow = false,
     bool hasOffers = false,
+    bool acceptsMyVouchers = false,
     double? minRating,
     int? maxDeliveryTime,
     String sort = 'rating',
@@ -108,12 +117,13 @@ class FoodVendorsRepository {
     double? longitude,
     bool withinDeliveryRadius = false,
     bool supportsDelivery = true,
+    bool supportsPickup = false,
+    bool supportsDineIn = false,
   }) async {
-    final params = <String, String>{
-      'category': 'food',
-      'sort': sort,
-    };
+    final params = <String, String>{'category': 'food', 'sort': sort};
     if (supportsDelivery) params['supportsDelivery'] = 'true';
+    if (supportsPickup) params['supportsPickup'] = 'true';
+    if (supportsDineIn) params['supportsDineIn'] = 'true';
     if (cuisine != null &&
         cuisine.isNotEmpty &&
         cuisine.toLowerCase() != 'all') {
@@ -122,6 +132,7 @@ class FoodVendorsRepository {
     if (freeDelivery) params['freeDelivery'] = 'true';
     if (openNow) params['openNow'] = 'true';
     if (hasOffers) params['hasOffers'] = 'true';
+    if (acceptsMyVouchers) params['acceptsMyVouchers'] = 'true';
     if (minRating != null && minRating > 0) {
       params['minRating'] = minRating.toString();
     }
@@ -154,6 +165,15 @@ class FoodVendorsRepository {
     final items = <BrowseRestaurant>[];
     for (final raw in data) {
       if (raw is! Map<String, dynamic>) continue;
+      if (supportsDelivery && !vendorSupportsOrderType(raw, 'DELIVERY')) {
+        continue;
+      }
+      if (supportsPickup && !vendorSupportsOrderType(raw, 'PICKUP')) {
+        continue;
+      }
+      if (supportsDineIn && !vendorSupportsOrderType(raw, 'DINE_IN')) {
+        continue;
+      }
       final mapped = browseRestaurantFromVendorJson(raw);
       if (mapped != null) items.add(mapped);
     }
@@ -201,32 +221,52 @@ class FoodVendorsRepository {
     final vendorRaw = data['vendor'];
     final restaurant = vendorRaw is Map<String, dynamic>
         ? (browseRestaurantFromVendorJson({
-              ...vendorRaw,
-              'id': vendorRaw['id'] ?? vendorId,
-              'slug': vendorRaw['slug'] ?? vendorId,
-            }) ??
-            await fetchVendor(vendorId))
+                ...vendorRaw,
+                'id': vendorRaw['id'] ?? vendorId,
+                'slug': vendorRaw['slug'] ?? vendorId,
+              }) ??
+              await fetchVendor(vendorId))
         : await fetchVendor(vendorId);
 
     final sectionsRaw = data['sections'];
     final sections = <String>[];
     final items = <BrowseMenuItem>[];
     if (sectionsRaw is List) {
+      void ingestSection(Map<String, dynamic> section, {String? nameOverride}) {
+        final sectionName = (nameOverride ?? section['name'] as String?)
+            ?.trim();
+        if (sectionName == null || sectionName.isEmpty) return;
+
+        final products = section['products'];
+        if (products is List && products.isNotEmpty) {
+          if (!sections.contains(sectionName)) sections.add(sectionName);
+          for (final product in products) {
+            if (product is! Map<String, dynamic>) continue;
+            final mapped = browseMenuItemFromProductJson(
+              product,
+              section: sectionName,
+            );
+            if (mapped != null) items.add(mapped);
+          }
+        }
+
+        final children = section['children'];
+        if (children is! List) return;
+        for (final child in children) {
+          if (child is! Map<String, dynamic>) continue;
+          final childName = (child['name'] as String?)?.trim();
+          ingestSection(
+            child,
+            nameOverride: childName == null || childName.isEmpty
+                ? sectionName
+                : childName,
+          );
+        }
+      }
+
       for (final section in sectionsRaw) {
         if (section is! Map<String, dynamic>) continue;
-        final sectionName = (section['name'] as String?)?.trim();
-        if (sectionName == null || sectionName.isEmpty) continue;
-        final products = section['products'];
-        if (products is! List || products.isEmpty) continue;
-        sections.add(sectionName);
-        for (final product in products) {
-          if (product is! Map<String, dynamic>) continue;
-          final mapped = browseMenuItemFromProductJson(
-            product,
-            section: sectionName,
-          );
-          if (mapped != null) items.add(mapped);
-        }
+        ingestSection(section);
       }
     }
 
@@ -251,9 +291,9 @@ class FoodVendorsRepository {
     }
 
     final item = browseMenuItemFromProductJson(
-          data,
-          section: data['menuSectionName'] as String? ?? 'Menu',
-        );
+      data,
+      section: data['menuSectionName'] as String? ?? 'Menu',
+    );
     if (item == null) {
       throw StateError('Product not found');
     }
@@ -294,14 +334,15 @@ class FoodVendorsRepository {
       descriptionAr: descAr.isNotEmpty ? descAr : item.descriptionAr,
       optionGroups: optionGroups,
       addons: addons,
-      imageUrl: resolveApiMediaUrl(data['imageUrl'] as String?) ??
-          resolveApiMediaUrlFromList(data['imageUrls']) ??
-          item.imageUrl,
+      imageUrl: resolveProductImageUrl(data) ?? item.imageUrl,
+      catalog: CatalogProduct.fromJson(data),
     );
   }
 
   /// GET /cart?type=DELIVERY|PICKUP|DINE_IN
-  Future<FoodCartSummary> fetchDeliveryCart({String cartType = 'DELIVERY'}) async {
+  Future<FoodCartSummary> fetchDeliveryCart({
+    String cartType = 'DELIVERY',
+  }) async {
     if (!_storage.hasSession) return FoodCartSummary.empty;
 
     final type = _normalizeCartType(cartType);
@@ -342,7 +383,7 @@ class FoodVendorsRepository {
   /// POST /cart/items?type=DELIVERY|PICKUP|DINE_IN
   /// Returns null on success, conflict message on vendor conflict, or error text.
   Future<({bool ok, bool vendorConflict, bool outOfRange, String? message})>
-      addToCart({
+  addToCart({
     required String productId,
     required int quantity,
     List<String> optionIds = const [],
@@ -351,17 +392,24 @@ class FoodVendorsRepository {
     String cartType = 'DELIVERY',
     String? vendorId,
     String? geofenceTriggerId,
+    String? deliveryAddressId,
+    double? deliveryLatitude,
+    double? deliveryLongitude,
   }) async {
     final type = _normalizeCartType(cartType);
 
+    String? extraChargeMessage;
     if (type == 'DELIVERY' &&
         _addresses != null &&
         _storage.hasSession &&
         vendorId != null &&
         vendorId.isNotEmpty) {
       final range = await checkDeliveryRange(
-        addresses: _addresses!,
+        addresses: _addresses,
         vendorId: vendorId,
+        addressId: deliveryAddressId,
+        latitude: deliveryLatitude,
+        longitude: deliveryLongitude,
         failClosed: false,
       );
       if (range.isOutOfRange) {
@@ -372,36 +420,40 @@ class FoodVendorsRepository {
           message: 'This address is outside the vendor delivery area',
         );
       }
+      if (range.isExtraCharge) extraChargeMessage = range.warningMessage;
     }
 
-    final response = await _apiClient.postJson(
-      '/cart/items?type=$type',
-      {
-        'productId': productId,
-        'quantity': quantity,
-        'replaceCart': replaceCart,
-        if (geofenceTriggerId != null && geofenceTriggerId.isNotEmpty)
-          'geofenceTriggerId': geofenceTriggerId,
-        'options': {
-          if (optionIds.isNotEmpty) 'optionIds': optionIds,
-          if (addonIds.isNotEmpty) 'addonIds': addonIds,
-        },
+    final response = await _apiClient.postJson('/cart/items?type=$type', {
+      'productId': productId,
+      'quantity': quantity,
+      'replaceCart': replaceCart,
+      if (geofenceTriggerId != null && geofenceTriggerId.isNotEmpty)
+        'geofenceTriggerId': geofenceTriggerId,
+      'options': {
+        if (optionIds.isNotEmpty) 'optionIds': optionIds,
+        if (addonIds.isNotEmpty) 'addonIds': addonIds,
       },
-      bearerToken: _token,
-    );
+    }, bearerToken: _token);
 
     if (response.ok) {
-      return (ok: true, vendorConflict: false, outOfRange: false, message: null);
+      return (
+        ok: true,
+        vendorConflict: false,
+        outOfRange: false,
+        message: extraChargeMessage,
+      );
     }
 
     final error = response.json?['error'];
     final details = error is Map ? error['details'] : null;
     final detailCode = details is Map ? details['code']?.toString() : null;
     final code = error is Map ? error['code']?.toString() : null;
-    final outOfRange = isOutOfDeliveryRangeCode(code) ||
+    final outOfRange =
+        isOutOfDeliveryRangeCode(code) ||
         isOutOfDeliveryRangeCode(detailCode) ||
         isOutOfDeliveryRangeMessage(response.message);
-    final conflict = !outOfRange &&
+    final conflict =
+        !outOfRange &&
         (response.statusCode == 409 ||
             code == 'VENDOR_CART_CONFLICT' ||
             detailCode == 'VENDOR_CART_CONFLICT' ||
@@ -430,7 +482,9 @@ class FoodVendorsRepository {
     final data = response?['data'];
     final list = data is List
         ? data
-        : (data is Map<String, dynamic> ? data['items'] ?? data['history'] : null);
+        : (data is Map<String, dynamic>
+              ? data['items'] ?? data['history']
+              : null);
     if (list is! List || list.isEmpty) return const [];
 
     final queries = <String>[];
@@ -452,13 +506,14 @@ BrowseRestaurant? browseRestaurantFromVendorJson(Map<String, dynamic> json) {
   if (id == null || id.isEmpty || name == null || name.isEmpty) return null;
 
   final tags = json['cuisineTags'];
-  final categoryLabel = (json['categoryLabel'] as String?)?.trim() ??
+  final categoryLabel =
+      (json['categoryLabel'] as String?)?.trim() ??
       (json['serviceCategory'] as String?)?.trim();
   final cuisine = tags is List && tags.isNotEmpty
       ? tags.map((e) => e.toString()).where((e) => e.isNotEmpty).join(' · ')
       : (categoryLabel != null && categoryLabel.isNotEmpty
-          ? categoryLabel
-          : 'Food');
+            ? categoryLabel
+            : 'Food');
 
   final reviewCountRaw = json['reviewCount'];
   final reviewCountValue = reviewCountRaw is num ? reviewCountRaw.toInt() : 0;
@@ -466,17 +521,17 @@ BrowseRestaurant? browseRestaurantFromVendorJson(Map<String, dynamic> json) {
   final ratingParsed = ratingRaw is num
       ? ratingRaw.toDouble()
       : double.tryParse(ratingRaw?.toString() ?? '') ?? 0;
-  final hasRating = json['hasRating'] == true ||
-      (reviewCountValue > 0 && ratingParsed > 0);
+  final hasRating =
+      json['hasRating'] == true || (reviewCountValue > 0 && ratingParsed > 0);
   final rating = hasRating ? ratingParsed : 0.0;
 
   final arrivesIn = (json['arrivesInMin'] as num?)?.toInt();
-  final readyIn = (json['readyInMin'] as num?)?.toInt() ??
+  final readyIn =
+      (json['readyInMin'] as num?)?.toInt() ??
       (json['pickupEtaMin'] as num?)?.toInt();
   final prepTime = (json['prepTimeMin'] as num?)?.toInt();
-  final deliveryMin = arrivesIn ??
-      (json['deliveryTimeMin'] as num?)?.toInt() ??
-      25;
+  final deliveryMin =
+      arrivesIn ?? (json['deliveryTimeMin'] as num?)?.toInt() ?? 25;
   final freeDelivery = json['freeDelivery'] == true;
   final deliveryFeeRaw = json['deliveryFee'];
   final deliveryFee = deliveryFeeRaw is num
@@ -497,15 +552,19 @@ BrowseRestaurant? browseRestaurantFromVendorJson(Map<String, dynamic> json) {
       : '___';
 
   final badge = json['offerBadge'] as String?;
-  final imageUrl = resolveApiMediaUrl(json['coverUrl'] as String?) ??
+  final offersLabel = json['offersLabel'] as String?;
+  final vouchersBadge = json['vouchersAcceptedBadge'] as String?;
+  final logoUrl =
       resolveApiMediaUrl(json['logoUrl'] as String?) ??
       resolveApiMediaUrlFromList(json['imageUrls']);
+  final coverUrl = resolveApiMediaUrl(json['coverUrl'] as String?);
+  final imageUrl = logoUrl ?? coverUrl;
   final colors = _gradientForName(name);
   final area = (json['area'] as String?)?.trim().isNotEmpty == true
       ? (json['area'] as String).trim()
       : ((json['city'] as String?)?.trim().isNotEmpty == true
-          ? (json['city'] as String).trim()
-          : null);
+            ? (json['city'] as String).trim()
+            : null);
   final openStatus = (json['openStatus'] as String?)?.toUpperCase();
   // Only treat explicit OPEN as open — UNKNOWN used to pass Open now wrongly.
   final isOpen = openStatus == 'OPEN';
@@ -529,12 +588,21 @@ BrowseRestaurant? browseRestaurantFromVendorJson(Map<String, dynamic> json) {
     gradientStart: colors.$1,
     gradientEnd: colors.$2,
     badge: badge,
+    hasOffers: json['hasOffers'] == true,
+    offersLabel: offersLabel,
+    vouchersAccepted: json['vouchersAccepted'] == true,
+    vouchersAcceptedBadge: vouchersBadge,
+    acceptsMyVouchers: json['acceptsMyVouchers'] == true
+        ? true
+        : (json['acceptsMyVouchers'] == false ? false : null),
     deliveryMin: deliveryMin,
     freeDelivery: freeDelivery,
     deliveryFee: deliveryFee,
     minOrder: minOrder,
     distance: distance,
     imageUrl: imageUrl,
+    logoUrl: logoUrl,
+    coverUrl: coverUrl,
     reviewCount: reviewCount,
     reviewCountValue: reviewCountValue,
     hasRating: hasRating,
@@ -550,9 +618,9 @@ BrowseRestaurant? browseRestaurantFromVendorJson(Map<String, dynamic> json) {
     dineInAvailableLabel: dineInLabel,
     dineInTablesAvailable: dineInTables,
     categoryLabel: categoryLabel,
-    supportsDelivery: json['supportsDelivery'] != false,
-    supportsPickup: json['supportsPickup'] == true,
-    supportsDineIn: json['supportsDineIn'] == true,
+    supportsDelivery: vendorSupportsOrderType(json, 'DELIVERY'),
+    supportsPickup: vendorSupportsOrderType(json, 'PICKUP'),
+    supportsDineIn: vendorSupportsOrderType(json, 'DINE_IN'),
   );
 }
 
@@ -564,14 +632,21 @@ BrowseMenuItem? browseMenuItemFromProductJson(
   final name = json['name'] as String?;
   if (id == null || id.isEmpty || name == null || name.isEmpty) return null;
   final price = json['price'];
-  final priceStr = price is num
-      ? price.toStringAsFixed(3)
-      : (price?.toString() ?? '0.000');
+  final onPromotion = json['onPromotion'] == true;
+  final original = (json['originalPrice'] as num?)?.toDouble();
+  final discounted = (json['discountedPrice'] as num?)?.toDouble();
+  final displayNum = onPromotion && discounted != null
+      ? discounted
+      : (price is num ? price.toDouble() : double.tryParse('$price') ?? 0);
+  final priceStr = displayNum.toStringAsFixed(3);
+  String? strikePrice;
+  if (onPromotion && original != null && original > displayNum + 0.0001) {
+    strikePrice = original.toStringAsFixed(3);
+  }
   final description = (json['description'] as String?)?.trim() ?? '';
   final nameAr = (json['nameAr'] as String?)?.trim();
   final descriptionAr = (json['descriptionAr'] as String?)?.trim();
-  final imageUrl = resolveApiMediaUrl(json['imageUrl'] as String?) ??
-      resolveApiMediaUrlFromList(json['imageUrls']);
+  final imageUrl = resolveProductImageUrl(json);
 
   final optionGroups = json['optionGroups'];
   final addons = json['addons'];
@@ -583,9 +658,8 @@ BrowseMenuItem? browseMenuItemFromProductJson(
       ? addons.length
       : (count is Map ? (count['addons'] as num?)?.toInt() ?? 0 : 0);
   // Prefer explicit API flag; fall back to counts so plain items can "+" add.
-  final hasModifiers = json['hasModifiers'] == true ||
-      optionCount > 0 ||
-      addonCount > 0;
+  final hasModifiers =
+      json['hasModifiers'] == true || optionCount > 0 || addonCount > 0;
 
   final badgesRaw = json['badges'];
   final badges = <String>[];
@@ -595,19 +669,32 @@ BrowseMenuItem? browseMenuItemFromProductJson(
       if (s != null && s.isNotEmpty) badges.add(s);
     }
   }
+  final singleBadge = json['badge']?.toString().trim();
+  if (singleBadge != null &&
+      singleBadge.isNotEmpty &&
+      !badges.contains(singleBadge)) {
+    badges.add(singleBadge);
+  }
+  if (onPromotion && !badges.any((b) => b.toLowerCase() == 'offer')) {
+    badges.add('Offer');
+  }
 
   return BrowseMenuItem(
     id: id,
     name: name,
     nameAr: (nameAr != null && nameAr.isNotEmpty) ? nameAr : null,
     description: description.isNotEmpty ? description : '___',
-    descriptionAr:
-        (descriptionAr != null && descriptionAr.isNotEmpty) ? descriptionAr : null,
+    descriptionAr: (descriptionAr != null && descriptionAr.isNotEmpty)
+        ? descriptionAr
+        : null,
     price: priceStr,
     section: section,
     imageUrl: imageUrl,
     hasModifiers: hasModifiers,
     badges: badges,
+    onPromotion: onPromotion,
+    strikeThroughPrice: strikePrice,
+    promotionId: json['promotionId']?.toString(),
   );
 }
 

@@ -12,6 +12,7 @@ import 'package:yjeek_app/features/browse/view/widgets/item_detail_widgets.dart'
 import 'package:yjeek_app/features/auth/utils/require_login.dart';
 import 'package:yjeek_app/features/cart/model/delivery_range.dart';
 import 'package:yjeek_app/features/cart/model/pending_add_to_cart.dart';
+import 'package:yjeek_app/features/location/provider/delivery_location_provider.dart';
 import 'package:yjeek_app/features/cart/view/widgets/cart_flow_widgets.dart';
 import 'package:yjeek_app/features/geofence/model/active_geofence_order_context.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/navigation_widgets.dart';
@@ -229,6 +230,8 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
     if (!mounted) return;
 
     setState(() => _adding = true);
+    final rangeArgs =
+        ref.read(deliveryLocationProvider).valueOrNull?.forRangeCheck;
     final result = await ref.read(foodVendorsRepositoryProvider).addToCart(
           productId: widget.itemId,
           quantity: _quantity,
@@ -238,6 +241,9 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
           cartType: orderType,
           vendorId: widget.vendorId,
           geofenceTriggerId: geofenceTriggerId,
+          deliveryAddressId: rangeArgs?.addressId,
+          deliveryLatitude: rangeArgs?.latitude,
+          deliveryLongitude: rangeArgs?.longitude,
         );
 
     if (!mounted) return;
@@ -250,6 +256,11 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
             pickup: orderType == 'PICKUP',
             dineIn: orderType == 'DINE_IN',
           );
+      final notice = result.message;
+      if (notice != null && notice.isNotEmpty) {
+        await acknowledgeExtraDeliveryCharge(context, notice);
+        if (!mounted) return;
+      }
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('${_item.localizedName} added to cart'),

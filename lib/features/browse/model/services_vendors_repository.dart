@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yjeek_app/core/network/api_client.dart';
 import 'package:yjeek_app/core/services/storage_service.dart';
 import 'package:yjeek_app/core/utils/api_media_url.dart';
 import 'package:yjeek_app/features/browse/model/browse_data.dart';
 import 'package:yjeek_app/features/browse/model/services_data.dart';
 import 'package:yjeek_app/features/home/model/home_ui_mapper.dart';
+import 'package:yjeek_app/features/navigation/model/navigation_data.dart';
 
 class ServicesVendorMenu {
   const ServicesVendorMenu({
@@ -58,19 +60,83 @@ class ServicesCartSummary {
   static const empty = ServicesCartSummary(itemCount: 0, totalLabel: '0.000');
 }
 
+class ServiceCoveredArea {
+  const ServiceCoveredArea({
+    required this.key,
+    required this.label,
+    this.callOutFee,
+  });
+
+  final String key;
+  final String label;
+  final double? callOutFee;
+}
+
 class ServiceBookingSlot {
   const ServiceBookingSlot({
     required this.id,
     required this.startAt,
     required this.label,
     required this.available,
+    this.endAt,
+    this.reason,
+    this.coveredAreas = const [],
+    this.callOutFee,
+    this.fulfillmentModes = const [],
+    this.remainingCapacity,
+    this.durationMin,
   });
 
   final String id;
   final DateTime startAt;
+  final DateTime? endAt;
   final String label;
   final bool available;
+  final String? reason;
+  final List<ServiceCoveredArea> coveredAreas;
+  final double? callOutFee;
+  final List<String> fulfillmentModes;
+  final int? remainingCapacity;
+  final int? durationMin;
 }
+
+class ServiceBookingAvailability {
+  const ServiceBookingAvailability({
+    required this.slots,
+    this.reason,
+    this.coveredAreas = const [],
+    this.durationMin,
+    this.callOutFee,
+  });
+
+  final List<ServiceBookingSlot> slots;
+  final String? reason;
+  final List<ServiceCoveredArea> coveredAreas;
+  final int? durationMin;
+  final double? callOutFee;
+
+  static const empty = ServiceBookingAvailability(slots: []);
+}
+
+class ServiceSlotContext {
+  const ServiceSlotContext({
+    this.reason,
+    this.coveredAreas = const [],
+    this.fulfillmentModes = const {},
+    this.durationMin,
+    this.slotCallOutFee,
+  });
+
+  final String? reason;
+  final List<ServiceCoveredArea> coveredAreas;
+  final Set<String> fulfillmentModes;
+  final int? durationMin;
+  final double? slotCallOutFee;
+}
+
+final serviceSlotContextProvider = StateProvider<ServiceSlotContext?>(
+  (ref) => null,
+);
 
 class ServicesVendorsRepository {
   const ServicesVendorsRepository(this._apiClient, this._storage);
@@ -168,13 +234,11 @@ class ServicesVendorsRepository {
       items.add(mapped);
     }
 
-    // Availability first (open / slots soon), then rating as tie-break.
+    // Soonest nextAvailableAt when the API sends it. Otherwise keep
+    // open/closed ranking. Rating stays the tie-break. Fully booked
+    // rows are already dropped above unless sort is rating.
     if (sort != 'rating' && sort != 'name') {
-      items.sort((a, b) {
-        final byAvail = b.availabilityRank.compareTo(a.availabilityRank);
-        if (byAvail != 0) return byAvail;
-        return b.rating.compareTo(a.rating);
-      });
+      items.sort(compareServiceProviders);
     }
     return items;
   }
@@ -414,44 +478,29 @@ class ServicesVendorsRepository {
     );
   }
 
-  /// GET /vendors/:id/booking-slots?date=YYYY-MM-DD
-  Future<List<ServiceBookingSlot>> fetchBookingSlots({
+  /// GET /vendors/:id/booking-slots?date=YYYY-MM-DD&durationMin=&staffId=
+  Future<ServiceBookingAvailability> fetchBookingSlots({
     required String vendorId,
     required DateTime date,
     String? staffId,
+    int? durationMin,
   }) async {
     final y = date.year.toString().padLeft(4, '0');
     final m = date.month.toString().padLeft(2, '0');
     final d = date.day.toString().padLeft(2, '0');
     final qs = StringBuffer('date=$y-$m-$d');
+    if (durationMin != null && durationMin > 0) {
+      qs.write('&durationMin=$durationMin');
+    }
     if (staffId != null && staffId.isNotEmpty) {
-      qs.write('&staffId=$staffId');
+      qs.write('&staffId=${Uri.encodeQueryComponent(staffId)}');
     }
     final response = await _apiClient.getJson(
       '/vendors/$vendorId/booking-slots?$qs',
     );
     final data = response?['data'];
-    if (data is! Map<String, dynamic>) return const [];
-    final raw = data['slots'];
-    if (raw is! List) return const [];
-    final out = <ServiceBookingSlot>[];
-    for (final item in raw) {
-      if (item is! Map) continue;
-      final startAt = DateTime.tryParse(item['startAt']?.toString() ?? '');
-      if (startAt == null) continue;
-      final label = item['label']?.toString();
-      out.add(
-        ServiceBookingSlot(
-          id: item['id']?.toString() ?? startAt.toIso8601String(),
-          startAt: startAt.toLocal(),
-          label: (label != null && label.isNotEmpty)
-              ? label
-              : _formatSlotLabel(startAt.toLocal()),
-          available: item['available'] == true,
-        ),
-      );
-    }
-    return out;
+    if (data is! Map) return ServiceBookingAvailability.empty;
+    return serviceBookingAvailabilityFromJson(Map<String, dynamic>.from(data));
   }
 
   static String _formatSlotLabel(DateTime start) {
@@ -537,6 +586,11 @@ ServiceCategoryItem? serviceCategoryFromMenuJson(Map<String, dynamic> json) {
 
   final apiId = json['id']?.toString();
   final slug = json['slug']?.toString();
+  final iconUrl =
+      resolveApiMediaUrl(json['iconUrl'] as String?) ??
+      resolveApiMediaUrl(json['icon'] as String?) ??
+      resolveApiMediaUrl(json['imageUrl'] as String?);
+
   return ServiceCategoryItem(
     id: apiId ?? slug ?? _slugify(name) ?? name,
     name: name,
@@ -544,6 +598,7 @@ ServiceCategoryItem? serviceCategoryFromMenuJson(Map<String, dynamic> json) {
         ? (json['emoji'] as String).trim()
         : _emojiForServiceName(name),
     iconBackground: const Color(0xFFE8F5E9),
+    iconUrl: iconUrl,
   );
 }
 
@@ -626,6 +681,11 @@ ServiceProvider? serviceProviderFromVendorJson(Map<String, dynamic> json) {
   final fullyBooked = json['fullyBooked'] == true ||
       (json['bookingModeLabel'] as String?)?.toLowerCase().contains('full') ==
           true;
+  final modes = fulfillmentModesFromVendorJson(json);
+  final nextRaw = json['nextAvailableAt']?.toString();
+  final nextAvailableAt = (nextRaw == null || nextRaw.trim().isEmpty)
+      ? null
+      : DateTime.tryParse(nextRaw)?.toLocal();
 
   return ServiceProvider(
     id: id,
@@ -637,11 +697,15 @@ ServiceProvider? serviceProviderFromVendorJson(Map<String, dynamic> json) {
     distance: distance,
     tags: tags,
     priceFrom: fromPrice,
-    atVenue: json['atVenue'] == true ||
-        json['supportsDineIn'] == true ||
-        json['supportsPickup'] == true,
-    atHome: json['atHome'] == true ||
-        (json['isBookable'] == true && json['supportsDelivery'] == true),
+    atVenue: modes.isNotEmpty
+        ? modes.contains('IN_SALON')
+        : json['atVenue'] == true ||
+            json['supportsDineIn'] == true ||
+            json['supportsPickup'] == true,
+    atHome: modes.isNotEmpty
+        ? modes.contains('AT_HOME')
+        : json['atHome'] == true ||
+            (json['isBookable'] == true && json['supportsDelivery'] == true),
     gradientStart: colors.$1,
     gradientEnd: colors.$2,
     emoji: emoji,
@@ -655,6 +719,8 @@ ServiceProvider? serviceProviderFromVendorJson(Map<String, dynamic> json) {
     hasRating: hasRating,
     openStatus: openStatus,
     fullyBooked: fullyBooked,
+    nextAvailableAt: nextAvailableAt,
+    fulfillmentModes: modes,
   );
 }
 
@@ -672,11 +738,11 @@ ServiceMenuItem? serviceMenuItemFromProductJson(
       : (priceRaw?.toString() ?? '0.000');
 
   final prep = (json['prepTimeMin'] as num?)?.toInt();
-  final duration = prep != null ? '$prep min' : '45 min';
+  final duration = (prep != null && prep > 0) ? '$prep min' : '';
   final description =
       (json['description'] as String?)?.trim().isNotEmpty == true
       ? (json['description'] as String).trim()
-      : '$name · $duration';
+      : (duration.isEmpty ? name : '$name · $duration');
 
   final mods = json['modifiers'];
   final optionGroups = json['optionGroups'];
@@ -702,7 +768,238 @@ ServiceMenuItem? serviceMenuItemFromProductJson(
     section: section,
     duration: duration,
     hasModifiers: hasModifiers,
+    durationMinutes: (prep != null && prep > 0) ? prep : null,
   );
+}
+
+List<String> fulfillmentModesFromVendorJson(Map<String, dynamic> json) {
+  final direct = _stringModes(json['fulfillmentModes']);
+  if (direct.isNotEmpty) return direct;
+  final settings = json['bookingSettings'];
+  if (settings is Map) return _stringModes(settings['fulfillmentModes']);
+  return const [];
+}
+
+List<String> _stringModes(Object? raw) {
+  if (raw is! List) return const [];
+  final out = <String>[];
+  for (final item in raw) {
+    final value = item?.toString().trim();
+    if (value != null && value.isNotEmpty) out.add(value);
+  }
+  return out;
+}
+
+/// Soonest [ServiceProvider.nextAvailableAt] first. When the API omits it
+/// for every row, fall back to open/closed rank. Rating breaks ties.
+int compareServiceProviders(ServiceProvider a, ServiceProvider b) {
+  final aAt = a.nextAvailableAt;
+  final bAt = b.nextAvailableAt;
+  if (aAt != null || bAt != null) {
+    if (aAt != null && bAt != null) {
+      final byTime = aAt.compareTo(bAt);
+      if (byTime != 0) return byTime;
+    } else if (aAt != null) {
+      return -1;
+    } else {
+      return 1;
+    }
+  } else {
+    final byAvail = b.availabilityRank.compareTo(a.availabilityRank);
+    if (byAvail != 0) return byAvail;
+  }
+  return b.rating.compareTo(a.rating);
+}
+
+bool serviceModeAllowed(Set<String> modes, String mode) {
+  if (modes.isEmpty) return true;
+  return modes.contains(mode);
+}
+
+ServiceBookingAvailability serviceBookingAvailabilityFromJson(
+  Map<String, dynamic> data,
+) {
+  final coveredAreas = _coveredAreasFromJson(data['coveredAreas']);
+  final reason = _nonEmpty(data['reason']);
+  final durationMin = (data['durationMin'] as num?)?.toInt();
+  final envelopeFee = _moneyOrNull(data['callOutFee']);
+  final raw = data['slots'];
+  final slots = <ServiceBookingSlot>[];
+  if (raw is List) {
+    for (final item in raw) {
+      if (item is! Map) continue;
+      final startAt = DateTime.tryParse(item['startAt']?.toString() ?? '');
+      if (startAt == null) continue;
+      final local = startAt.toLocal();
+      final label = _nonEmpty(item['label']) ??
+          ServicesVendorsRepository._formatSlotLabel(local);
+      final endAt = DateTime.tryParse(item['endAt']?.toString() ?? '')?.toLocal();
+      final modes = _stringModes(item['fulfillmentModes']);
+      slots.add(
+        ServiceBookingSlot(
+          id: item['id']?.toString() ?? startAt.toIso8601String(),
+          startAt: local,
+          endAt: endAt,
+          label: label,
+          available: item['available'] == true,
+          reason: _nonEmpty(item['reason']) ?? reason,
+          coveredAreas: coveredAreas,
+          callOutFee: _moneyOrNull(item['callOutFee']) ?? envelopeFee,
+          fulfillmentModes: modes,
+          remainingCapacity: (item['remainingCapacity'] as num?)?.toInt(),
+          durationMin: (item['durationMin'] as num?)?.toInt() ?? durationMin,
+        ),
+      );
+    }
+  }
+  return ServiceBookingAvailability(
+    slots: slots,
+    reason: reason,
+    coveredAreas: coveredAreas,
+    durationMin: durationMin,
+    callOutFee: envelopeFee,
+  );
+}
+
+ServiceSlotContext serviceSlotContextFrom(ServiceBookingAvailability page) {
+  final modes = <String>{};
+  double? slotFee = page.callOutFee;
+  for (final slot in page.slots) {
+    modes.addAll(slot.fulfillmentModes);
+    slotFee ??= slot.callOutFee;
+  }
+  return ServiceSlotContext(
+    reason: page.reason,
+    coveredAreas: page.coveredAreas.isNotEmpty
+        ? page.coveredAreas
+        : (page.slots.isEmpty ? const [] : page.slots.first.coveredAreas),
+    fulfillmentModes: modes,
+    durationMin: page.durationMin,
+    slotCallOutFee: slotFee,
+  );
+}
+
+List<ServiceCoveredArea> _coveredAreasFromJson(Object? raw) {
+  if (raw is! List) return const [];
+  final areas = <ServiceCoveredArea>[];
+  for (final item in raw) {
+    if (item is! Map) continue;
+    final key = item['key']?.toString().trim() ?? '';
+    final label = item['label']?.toString().trim() ?? '';
+    if (key.isEmpty && label.isEmpty) continue;
+    areas.add(
+      ServiceCoveredArea(
+        key: key,
+        label: label.isEmpty ? key : label,
+        callOutFee: _moneyOrNull(item['callOutFee']),
+      ),
+    );
+  }
+  return areas;
+}
+
+String? _nonEmpty(Object? raw) {
+  final value = raw?.toString().trim();
+  if (value == null || value.isEmpty) return null;
+  return value;
+}
+
+double? _moneyOrNull(Object? raw) {
+  if (raw is num) return raw.toDouble();
+  return double.tryParse(raw?.toString() ?? '');
+}
+
+String _areaKey(String? value) => (value ?? '').trim().toLowerCase();
+
+/// Area match first, then city. [slotCallOutFee] is used when no area matches.
+double? matchedCallOutFee({
+  required List<ServiceCoveredArea> areas,
+  String? area,
+  String? city,
+  double? slotCallOutFee,
+}) {
+  ServiceCoveredArea? match;
+  final areaKey = _areaKey(area);
+  final cityKey = _areaKey(city);
+  if (areaKey.isNotEmpty) {
+    for (final item in areas) {
+      if (_areaKey(item.key) == areaKey || _areaKey(item.label) == areaKey) {
+        match = item;
+        break;
+      }
+    }
+  }
+  if (match == null && cityKey.isNotEmpty) {
+    for (final item in areas) {
+      if (_areaKey(item.key) == cityKey || _areaKey(item.label) == cityKey) {
+        match = item;
+        break;
+      }
+    }
+  }
+  final fee = match?.callOutFee ?? slotCallOutFee;
+  if (fee == null || fee <= 0) return null;
+  return fee;
+}
+
+double? _bhdAmount(String value) {
+  final cleaned = value.replaceAll(RegExp(r'[^0-9.\-]'), '');
+  if (cleaned.isEmpty) return null;
+  return double.tryParse(cleaned);
+}
+
+String _bhdLabel(double value) => 'BHD ${value.toStringAsFixed(3)}';
+
+/// Adds the API call-out into the existing bill when the cart summary
+/// does not already include a delivery fee.
+List<BillLine> applyServiceCallOutFee(
+  List<BillLine> lines,
+  double? callOutFee, {
+  double summaryDeliveryFee = 0,
+}) {
+  if (callOutFee == null || callOutFee <= 0 || summaryDeliveryFee > 0) {
+    return lines;
+  }
+  final already = lines.any((line) {
+    final label = line.label.toLowerCase();
+    return label.contains('delivery') || label.contains('call-out') ||
+        label.contains('call out');
+  });
+  if (already) return lines;
+  final copy = List<BillLine>.from(lines);
+  final totalIndex = copy.lastIndexWhere((line) => line.isBold);
+  final feeLine = BillLine(
+    label: 'Delivery fee',
+    value: _bhdLabel(callOutFee),
+  );
+  if (totalIndex < 0) {
+    copy.add(feeLine);
+    return copy;
+  }
+  copy.insert(totalIndex, feeLine);
+  final total = copy[totalIndex + 1];
+  final current = _bhdAmount(total.value);
+  if (current != null) {
+    copy[totalIndex + 1] = BillLine(
+      label: total.label,
+      value: _bhdLabel(current + callOutFee),
+      isBold: true,
+    );
+  }
+  return copy;
+}
+
+String applyServiceCallOutTotal(
+  String totalLabel,
+  double? callOutFee, {
+  double summaryDeliveryFee = 0,
+}) {
+  if (callOutFee == null || callOutFee <= 0 || summaryDeliveryFee > 0) {
+    return totalLabel;
+  }
+  final current = _bhdAmount(totalLabel);
+  if (current == null) return totalLabel;
+  return _bhdLabel(current + callOutFee);
 }
 
 bool _matchesVenue(ServiceProvider provider, String? venueFilter) {

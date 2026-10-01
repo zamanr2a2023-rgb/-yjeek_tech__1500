@@ -119,12 +119,14 @@ class AuthApi {
     required String phone,
     required String countryCode,
     required String code,
+    String? deviceId,
   }) async {
     final res = await _client.postJson('/auth/verify-otp', {
       'phone': phone,
       'countryCode': countryCode,
       'code': code,
       'role': _role,
+      if (deviceId != null && deviceId.isNotEmpty) 'deviceId': deviceId,
     });
     if (res.ok) {
       final data = res.data;

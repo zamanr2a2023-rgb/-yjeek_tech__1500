@@ -1,3 +1,4 @@
+import 'package:yjeek_app/features/cart/model/delivery_quote.dart';
 import 'package:yjeek_app/features/navigation/model/navigation_data.dart';
 import 'package:yjeek_app/features/order_flow/model/order_flow_data.dart';
 
@@ -353,13 +354,24 @@ List<({String qty, String name, String price})> reviewLinesFromApi(
   return out;
 }
 
-List<BillLine> receiptBillFromTotals(Map<String, dynamic>? totals) {
+bool receiptOmitsDeliveryLine(Map<String, dynamic>? source) {
+  return source != null &&
+      source.containsKey('delivery') &&
+      source['delivery'] == null;
+}
+
+List<BillLine> receiptBillFromTotals(
+  Map<String, dynamic>? totals, {
+  dynamic delivery,
+  bool omitDeliveryLine = false,
+}) {
   if (totals == null) return const [];
-  final delivery = totals['deliveryFee'];
+  final quote = DeliveryQuote.tryParse(delivery ?? totals['delivery']);
   final deliveryLabel = totals['deliveryLabel'] as String?;
-  final deliveryValue = delivery is num && delivery == 0
-      ? 'Free'
-      : formatBhd(delivery);
+  final deliveryValue = deliveryFeeReceiptLabel(
+    fee: totals['deliveryFee'],
+    quote: quote,
+  );
 
   return [
     BillLine(label: 'Subtotal', value: formatBhd(totals['subtotal'])),
@@ -377,10 +389,11 @@ List<BillLine> receiptBillFromTotals(Map<String, dynamic>? totals) {
         value: '− ${formatBhd(totals['pickupDiscountAmount'])}',
         isDiscount: true,
       ),
-    BillLine(
-      label: deliveryLabel ?? 'Delivery',
-      value: deliveryValue,
-    ),
+    if (!omitDeliveryLine)
+      BillLine(
+        label: deliveryLabel ?? 'Delivery',
+        value: deliveryValue,
+      ),
     BillLine(label: 'Service fee', value: formatBhd(totals['serviceFee'])),
     if ((totals['vatAmount'] as num?) != null &&
         (totals['vatAmount'] as num) > 0)

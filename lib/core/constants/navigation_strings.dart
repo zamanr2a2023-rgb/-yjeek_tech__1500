@@ -71,6 +71,15 @@ abstract final class NavigationStrings {
   static String get notificationsMarkAllError =>
       L10n.tr('Failed to mark notifications as read');
   static String get editProfile => L10n.tr('Edit');
+  static String get signInToView => L10n.tr('Sign in to view');
+  static String get signInToViewYourCart =>
+      L10n.tr('Sign in to view your cart');
+  static String get signInToViewYourOrders =>
+      L10n.tr('Sign in to view your orders');
+  static String get signInToViewYourWallet =>
+      L10n.tr('Sign in to view your wallet');
+  static String get signIn => L10n.tr('Sign in');
+  static String get guest => L10n.tr('Guest');
   static String get yjeekWallet => L10n.tr('Yjeek Wallet');
   static String get cashback => L10n.tr('Cashback');
   static String get personalInfo => L10n.tr('Personal information');

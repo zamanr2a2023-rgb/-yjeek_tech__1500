@@ -5,6 +5,7 @@ import 'package:yjeek_app/core/constants/app_strings.dart';
 import 'package:yjeek_app/core/constants/app_text_styles.dart';
 import 'package:yjeek_app/core/providers/app_providers.dart';
 import 'package:yjeek_app/features/auth/view/widgets/auth_widgets.dart';
+import 'package:yjeek_app/features/location/provider/delivery_location_provider.dart';
 import 'package:yjeek_app/routes/app_router.dart';
 import 'package:yjeek_app/routes/route_names.dart';
 
@@ -17,6 +18,7 @@ class WelcomeScreen extends ConsumerWidget {
     ref.invalidate(userMeProvider);
     ref.invalidate(homeFeedProvider);
     ref.invalidate(walletSnapshotProvider);
+    ref.invalidate(deliveryLocationProvider);
     if (!context.mounted) return;
     context.goHome();
   }

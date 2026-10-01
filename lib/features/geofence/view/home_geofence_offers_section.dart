@@ -11,6 +11,7 @@ import 'package:yjeek_app/features/browse/browse_routes.dart';
 import 'package:yjeek_app/features/geofence/model/active_geofence_order_context.dart';
 import 'package:yjeek_app/features/geofence/model/geofence_models.dart';
 import 'package:yjeek_app/features/geofence/service/geofence_session_controller.dart';
+import 'package:yjeek_app/routes/route_names.dart';
 
 /// Starts a geofence-gated order for [vendor] from [offer].
 void startGeofenceVendorOrder(
@@ -62,6 +63,7 @@ void startGeofenceVendorOrder(
       BrowseRoutes.vendorMenu(
         vendorId: vendor.vendorId,
         cartType: cartType,
+        returnTo: RouteNames.home,
       ),
     );
   }

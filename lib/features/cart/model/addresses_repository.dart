@@ -172,6 +172,22 @@ class CustomerAddress {
   }
 }
 
+class DeliveryRangeApiResult {
+  const DeliveryRangeApiResult({
+    this.inRange,
+    this.rangeStatus,
+    this.message,
+    this.extraKm,
+    this.extraChargeBhd,
+  });
+
+  final bool? inRange;
+  final String? rangeStatus;
+  final String? message;
+  final double? extraKm;
+  final String? extraChargeBhd;
+}
+
 class AddressesRepository {
   const AddressesRepository(this._apiClient, this._storage);
 
@@ -283,9 +299,22 @@ class AddressesRepository {
     );
   }
 
+  /// GET /addresses/check-range?vendorId=&latitude=&longitude=
+  Future<DeliveryRangeApiResult?> checkRangeAtCoords({
+    required String vendorId,
+    required double latitude,
+    required double longitude,
+  }) async {
+    final response = await _apiClient.getJson(
+      '/addresses/check-range?vendorId=${Uri.encodeQueryComponent(vendorId)}'
+      '&latitude=$latitude&longitude=$longitude',
+      bearerToken: _token,
+    );
+    return _parseRangeResponse(response);
+  }
+
   /// GET /addresses/check-range?vendorId=&addressId=
-  /// Returns `true` / `false` when the API returns a clear flag; `null` if unknown.
-  Future<bool?> checkInRangeResult({
+  Future<DeliveryRangeApiResult?> checkRangeForAddress({
     required String vendorId,
     required String addressId,
   }) async {
@@ -294,19 +323,63 @@ class AddressesRepository {
       '&addressId=${Uri.encodeQueryComponent(addressId)}',
       bearerToken: _token,
     );
+    return _parseRangeResponse(response);
+  }
+
+  /// GET /addresses/check-range?vendorId=&latitude=&longitude=
+  Future<bool?> checkInRangeAtCoordsResult({
+    required String vendorId,
+    required double latitude,
+    required double longitude,
+  }) async {
+    final result = await checkRangeAtCoords(
+      vendorId: vendorId,
+      latitude: latitude,
+      longitude: longitude,
+    );
+    return result?.inRange;
+  }
+
+  /// GET /addresses/check-range?vendorId=&addressId=
+  /// Returns `true` / `false` when the API returns a clear flag; `null` if unknown.
+  Future<bool?> checkInRangeResult({
+    required String vendorId,
+    required String addressId,
+  }) async {
+    final result = await checkRangeForAddress(
+      vendorId: vendorId,
+      addressId: addressId,
+    );
+    return result?.inRange;
+  }
+
+  DeliveryRangeApiResult? _parseRangeResponse(Map<String, dynamic>? response) {
     final raw = response?['data'];
     final data = raw is Map ? Map<String, dynamic>.from(raw) : null;
     if (data == null) return null;
 
+    bool? inRange;
     if (data.containsKey('inRange')) {
-      return _asBool(data['inRange']);
+      inRange = _asBool(data['inRange']);
+    } else if (data.containsKey('deliverable')) {
+      inRange = _asBool(data['deliverable']);
+    } else if (data.containsKey('withinRange')) {
+      inRange = _asBool(data['withinRange']);
     }
-    if (data.containsKey('deliverable')) {
-      return _asBool(data['deliverable']);
-    }
-    if (data.containsKey('withinRange')) {
-      return _asBool(data['withinRange']);
-    }
+    if (inRange == null && data['rangeStatus'] == null) return null;
+
+    return DeliveryRangeApiResult(
+      inRange: inRange,
+      rangeStatus: data['rangeStatus']?.toString(),
+      message: data['message']?.toString(),
+      extraKm: _asDouble(data['extraKm']),
+      extraChargeBhd: data['extraChargeBhd']?.toString(),
+    );
+  }
+
+  static double? _asDouble(Object? value) {
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value);
     return null;
   }
 

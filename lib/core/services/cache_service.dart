@@ -1,15 +1,32 @@
 import 'package:flutter/painting.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
+import 'package:yjeek_app/core/utils/network_image_request.dart';
+
+class AppNetworkFileService extends HttpFileService {
+  @override
+  Future<FileServiceResponse> get(
+    String url, {
+    Map<String, String>? headers,
+  }) {
+    return super.get(
+      url,
+      headers: {
+        ...networkImageHttpHeaders(url),
+        ...?headers,
+      },
+    );
+  }
+}
 
 /// Disk cache for remote images used by [AppNetworkImage] / CachedNetworkImage.
 ///
-/// First visit downloads over the network; later visits reuse these files.
-/// Cap is ~500 images with a 30-day freshness window.
+/// Cache id bumped when download headers change (e.g. avoid cached AVIF blobs).
 final appCacheManager = CacheManager(
   Config(
-    'yjeek_cache',
+    'yjeek_cache_v2',
     stalePeriod: const Duration(days: 30),
     maxNrOfCacheObjects: 500,
+    fileService: AppNetworkFileService(),
   ),
 );
 

@@ -64,6 +64,8 @@ abstract final class CartFlowStrings {
         "We can't deliver to that location yet. Try another address or check back soon.",
       );
   static String get chooseAnotherAddress => L10n.tr('Choose another address');
+  static String get extraChargeTitle => L10n.tr('Extra delivery charge');
+  static String get extraChargeContinue => L10n.tr('Continue');
   static String get editAddress => L10n.tr('Edit address');
   static String get updatePlaceSubtitle => L10n.tr('Update this saved place');
   static String get deleteAddress => L10n.tr('Delete address');

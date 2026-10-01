@@ -7,7 +7,10 @@ import 'package:yjeek_app/features/cart/cart_routes.dart';
 import 'package:yjeek_app/features/cart/model/addresses_repository.dart';
 import 'package:yjeek_app/features/cart/model/cart_repository.dart';
 import 'package:yjeek_app/features/cart/model/checkout_helpers.dart';
+import 'package:yjeek_app/features/cart/model/delivery_quote.dart';
 import 'package:yjeek_app/features/cart/model/delivery_range.dart';
+import 'package:yjeek_app/features/location/provider/delivery_location_provider.dart';
+import 'package:yjeek_app/features/location/utils/checkout_delivery_address.dart';
 import 'package:yjeek_app/features/cart/model/payment_methods_repository.dart';
 import 'package:yjeek_app/features/cart/view/widgets/cart_flow_widgets.dart';
 import 'package:yjeek_app/features/navigation/model/navigation_data.dart';
@@ -18,10 +21,7 @@ import 'package:yjeek_app/features/vape_cart/view/widgets/vape_cart_widgets.dart
 
 /// Vape checkout — live DELIVERY cart + age gate; layout unchanged.
 class VapeCheckoutScreen extends ConsumerStatefulWidget {
-  const VapeCheckoutScreen({
-    super.key,
-    this.initialDeliveryId = 'same-day',
-  });
+  const VapeCheckoutScreen({super.key, this.initialDeliveryId = 'same-day'});
 
   final String initialDeliveryId;
 
@@ -32,7 +32,7 @@ class VapeCheckoutScreen extends ConsumerStatefulWidget {
 class _VapeCheckoutScreenState extends ConsumerState<VapeCheckoutScreen> {
   late String _deliveryId;
   Set<int> _dropOffIndices = {0};
-  int _tipIndex = 0;
+  int _tipIndex = -1;
   double _customTipAmount = 0;
   final _customTipController = TextEditingController();
   String _paymentId = 'benefitpay';
@@ -42,7 +42,7 @@ class _VapeCheckoutScreenState extends ConsumerState<VapeCheckoutScreen> {
   CheckoutPaymentMethods _payments = CheckoutPaymentMethods.fallback(
     base: VapeCartData.paymentOptions,
   );
-  List<VapeDeliveryMethod> _deliveryMethods = VapeCartData.deliveryMethods;
+  List<VapeDeliveryMethod> _deliveryMethods = const [];
   List<Map<String, dynamic>> _deliveryOptions = const [];
   String? _phone;
   bool _ageVerified = false;
@@ -50,10 +50,10 @@ class _VapeCheckoutScreenState extends ConsumerState<VapeCheckoutScreen> {
   bool _placing = false;
 
   double get _tipAmount => tipAmountFrom(
-        VapeCartData.tipOptions,
-        _tipIndex,
-        customAmount: _customTipAmount,
-      );
+    VapeCartData.tipOptions,
+    _tipIndex,
+    customAmount: _customTipAmount,
+  );
 
   VapeDeliveryMethod get _selectedMethod {
     for (final m in _deliveryMethods) {
@@ -61,7 +61,12 @@ class _VapeCheckoutScreenState extends ConsumerState<VapeCheckoutScreen> {
     }
     return _deliveryMethods.isNotEmpty
         ? _deliveryMethods.first
-        : VapeCartData.deliveryMethods.first;
+        : const VapeDeliveryMethod(
+            id: 'same-day',
+            label: 'Same Day',
+            price: '',
+            priceValue: 0,
+          );
   }
 
   String get _windowArrivesLabel {
@@ -75,29 +80,13 @@ class _VapeCheckoutScreenState extends ConsumerState<VapeCheckoutScreen> {
   List<BillLine> get _billLines {
     final cart = _cart;
     if (cart == null) return const [];
-    final fee = _selectedMethod.priceValue;
-    final baseFee = deliveryFeeFromBillLines(cart.billLines) ?? 0;
-    final adjusted = cart.totalAmount - baseFee + fee;
-    final withDelivery = [
-      for (final line in cart.billLines)
-        if (line.label.toLowerCase().contains('delivery'))
-          BillLine(
-            label: line.label,
-            value: 'BHD ${fee.toStringAsFixed(3)}',
-          )
-        else
-          line,
-    ];
-    return billLinesWithVatAndTip(withDelivery, adjusted, _tipAmount);
+    return billLinesWithTip(cart, _tipAmount);
   }
 
   String get _totalLabel {
     final cart = _cart;
     if (cart == null) return 'BHD 0.000';
-    final baseFee = deliveryFeeFromBillLines(cart.billLines) ?? 0;
-    final adjusted =
-        cart.totalAmount - baseFee + _selectedMethod.priceValue;
-    return 'BHD ${checkoutGrandTotal(adjusted, _tipAmount).toStringAsFixed(3)}';
+    return formatCheckoutTotal(cart, _tipAmount);
   }
 
   @override
@@ -114,20 +103,33 @@ class _VapeCheckoutScreenState extends ConsumerState<VapeCheckoutScreen> {
   }
 
   List<VapeDeliveryMethod> _mapOptions(List<Map<String, dynamic>> raw) {
-    if (raw.isEmpty) return VapeCartData.deliveryMethods;
+    if (raw.isEmpty) {
+      return [
+        for (final method in VapeCartData.deliveryMethods)
+          VapeDeliveryMethod(
+            id: method.id,
+            label: method.label,
+            subtitle: method.subtitle,
+            priceValue: 0,
+            price: '',
+            available: method.available,
+          ),
+      ];
+    }
     return [
       for (final o in raw)
         VapeDeliveryMethod(
           id: deliveryUiIdFromApi(o['id']?.toString()),
           label: o['label']?.toString() ?? 'Delivery',
-          subtitle: o['windowLabel']?.toString() ??
+          subtitle:
+              o['windowLabel']?.toString() ??
               o['subtitle']?.toString() ??
               o['note']?.toString(),
-          priceValue: (o['fee'] as num?)?.toDouble() ?? 0,
-          price:
-              'BHD ${((o['fee'] as num?)?.toDouble() ?? 0).toStringAsFixed(3)}',
+          priceValue: parseApiMoney(o['fee']) ?? 0,
+          price: formatBhdAmount(o['fee']),
           available: o['available'] != false,
-          unavailableNote: o['note']?.toString() ??
+          unavailableNote:
+              o['note']?.toString() ??
               (o['unavailableReason'] == 'CUTOFF_PASSED'
                   ? 'Available until 12 PM only'
                   : null),
@@ -146,31 +148,46 @@ class _VapeCheckoutScreenState extends ConsumerState<VapeCheckoutScreen> {
     return windowStartForDelivery(_deliveryId);
   }
 
-  Future<void> _load() async {
-    setState(() => _loading = true);
+  Future<void> _load({bool quoteOnly = false}) async {
+    if (!quoteOnly) setState(() => _loading = true);
     try {
       final detailed = await ref
           .read(cartRepositoryProvider)
-          .fetchCartDetailed(CartOrderType.delivery);
-      final address =
+          .fetchCartDetailed(
+            CartOrderType.delivery,
+            deliverySpeed: deliverySpeedApiValue(_deliveryId),
+          );
+      if (!mounted) return;
+      final methods = _mapOptions(detailed.deliveryOptions);
+      if (quoteOnly) {
+        setState(() {
+          _cart = detailed.cart;
+          _deliveryOptions = detailed.deliveryOptions;
+          _deliveryMethods = methods;
+        });
+        return;
+      }
+      final deliveryLoc = ref.read(deliveryLocationProvider).valueOrNull;
+      final address = checkoutAddressDisplay(deliveryLoc) ??
           await ref.read(addressesRepositoryProvider).defaultAddress();
       final payments = await ref
           .read(paymentMethodsRepositoryProvider)
-          .fetchCheckoutMethods(
-            preferredDefaultId: 'benefitpay',
-          );
+          .fetchCheckoutMethods(preferredDefaultId: 'benefitpay');
       final me = await ref.read(userRepositoryProvider).fetchMe();
+      final age = await ref
+          .read(ageVerificationRepositoryProvider)
+          .fetchStatus();
       if (!mounted) return;
-      final methods = _mapOptions(detailed.deliveryOptions);
-      var deliveryId = widget.initialDeliveryId;
+      var deliveryId = _deliveryId;
       final match = methods.where((m) => m.id == deliveryId);
       if (match.isEmpty || !match.first.available) {
         deliveryId = methods
-            .firstWhere(
-              (m) => m.available,
-              orElse: () => methods.first,
-            )
+            .firstWhere((m) => m.available, orElse: () => methods.first)
             .id;
+      }
+      if (deliveryId != _deliveryId) {
+        _deliveryId = deliveryId;
+        return _load();
       }
       setState(() {
         _cart = detailed.cart;
@@ -182,36 +199,60 @@ class _VapeCheckoutScreenState extends ConsumerState<VapeCheckoutScreen> {
         _paymentId = payments.defaultId;
         _phone = address?.phone ?? me?.formattedPhone;
         _dropOffIndices = dropOffIndicesFromPrefs(address?.dropOffPreferences);
-        _ageVerified = me?.verification.status.toUpperCase() == 'VERIFIED';
+        _ageVerified = age.canPurchaseAgeRestricted;
         _loading = false;
       });
     } catch (_) {
       if (!mounted) return;
-      setState(() => _loading = false);
+      setState(() {
+        _deliveryMethods = _mapOptions(const []);
+        _loading = false;
+      });
     }
   }
 
+  Future<bool> _refreshAgePurchase() async {
+    final status = await ref
+        .read(ageVerificationRepositoryProvider)
+        .fetchStatus();
+    if (!mounted) return false;
+    setState(() => _ageVerified = status.canPurchaseAgeRestricted);
+    return status.canPurchaseAgeRestricted;
+  }
+
   Future<void> _placeOrder() async {
-    if (!_ageVerified) {
-      context.push(VapeCartRoutes.ageVerify).then((_) {
-        if (mounted) _load();
-      });
+    final allowed = await _refreshAgePurchase();
+    if (!mounted) return;
+    if (!allowed) {
+      await context.push(VapeCartRoutes.ageVerify);
+      if (mounted) await _load();
       return;
     }
     if (_placing) return;
-    final addressId = _address?.id;
-    if (addressId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Add a delivery address first')),
-      );
-      return;
+    var address = _address;
+    if (address == null || address.id.isEmpty) {
+      final saved = await ensureSavedAddressForCheckout(context, ref);
+      if (!mounted) return;
+      if (saved == null) return;
+      setState(() => _address = saved);
+      address = saved;
     }
+    final addressId = address.id;
     if (!_selectedMethod.available) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Selected delivery method unavailable')),
       );
       return;
     }
+    if (_cart?.delivery?.outOfRange == true) {
+      await pushOutOfDelivery(
+        context,
+        address: _address,
+        message: kOutOfDeliveryRangeMessage,
+      );
+      return;
+    }
+    if (_cart?.delivery?.blocksCheckout == true) return;
 
     final vendorId = _cart?.vendorId;
     if (vendorId != null && vendorId.isNotEmpty) {
@@ -222,11 +263,12 @@ class _VapeCheckoutScreenState extends ConsumerState<VapeCheckoutScreen> {
         failClosed: true,
       );
       if (!mounted) return;
+      if (range.isExtraCharge && _cart?.delivery?.waived != true) {
+        final proceed = await confirmExtraDeliveryCharge(context, range);
+        if (!mounted || !proceed) return;
+      }
       if (!range.allowsDelivery) {
-        await pushOutOfDelivery(
-          context,
-          address: range.address ?? _address,
-        );
+        await pushOutOfDelivery(context, address: range.address ?? _address);
         return;
       }
     }
@@ -235,7 +277,9 @@ class _VapeCheckoutScreenState extends ConsumerState<VapeCheckoutScreen> {
     try {
       final dropOff = dropOffApiValues(_dropOffIndices);
       final windowStart = _windowForSelected();
-      final result = await ref.read(cartRepositoryProvider).checkout(
+      final result = await ref
+          .read(cartRepositoryProvider)
+          .checkout(
             type: CartOrderType.delivery,
             paymentMethod: paymentMethodApiValue(_paymentId),
             tipAmount: _tipAmount,
@@ -249,14 +293,9 @@ class _VapeCheckoutScreenState extends ConsumerState<VapeCheckoutScreen> {
           );
       if (!mounted) return;
       final id = result?['id']?.toString();
-      final ids = <String>[
-        if (id != null && id.isNotEmpty) id,
-      ];
+      final ids = <String>[if (id != null && id.isNotEmpty) id];
       context.pushReplacement(
-        VapeCartRoutes.reviewFor(
-          orderIds: ids,
-          deliveryId: _deliveryId,
-        ),
+        VapeCartRoutes.reviewFor(orderIds: ids, deliveryId: _deliveryId),
       );
     } catch (e) {
       if (!mounted) return;
@@ -266,14 +305,9 @@ class _VapeCheckoutScreenState extends ConsumerState<VapeCheckoutScreen> {
         return;
       }
       final message = e.toString().replaceFirst('Exception: ', '');
-      if (message.toLowerCase().contains('age verification') ||
-          message.contains('AGE_VERIFICATION')) {
-        context.push(VapeCartRoutes.ageVerify);
-        return;
-      }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(message)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
     } finally {
       if (mounted) setState(() => _placing = false);
     }
@@ -282,8 +316,9 @@ class _VapeCheckoutScreenState extends ConsumerState<VapeCheckoutScreen> {
   @override
   Widget build(BuildContext context) {
     final cart = _cart;
-    final vendor =
-        cart?.vendorName.isNotEmpty == true ? cart!.vendorName : 'Vape store';
+    final vendor = cart?.vendorName.isNotEmpty == true
+        ? cart!.vendorName
+        : 'Vape store';
     final billLines = _billLines;
     final total = _totalLabel;
 
@@ -316,8 +351,11 @@ class _VapeCheckoutScreenState extends ConsumerState<VapeCheckoutScreen> {
                     method: method,
                     selected: _deliveryId == method.id,
                     onTap: () {
-                      if (!method.available) return;
+                      if (!method.available || method.id == _deliveryId) {
+                        return;
+                      }
                       setState(() => _deliveryId = method.id);
+                      _load(quoteOnly: true);
                     },
                   ),
                 ),
@@ -360,6 +398,7 @@ class _VapeCheckoutScreenState extends ConsumerState<VapeCheckoutScreen> {
                 SizedBox(height: 14.h),
                 CartSectionTitle(VapeCartStrings.billSummary),
                 BillSummaryCard(lines: billLines),
+                deliveryQuoteNotices(cart?.delivery),
                 SizedBox(height: 10.h),
                 VapeCashbackBanner(amount: cart?.cashbackLabel),
               ],
@@ -367,7 +406,12 @@ class _VapeCheckoutScreenState extends ConsumerState<VapeCheckoutScreen> {
       bottom: CartStickyFooter(
         total: total,
         buttonLabel: _placing ? '…' : VapeCartStrings.placeOrder,
-        onPressed: _placing || _loading ? () {} : _placeOrder,
+        onPressed:
+            _placing ||
+                _loading ||
+                deliveryQuoteBlocksPlaceOrder(cart?.delivery)
+            ? null
+            : _placeOrder,
       ),
     );
   }

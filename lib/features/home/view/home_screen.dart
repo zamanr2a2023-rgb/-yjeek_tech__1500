@@ -5,16 +5,22 @@ import 'package:yjeek_app/core/constants/app_colors.dart';
 import 'package:yjeek_app/core/constants/home_strings.dart';
 import 'package:yjeek_app/core/providers/app_providers.dart';
 import 'package:yjeek_app/core/providers/shell_provider.dart';
+import 'package:yjeek_app/features/location/provider/delivery_location_provider.dart';
+import 'package:yjeek_app/features/location/utils/delivery_location_display.dart';
+import 'package:yjeek_app/features/location/utils/open_delivery_location_picker.dart';
 import 'package:yjeek_app/features/browse/browse_routes.dart';
 import 'package:yjeek_app/features/cart/model/cart_repository.dart';
 import 'package:yjeek_app/features/cart/model/delivery_range.dart';
 import 'package:yjeek_app/features/cart/model/pending_add_to_cart.dart';
 import 'package:yjeek_app/features/cart/view/widgets/cart_flow_widgets.dart';
+import 'package:yjeek_app/features/home/model/category_item.dart';
 import 'package:yjeek_app/features/home/model/category_navigation.dart';
 import 'package:yjeek_app/features/home/model/home_data.dart';
+import 'package:yjeek_app/features/home/view/widgets/home_top_picks_section.dart';
 import 'package:yjeek_app/features/home/view/widgets/home_widgets.dart';
 import 'package:yjeek_app/features/navigation/model/user_me.dart';
 import 'package:yjeek_app/features/order_flow/order_flow_routes.dart';
+import 'package:yjeek_app/features/campaigns/view/marketing_home_strip.dart';
 import 'package:yjeek_app/features/ui_content/view/ui_banner_widgets.dart';
 import 'package:yjeek_app/routes/app_router.dart';
 import 'package:yjeek_app/routes/route_names.dart';
@@ -23,7 +29,11 @@ class HomeScreen extends ConsumerWidget {
   static const routeName = '/home';
   const HomeScreen({super.key});
 
-  String _greetingFor(UserMe? user, String apiGreeting, {required bool loggedIn}) {
+  String _greetingFor(
+    UserMe? user,
+    String apiGreeting, {
+    required bool loggedIn,
+  }) {
     if (!loggedIn) {
       return HomeStrings.hello;
     }
@@ -112,10 +122,7 @@ class HomeScreen extends ConsumerWidget {
         return;
       }
 
-      await repo.addProduct(
-        type: CartOrderType.delivery,
-        productId: productId,
-      );
+      await repo.addProduct(type: CartOrderType.delivery, productId: productId);
       if (!context.mounted) return;
       ref.read(shellProvider.notifier).openCartWithItems();
       ScaffoldMessenger.of(context).showSnackBar(
@@ -128,17 +135,12 @@ class HomeScreen extends ConsumerWidget {
     } catch (e) {
       if (!context.mounted) return;
       if (e is OutOfDeliveryRangeException) {
-        rememberPendingAddToCart(
-          ref,
-          PendingAddToCart(productId: productId),
-        );
+        rememberPendingAddToCart(ref, PendingAddToCart(productId: productId));
         await pushOutOfDelivery(context);
         return;
       }
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(e.toString().replaceFirst('Exception: ', '')),
-        ),
+        SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
       );
     }
   }
@@ -155,11 +157,12 @@ class HomeScreen extends ConsumerWidget {
       feed?.greeting ?? HomeStrings.hello,
       loggedIn: loggedIn,
     );
-    final deliverTo = loggedIn
-        ? (feed?.deliverToLabel ?? HomeStrings.chooseLocation)
-        : (feed?.deliverTo?.label.isNotEmpty ?? false)
-            ? feed!.deliverToLabel
-            : HomeStrings.chooseLocation;
+    final deliveryLoc = ref.watch(deliveryLocationProvider).valueOrNull;
+    final deliverTo = deliveryLocationHeaderLabel(
+      location: deliveryLoc,
+      homeFeed: feed,
+      loggedIn: loggedIn,
+    );
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -169,9 +172,11 @@ class HomeScreen extends ConsumerWidget {
           ref.invalidate(homeFeedProvider);
           ref.invalidate(userMeProvider);
           invalidateCmsBanners(ref);
+          ref.invalidate(topPicksProvider);
           await Future.wait([
             ref.read(homeFeedProvider.future),
             ref.read(userMeProvider.future),
+            ref.read(topPicksProvider.future),
             ref.read(cmsBannersProvider('home_top').future),
             ref.read(cmsBannersProvider('home_mid').future),
             ref.read(cmsBannersProvider('home_below_picks').future),
@@ -188,6 +193,8 @@ class HomeScreen extends ConsumerWidget {
                     HomeGreetingHeader(
                       greeting: greeting,
                       deliveryLocation: deliverTo,
+                      onLocationTap: () =>
+                          openDeliveryLocationPicker(context, ref),
                     ),
                     const SizedBox(height: 14),
                     HomeSearchBar(
@@ -216,6 +223,10 @@ class HomeScreen extends ConsumerWidget {
                     placementKey: 'home_top',
                     padding: EdgeInsets.only(bottom: 18),
                   ),
+                  const Padding(
+                    padding: EdgeInsets.only(bottom: 12),
+                    child: MarketingHomeStrip(),
+                  ),
                   SectionHeader(
                     title: HomeStrings.categories,
                     onSeeAll: () => context.push(RouteNames.categories),
@@ -225,7 +236,7 @@ class HomeScreen extends ConsumerWidget {
                     const HomeCategoriesGridShimmer()
                   else if (feed != null && feed.categories.isNotEmpty)
                     HomeCategoriesGrid(
-                      categories: feed.categories.take(8).toList(),
+                      categories: _homeCategoriesWithOffers(feed.categories),
                       onCategoryTap: (category) =>
                           openHomeCategory(context, category),
                     ),
@@ -234,6 +245,7 @@ class HomeScreen extends ConsumerWidget {
                     placementKey: 'home_mid',
                     padding: EdgeInsets.only(bottom: 18),
                   ),
+                  const HomeTopPicksSection(),
                   if (loggedIn &&
                       !categoriesLoading &&
                       feed != null &&
@@ -259,7 +271,10 @@ class HomeScreen extends ConsumerWidget {
                                 return;
                               }
                               context.push(
-                                BrowseRoutes.vendorMenu(vendorId: vendorId),
+                                BrowseRoutes.vendorMenu(
+                                  vendorId: vendorId,
+                                  returnTo: RouteNames.home,
+                                ),
                               );
                             },
                           );
@@ -303,4 +318,19 @@ class HomeScreen extends ConsumerWidget {
       ),
     );
   }
+}
+
+List<CategoryItem> _homeCategoriesWithOffers(List<CategoryItem> fromFeed) {
+  const offers = CategoryItem(
+    name: 'Offers',
+    slug: 'marketing-offers',
+    icon: Icons.local_offer_outlined,
+    backgroundColor: Color(0xFFFFF2D9),
+  );
+  final already = fromFeed.any((c) {
+    final s = (c.slug ?? c.name).toLowerCase();
+    return s.contains('marketing-offers') || s == 'offers';
+  });
+  if (already) return fromFeed.take(8).toList();
+  return [offers, ...fromFeed.take(7)];
 }

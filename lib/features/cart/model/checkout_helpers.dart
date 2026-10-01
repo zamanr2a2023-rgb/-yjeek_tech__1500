@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:yjeek_app/core/constants/navigation_strings.dart';
 import 'package:yjeek_app/features/cart/model/cart_repository.dart';
+import 'package:yjeek_app/features/cart/model/delivery_quote.dart';
 import 'package:yjeek_app/features/cart/model/checkout_pricing.dart';
 import 'package:yjeek_app/features/cart/model/pending_checkout.dart';
 import 'package:yjeek_app/features/geofence/model/active_geofence_order_context.dart';
@@ -158,26 +159,25 @@ double? parseTipInput(String raw) {
   return double.tryParse(cleaned);
 }
 
-/// Appends VAT / tip / order total onto cart bill lines (strips any existing bold total).
-List<BillLine> billLinesWithVatAndTip(
-  List<BillLine> cartBillLines,
-  double amountBeforeVat,
+/// Rebuilds the checkout bill from server VAT and grand total, then adds tip.
+///
+/// Existing VAT and bold total rows are replaced with [CartSnapshot.vatAmount]
+/// and [CartSnapshot.grandTotal]. Nothing is multiplied by a tax rate.
+List<BillLine> billLinesWithTip(
+  CartSnapshot cart,
   double tipAmount, {
   String totalLabel = 'Order total',
 }) {
-  final lines = List<BillLine>.from(cartBillLines);
-  lines.removeWhere((l) {
-    if (l.isBold) return true;
-    final label = l.label.toLowerCase();
+  final lines = List<BillLine>.from(cart.billLines);
+  lines.removeWhere((line) {
+    if (line.isBold) return true;
+    final label = line.label.toLowerCase();
     return label.contains('vat') || label == 'tip';
   });
-  final vat = checkoutVatAmount(amountBeforeVat);
-  if (vat > 0) {
+  final vat = cart.vatAmount;
+  if (vat != null && vat > 0) {
     lines.add(
-      BillLine(
-        label: 'VAT (10%)',
-        value: 'BHD ${vat.toStringAsFixed(3)}',
-      ),
+      BillLine(label: 'VAT', value: 'BHD ${vat.toStringAsFixed(3)}'),
     );
   }
   if (tipAmount > 0) {
@@ -188,7 +188,7 @@ List<BillLine> billLinesWithVatAndTip(
       ),
     );
   }
-  final total = checkoutGrandTotal(amountBeforeVat, tipAmount);
+  final total = payableWithTip(cart.grandTotal ?? cart.totalAmount, tipAmount);
   lines.add(
     BillLine(
       label: totalLabel,
@@ -199,12 +199,9 @@ List<BillLine> billLinesWithVatAndTip(
   return lines;
 }
 
-List<BillLine> billLinesWithTip(CartSnapshot cart, double tipAmount) {
-  return billLinesWithVatAndTip(cart.billLines, cart.totalAmount, tipAmount);
-}
-
 String formatCheckoutTotal(CartSnapshot cart, double tipAmount) {
-  return 'BHD ${checkoutGrandTotal(cart.totalAmount, tipAmount).toStringAsFixed(3)}';
+  final total = payableWithTip(cart.grandTotal ?? cart.totalAmount, tipAmount);
+  return 'BHD ${total.toStringAsFixed(3)}';
 }
 
 /// Formats a pickup slot datetime for the time card.
@@ -402,4 +399,43 @@ bool leaveCheckoutIfCartEmpty(
     context.goHome(tab: 2, emptyCart: true);
   }
   return true;
+}
+
+/// Server prompt copy. Free-delivery text does not block. Min-order and
+/// out-of-range text is shown beside a disabled place-order action.
+Widget deliveryQuoteNotices(DeliveryQuote? quote) {
+  if (quote == null) return const SizedBox.shrink();
+  final lines = <String>[
+    if (quote.outOfRange) kOutOfDeliveryRangeMessage,
+    if (quote.minOrderMessage != null) quote.minOrderMessage!,
+    if (quote.freeDeliveryMessage != null) quote.freeDeliveryMessage!,
+  ];
+  if (lines.isEmpty) return const SizedBox.shrink();
+  return Padding(
+    padding: const EdgeInsets.only(top: 8),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (final line in lines)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 4),
+            child: Text(
+              line,
+              style: TextStyle(
+                fontSize: 13,
+                height: 1.35,
+                color: line == quote.freeDeliveryMessage
+                    ? const Color(0xFF6B756E)
+                    : const Color(0xFF8A3B2A),
+              ),
+            ),
+          ),
+      ],
+    ),
+  );
+}
+
+bool deliveryQuoteBlocksPlaceOrder(DeliveryQuote? quote) {
+  if (quote == null) return false;
+  return quote.blocksCheckout || quote.outOfRange;
 }

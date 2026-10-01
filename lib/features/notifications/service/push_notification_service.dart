@@ -11,8 +11,8 @@ import 'package:yjeek_app/core/utils/app_logger.dart';
 import 'package:yjeek_app/features/notifications/model/notifications_repository.dart';
 import 'package:yjeek_app/features/geofence/view/geofence_offer_screen.dart';
 import 'package:yjeek_app/firebase_options.dart';
+import 'package:yjeek_app/core/deep_links/yjeek_deep_link_router.dart';
 import 'package:yjeek_app/routes/app_router.dart';
-import 'package:yjeek_app/routes/route_names.dart';
 
 const _androidChannelId = 'yjeek_default';
 const _androidChannelName = 'Yjeek notifications';
@@ -170,13 +170,8 @@ class PushNotificationService {
       return;
     }
 
-    final orderId = data['orderId']?.trim() ?? '';
     final type = (data['type'] ?? data['screen'] ?? '').toUpperCase();
     final screen = (data['screen'] ?? '').toLowerCase();
-    if (orderId.isNotEmpty) {
-      router.push('${RouteNames.orderDetails}?id=$orderId');
-      return;
-    }
     if (type == 'GEOFENCE_OFFER' || screen == 'geofence_offer') {
       final location = geofenceOfferLocation(
         triggerId: data['triggerId'] ?? data['activationId'],
@@ -188,11 +183,14 @@ class PushNotificationService {
       router.push(location);
       return;
     }
-    if (type == 'PROMO' || type == 'OFFERS') {
-      router.push(RouteNames.exclusiveOffers);
+
+    final deepLink = data['deepLink']?.trim();
+    if (deepLink != null && deepLink.isNotEmpty) {
+      openYjeekDeepLink(router, deepLink);
       return;
     }
-    router.push(RouteNames.notifications);
+
+    openFromMarketingPushData(router, data);
   }
 
   Future<void> _initLocalNotifications() async {

@@ -7,12 +7,14 @@ class ServiceCategoryItem {
     required this.name,
     required this.emoji,
     required this.iconBackground,
+    this.iconUrl,
   });
 
   final String id;
   final String name;
   final String emoji;
   final Color iconBackground;
+  final String? iconUrl;
 }
 
 class ServiceProvider {
@@ -40,6 +42,8 @@ class ServiceProvider {
     this.hasRating = false,
     this.openStatus = 'UNKNOWN',
     this.fullyBooked = false,
+    this.nextAvailableAt,
+    this.fulfillmentModes = const [],
   });
 
   final String id;
@@ -63,9 +67,15 @@ class ServiceProvider {
   final String? area;
   final String? imageUrl;
   final bool hasRating;
-  /// OPEN | CLOSED | UNKNOWN — used to sort availability.
+  /// OPEN | CLOSED | UNKNOWN — used when the API omits [nextAvailableAt].
   final String openStatus;
   final bool fullyBooked;
+
+  /// Soonest bookable slot from the vendor list. Null when the API omits it.
+  final DateTime? nextAvailableAt;
+
+  /// IN_SALON / AT_HOME when the vendor payload includes them.
+  final List<String> fulfillmentModes;
 
   String get locationLabel {
     final a = area?.trim();
@@ -90,6 +100,7 @@ class ServiceMenuItem {
     required this.section,
     required this.duration,
     this.hasModifiers = false,
+    this.durationMinutes,
   });
 
   final String id;
@@ -98,6 +109,10 @@ class ServiceMenuItem {
   final String price;
   final String section;
   final String duration;
+
+  /// Product `prepTimeMin` in minutes. Null when the API omits it.
+  final int? durationMinutes;
+
   /// True → open item detail (>) before booking; false → quick-add (+).
   final bool hasModifiers;
 }

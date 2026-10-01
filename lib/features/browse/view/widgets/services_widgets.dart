@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:yjeek_app/core/constants/app_colors.dart';
 import 'package:yjeek_app/core/constants/app_text_styles.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
+import 'package:yjeek_app/core/widgets/app_network_image.dart';
 import 'package:yjeek_app/features/browse/model/services_data.dart';
 
 /// Design tokens from Figma `(2.3.1) Browse - ( SERVICES )`.
@@ -162,13 +163,11 @@ class ServicesSubcategoryGrid extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Expanded(
-                  child: ColoredBox(
-                    color: const Color(0xFFE8F5E9),
-                    child: Icon(
-                      _iconFor(category.name),
-                      size: 36.sp,
-                      color: AppColors.primary.withValues(alpha: 0.55),
-                    ),
+                  child: ServiceCategoryIcon(
+                    category: category,
+                    imageFit: BoxFit.cover,
+                    fillParent: true,
+                    iconSize: 36.sp,
                   ),
                 ),
                 Padding(
@@ -219,20 +218,7 @@ class ServicesSubcategoryListRow extends StatelessWidget {
             padding: EdgeInsets.symmetric(vertical: 14.h),
             child: Row(
               children: [
-                Container(
-                  width: 48.w,
-                  height: 48.w,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFE8F5E9),
-                    borderRadius: BorderRadius.circular(12.r),
-                  ),
-                  alignment: Alignment.center,
-                  child: Icon(
-                    _iconFor(category.name),
-                    size: 22.sp,
-                    color: AppColors.primary.withValues(alpha: 0.7),
-                  ),
-                ),
+                ServiceCategoryIcon(category: category),
                 SizedBox(width: 12.w),
                 Expanded(
                   child: Text(
@@ -272,6 +258,69 @@ IconData _iconFor(String name) {
   }
   if (n.contains('car') || n.contains('auto')) return Icons.directions_car_outlined;
   return Icons.handyman_outlined;
+}
+
+class ServiceCategoryIcon extends StatelessWidget {
+  const ServiceCategoryIcon({
+    super.key,
+    required this.category,
+    this.size,
+    this.iconSize,
+    this.borderRadius,
+    this.imageFit = BoxFit.contain,
+    this.fillParent = false,
+  });
+
+  final ServiceCategoryItem category;
+  final double? size;
+  final double? iconSize;
+  final BorderRadius? borderRadius;
+  final BoxFit imageFit;
+  final bool fillParent;
+
+  @override
+  Widget build(BuildContext context) {
+    final url = category.iconUrl?.trim();
+    final radius = borderRadius ?? BorderRadius.circular(12.r);
+    final box = size ?? 48.w;
+    final hasRemote = url != null && url.isNotEmpty;
+
+    Widget fallback() {
+      return Icon(
+        _iconFor(category.name),
+        size: iconSize ?? 22.sp,
+        color: AppColors.primary.withValues(alpha: 0.7),
+      );
+    }
+
+    if (fillParent) {
+      return ColoredBox(
+        color: category.iconBackground,
+        child: hasRemote
+            ? AppNetworkImage(url: url, fit: imageFit)
+            : Center(child: fallback()),
+      );
+    }
+
+    return Container(
+      width: box,
+      height: box,
+      decoration: BoxDecoration(
+        color: category.iconBackground,
+        borderRadius: radius,
+      ),
+      clipBehavior: Clip.antiAlias,
+      alignment: Alignment.center,
+      child: hasRemote
+          ? AppNetworkImage(
+              url: url,
+              width: box,
+              height: box,
+              fit: imageFit,
+            )
+          : fallback(),
+    );
+  }
 }
 
 /// "Book again" row — prior providers in this subcategory.
@@ -600,22 +649,11 @@ class ServicesCategoryGrid extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  width: 44.w,
-                  height: 44.w,
-                  decoration: BoxDecoration(
-                    color: category.iconBackground,
-                    borderRadius: BorderRadius.circular(14.r),
-                  ),
-                  alignment: Alignment.center,
-                  child: Text(
-                    category.emoji,
-                    style: TextStyle(
-                      fontSize: 20.sp,
-                      height: 1,
-                      color: _ServicesDesign.greenDeep,
-                    ),
-                  ),
+                ServiceCategoryIcon(
+                  category: category,
+                  size: 44.w,
+                  iconSize: 20.sp,
+                  borderRadius: BorderRadius.circular(14.r),
                 ),
                 const Spacer(),
                 Text(

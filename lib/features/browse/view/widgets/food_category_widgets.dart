@@ -272,11 +272,13 @@ class FoodAllFiltersSheet extends StatefulWidget {
     required this.minRating,
     required this.maxDeliveryTime,
     required this.hasOffers,
+    this.acceptsMyVouchers = false,
   });
 
   final double? minRating;
   final int? maxDeliveryTime;
   final bool hasOffers;
+  final bool acceptsMyVouchers;
 
   @override
   State<FoodAllFiltersSheet> createState() => _FoodAllFiltersSheetState();
@@ -300,6 +302,7 @@ class _FoodAllFiltersSheetState extends State<FoodAllFiltersSheet> {
   late double? _minRating;
   late int? _maxDeliveryTime;
   late bool _hasOffers;
+  late bool _acceptsMyVouchers;
 
   @override
   void initState() {
@@ -307,6 +310,7 @@ class _FoodAllFiltersSheetState extends State<FoodAllFiltersSheet> {
     _minRating = widget.minRating;
     _maxDeliveryTime = widget.maxDeliveryTime;
     _hasOffers = widget.hasOffers;
+    _acceptsMyVouchers = widget.acceptsMyVouchers;
   }
 
   @override
@@ -334,6 +338,7 @@ class _FoodAllFiltersSheetState extends State<FoodAllFiltersSheet> {
                       _minRating = null;
                       _maxDeliveryTime = null;
                       _hasOffers = false;
+                      _acceptsMyVouchers = false;
                     });
                   },
                   child: Text(
@@ -388,6 +393,13 @@ class _FoodAllFiltersSheetState extends State<FoodAllFiltersSheet> {
               selected: _hasOffers,
               onTap: () => setState(() => _hasOffers = !_hasOffers),
             ),
+            SizedBox(height: 10.h),
+            FoodQuickFilterChip(
+              label: 'Accepts my vouchers',
+              selected: _acceptsMyVouchers,
+              onTap: () =>
+                  setState(() => _acceptsMyVouchers = !_acceptsMyVouchers),
+            ),
             SizedBox(height: 20.h),
             SizedBox(
               width: double.infinity,
@@ -406,6 +418,7 @@ class _FoodAllFiltersSheetState extends State<FoodAllFiltersSheet> {
                     minRating: _minRating,
                     maxDeliveryTime: _maxDeliveryTime,
                     hasOffers: _hasOffers,
+                    acceptsMyVouchers: _acceptsMyVouchers,
                   ));
                 },
                 child: Text(
@@ -463,6 +476,7 @@ class FoodDeliveryListCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final logoUrl = restaurant.displayLogoUrl;
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -477,7 +491,7 @@ class FoodDeliveryListCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _VendorThumb(
-              imageUrl: restaurant.imageUrl,
+              imageUrl: logoUrl,
               gradientStart: restaurant.gradientStart,
               gradientEnd: restaurant.gradientEnd,
             ),
@@ -516,6 +530,16 @@ class FoodDeliveryListCard extends StatelessWidget {
                     style: AppTextStyles.bodySmall(
                       color: AppColors.textSecondary,
                     ).copyWith(fontSize: 13.sp),
+                  ),
+                  Builder(
+                    builder: (context) {
+                      final badges = _vendorMarketingBadges(restaurant);
+                      if (badges == null) return const SizedBox.shrink();
+                      return Padding(
+                        padding: EdgeInsets.only(top: 6.h),
+                        child: badges,
+                      );
+                    },
                   ),
                   SizedBox(height: 8.h),
                   Row(
@@ -642,6 +666,7 @@ class FoodDeliveryGridCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final logoUrl = restaurant.displayLogoUrl;
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -659,10 +684,9 @@ class FoodDeliveryGridCard extends StatelessWidget {
                 fit: StackFit.expand,
                 children: [
                   ColoredBox(color: _imagePlaceholder),
-                  if (restaurant.imageUrl != null &&
-                      restaurant.imageUrl!.isNotEmpty)
+                  if (logoUrl != null && logoUrl.isNotEmpty)
                     AppNetworkImage(
-                      url: restaurant.imageUrl!,
+                      url: logoUrl,
                       fit: BoxFit.cover,
                     )
                   else
@@ -716,6 +740,226 @@ class FoodDeliveryGridCard extends StatelessWidget {
                   _DeliveryFeeBadge(
                     freeDelivery: restaurant.freeDelivery,
                     deliveryFee: restaurant.deliveryFee,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class FoodDineInGridCard extends StatelessWidget {
+  const FoodDineInGridCard({
+    super.key,
+    required this.restaurant,
+    this.onTap,
+  });
+
+  final DineInRestaurant restaurant;
+  final VoidCallback? onTap;
+
+  String get _statusText => dineInDisplayStatus(restaurant);
+
+  Color get _statusColor {
+    if (restaurant.status == DineInVenueStatus.closed) {
+      return AppColors.error;
+    }
+    if (_statusText == 'Busy') return const Color(0xFFE65100);
+    return AppColors.primary;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          borderRadius: BorderRadius.circular(16.r),
+          border: Border.all(color: _borderColor),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          restaurant.gradientStart.withValues(alpha: 0.45),
+                          restaurant.gradientEnd.withValues(alpha: 0.45),
+                        ],
+                      ),
+                    ),
+                  ),
+                  if (restaurant.imageUrl != null &&
+                      restaurant.imageUrl!.isNotEmpty)
+                    AppNetworkImage(
+                      url: restaurant.imageUrl!,
+                      fit: BoxFit.cover,
+                    ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: EdgeInsets.fromLTRB(8.w, 6.h, 8.w, 6.h),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    restaurant.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTextStyles.labelSmall(color: _textDark).copyWith(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 13.sp,
+                      height: 1.15,
+                    ),
+                  ),
+                  SizedBox(height: 4.h),
+                  Row(
+                    children: [
+                      _ratingBadge(
+                        restaurant.rating,
+                        compact: true,
+                        hasRating: restaurant.rating > 0,
+                      ),
+                      const Spacer(),
+                      Text(
+                        restaurant.distance,
+                        style: AppTextStyles.caption(
+                          color: AppColors.textSecondary,
+                        ).copyWith(fontSize: 11.sp, height: 1.1),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 4.h),
+                  Text(
+                    _statusText,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTextStyles.caption(color: _statusColor).copyWith(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 11.sp,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class FoodPickupGridCard extends StatelessWidget {
+  const FoodPickupGridCard({
+    super.key,
+    required this.spot,
+    this.onTap,
+  });
+
+  final PickupSpot spot;
+  final VoidCallback? onTap;
+
+  String get _readyLabel {
+    final digits = RegExp(r'\d+').stringMatch(spot.pickupEta) ?? '15';
+    return 'Ready in $digits min';
+  }
+
+  Color get _gradientStart =>
+      spot.gradientStart ?? spot.imageColor;
+
+  Color get _gradientEnd =>
+      spot.gradientEnd ??
+      Color.lerp(spot.imageColor, Colors.white, 0.35) ??
+      spot.imageColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          borderRadius: BorderRadius.circular(16.r),
+          border: Border.all(color: _borderColor),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  ColoredBox(color: _imagePlaceholder),
+                  DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          _gradientStart.withValues(alpha: 0.35),
+                          _gradientEnd.withValues(alpha: 0.35),
+                        ],
+                      ),
+                    ),
+                  ),
+                  if (spot.imageUrl != null && spot.imageUrl!.isNotEmpty)
+                    AppNetworkImage(
+                      url: spot.imageUrl!,
+                      fit: BoxFit.cover,
+                    ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: EdgeInsets.fromLTRB(8.w, 6.h, 8.w, 6.h),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    spot.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTextStyles.labelSmall(color: _textDark).copyWith(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 13.sp,
+                      height: 1.15,
+                    ),
+                  ),
+                  SizedBox(height: 4.h),
+                  Row(
+                    children: [
+                      _ratingBadge(spot.rating, compact: true),
+                      const Spacer(),
+                      Text(
+                        spot.distance,
+                        style: AppTextStyles.caption(
+                          color: AppColors.textSecondary,
+                        ).copyWith(fontSize: 11.sp, height: 1.1),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 4.h),
+                  Text(
+                    _readyLabel,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTextStyles.caption(color: AppColors.primary)
+                        .copyWith(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 11.sp,
+                    ),
                   ),
                 ],
               ),
@@ -869,9 +1113,10 @@ class FoodPickupListCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _VendorThumb(
-              imageUrl: null,
-              gradientStart: spot.imageColor,
-              gradientEnd: Color.lerp(spot.imageColor, Colors.white, 0.35) ??
+              imageUrl: spot.imageUrl,
+              gradientStart: spot.gradientStart ?? spot.imageColor,
+              gradientEnd: spot.gradientEnd ??
+                  Color.lerp(spot.imageColor, Colors.white, 0.35) ??
                   spot.imageColor,
             ),
             SizedBox(width: 12.w),
@@ -948,6 +1193,36 @@ Widget _ratingBadge(double rating, {bool compact = false, bool? hasRating}) {
         ),
       ),
     ],
+  );
+}
+
+Widget? _vendorMarketingBadges(BrowseRestaurant restaurant) {
+  final labels = <String>[];
+  final promo = restaurant.promoBadgeLabel;
+  if (promo != null && promo.isNotEmpty) labels.add(promo);
+  final voucher = restaurant.voucherBadgeLabel;
+  if (voucher != null && voucher.isNotEmpty) labels.add(voucher);
+  if (labels.isEmpty) return null;
+  return Wrap(
+    spacing: 6.w,
+    runSpacing: 4.h,
+    children: labels
+        .map(
+          (label) => Container(
+            padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
+            decoration: BoxDecoration(
+              color: AppColors.offerBadgeGreenBg,
+              borderRadius: BorderRadius.circular(4.r),
+            ),
+            child: Text(
+              label,
+              style: AppTextStyles.labelSmall(
+                color: AppColors.offerBadgeGreenText,
+              ).copyWith(fontSize: 10.sp, fontWeight: FontWeight.w600),
+            ),
+          ),
+        )
+        .toList(),
   );
 }
 

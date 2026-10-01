@@ -1,0 +1,15 @@
+﻿{
+    "success":  true,
+    "data":  {
+                 "vendorId":  "cmuihhxm5000av9h8qim3h7vj",
+                 "supported":  false,
+                 "delivery":  null,
+                 "speeds":  [
+
+                            ],
+                 "windows":  [
+
+                             ],
+                 "reason":  "SERVICES_BOOKING"
+             }
+}

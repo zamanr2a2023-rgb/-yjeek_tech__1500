@@ -4,7 +4,11 @@ import 'package:go_router/go_router.dart';
 import 'package:yjeek_app/core/constants/app_colors.dart';
 import 'package:yjeek_app/core/providers/app_providers.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
+import 'package:yjeek_app/features/browse/model/services_vendors_repository.dart';
 import 'package:yjeek_app/features/cart/cart_routes.dart';
+import 'package:yjeek_app/features/cart/model/addresses_repository.dart';
+import 'package:yjeek_app/features/location/provider/delivery_location_provider.dart';
+import 'package:yjeek_app/features/location/utils/checkout_delivery_address.dart';
 import 'package:yjeek_app/features/cart/model/cart_repository.dart';
 import 'package:yjeek_app/features/cart/model/checkout_helpers.dart';
 import 'package:yjeek_app/features/cart/model/payment_methods_repository.dart';
@@ -26,7 +30,7 @@ class ServicesCheckoutScreen extends ConsumerStatefulWidget {
 
 class _ServicesCheckoutScreenState
     extends ConsumerState<ServicesCheckoutScreen> {
-  int _tipIndex = 1;
+  int _tipIndex = -1;
   double _customTipAmount = 0;
   final _customTipController = TextEditingController();
   String _paymentId = 'benefitpay';
@@ -36,6 +40,8 @@ class _ServicesCheckoutScreenState
   );
   String? _specialistName;
   String? _specialistId;
+  String? _addressArea;
+  String? _addressCity;
   bool _loading = true;
 
   double get _tipAmount => tipAmountFrom(
@@ -72,22 +78,32 @@ class _ServicesCheckoutScreenState
 
       String? specialistName;
       String? specialistId;
+      final pending = ref.read(pendingServiceCheckoutProvider);
+      specialistId = pending?.specialistId;
+      specialistName = pending?.specialistName;
+
+      DeliveryAddressSnapshot? address;
+      try {
+        final deliveryLoc = ref.read(deliveryLocationProvider).valueOrNull;
+        address = checkoutAddressDisplay(deliveryLoc) ??
+            await ref.read(addressesRepositoryProvider).defaultAddress();
+      } catch (_) {}
+
       final vendorId = cart.vendorId;
-      if (vendorId != null && vendorId.isNotEmpty) {
+      if (vendorId != null &&
+          vendorId.isNotEmpty &&
+          cart.serviceScheduledAt != null) {
         try {
-          final staffResponse = await ref.read(apiClientProvider).getJson(
-                '/vendors/$vendorId/staff',
-                bearerToken: ref.read(storageServiceProvider).token,
+          final page = await ref
+              .read(servicesVendorsRepositoryProvider)
+              .fetchBookingSlots(
+                vendorId: vendorId,
+                date: cart.serviceScheduledAt!,
+                durationMin: serviceCartDurationMin(cart.items),
+                staffId: specialistId,
               );
-          final data = staffResponse?['data'];
-          final staffList = data is Map<String, dynamic> ? data['staff'] : null;
-          if (staffList is List && staffList.isNotEmpty) {
-            final first = staffList.first;
-            if (first is Map<String, dynamic>) {
-              specialistId = first['id']?.toString();
-              specialistName = first['name']?.toString();
-            }
-          }
+          ref.read(serviceSlotContextProvider.notifier).state =
+              serviceSlotContextFrom(page);
         } catch (_) {}
       }
 
@@ -98,6 +114,8 @@ class _ServicesCheckoutScreenState
         _paymentId = payments.defaultId;
         _specialistName = specialistName;
         _specialistId = specialistId;
+        _addressArea = address?.area;
+        _addressCity = address?.city;
         _loading = false;
       });
     } catch (_) {
@@ -106,7 +124,27 @@ class _ServicesCheckoutScreenState
     }
   }
 
-  void _goToReview() {
+  double? _callOutFor(CartSnapshot? cart) {
+    if (cart == null || cart.serviceMode != 'AT_HOME') return null;
+    final context = ref.watch(serviceSlotContextProvider);
+    if (context == null) return null;
+    return matchedCallOutFee(
+      areas: context.coveredAreas,
+      area: _addressArea,
+      city: _addressCity,
+      slotCallOutFee: context.slotCallOutFee,
+    );
+  }
+
+  Future<void> _goToReview() async {
+    if (_cart?.serviceMode == 'AT_HOME') {
+      final saved = await ensureSavedAddressForCheckout(context, ref);
+      if (!mounted || saved == null) return;
+      setState(() {
+        _addressArea = saved.area;
+        _addressCity = saved.city;
+      });
+    }
     // Booking is placed on Review (Confirm / auto-timer), not here.
     ref.read(pendingServiceCheckoutProvider.notifier).state =
         PendingServiceCheckout(
@@ -121,14 +159,24 @@ class _ServicesCheckoutScreenState
   @override
   Widget build(BuildContext context) {
     final cart = _cart;
+    final callOut = _callOutFor(cart);
+    final deliveryFee = double.tryParse(cart?.delivery?.fee ?? '') ?? 0;
     final vendor = cart?.vendorName.isNotEmpty == true
         ? cart!.vendorName
         : ServicesBookingStrings.provider;
     final billLines = cart != null
-        ? billLinesWithTip(cart, _tipAmount)
+        ? applyServiceCallOutFee(
+            billLinesWithTip(cart, _tipAmount),
+            callOut,
+            summaryDeliveryFee: deliveryFee,
+          )
         : const <BillLine>[];
     final total = cart != null
-        ? formatCheckoutTotal(cart, _tipAmount)
+        ? applyServiceCallOutTotal(
+            formatCheckoutTotal(cart, _tipAmount),
+            callOut,
+            summaryDeliveryFee: deliveryFee,
+          )
         : 'BHD 0.000';
     final serviceName = cart?.items.isNotEmpty == true
         ? cart!.items.first.name
@@ -195,7 +243,9 @@ class _ServicesCheckoutScreenState
                 BillSummaryCard(
                   lines: billLines,
                   showCashback: true,
-                  cashbackAmount: cart?.cashbackLabel,
+                  cashbackAmount: cart?.cashbackPreview?.amountLabel ??
+                      cart?.cashbackLabel,
+                  cashbackMessage: cart?.cashbackPreview?.message,
                 ),
               ],
             ),

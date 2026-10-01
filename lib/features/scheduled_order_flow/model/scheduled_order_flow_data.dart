@@ -38,7 +38,12 @@ abstract final class ScheduledOrderFlowStrings {
   static String get tapPayToComplete => L10n.tr('Tap pay to complete');
   static String get change => L10n.tr('Change');
   static String get subtotal => L10n.tr('Subtotal');
+  static String get discount => L10n.tr('Discount');
+  static String get pickupDiscount => L10n.tr('Pickup discount');
   static String get sameDayDelivery => L10n.tr('Same Day delivery');
+  static String get serviceFee => L10n.tr('Service fee');
+  static String get vat => L10n.tr('VAT');
+  static String get tip => L10n.tr('Tip');
   static String get totalToPay => L10n.tr('Total to pay');
   static String get pay => L10n.tr('Pay');
   static String get payIn => L10n.tr('PAY IN');

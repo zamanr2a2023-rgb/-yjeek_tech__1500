@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:yjeek_app/core/constants/app_colors.dart';
+import 'package:yjeek_app/core/constants/app_text_styles.dart';
 import 'package:yjeek_app/core/constants/navigation_strings.dart';
 import 'package:yjeek_app/core/providers/app_providers.dart';
+import 'package:yjeek_app/features/auth/utils/require_login.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/features/help/help_routes.dart';
 import 'package:yjeek_app/features/help/model/help_data.dart';
@@ -42,6 +44,15 @@ class _HelpSupportScreenState extends ConsumerState<HelpSupportScreen> {
   }
 
   Future<void> _hydrateOrder() async {
+    if (!ref.read(storageServiceProvider).hasSession) {
+      if (!mounted) return;
+      setState(() {
+        _order = null;
+        _resolvedOrderId = null;
+        _loadingOrder = false;
+      });
+      return;
+    }
     setState(() => _loadingOrder = true);
     try {
       var orderId = widget.orderId?.trim();
@@ -125,8 +136,16 @@ class _HelpSupportScreenState extends ConsumerState<HelpSupportScreen> {
     });
   }
 
+  Future<void> _signInForOrderHelp() async {
+    if (!await requireLogin(context, ref)) return;
+    if (!mounted) return;
+    await _hydrateOrder();
+  }
+
   @override
   Widget build(BuildContext context) {
+    final loggedIn = ref.watch(storageServiceProvider).hasSession;
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: Column(
@@ -138,7 +157,40 @@ class _HelpSupportScreenState extends ConsumerState<HelpSupportScreen> {
               children: [
                 const HelpSectionTitle(label: 'Help with an order'),
                 SizedBox(height: 10.h),
-                if (_loadingOrder)
+                if (!loggedIn)
+                  HelpCard(
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: _signInForOrderHelp,
+                        borderRadius: BorderRadius.circular(12.r),
+                        child: Padding(
+                          padding: EdgeInsets.all(14.w),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  NavigationStrings.signInToView,
+                                  style: AppTextStyles.bodyMedium(
+                                    color: AppColors.textSecondary,
+                                  ).copyWith(
+                                    fontSize: 13.sp,
+                                    height: 1.35,
+                                  ),
+                                ),
+                              ),
+                              Icon(
+                                Icons.chevron_right_rounded,
+                                size: 22.sp,
+                                color: AppColors.textSecondary,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  )
+                else if (_loadingOrder)
                   const HelpCard(
                     child: Padding(
                       padding: EdgeInsets.all(18),

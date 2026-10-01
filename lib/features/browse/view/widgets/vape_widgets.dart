@@ -117,7 +117,7 @@ class VapeOrderAgainRow extends StatelessWidget {
         ),
         SizedBox(height: 10.h),
         SizedBox(
-          height: 75.h,
+          height: 56.w + 4.h + 11.sp * 1.2 + 2,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             itemCount: stores.length.clamp(0, 8),

@@ -86,6 +86,30 @@ abstract final class HomeOfferStyle {
       'BHD ${price.toStringAsFixed(3)}';
 }
 
+const _orderModeSlugs = {
+  'delivery',
+  'pickup',
+  'dine_in',
+  'scheduled',
+  'order_mode_services',
+};
+
+String _categoryKey(String? value) => (value ?? '')
+    .trim()
+    .toLowerCase()
+    .replaceAll('-', '_')
+    .replaceAll(' ', '_');
+
+/// Delivery, Pickup, Dine-in, Scheduled, and the Services order mode are
+/// fulfillment modes. They are not shop categories on the categories grid.
+bool isOrderModeCategory({String? kind, String? slug, String? name}) {
+  if (kind?.trim().toUpperCase() == 'ORDER_MODE') return true;
+  final slugKey = _categoryKey(slug);
+  if (_orderModeSlugs.contains(slugKey)) return true;
+  if (slugKey.isNotEmpty) return false;
+  return _orderModeSlugs.contains(_categoryKey(name));
+}
+
 CategoryItem categoryItemFromApi({
   required String name,
   String? slug,

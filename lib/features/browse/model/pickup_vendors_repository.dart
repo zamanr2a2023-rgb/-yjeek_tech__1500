@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:yjeek_app/core/network/api_client.dart';
 import 'package:yjeek_app/core/services/storage_service.dart';
 import 'package:yjeek_app/features/browse/model/pickup_data.dart';
+import 'package:yjeek_app/core/utils/api_media_url.dart';
 import 'package:yjeek_app/features/home/model/home_feed.dart';
+import 'package:yjeek_app/features/home/model/home_ui_mapper.dart';
 
 /// Default Manama center used when device location is unavailable.
 const double kPickupDefaultLat = 26.2285;
@@ -101,6 +103,7 @@ class PickupVendorsRepository {
     final spots = <PickupSpot>[];
     for (final raw in data) {
       if (raw is! Map<String, dynamic>) continue;
+      if (raw['supportsPickup'] != true) continue;
       final mapped = pickupSpotFromVendorJson(raw);
       if (mapped == null) continue;
 
@@ -254,6 +257,12 @@ PickupSpot? pickupSpotFromVendorJson(Map<String, dynamic> json) {
     }
   }
 
+  final imageUrl =
+      resolveApiMediaUrl(json['logoUrl'] as String?) ??
+      resolveApiMediaUrl(json['coverUrl'] as String?) ??
+      resolveApiMediaUrlFromList(json['imageUrls']);
+  final gradient = _pickupGradientForName(name);
+
   return PickupSpot(
     id: id,
     name: name,
@@ -262,6 +271,14 @@ PickupSpot? pickupSpotFromVendorJson(Map<String, dynamic> json) {
     distance: distance,
     pickupEta: eta,
     promoLabel: (promo != null && promo.trim().isNotEmpty) ? promo : null,
+    imageUrl: imageUrl,
     imageColor: const Color(0xFFEAF3DE),
+    gradientStart: gradient.$1,
+    gradientEnd: gradient.$2,
   );
+}
+
+(Color, Color) _pickupGradientForName(String name) {
+  final base = HomeBrandStyle.forName(name);
+  return (base, const Color(0xFF15302B));
 }

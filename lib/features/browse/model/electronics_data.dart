@@ -69,17 +69,8 @@ class ElectronicsStore {
     return c.contains('pharm');
   }
 
-  /// Dual Deliver Now + Scheduled (pharmacy.md).
+  /// Dual Deliver Now + Scheduled. Availability comes from order-modes.
   bool get hasPharmacyDeliveryModes => isPharmacy;
-
-  /// Inside on-demand radius when distance unknown → treat as available.
-  bool get onDemandInRadius {
-    if (!supportsDelivery && !isPharmacy) return false;
-    final dist = distanceKm;
-    final radius = deliveryRadiusKm ?? 10;
-    if (dist == null) return true;
-    return dist <= radius;
-  }
 
   /// Branch area from vendor settings (no distance fallback).
   String get areaLabel {
@@ -228,6 +219,9 @@ abstract final class ElectronicsData {
       'stationery' => 'Stationery',
       'baby-kids' || 'baby_kids' => 'Baby & Kids',
       'sports' || 'sport' => 'Sports',
+      'health-wellness' || 'health_wellness' => 'Health & Wellness',
+      'pets' || 'pet' => 'Pets',
+      'fragrance' || 'fragrances' => 'Fragrance',
       _ => 'Electronics',
     });
   }
@@ -245,6 +239,9 @@ abstract final class ElectronicsData {
       'stationery' => 'Search stationery, stores…',
       'baby-kids' || 'baby_kids' => 'Search baby & kids…',
       'sports' || 'sport' => 'Search sports, brands…',
+      'health-wellness' || 'health_wellness' => 'Search health & wellness…',
+      'pets' || 'pet' => 'Search pet stores…',
+      'fragrance' || 'fragrances' => 'Search fragrance, brands…',
       _ => 'Search devices, brands…',
     });
   }

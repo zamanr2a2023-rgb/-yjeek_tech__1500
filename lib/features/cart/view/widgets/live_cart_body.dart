@@ -9,6 +9,7 @@ import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/core/widgets/app_google_map.dart';
 import 'package:yjeek_app/core/widgets/app_network_image.dart';
 import 'package:yjeek_app/features/cart/model/cart_repository.dart';
+import 'package:yjeek_app/features/cart/model/checkout_helpers.dart';
 import 'package:yjeek_app/features/dine_in_cart/model/dine_in_cart_data.dart';
 import 'package:yjeek_app/features/dine_in_cart/view/widgets/dine_in_cart_widgets.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/navigation_widgets.dart';
@@ -364,8 +365,11 @@ class _LiveCartBodyState extends State<LiveCartBody> {
               BillSummaryCard(
                 lines: cart.billLines,
                 showCashback: !widget.showElectronicsCart,
-                cashbackAmount: cart.cashbackLabel,
+                cashbackAmount: cart.cashbackPreview?.amountLabel ??
+                    cart.cashbackLabel,
+                cashbackMessage: cart.cashbackPreview?.message,
               ),
+              deliveryQuoteNotices(cart.delivery),
             ],
           ),
         ),
@@ -373,6 +377,7 @@ class _LiveCartBodyState extends State<LiveCartBody> {
           _PickupCheckoutFooter(
             totalLabel: cart.totalLabel,
             loading: _checkoutBusy,
+            enabled: !deliveryQuoteBlocksPlaceOrder(cart.delivery),
             onCheckout: _handleCheckout,
           )
         else
@@ -407,7 +412,10 @@ class _LiveCartBodyState extends State<LiveCartBody> {
                   const SizedBox(width: 10),
                   Expanded(
                     child: ElevatedButton(
-                      onPressed: _checkoutBusy ? null : _handleCheckout,
+                      onPressed: _checkoutBusy ||
+                              deliveryQuoteBlocksPlaceOrder(cart.delivery)
+                          ? null
+                          : _handleCheckout,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primary,
                         foregroundColor: AppColors.white,
@@ -1490,11 +1498,13 @@ class _PickupCheckoutFooter extends StatelessWidget {
     required this.totalLabel,
     required this.onCheckout,
     this.loading = false,
+    this.enabled = true,
   });
 
   final String totalLabel;
   final Future<void> Function() onCheckout;
   final bool loading;
+  final bool enabled;
 
   @override
   Widget build(BuildContext context) {
@@ -1507,9 +1517,9 @@ class _PickupCheckoutFooter extends StatelessWidget {
       child: SafeArea(
         top: false,
         child: GestureDetector(
-          onTap: loading ? null : () => unawaited(onCheckout()),
+          onTap: loading || !enabled ? null : () => unawaited(onCheckout()),
           child: Opacity(
-            opacity: loading ? 0.85 : 1,
+            opacity: loading || !enabled ? 0.55 : 1,
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
               decoration: BoxDecoration(

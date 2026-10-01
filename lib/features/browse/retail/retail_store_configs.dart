@@ -42,11 +42,12 @@ RetailStoreConfig electronicsStoreConfig() {
       required store,
       required PharmacyDeliveryMode pharmacyMode,
       required ValueChanged<PharmacyDeliveryMode> onPharmacyModeChanged,
+      PharmacyOrderModes? pharmacyModes,
     }) {
       if (store.hasPharmacyDeliveryModes) {
         return PharmacyVendorOrderMeta(
-          store: store,
           mode: pharmacyMode,
+          modes: pharmacyModes,
           onModeChanged: onPharmacyModeChanged,
         );
       }
@@ -81,6 +82,7 @@ RetailStoreConfig vapeStoreConfig({
       required store,
       required pharmacyMode,
       required onPharmacyModeChanged,
+      pharmacyModes,
     }) =>
         FashionVendorOrderMeta(store: store),
     bannerBuilder: () => Padding(
@@ -115,6 +117,11 @@ RetailStoreConfig vapeStoreConfig({
       final result = await retryPendingAddToCart(ref);
       if (!context.mounted) return;
       if (result.ok) {
+        final notice = result.message;
+        if (notice != null && notice.isNotEmpty && context.mounted) {
+          await acknowledgeExtraDeliveryCharge(context, notice);
+        }
+        if (!context.mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Item added to cart'),

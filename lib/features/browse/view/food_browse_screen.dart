@@ -5,7 +5,7 @@ import 'package:yjeek_app/core/constants/app_colors.dart';
 import 'package:yjeek_app/core/constants/app_text_styles.dart';
 import 'package:yjeek_app/core/constants/browse_strings.dart';
 import 'package:yjeek_app/core/providers/app_providers.dart';
-import 'package:yjeek_app/core/services/location_service.dart';
+import 'package:yjeek_app/features/location/provider/delivery_location_provider.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/features/browse/browse_routes.dart';
 import 'package:yjeek_app/features/browse/model/browse_data.dart';
@@ -27,6 +27,17 @@ class FoodBrowseScreen extends ConsumerStatefulWidget {
 }
 
 class _FoodBrowseScreenState extends ConsumerState<FoodBrowseScreen> {
+  void _openVendorMenu(String vendorId, {String? cartType}) {
+    context.push(
+      BrowseRoutes.vendorMenu(
+        vendorId: vendorId,
+        tab: widget.bottomNavIndex,
+        cartType: cartType,
+        returnTo: BrowseRoutes.foodBrowse(tab: widget.bottomNavIndex),
+      ),
+    );
+  }
+
   FoodOrderType _orderType = FoodOrderType.delivery;
   bool _isGridView = false;
   bool _freeDeliveryOnly = false;
@@ -34,6 +45,7 @@ class _FoodBrowseScreenState extends ConsumerState<FoodBrowseScreen> {
   bool _availableOnly = false;
   bool _readyIn15 = false;
   bool _hasOffers = false;
+  bool _acceptsMyVouchers = false;
   double? _minRating;
   int? _maxDeliveryTime;
   String _selectedCuisine = 'All';
@@ -60,7 +72,10 @@ class _FoodBrowseScreenState extends ConsumerState<FoodBrowseScreen> {
   ];
 
   bool get _allFiltersActive =>
-      _hasOffers || _minRating != null || _maxDeliveryTime != null;
+      _hasOffers ||
+      _acceptsMyVouchers ||
+      _minRating != null ||
+      _maxDeliveryTime != null;
 
   @override
   void initState() {
@@ -116,86 +131,60 @@ class _FoodBrowseScreenState extends ConsumerState<FoodBrowseScreen> {
 
   Future<void> _loadDelivery() async {
     final repo = ref.read(foodVendorsRepositoryProvider);
-    final position = await const LocationService().currentPosition();
+    var delivery = ref.read(deliveryLocationProvider).valueOrNull;
+    if (delivery == null || !delivery.hasCoordinates) {
+      await ref.read(deliveryLocationProvider.notifier).refresh(force: true);
+      delivery = ref.read(deliveryLocationProvider).valueOrNull;
+    }
+    final hasLocation = delivery?.hasCoordinates ?? false;
+    final lat = delivery?.latitude;
+    final lng = delivery?.longitude;
     final apiFilters = await repo.fetchCuisineFilters();
-    final hasLocation = position != null;
     final cuisine =
         _selectedCuisine == 'All' ? null : _selectedCuisine;
+    // Same discovery scope as Pickup/Dine-in — do not hide vendors outside
+    // delivery radius on the list (checkout still validates range).
     var vendors = await repo.fetchVendors(
       cuisine: cuisine,
       freeDelivery: _freeDeliveryOnly,
       openNow: _openNow,
       hasOffers: _hasOffers,
+      acceptsMyVouchers: _acceptsMyVouchers,
       minRating: _minRating,
       maxDeliveryTime: _maxDeliveryTime,
       sort: _sort,
-      latitude: position?.lat,
-      longitude: position?.lng,
-      withinDeliveryRadius: hasLocation,
+      latitude: lat,
+      longitude: lng,
+      withinDeliveryRadius: false,
       supportsDelivery: true,
     );
+    vendors = vendors.where((r) => r.supportsDelivery).toList();
     // Cuisine tags may be unset on vendors — soft-match name when catalog filter is empty.
     if (cuisine != null && vendors.isEmpty) {
       final unfiltered = await repo.fetchVendors(
         freeDelivery: _freeDeliveryOnly,
         openNow: _openNow,
         hasOffers: _hasOffers,
+        acceptsMyVouchers: _acceptsMyVouchers,
         minRating: _minRating,
         maxDeliveryTime: _maxDeliveryTime,
         sort: _sort,
-        latitude: position?.lat,
-        longitude: position?.lng,
-        withinDeliveryRadius: hasLocation,
+        latitude: lat,
+        longitude: lng,
+        withinDeliveryRadius: false,
         supportsDelivery: true,
       );
       final q = cuisine.toLowerCase();
       vendors = unfiltered
           .where(
             (r) =>
-                r.cuisine.toLowerCase().contains(q) ||
-                r.name.toLowerCase().contains(q),
+                r.supportsDelivery &&
+                (r.cuisine.toLowerCase().contains(q) ||
+                    r.name.toLowerCase().contains(q)),
           )
           .toList();
     }
-    var outsideArea = false;
-    if (hasLocation && vendors.isEmpty) {
-      vendors = await repo.fetchVendors(
-        cuisine: cuisine,
-        freeDelivery: _freeDeliveryOnly,
-        openNow: _openNow,
-        hasOffers: _hasOffers,
-        minRating: _minRating,
-        maxDeliveryTime: _maxDeliveryTime,
-        sort: _sort,
-        latitude: position.lat,
-        longitude: position.lng,
-        withinDeliveryRadius: false,
-        supportsDelivery: true,
-      );
-      if (cuisine != null && vendors.isEmpty) {
-        final unfiltered = await repo.fetchVendors(
-          freeDelivery: _freeDeliveryOnly,
-          openNow: _openNow,
-          hasOffers: _hasOffers,
-          minRating: _minRating,
-          maxDeliveryTime: _maxDeliveryTime,
-          sort: _sort,
-          latitude: position.lat,
-          longitude: position.lng,
-          withinDeliveryRadius: false,
-          supportsDelivery: true,
-        );
-        final q = cuisine.toLowerCase();
-        vendors = unfiltered
-            .where(
-              (r) =>
-                  r.cuisine.toLowerCase().contains(q) ||
-                  r.name.toLowerCase().contains(q),
-            )
-            .toList();
-      }
-      outsideArea = vendors.isNotEmpty;
-    }
+    const outsideArea = false;
     if (!mounted) return;
     final filters = _mergeCuisineFilters(apiFilters, vendors);
     setState(() {
@@ -236,37 +225,105 @@ class _FoodBrowseScreenState extends ConsumerState<FoodBrowseScreen> {
   }
 
   Future<void> _loadDineIn() async {
-    final repo = ref.read(dineInVendorsRepositoryProvider);
-    final filters = await repo.fetchCuisineFilters();
-    final vendors = await repo.fetchVendors(
-      cuisine: _selectedCuisine == 'All' ? null : _selectedCuisine,
+    final foodRepo = ref.read(foodVendorsRepositoryProvider);
+    var delivery = ref.read(deliveryLocationProvider).valueOrNull;
+    if (delivery == null || !delivery.hasCoordinates) {
+      await ref.read(deliveryLocationProvider.notifier).refresh(force: true);
+      delivery = ref.read(deliveryLocationProvider).valueOrNull;
+    }
+    final hasLocation = delivery?.hasCoordinates ?? false;
+    final lat = delivery?.latitude;
+    final lng = delivery?.longitude;
+    final apiFilters = await foodRepo.fetchCuisineFilters();
+    final cuisine =
+        _selectedCuisine == 'All' ? null : _selectedCuisine;
+    var vendors = await foodRepo.fetchVendors(
+      cuisine: cuisine,
+      openNow: _openNow,
       sort: _sort,
+      latitude: lat,
+      longitude: lng,
+      supportsDelivery: false,
+      supportsDineIn: true,
     );
+    vendors = vendors.where((r) => r.supportsDineIn).toList();
+    if (cuisine != null && vendors.isEmpty) {
+      final unfiltered = await foodRepo.fetchVendors(
+        openNow: _openNow,
+        sort: _sort,
+        latitude: lat,
+        longitude: lng,
+        supportsDelivery: false,
+        supportsDineIn: true,
+      );
+      final q = cuisine.toLowerCase();
+      vendors = unfiltered
+          .where(
+            (r) =>
+                r.supportsDineIn &&
+                (r.cuisine.toLowerCase().contains(q) ||
+                    r.name.toLowerCase().contains(q)),
+          )
+          .toList();
+    }
     if (!mounted) return;
+    final filters = _mergeCuisineFilters(apiFilters, vendors);
     setState(() {
-      _cuisineFilters = filters.length > 1 ? filters : const [
-        'All',
-        'Lebanese',
-        'Grills',
-        'Seafood',
-        'Italian',
-      ];
+      _cuisineFilters = filters;
       if (!_cuisineFilters.contains(_selectedCuisine)) {
         _selectedCuisine = 'All';
       }
-      _dineInRestaurants = vendors;
-      _locationDenied = false;
+      _dineInRestaurants = vendors.map(_dineInFromFoodVendor).toList();
+      _locationDenied = !hasLocation;
       _outsideDeliveryArea = false;
       _loading = false;
     });
   }
 
   Future<void> _loadPickup() async {
-    final repo = ref.read(pickupVendorsRepositoryProvider);
-    final filters =
-        await ref.read(foodVendorsRepositoryProvider).fetchCuisineFilters();
-    final spots = await repo.fetchNearbySpots(categorySlug: 'food');
+    final foodRepo = ref.read(foodVendorsRepositoryProvider);
+    var delivery = ref.read(deliveryLocationProvider).valueOrNull;
+    if (delivery == null || !delivery.hasCoordinates) {
+      await ref.read(deliveryLocationProvider.notifier).refresh(force: true);
+      delivery = ref.read(deliveryLocationProvider).valueOrNull;
+    }
+    final hasLocation = delivery?.hasCoordinates ?? false;
+    final lat = delivery?.latitude;
+    final lng = delivery?.longitude;
+    final filters = await foodRepo.fetchCuisineFilters();
+    final cuisine =
+        _selectedCuisine == 'All' ? null : _selectedCuisine;
+    var vendors = await foodRepo.fetchVendors(
+      cuisine: cuisine,
+      openNow: _openNow,
+      sort: 'distance',
+      latitude: lat,
+      longitude: lng,
+      supportsDelivery: false,
+      supportsPickup: true,
+    );
+    vendors = vendors.where((r) => r.supportsPickup).toList();
+    if (cuisine != null && vendors.isEmpty) {
+      final unfiltered = await foodRepo.fetchVendors(
+        openNow: _openNow,
+        sort: 'distance',
+        latitude: lat,
+        longitude: lng,
+        supportsDelivery: false,
+        supportsPickup: true,
+      );
+      final q = cuisine.toLowerCase();
+      vendors = unfiltered
+          .where(
+            (r) =>
+                r.supportsPickup &&
+                (r.cuisine.toLowerCase().contains(q) ||
+                    r.name.toLowerCase().contains(q)),
+          )
+          .toList();
+    }
     if (!mounted) return;
+    final spots = vendors.map(_pickupSpotFromFoodVendor).toList();
     final labels = <String>{};
     for (final s in spots) {
       final label = s.categoryLabel.trim();
@@ -279,7 +336,7 @@ class _FoodBrowseScreenState extends ConsumerState<FoodBrowseScreen> {
     setState(() {
       _cuisineFilters = merged;
       _pickupSpots = spots;
-      _locationDenied = false;
+      _locationDenied = !hasLocation;
       _outsideDeliveryArea = false;
       _loading = false;
     });
@@ -334,6 +391,7 @@ class _FoodBrowseScreenState extends ConsumerState<FoodBrowseScreen> {
       _availableOnly = false;
       _readyIn15 = false;
       _hasOffers = false;
+      _acceptsMyVouchers = false;
       _minRating = null;
       _maxDeliveryTime = null;
       if (type == FoodOrderType.pickup) {
@@ -345,7 +403,12 @@ class _FoodBrowseScreenState extends ConsumerState<FoodBrowseScreen> {
 
   Future<void> _showAllFiltersSheet() async {
     final result = await showModalBottomSheet<
-        ({double? minRating, int? maxDeliveryTime, bool hasOffers})>(
+        ({
+          double? minRating,
+          int? maxDeliveryTime,
+          bool hasOffers,
+          bool acceptsMyVouchers,
+        })>(
       context: context,
       backgroundColor: AppColors.white,
       isScrollControlled: true,
@@ -356,6 +419,7 @@ class _FoodBrowseScreenState extends ConsumerState<FoodBrowseScreen> {
         minRating: _minRating,
         maxDeliveryTime: _maxDeliveryTime,
         hasOffers: _hasOffers,
+        acceptsMyVouchers: _acceptsMyVouchers,
       ),
     );
     if (result == null || !mounted) return;
@@ -363,6 +427,7 @@ class _FoodBrowseScreenState extends ConsumerState<FoodBrowseScreen> {
       _minRating = result.minRating;
       _maxDeliveryTime = result.maxDeliveryTime;
       _hasOffers = result.hasOffers;
+      _acceptsMyVouchers = result.acceptsMyVouchers;
     });
     await _load();
   }
@@ -503,9 +568,7 @@ class _FoodBrowseScreenState extends ConsumerState<FoodBrowseScreen> {
                       onSeeAll: () => context.goHome(tab: 1),
                       onBrandTap: (vendorId, name) {
                         if (vendorId == null || vendorId.isEmpty) return;
-                        context.push(
-                          BrowseRoutes.vendorMenu(vendorId: vendorId),
-                        );
+                        _openVendorMenu(vendorId);
                       },
                     ),
                   ),
@@ -565,11 +628,10 @@ class _FoodBrowseScreenState extends ConsumerState<FoodBrowseScreen> {
                       _load();
                     },
                   ),
-                  if (_orderType == FoodOrderType.delivery)
-                    FoodViewToggleRow(
-                      isGridView: _isGridView,
-                      onViewChanged: (v) => setState(() => _isGridView = v),
-                    ),
+                  FoodViewToggleRow(
+                    isGridView: _isGridView,
+                    onViewChanged: (v) => setState(() => _isGridView = v),
+                  ),
                 ],
               ),
             ),
@@ -603,6 +665,15 @@ class _FoodBrowseScreenState extends ConsumerState<FoodBrowseScreen> {
     );
   }
 
+  SliverGridDelegate _foodBrowseGridDelegate() {
+    return SliverGridDelegateWithFixedCrossAxisCount(
+      crossAxisCount: 2,
+      mainAxisSpacing: 12.h,
+      crossAxisSpacing: 12.w,
+      childAspectRatio: 0.82,
+    );
+  }
+
   List<Widget> _buildListSlivers() {
     switch (_orderType) {
       case FoodOrderType.delivery:
@@ -611,20 +682,13 @@ class _FoodBrowseScreenState extends ConsumerState<FoodBrowseScreen> {
             SliverPadding(
               padding: EdgeInsets.fromLTRB(16.w, 14.h, 16.w, 24.h),
               sliver: SliverGrid(
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  mainAxisSpacing: 12.h,
-                  crossAxisSpacing: 12.w,
-                  childAspectRatio: 0.82,
-                ),
+                gridDelegate: _foodBrowseGridDelegate(),
                 delegate: SliverChildBuilderDelegate(
                   (context, index) {
                     final restaurant = _filteredDelivery[index];
                     return FoodDeliveryGridCard(
                       restaurant: restaurant,
-                      onTap: () => context.push(
-                        BrowseRoutes.vendorMenu(vendorId: restaurant.id),
-                      ),
+                      onTap: () => _openVendorMenu(restaurant.id),
                     );
                   },
                   childCount: _filteredDelivery.length,
@@ -643,15 +707,35 @@ class _FoodBrowseScreenState extends ConsumerState<FoodBrowseScreen> {
                 final restaurant = _filteredDelivery[index];
                 return FoodDeliveryListCard(
                   restaurant: restaurant,
-                  onTap: () => context.push(
-                    BrowseRoutes.vendorMenu(vendorId: restaurant.id),
-                  ),
+                  onTap: () => _openVendorMenu(restaurant.id),
                 );
               },
             ),
           ),
         ];
       case FoodOrderType.dineIn:
+        if (_isGridView) {
+          return [
+            SliverPadding(
+              padding: EdgeInsets.fromLTRB(16.w, 14.h, 16.w, 24.h),
+              sliver: SliverGrid(
+                gridDelegate: _foodBrowseGridDelegate(),
+                delegate: SliverChildBuilderDelegate(
+                  (context, index) {
+                    final restaurant = _filteredDineIn[index];
+                    return FoodDineInGridCard(
+                      restaurant: restaurant,
+                      onTap: () => context.push(
+                        BrowseRoutes.dineInMenu(restaurantId: restaurant.id),
+                      ),
+                    );
+                  },
+                  childCount: _filteredDineIn.length,
+                ),
+              ),
+            ),
+          ];
+        }
         return [
           SliverPadding(
             padding: EdgeInsets.fromLTRB(16.w, 14.h, 16.w, 24.h),
@@ -671,6 +755,26 @@ class _FoodBrowseScreenState extends ConsumerState<FoodBrowseScreen> {
           ),
         ];
       case FoodOrderType.pickup:
+        if (_isGridView) {
+          return [
+            SliverPadding(
+              padding: EdgeInsets.fromLTRB(16.w, 14.h, 16.w, 24.h),
+              sliver: SliverGrid(
+                gridDelegate: _foodBrowseGridDelegate(),
+                delegate: SliverChildBuilderDelegate(
+                  (context, index) {
+                    final spot = _filteredPickup[index];
+                    return FoodPickupGridCard(
+                      spot: spot,
+                      onTap: () => _openVendorMenu(spot.id, cartType: 'pickup'),
+                    );
+                  },
+                  childCount: _filteredPickup.length,
+                ),
+              ),
+            ),
+          ];
+        }
         return [
           SliverPadding(
             padding: EdgeInsets.fromLTRB(16.w, 14.h, 16.w, 24.h),
@@ -681,12 +785,7 @@ class _FoodBrowseScreenState extends ConsumerState<FoodBrowseScreen> {
                 final spot = _filteredPickup[index];
                 return FoodPickupListCard(
                   spot: spot,
-                  onTap: () => context.push(
-                    BrowseRoutes.vendorMenu(
-                      vendorId: spot.id,
-                      cartType: 'pickup',
-                    ),
-                  ),
+                  onTap: () => _openVendorMenu(spot.id, cartType: 'pickup'),
                 );
               },
             ),
@@ -694,4 +793,42 @@ class _FoodBrowseScreenState extends ConsumerState<FoodBrowseScreen> {
         ];
     }
   }
+}
+
+DineInRestaurant _dineInFromFoodVendor(BrowseRestaurant r) {
+  final label = r.dineInAvailableLabel?.trim();
+  return DineInRestaurant(
+    id: r.id,
+    name: r.name,
+    cuisine: r.cuisine,
+    rating: r.rating,
+    gradientStart: r.gradientStart,
+    gradientEnd: r.gradientEnd,
+    badge: r.badge,
+    distance: r.distance,
+    status: r.isOpen ? DineInVenueStatus.open : DineInVenueStatus.closed,
+    subtitle: r.area,
+    reviewCount: r.reviewCount,
+    tableMin: r.dineInTablesAvailable ?? 2,
+    statusLabel: label?.isNotEmpty == true
+        ? label!
+        : (r.isOpen ? 'Open now' : 'Closed'),
+    imageUrl: r.displayLogoUrl,
+  );
+}
+
+PickupSpot _pickupSpotFromFoodVendor(BrowseRestaurant r) {
+  final ready = r.readyInMin ?? r.prepTimeMin ?? r.deliveryMin;
+  final cuisine = r.cuisine.trim();
+  return PickupSpot(
+    id: r.id,
+    name: r.name,
+    rating: r.rating,
+    categoryLabel: cuisine.isNotEmpty ? cuisine : 'Food',
+    distance: r.distance,
+    pickupEta: '~$ready min',
+    imageUrl: r.displayLogoUrl,
+    gradientStart: r.gradientStart,
+    gradientEnd: r.gradientEnd,
+  );
 }

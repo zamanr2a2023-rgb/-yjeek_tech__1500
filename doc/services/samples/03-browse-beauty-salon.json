@@ -1,0 +1,68 @@
+﻿{
+    "success":  true,
+    "data":  [
+                 {
+                     "id":  "cmuihhxng000ov9h8ux08mbqs",
+                     "name":  "Glow Beauty Lounge",
+                     "slug":  "glow-beauty",
+                     "description":  "Hair, nails, skin and makeup in Seef",
+                     "logoUrl":  "https://ui-avatars.com/api/?name=GB\u0026background=7752a8\u0026color=fff",
+                     "coverUrl":  null,
+                     "area":  "Seef",
+                     "city":  "Manama",
+                     "latitude":  26.233,
+                     "longitude":  50.556,
+                     "cuisineTags":  [
+
+                                     ],
+                     "rating":  4.8,
+                     "reviewCount":  610,
+                     "deliveryRadiusKm":  null,
+                     "minOrderAmount":  5,
+                     "deliveryFee":  0,
+                     "freeDelivery":  true,
+                     "deliveryTimeMin":  null,
+                     "pickupDiscountPct":  0,
+                     "isBookable":  true,
+                     "supportsDelivery":  false,
+                     "supportsDineIn":  false,
+                     "supportsPickup":  false,
+                     "ageRestricted":  false,
+                     "ageBadge":  null,
+                     "openingHours":  null,
+                     "isActive":  true,
+                     "categoryLabel":  "Beauty \u0026 Salon",
+                     "serviceCategory":  "Beauty \u0026 Salon",
+                     "serviceCategoryId":  "cmu7xoahq000jv970tzlf7du6",
+                     "fromPrice":  12,
+                     "productCount":  1,
+                     "nextAvailableAt":  "2026-09-28T03:00:00.000Z",
+                     "fullyBooked":  false,
+                     "categories":  [
+                                        {
+                                            "id":  "cmu7xoahq000jv970tzlf7du6",
+                                            "name":  "Services",
+                                            "slug":  "services"
+                                        }
+                                    ],
+                     "branches":  [
+
+                                  ],
+                     "distanceKm":  null,
+                     "openStatus":  "UNKNOWN",
+                     "offerBadge":  null,
+                     "pickupOfferBadge":  null,
+                     "pickupEtaMin":  null,
+                     "pickupEtaLabel":  null,
+                     "dineInStatusLabel":  "Open now",
+                     "dineInModeLabel":  "Dine-in",
+                     "dineInTableMin":  2,
+                     "dineInEntryLabel":  "Bookable",
+                     "openHoursTitle":  "Open · 9–21",
+                     "openHoursSubtitle":  "Today",
+                     "bookingModeLabel":  "Walk-in / book",
+                     "atVenue":  false,
+                     "atHome":  false
+                 }
+             ]
+}

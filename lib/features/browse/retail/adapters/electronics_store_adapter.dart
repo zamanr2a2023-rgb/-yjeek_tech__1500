@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yjeek_app/core/constants/maps_config.dart';
 import 'package:yjeek_app/core/providers/app_providers.dart';
 import 'package:yjeek_app/features/browse/model/browse_data.dart';
+import 'package:yjeek_app/features/browse/model/pharmacy_order_modes.dart';
 import 'package:yjeek_app/features/browse/retail/retail_store_config.dart';
 import 'package:yjeek_app/features/cart/model/pending_add_to_cart.dart';
 
@@ -88,21 +89,25 @@ Future<RetailCatalog> loadElectronicsCatalog(
     }
   }
 
-  items = [
-    for (final i in items)
-      i.name.toLowerCase().contains('prescription')
-          ? BrowseMenuItem(
-              id: i.id,
-              name: i.name,
-              description: i.description,
-              price: '—',
-              section: i.section,
-              hasModifiers: i.hasModifiers,
-              imageUrl: i.imageUrl,
-              badges: i.badges,
-            )
-          : i,
-  ];
+  if (storeForUi.isPharmacy) {
+    items = [
+      for (final i in items)
+        isPrescriptionWithoutPrice(badges: i.badges, price: i.price)
+            ? BrowseMenuItem(
+                id: i.id,
+                name: i.name,
+                description: i.description,
+                price: '—',
+                section: i.section,
+                hasModifiers: i.hasModifiers,
+                imageUrl: i.imageUrl,
+                badges: i.badges,
+                nameAr: i.nameAr,
+                descriptionAr: i.descriptionAr,
+              )
+            : i,
+    ];
+  }
 
   return RetailCatalog(
     store: storeForUi,
