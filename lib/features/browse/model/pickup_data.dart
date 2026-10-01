@@ -24,7 +24,10 @@ class PickupSpot {
     required this.distance,
     required this.pickupEta,
     this.promoLabel,
+    this.imageUrl,
     this.imageColor = const Color(0xFFE3F2EB),
+    this.gradientStart,
+    this.gradientEnd,
   });
 
   final String id;
@@ -34,7 +37,10 @@ class PickupSpot {
   final String distance;
   final String pickupEta;
   final String? promoLabel;
+  final String? imageUrl;
   final Color imageColor;
+  final Color? gradientStart;
+  final Color? gradientEnd;
 }
 
 abstract final class PickupData {

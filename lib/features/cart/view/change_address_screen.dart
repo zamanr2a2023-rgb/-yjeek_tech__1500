@@ -14,6 +14,7 @@ import 'package:yjeek_app/features/cart/model/pending_add_to_cart.dart';
 import 'package:yjeek_app/features/cart/view/widgets/cart_flow_widgets.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/account_widgets.dart';
 import 'package:yjeek_app/routes/app_router.dart';
+import 'package:yjeek_app/features/location/provider/delivery_location_provider.dart';
 import 'package:yjeek_app/routes/route_names.dart';
 
 class ChangeAddressScreen extends ConsumerStatefulWidget {
@@ -73,6 +74,8 @@ class _ChangeAddressScreenState extends ConsumerState<ChangeAddressScreen> {
       final addresses = ref.read(addressesRepositoryProvider);
       await addresses.setDefaultAddress(selectedId);
       ref.invalidate(userMeProvider);
+      ref.invalidate(deliveryLocationProvider);
+      await ref.read(deliveryLocationProvider.notifier).refresh(force: true);
 
       // Always re-read cart vendor — stale null skipped the range check before.
       final cart = await ref
@@ -96,6 +99,10 @@ class _ChangeAddressScreenState extends ConsumerState<ChangeAddressScreen> {
         );
         if (!mounted) return;
 
+        if (range.isExtraCharge) {
+          final proceed = await confirmExtraDeliveryCharge(context, range);
+          if (!mounted || !proceed) return;
+        }
         if (range.isOutOfRange) {
           // Replace stack so Change Address / old Out of range don't sit underneath.
           context.go(

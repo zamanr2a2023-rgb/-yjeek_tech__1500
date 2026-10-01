@@ -10,6 +10,7 @@ import 'package:yjeek_app/core/providers/app_providers.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/features/browse/browse_routes.dart';
 import 'package:yjeek_app/features/browse/model/pickup_data.dart';
+import 'package:yjeek_app/features/location/provider/delivery_location_provider.dart';
 import 'package:yjeek_app/features/browse/view/widgets/browse_widgets.dart';
 import 'package:yjeek_app/features/browse/view/widgets/pickup_widgets.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/navigation_widgets.dart';
@@ -62,12 +63,42 @@ class _PickupBrowseScreenState extends ConsumerState<PickupBrowseScreen> {
   Future<void> _load() async {
     setState(() => _loading = true);
     try {
-      final repo = ref.read(pickupVendorsRepositoryProvider);
-      final categories = await repo.fetchFeaturedCategories();
-      final spots = await repo.fetchNearbySpots(
-        query: _query,
-        categorySlug: _categorySlug ?? 'food',
+      final pickupRepo = ref.read(pickupVendorsRepositoryProvider);
+      final foodRepo = ref.read(foodVendorsRepositoryProvider);
+      final categories = await pickupRepo.fetchFeaturedCategories();
+      var delivery = ref.read(deliveryLocationProvider).valueOrNull;
+      if (delivery == null || !delivery.hasCoordinates) {
+        await ref.read(deliveryLocationProvider.notifier).refresh(force: true);
+        delivery = ref.read(deliveryLocationProvider).valueOrNull;
+      }
+      final lat = delivery?.latitude;
+      final lng = delivery?.longitude;
+      final vendors = await foodRepo.fetchVendors(
+        query: _query.trim().isEmpty ? null : _query.trim(),
+        sort: 'distance',
+        latitude: lat,
+        longitude: lng,
+        supportsDelivery: false,
+        supportsPickup: true,
       );
+      final spots = vendors
+          .where((v) => v.supportsPickup)
+          .map(
+            (r) => PickupSpot(
+              id: r.id,
+              name: r.name,
+              rating: r.rating,
+              categoryLabel:
+                  r.cuisine.trim().isNotEmpty ? r.cuisine : 'Food',
+              distance: r.distance,
+              pickupEta:
+                  '~${r.readyInMin ?? r.prepTimeMin ?? r.deliveryMin} min',
+              imageUrl: r.displayLogoUrl,
+              gradientStart: r.gradientStart,
+              gradientEnd: r.gradientEnd,
+            ),
+          )
+          .toList();
       if (!mounted) return;
       setState(() {
         _categories = categories;
@@ -102,7 +133,11 @@ class _PickupBrowseScreenState extends ConsumerState<PickupBrowseScreen> {
   void _openVendor(PickupSpot spot) {
     if (spot.id.isEmpty) return;
     context.push(
-      BrowseRoutes.vendorMenu(vendorId: spot.id, cartType: 'pickup'),
+      BrowseRoutes.vendorMenu(
+        vendorId: spot.id,
+        cartType: 'pickup',
+        returnTo: BrowseRoutes.pickupBrowse(),
+      ),
     );
   }
 

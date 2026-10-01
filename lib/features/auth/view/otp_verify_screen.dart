@@ -11,6 +11,7 @@ import 'package:yjeek_app/core/widgets/custom_button.dart';
 import 'package:yjeek_app/features/auth/utils/require_login.dart';
 import 'package:yjeek_app/features/auth/view/widgets/auth_widgets.dart';
 import 'package:yjeek_app/features/auth/view/widgets/otp_input.dart';
+import 'package:yjeek_app/features/location/provider/delivery_location_provider.dart';
 import 'package:yjeek_app/features/notifications/service/push_notification_service.dart';
 import 'package:yjeek_app/l10n/locale_controller.dart';
 
@@ -111,12 +112,14 @@ class _OtpVerifyScreenState extends ConsumerState<OtpVerifyScreen> {
     }
     setState(() => _verifying = true);
 
+    final deviceId = await ref.read(deviceIdServiceProvider).getOrCreate();
     final result = await ref
         .read(authApiProvider)
         .verifyOtp(
           phone: _apiPhone,
           countryCode: AppStrings.countryCode,
           code: code,
+          deviceId: deviceId,
         );
 
     if (!mounted) return;
@@ -138,6 +141,10 @@ class _OtpVerifyScreenState extends ConsumerState<OtpVerifyScreen> {
       await storage.setLoggedIn(true);
       ref.invalidate(userMeProvider);
       ref.invalidate(homeFeedProvider);
+      ref.invalidate(deliveryLocationProvider);
+      unawaited(
+        ref.read(deliveryLocationProvider.notifier).refresh(force: true),
+      );
       try {
         final me = await ref.read(userRepositoryProvider).fetchMe();
         final lang = me?.profile.language;

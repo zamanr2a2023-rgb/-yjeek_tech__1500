@@ -1,0 +1,66 @@
+﻿{
+    "success":  true,
+    "data":  {
+                 "id":  "cmuihhxn1000iv9h8xis94w3p",
+                 "vendorId":  "cmuihhxm5000av9h8qim3h7vj",
+                 "menuSectionId":  null,
+                 "name":  "Standard Home Cleaning",
+                 "nameAr":  null,
+                 "description":  "Two cleaners for 3 hours covering living areas, bedrooms and bathrooms.",
+                 "descriptionAr":  null,
+                 "specs":  null,
+                 "highlights":  [
+
+                                ],
+                 "tags":  [
+
+                          ],
+                 "has5G":  false,
+                 "price":  15,
+                 "priceFrom":  15,
+                 "compareAtPrice":  null,
+                 "imageUrl":  null,
+                 "imageUrls":  [
+
+                               ],
+                 "prepTimeMin":  180,
+                 "badges":  [
+
+                            ],
+                 "stockQty":  null,
+                 "inStock":  true,
+                 "isAvailable":  true,
+                 "hasModifiers":  false,
+                 "catalogMode":  "MODIFIERS",
+                 "variantCount":  0,
+                 "axes":  [
+
+                          ],
+                 "variants":  [
+
+                              ],
+                 "optionGroups":  [
+
+                                  ],
+                 "addons":  [
+
+                            ],
+                 "restrictions":  {
+                                      "ageRestricted":  false,
+                                      "highValue":  false,
+                                      "age":  null,
+                                      "highValuePod":  null,
+                                      "badges":  [
+
+                                                 ]
+                                  },
+                 "ageRestriction":  {
+                                        "required":  false,
+                                        "minimumAge":  null,
+                                        "champMustCheckId":  false,
+                                        "canPurchase":  true,
+                                        "cta":  null,
+                                        "banner":  null
+                                    }
+             }
+}

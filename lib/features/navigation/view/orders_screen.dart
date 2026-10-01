@@ -5,6 +5,7 @@ import 'package:yjeek_app/core/constants/app_colors.dart';
 import 'package:yjeek_app/core/constants/app_text_styles.dart';
 import 'package:yjeek_app/core/constants/navigation_strings.dart';
 import 'package:yjeek_app/core/providers/app_providers.dart';
+import 'package:yjeek_app/features/auth/utils/require_login.dart';
 import 'package:yjeek_app/features/help/help_routes.dart';
 import 'package:yjeek_app/features/navigation/model/navigation_data.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/navigation_widgets.dart';
@@ -58,6 +59,14 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
   }
 
   Future<void> _load() async {
+    if (!ref.read(storageServiceProvider).hasSession) {
+      if (!mounted) return;
+      setState(() {
+        _orders = const [];
+        _loading = false;
+      });
+      return;
+    }
     setState(() => _loading = true);
     try {
       invalidateCmsBanners(ref);
@@ -119,8 +128,16 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
     }
   }
 
+  Future<void> _signIn() async {
+    if (!await requireLogin(context, ref)) return;
+    if (!mounted) return;
+    await _load();
+  }
+
   @override
   Widget build(BuildContext context) {
+    final loggedIn = ref.watch(storageServiceProvider).hasSession;
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
@@ -161,7 +178,12 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
               child: UiPlacementBanner(placementKey: 'orders_banner'),
             ),
             Expanded(
-              child: RefreshIndicator(
+              child: !loggedIn
+                  ? GuestSignInEmptyState(
+                      message: NavigationStrings.signInToViewYourOrders,
+                      onSignIn: _signIn,
+                    )
+                  : RefreshIndicator(
                 color: AppColors.primary,
                 onRefresh: _load,
                 child: _loading

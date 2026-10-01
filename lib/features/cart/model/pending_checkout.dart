@@ -9,6 +9,9 @@ class PendingCheckout {
     required this.addressId,
     this.dropOffIndices = const {0},
     this.saveDropOff = false,
+    this.voucherId,
+    this.walletAmount,
+    this.referralCreditAmount,
   });
 
   final String paymentId;
@@ -16,6 +19,9 @@ class PendingCheckout {
   final String addressId;
   final Set<int> dropOffIndices;
   final bool saveDropOff;
+  final String? voucherId;
+  final double? walletAmount;
+  final double? referralCreditAmount;
 }
 
 final pendingCheckoutProvider = StateProvider<PendingCheckout?>((ref) => null);

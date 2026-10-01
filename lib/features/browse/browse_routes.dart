@@ -30,12 +30,16 @@ abstract final class BrowseRoutes {
     String? vendorId,
     int tab = 0,
     String? cartType,
+    String? returnTo,
   }) {
     final id = vendorId ?? defaultVendorId;
     final buffer = StringBuffer('${RouteNames.vendorMenu}?id=$id');
     if (tab != 0) buffer.write('&tab=$tab');
     if (cartType != null && cartType.isNotEmpty) {
       buffer.write('&cart=${Uri.encodeQueryComponent(cartType)}');
+    }
+    if (returnTo != null && returnTo.isNotEmpty) {
+      buffer.write('&returnTo=${Uri.encodeComponent(returnTo)}');
     }
     return buffer.toString();
   }

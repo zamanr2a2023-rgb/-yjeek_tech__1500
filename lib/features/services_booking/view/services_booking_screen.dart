@@ -6,6 +6,7 @@ import 'package:yjeek_app/core/providers/app_providers.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/features/browse/model/services_vendors_repository.dart';
 import 'package:yjeek_app/features/cart/model/cart_repository.dart';
+import 'package:yjeek_app/features/cart/model/pending_checkout.dart';
 import 'package:yjeek_app/features/cart/view/widgets/cart_flow_widgets.dart';
 import 'package:yjeek_app/features/services_booking/model/services_booking_data.dart';
 import 'package:yjeek_app/features/services_booking/services_booking_routes.dart';
@@ -26,6 +27,8 @@ class _ServicesBookingScreenState extends ConsumerState<ServicesBookingScreen> {
   bool _slotsLoading = false;
   CartSnapshot _cart = CartSnapshot.empty(CartOrderType.service);
   List<ServiceBookingSlot> _slots = const [];
+  String? _slotReason;
+  Set<String> _fulfillmentModes = const {};
 
   int _selectedDate = 0;
   int _selectedTime = 0;
@@ -113,11 +116,13 @@ class _ServicesBookingScreenState extends ConsumerState<ServicesBookingScreen> {
     final probed = await Future.wait(
       candidates.map((day) async {
         try {
-          final slots = await repo.fetchBookingSlots(
+          final page = await repo.fetchBookingSlots(
             vendorId: vendorId,
             date: day,
+            durationMin: serviceCartDurationMin(_cart.items),
+            staffId: _selectedStaffId,
           );
-          if (slots.any((s) => s.available)) return day;
+          if (page.slots.any((s) => s.available)) return day;
         } catch (_) {}
         return null;
       }),
@@ -149,18 +154,22 @@ class _ServicesBookingScreenState extends ConsumerState<ServicesBookingScreen> {
     if (vendorId == null || vendorId.isEmpty) {
       setState(() {
         _slots = const [];
+        _slotReason = null;
         _selectedTime = 0;
       });
       return;
     }
     setState(() => _slotsLoading = true);
     try {
-      final slots = await ref
+      final page = await ref
           .read(servicesVendorsRepositoryProvider)
           .fetchBookingSlots(
             vendorId: vendorId,
             date: _dates[_selectedDate],
+            durationMin: serviceCartDurationMin(_cart.items),
+            staffId: _selectedStaffId,
           );
+      final slots = page.slots;
       if (!mounted) return;
 
       var selected = _selectedTime;
@@ -180,11 +189,16 @@ class _ServicesBookingScreenState extends ConsumerState<ServicesBookingScreen> {
         selected = firstAvailable >= 0 ? firstAvailable : 0;
       }
 
+      final context = serviceSlotContextFrom(page);
       setState(() {
         _slots = slots;
+        _slotReason = page.reason;
+        _fulfillmentModes = context.fulfillmentModes;
         _selectedTime = selected;
         _slotsLoading = false;
       });
+      ref.read(serviceSlotContextProvider.notifier).state = context;
+      await _syncFulfillmentMode();
 
       if (slots.isNotEmpty && slots[selected].available) {
         await _saveSchedule();
@@ -193,9 +207,16 @@ class _ServicesBookingScreenState extends ConsumerState<ServicesBookingScreen> {
       if (!mounted) return;
       setState(() {
         _slots = const [];
+        _slotReason = null;
         _slotsLoading = false;
       });
     }
+  }
+
+  String? get _selectedStaffId {
+    final id = ref.read(pendingServiceCheckoutProvider)?.specialistId?.trim();
+    if (id == null || id.isEmpty) return null;
+    return id;
   }
 
   Future<void> _saveSchedule() async {
@@ -212,7 +233,20 @@ class _ServicesBookingScreenState extends ConsumerState<ServicesBookingScreen> {
     } catch (_) {}
   }
 
+  Future<void> _syncFulfillmentMode() async {
+    if (_fulfillmentModes.isEmpty) return;
+    final venueOk = serviceModeAllowed(_fulfillmentModes, 'IN_SALON');
+    final homeOk = serviceModeAllowed(_fulfillmentModes, 'AT_HOME');
+    if (_atVenue && !venueOk && homeOk) {
+      await _saveMode(false);
+    } else if (!_atVenue && !homeOk && venueOk) {
+      await _saveMode(true);
+    }
+  }
+
   Future<void> _saveMode(bool atVenue) async {
+    final mode = atVenue ? 'IN_SALON' : 'AT_HOME';
+    if (!serviceModeAllowed(_fulfillmentModes, mode)) return;
     final repo = ref.read(cartRepositoryProvider);
     try {
       final next = await repo.updatePreferences(
@@ -245,6 +279,7 @@ class _ServicesBookingScreenState extends ConsumerState<ServicesBookingScreen> {
               productId: upsell.productId,
             );
       if (mounted) setState(() => _cart = next);
+      await _loadSlots();
     } catch (_) {
     } finally {
       if (mounted) setState(() => _busyProducts.remove(upsell.productId));
@@ -281,11 +316,8 @@ class _ServicesBookingScreenState extends ConsumerState<ServicesBookingScreen> {
       for (final d in _dates)
         BookingDateOption(day: _weekdays[d.weekday - 1], date: d.day),
     ];
-    final slotLabels = _slots.isEmpty
-        ? ServicesBookingData.timeSlots
-        : [for (final s in _slots) s.label];
-    final slotAvailable =
-        _slots.isEmpty ? null : [for (final s in _slots) s.available];
+    final slotLabels = [for (final s in _slots) s.label];
+    final slotAvailable = [for (final s in _slots) s.available];
 
     return CartFlowScaffold(
       title: ServicesBookingStrings.booking,
@@ -316,8 +348,9 @@ class _ServicesBookingScreenState extends ConsumerState<ServicesBookingScreen> {
                     for (final item in _mainServices) ...[
                       ServicesServiceCard(
                         name: item.name,
-                        durationLabel:
-                            '🕒 ${item.durationLabel ?? '45 min'}',
+                        durationLabel: item.durationLabel == null
+                            ? ''
+                            : '🕒 ${item.durationLabel}',
                         priceLabel: item.unitPriceLabel,
                       ),
                       SizedBox(height: 8.h),
@@ -326,6 +359,14 @@ class _ServicesBookingScreenState extends ConsumerState<ServicesBookingScreen> {
                     CartSectionTitle(ServicesBookingStrings.where),
                     ServicesLocationToggle(
                       atVenue: _atVenue,
+                      allowVenue: serviceModeAllowed(
+                        _fulfillmentModes,
+                        'IN_SALON',
+                      ),
+                      allowHome: serviceModeAllowed(
+                        _fulfillmentModes,
+                        'AT_HOME',
+                      ),
                       onChanged: (v) {
                         if (v == _atVenue) return;
                         _saveMode(v);
@@ -357,7 +398,22 @@ class _ServicesBookingScreenState extends ConsumerState<ServicesBookingScreen> {
                           ),
                         ),
                       )
-                    else
+                    else ...[
+                      if (_slots.isEmpty &&
+                          _slotReason != null &&
+                          _slotReason!.isNotEmpty)
+                        Padding(
+                          padding: EdgeInsets.only(bottom: 8.h),
+                          child: Text(
+                            _slotReason!,
+                            style: TextStyle(
+                              fontSize: 13.sp,
+                              fontWeight: FontWeight.w400,
+                              color: const Color(0xFF6B756E),
+                              height: 16 / 13,
+                            ),
+                          ),
+                        ),
                       ServicesTimeGrid(
                         slots: slotLabels,
                         available: slotAvailable,
@@ -370,6 +426,7 @@ class _ServicesBookingScreenState extends ConsumerState<ServicesBookingScreen> {
                           _saveSchedule();
                         },
                       ),
+                    ],
                     if (_cart.upsell.isNotEmpty) ...[
                       SizedBox(height: 14.h),
                       CartSectionTitle(
@@ -391,7 +448,7 @@ class _ServicesBookingScreenState extends ConsumerState<ServicesBookingScreen> {
                           item: BookingUpsellItem(
                             id: upsell.productId,
                             name: upsell.name,
-                            duration: upsell.durationLabel ?? '30 min',
+                            duration: upsell.durationLabel ?? '',
                             price: upsell.priceLabel,
                             emoji: _emojiFor(upsell.name),
                           ),

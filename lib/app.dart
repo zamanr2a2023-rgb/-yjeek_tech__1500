@@ -9,6 +9,8 @@ import 'package:yjeek_app/l10n/app_locales.dart';
 import 'package:yjeek_app/l10n/locale_controller.dart';
 import 'package:yjeek_app/l10n/locale_rebuild.dart';
 import 'package:yjeek_app/routes/app_router.dart';
+import 'package:yjeek_app/features/location/widget/delivery_location_bootstrap.dart';
+import 'package:yjeek_app/routes/resume_location.dart';
 
 final _router = AppRouter.create();
 
@@ -25,6 +27,7 @@ class YjeekApp extends ConsumerWidget {
       splitScreenMode: true,
       builder: (context, child) {
         return MaterialApp.router(
+          restorationScopeId: 'yjeek_app',
           title: 'Yjeek',
           debugShowCheckedModeBanner: false,
           scaffoldMessengerKey: rootScaffoldMessengerKey,
@@ -44,8 +47,13 @@ class YjeekApp extends ConsumerWidget {
                 statusBarIconBrightness: Brightness.dark,
               ),
             );
-            return LocaleTreeRebuilder(
-              child: child ?? const SizedBox.shrink(),
+            return DeliveryLocationBootstrap(
+              child: ResumeLocationBinder(
+                router: _router,
+                child: LocaleTreeRebuilder(
+                  child: child ?? const SizedBox.shrink(),
+                ),
+              ),
             );
           },
         );

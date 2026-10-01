@@ -349,7 +349,9 @@ class _DineInCheckoutScreenState extends ConsumerState<DineInCheckoutScreen> {
                 BillSummaryCard(
                   lines: billLines,
                   showCashback: true,
-                  cashbackAmount: cart?.cashbackLabel,
+                  cashbackAmount: cart?.cashbackPreview?.amountLabel ??
+                      cart?.cashbackLabel,
+                  cashbackMessage: cart?.cashbackPreview?.message,
                 ),
               ],
             ),

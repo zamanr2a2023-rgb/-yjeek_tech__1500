@@ -3,6 +3,7 @@ import 'package:yjeek_app/core/network/api_client.dart';
 import 'package:yjeek_app/core/services/storage_service.dart';
 import 'package:yjeek_app/core/utils/api_media_url.dart';
 import 'package:yjeek_app/features/browse/model/vape_data.dart';
+import 'package:yjeek_app/features/catalog/model/catalog_cart_payload.dart';
 import 'package:yjeek_app/features/cart/model/addresses_repository.dart';
 import 'package:yjeek_app/features/cart/model/delivery_range.dart';
 
@@ -39,10 +40,7 @@ class VapeVendorsRepository {
     String sort = 'popular',
     bool hasOffers = false,
   }) async {
-    final params = <String, String>{
-      'category': 'vape',
-      'sort': sort,
-    };
+    final params = <String, String>{'category': 'vape', 'sort': sort};
     if (hasOffers) params['hasOffers'] = 'true';
     if (query != null && query.trim().isNotEmpty) {
       params['q'] = query.trim();
@@ -105,8 +103,7 @@ class VapeVendorsRepository {
       final sectionName = (section['name'] as String?)?.trim() ?? '';
       if (sectionName.isEmpty) continue;
       final filterAll = category.toLowerCase() == 'all';
-      if (!filterAll &&
-          sectionName.toLowerCase() != category.toLowerCase()) {
+      if (!filterAll && sectionName.toLowerCase() != category.toLowerCase()) {
         continue;
       }
       final products = section['products'];
@@ -138,13 +135,14 @@ class VapeVendorsRepository {
     }
 
     final mapped = vapeProductFromJson(
-          data,
-          storeId: storeId,
-          category: data['menuSectionName'] as String? ??
-              _categoryFromTags(data) ??
-              'Disposables',
-          detailed: true,
-        );
+      data,
+      storeId: storeId,
+      category:
+          data['menuSectionName'] as String? ??
+          _categoryFromTags(data) ??
+          'Disposables',
+      detailed: true,
+    );
     if (mapped == null) {
       throw StateError('Vape product not found: $productId');
     }
@@ -191,7 +189,7 @@ class VapeVendorsRepository {
 
   /// POST /cart/items?type=DELIVERY
   Future<({bool ok, bool vendorConflict, bool outOfRange, String? message})>
-      addToCart({
+  addToCart({
     required String productId,
     required int quantity,
     List<String> optionIds = const [],
@@ -199,6 +197,7 @@ class VapeVendorsRepository {
     bool replaceCart = false,
     String? vendorId,
     String? geofenceTriggerId,
+    String? variantId,
   }) async {
     if (!_storage.hasSession) {
       return (
@@ -209,6 +208,7 @@ class VapeVendorsRepository {
       );
     }
 
+    String? extraChargeMessage;
     final addresses = _addresses;
     if (addresses != null && vendorId != null && vendorId.isNotEmpty) {
       final range = await checkDeliveryRange(
@@ -224,36 +224,42 @@ class VapeVendorsRepository {
           message: 'This address is outside the vendor delivery area',
         );
       }
+      if (range.isExtraCharge) extraChargeMessage = range.warningMessage;
     }
 
     final response = await _apiClient.postJson(
       '/cart/items?type=DELIVERY',
-      {
-        'productId': productId,
-        'quantity': quantity,
-        'replaceCart': replaceCart,
-        if (geofenceTriggerId != null && geofenceTriggerId.isNotEmpty)
-          'geofenceTriggerId': geofenceTriggerId,
-        'options': {
-          if (optionIds.isNotEmpty) 'optionIds': optionIds,
-          if (addonIds.isNotEmpty) 'addonIds': addonIds,
-        },
-      },
+      catalogCartItemBody(
+        productId: productId,
+        quantity: quantity,
+        replaceCart: replaceCart,
+        variantId: variantId,
+        optionIds: optionIds,
+        addonIds: addonIds,
+        geofenceTriggerId: geofenceTriggerId,
+      ),
       bearerToken: _token,
     );
 
     if (response.ok) {
-      return (ok: true, vendorConflict: false, outOfRange: false, message: null);
+      return (
+        ok: true,
+        vendorConflict: false,
+        outOfRange: false,
+        message: extraChargeMessage,
+      );
     }
 
     final error = response.json?['error'];
     final details = error is Map ? error['details'] : null;
     final detailCode = details is Map ? details['code']?.toString() : null;
     final code = error is Map ? error['code']?.toString() : null;
-    final outOfRange = isOutOfDeliveryRangeCode(code) ||
+    final outOfRange =
+        isOutOfDeliveryRangeCode(code) ||
         isOutOfDeliveryRangeCode(detailCode) ||
         isOutOfDeliveryRangeMessage(response.message);
-    final conflict = !outOfRange &&
+    final conflict =
+        !outOfRange &&
         (response.statusCode == 409 ||
             code == 'VENDOR_CART_CONFLICT' ||
             detailCode == 'VENDOR_CART_CONFLICT' ||
@@ -279,8 +285,8 @@ VapeStore? vapeStoreFromVendorJson(Map<String, dynamic> json) {
 
   final reviewCountRaw = json['reviewCount'];
   final reviewCountValue = reviewCountRaw is num ? reviewCountRaw.toInt() : 0;
-  final hasRating = json['hasRating'] == true ||
-      (reviewCountValue > 0 && ratingParsed > 0);
+  final hasRating =
+      json['hasRating'] == true || (reviewCountValue > 0 && ratingParsed > 0);
   final rating = hasRating ? ratingParsed : 0.0;
 
   final area = (json['area'] as String?)?.trim();
@@ -308,7 +314,8 @@ VapeStore? vapeStoreFromVendorJson(Map<String, dynamic> json) {
 
   final offer = json['offerBadge'] ?? json['badgeLabel'] ?? json['promoBadge'];
   final offerBadge = offer?.toString().trim();
-  final imageUrl = resolveApiMediaUrl(json['coverUrl'] as String?) ??
+  final imageUrl =
+      resolveApiMediaUrl(json['coverUrl'] as String?) ??
       resolveApiMediaUrl(json['logoUrl'] as String?) ??
       resolveApiMediaUrlFromList(json['imageUrls']);
 
@@ -328,8 +335,9 @@ VapeStore? vapeStoreFromVendorJson(Map<String, dynamic> json) {
     hasRating: hasRating,
     area: (area != null && area.isNotEmpty) ? area : null,
     imageUrl: imageUrl,
-    offerBadge:
-        (offerBadge != null && offerBadge.isNotEmpty) ? offerBadge : null,
+    offerBadge: (offerBadge != null && offerBadge.isNotEmpty)
+        ? offerBadge
+        : null,
   );
 }
 

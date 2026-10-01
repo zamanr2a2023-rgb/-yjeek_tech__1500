@@ -40,8 +40,13 @@ class _ScheduledPayScreenState extends ConsumerState<ScheduledPayScreen> {
   String _balance = 'Balance BHD 0.000';
   num _totalAmount = 0;
   String _subtotal = '—';
+  String? _discount;
+  String? _pickupDiscount;
   String _delivery = '—';
   String _deliveryLabel = ScheduledOrderFlowStrings.sameDayDelivery;
+  String _serviceFee = '—';
+  String _vat = '—';
+  String? _tip;
   String _total = '—';
   int _windowSeconds = _defaultSeconds;
   List<PayNowOption> _paymentOptions =
@@ -92,7 +97,12 @@ class _ScheduledPayScreenState extends ConsumerState<ScheduledPayScreen> {
 
     var total = 0.0;
     var subtotal = 0.0;
+    var discount = 0.0;
+    var pickupDiscount = 0.0;
     var delivery = 0.0;
+    var serviceFee = 0.0;
+    var vat = 0.0;
+    var tip = 0.0;
     String? vendorName;
     String? method;
     String? deliverySpeed;
@@ -106,7 +116,13 @@ class _ScheduledPayScreenState extends ConsumerState<ScheduledPayScreen> {
       if (order == null) continue;
       total += (parseMoney(order['totalAmount']) ?? 0).toDouble();
       subtotal += (parseMoney(order['subtotal']) ?? 0).toDouble();
+      discount += (parseMoney(order['discountAmount']) ?? 0).toDouble();
+      pickupDiscount +=
+          (parseMoney(order['pickupDiscountAmount']) ?? 0).toDouble();
       delivery += (parseMoney(order['deliveryFee']) ?? 0).toDouble();
+      serviceFee += (parseMoney(order['serviceFee']) ?? 0).toDouble();
+      vat += (parseMoney(order['vatAmount']) ?? 0).toDouble();
+      tip += (parseMoney(order['tipAmount']) ?? 0).toDouble();
       vendorName ??= (order['vendor'] is Map)
           ? (order['vendor'] as Map)['name']?.toString()
           : null;
@@ -148,7 +164,13 @@ class _ScheduledPayScreenState extends ConsumerState<ScheduledPayScreen> {
         _deliveryLabel = scheduledDeliveryFeeLabel(deliverySpeed);
       }
       _subtotal = formatBhd(subtotal);
+      _discount = discount > 0 ? '− ${formatBhd(discount)}' : null;
+      _pickupDiscount =
+          pickupDiscount > 0 ? '− ${formatBhd(pickupDiscount)}' : null;
       _delivery = formatBhd(delivery);
+      _serviceFee = formatBhd(serviceFee);
+      _vat = formatBhd(vat);
+      _tip = tip > 0 ? formatBhd(tip) : null;
       _total = formatBhd(total);
       if (minDeadline != null) {
         final left = minDeadline.difference(DateTime.now()).inSeconds;
@@ -284,8 +306,13 @@ class _ScheduledPayScreenState extends ConsumerState<ScheduledPayScreen> {
           SizedBox(height: 14.h),
           ScheduledPayBreakdownCard(
             subtotal: _subtotal,
+            discount: _discount,
+            pickupDiscount: _pickupDiscount,
             delivery: _delivery,
             deliveryLabel: _deliveryLabel,
+            serviceFee: _serviceFee,
+            vat: _vat,
+            tip: _tip,
             total: _total,
           ),
         ],

@@ -44,6 +44,18 @@ class CategoryItem {
         return L10n.tr('Tech');
       case 'electronics':
         return L10n.tr('Electronics');
+      case 'cosmetics':
+        return L10n.tr('Cosmetics');
+      case 'gifts_flowers':
+      case 'gifts_&_flowers':
+      case 'gifts_and_flowers':
+        return L10n.tr('Gifts & Flowers');
+      case 'health_wellness':
+      case 'health_&_wellness':
+        return L10n.tr('Health & Wellness');
+      case 'jewelry_watches':
+      case 'jewelry_&_watches':
+        return L10n.tr('Jewelry & Watches');
       case 'prosthetics':
         return L10n.tr('Prosthetics');
       case 'stationery':

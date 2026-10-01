@@ -6,7 +6,10 @@ import 'package:go_router/go_router.dart';
 import 'package:yjeek_app/core/constants/app_colors.dart';
 import 'package:yjeek_app/core/providers/app_providers.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
+import 'package:yjeek_app/features/browse/model/services_vendors_repository.dart';
+import 'package:yjeek_app/features/cart/model/addresses_repository.dart';
 import 'package:yjeek_app/features/cart/model/cart_repository.dart';
+import 'package:yjeek_app/features/location/utils/checkout_delivery_address.dart';
 import 'package:yjeek_app/features/cart/model/checkout_helpers.dart';
 import 'package:yjeek_app/features/cart/model/pending_checkout.dart';
 import 'package:yjeek_app/features/cart/view/widgets/cart_flow_widgets.dart';
@@ -137,6 +140,12 @@ class _ServicesReviewScreenState extends ConsumerState<ServicesReviewScreen> {
     final money = <BillLine>[
       BillLine(label: 'Service', value: formatBhd(order['subtotal'])),
       BillLine(label: 'Service fee', value: formatBhd(order['serviceFee'])),
+      if ((order['deliveryFee'] as num?) != null &&
+          (order['deliveryFee'] as num) > 0)
+        BillLine(
+          label: 'Delivery fee',
+          value: formatBhd(order['deliveryFee']),
+        ),
       if ((order['discountAmount'] as num?) != null &&
           (order['discountAmount'] as num) > 0)
         BillLine(
@@ -189,6 +198,20 @@ class _ServicesReviewScreenState extends ConsumerState<ServicesReviewScreen> {
     final people = (cart.partySize ?? 1) == 1
         ? '1 person'
         : '${cart.partySize} people';
+    final address = cart.serviceMode == 'AT_HOME'
+        ? await ref.read(addressesRepositoryProvider).defaultAddress()
+        : null;
+    if (!mounted) return;
+    final slotContext = ref.read(serviceSlotContextProvider);
+    final callOut = cart.serviceMode == 'AT_HOME' && slotContext != null
+        ? matchedCallOutFee(
+            areas: slotContext.coveredAreas,
+            area: address?.area,
+            city: address?.city,
+            slotCallOutFee: slotContext.slotCallOutFee,
+          )
+        : null;
+    final deliveryFee = double.tryParse(cart.delivery?.fee ?? '') ?? 0;
 
     setState(() {
       if (cart.vendorName.isNotEmpty) _vendor = cart.vendorName;
@@ -196,7 +219,11 @@ class _ServicesReviewScreenState extends ConsumerState<ServicesReviewScreen> {
       _when = when;
       _location = location;
       _people = people;
-      _bill = billLinesWithTip(cart, tip);
+      _bill = applyServiceCallOutFee(
+        billLinesWithTip(cart, tip),
+        callOut,
+        summaryDeliveryFee: deliveryFee,
+      );
     });
   }
 
@@ -228,23 +255,35 @@ class _ServicesReviewScreenState extends ConsumerState<ServicesReviewScreen> {
       final cart = await ref
           .read(cartRepositoryProvider)
           .fetchCart(CartOrderType.service);
-      final duration = cart.items
-          .map(
-            (i) =>
-                int.tryParse(
-                  i.durationLabel?.replaceAll(RegExp(r'\D'), '') ?? '',
-                ) ??
-                0,
-          )
-          .fold<int>(0, (a, b) => a + b);
+      final mode = cart.serviceMode ?? 'IN_SALON';
+      DeliveryAddressSnapshot? address;
+      if (mode == 'AT_HOME') {
+        final saved = await ensureSavedAddressForCheckout(context, ref);
+        if (!mounted) return;
+        if (saved == null) {
+          setState(() => _placing = false);
+          return;
+        }
+        address = saved;
+      }
+      final extras = serviceCheckoutExtras(
+        serviceFulfillmentMode: mode,
+        scheduledAt: cart.serviceScheduledAt,
+        addressId: address?.id,
+        serviceStaffId: pending.specialistId,
+        serviceDurationMin: serviceCartDurationMin(cart.items),
+      );
       final result = await ref.read(cartRepositoryProvider).checkout(
             type: CartOrderType.service,
             paymentMethod: paymentMethodApiValue(pending.paymentId),
             tipAmount: pending.tipAmount,
-            serviceFulfillmentMode: cart.serviceMode ?? 'IN_SALON',
-            serviceStaffId: pending.specialistId,
+            addressId: extras['addressId'] as String?,
+            scheduledAt: cart.serviceScheduledAt,
+            serviceFulfillmentMode:
+                extras['serviceFulfillmentMode'] as String?,
+            serviceStaffId: extras['serviceStaffId'] as String?,
             servicePeopleCount: cart.partySize ?? 1,
-            serviceDurationMin: duration >= 15 ? duration : 45,
+            serviceDurationMin: extras['serviceDurationMin'] as int?,
           );
       if (!mounted) return;
       _leaving = true;

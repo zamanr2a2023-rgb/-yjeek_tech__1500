@@ -473,14 +473,24 @@ class ScheduledPayBreakdownCard extends StatelessWidget {
   const ScheduledPayBreakdownCard({
     super.key,
     this.subtotal,
+    this.discount,
+    this.pickupDiscount,
     this.delivery,
     this.deliveryLabel,
+    this.serviceFee,
+    this.vat,
+    this.tip,
     this.total,
   });
 
   final String? subtotal;
+  final String? discount;
+  final String? pickupDiscount;
   final String? delivery;
   final String? deliveryLabel;
+  final String? serviceFee;
+  final String? vat;
+  final String? tip;
   final String? total;
 
   @override
@@ -495,14 +505,17 @@ class ScheduledPayBreakdownCard extends StatelessWidget {
       ),
       child: Column(
         children: [
-          _row(
-            ScheduledOrderFlowStrings.subtotal,
-            subtotal ?? '—',
-          ),
+          _row(ScheduledOrderFlowStrings.subtotal, subtotal ?? '—'),
+          if (discount != null) _row(ScheduledOrderFlowStrings.discount, discount!),
+          if (pickupDiscount != null)
+            _row(ScheduledOrderFlowStrings.pickupDiscount, pickupDiscount!),
           _row(
             deliveryLabel ?? ScheduledOrderFlowStrings.sameDayDelivery,
             delivery ?? '—',
           ),
+          _row(ScheduledOrderFlowStrings.serviceFee, serviceFee ?? '—'),
+          _row(ScheduledOrderFlowStrings.vat, vat ?? '—'),
+          if (tip != null) _row(ScheduledOrderFlowStrings.tip, tip!),
           Divider(height: 16.h, thickness: 1, color: const Color(0xFFE2E8DD)),
           _row(
             ScheduledOrderFlowStrings.totalToPay,

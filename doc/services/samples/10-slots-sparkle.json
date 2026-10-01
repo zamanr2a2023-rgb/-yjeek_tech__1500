@@ -1,0 +1,135 @@
+﻿{
+    "success":  true,
+    "data":  {
+                 "vendorId":  "cmuihhxm5000av9h8qim3h7vj",
+                 "bookable":  true,
+                 "date":  "2026-09-28",
+                 "staffId":  null,
+                 "durationMin":  180,
+                 "bufferMin":  30,
+                 "bookingWindowDays":  30,
+                 "coveredAreas":  [
+                                      {
+                                          "key":  "seef",
+                                          "label":  "Seef",
+                                          "callOutFee":  0
+                                      },
+                                      {
+                                          "key":  "manama",
+                                          "label":  "Manama",
+                                          "callOutFee":  1.5
+                                      },
+                                      {
+                                          "key":  "juffair",
+                                          "label":  "Juffair",
+                                          "callOutFee":  2
+                                      }
+                                  ],
+                 "slots":  [
+                               {
+                                   "id":  "slot_2026-09-28T03:00:00.000Z",
+                                   "startAt":  "2026-09-28T03:00:00.000Z",
+                                   "endAt":  "2026-09-28T06:00:00.000Z",
+                                   "label":  "9:00",
+                                   "durationMin":  180,
+                                   "bufferMin":  30,
+                                   "available":  true,
+                                   "remainingCapacity":  2,
+                                   "fulfillmentModes":  [
+                                                            "AT_HOME"
+                                                        ]
+                               },
+                               {
+                                   "id":  "slot_2026-09-28T04:00:00.000Z",
+                                   "startAt":  "2026-09-28T04:00:00.000Z",
+                                   "endAt":  "2026-09-28T07:00:00.000Z",
+                                   "label":  "10:00",
+                                   "durationMin":  180,
+                                   "bufferMin":  30,
+                                   "available":  true,
+                                   "remainingCapacity":  2,
+                                   "fulfillmentModes":  [
+                                                            "AT_HOME"
+                                                        ]
+                               },
+                               {
+                                   "id":  "slot_2026-09-28T05:00:00.000Z",
+                                   "startAt":  "2026-09-28T05:00:00.000Z",
+                                   "endAt":  "2026-09-28T08:00:00.000Z",
+                                   "label":  "11:00",
+                                   "durationMin":  180,
+                                   "bufferMin":  30,
+                                   "available":  true,
+                                   "remainingCapacity":  2,
+                                   "fulfillmentModes":  [
+                                                            "AT_HOME"
+                                                        ]
+                               },
+                               {
+                                   "id":  "slot_2026-09-28T07:00:00.000Z",
+                                   "startAt":  "2026-09-28T07:00:00.000Z",
+                                   "endAt":  "2026-09-28T10:00:00.000Z",
+                                   "label":  "1:00 PM",
+                                   "durationMin":  180,
+                                   "bufferMin":  30,
+                                   "available":  true,
+                                   "remainingCapacity":  2,
+                                   "fulfillmentModes":  [
+                                                            "AT_HOME"
+                                                        ]
+                               },
+                               {
+                                   "id":  "slot_2026-09-28T08:00:00.000Z",
+                                   "startAt":  "2026-09-28T08:00:00.000Z",
+                                   "endAt":  "2026-09-28T11:00:00.000Z",
+                                   "label":  "2:00 PM",
+                                   "durationMin":  180,
+                                   "bufferMin":  30,
+                                   "available":  true,
+                                   "remainingCapacity":  2,
+                                   "fulfillmentModes":  [
+                                                            "AT_HOME"
+                                                        ]
+                               },
+                               {
+                                   "id":  "slot_2026-09-28T09:00:00.000Z",
+                                   "startAt":  "2026-09-28T09:00:00.000Z",
+                                   "endAt":  "2026-09-28T12:00:00.000Z",
+                                   "label":  "3:00 PM",
+                                   "durationMin":  180,
+                                   "bufferMin":  30,
+                                   "available":  true,
+                                   "remainingCapacity":  2,
+                                   "fulfillmentModes":  [
+                                                            "AT_HOME"
+                                                        ]
+                               },
+                               {
+                                   "id":  "slot_2026-09-28T10:00:00.000Z",
+                                   "startAt":  "2026-09-28T10:00:00.000Z",
+                                   "endAt":  "2026-09-28T13:00:00.000Z",
+                                   "label":  "4:00 PM",
+                                   "durationMin":  180,
+                                   "bufferMin":  30,
+                                   "available":  true,
+                                   "remainingCapacity":  2,
+                                   "fulfillmentModes":  [
+                                                            "AT_HOME"
+                                                        ]
+                               },
+                               {
+                                   "id":  "slot_2026-09-28T11:00:00.000Z",
+                                   "startAt":  "2026-09-28T11:00:00.000Z",
+                                   "endAt":  "2026-09-28T14:00:00.000Z",
+                                   "label":  "5:00 PM",
+                                   "durationMin":  180,
+                                   "bufferMin":  30,
+                                   "available":  true,
+                                   "remainingCapacity":  2,
+                                   "fulfillmentModes":  [
+                                                            "AT_HOME"
+                                                        ]
+                               }
+                           ]
+             }
+}

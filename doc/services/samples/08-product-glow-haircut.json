@@ -1,0 +1,130 @@
+﻿{
+    "success":  true,
+    "data":  {
+                 "id":  "cmuihhxnw0012v9h8uo6y0uus",
+                 "vendorId":  "cmuihhxng000ov9h8ux08mbqs",
+                 "menuSectionId":  null,
+                 "name":  "Haircut \u0026 Blow Dry",
+                 "nameAr":  null,
+                 "description":  "Consultation, wash, cut and a finished blow dry with a senior stylist.",
+                 "descriptionAr":  null,
+                 "specs":  null,
+                 "highlights":  [
+
+                                ],
+                 "tags":  [
+
+                          ],
+                 "has5G":  false,
+                 "price":  12,
+                 "priceFrom":  12,
+                 "compareAtPrice":  null,
+                 "imageUrl":  null,
+                 "imageUrls":  [
+
+                               ],
+                 "prepTimeMin":  60,
+                 "badges":  [
+
+                            ],
+                 "stockQty":  null,
+                 "inStock":  true,
+                 "isAvailable":  true,
+                 "hasModifiers":  true,
+                 "catalogMode":  "MODIFIERS",
+                 "variantCount":  0,
+                 "axes":  [
+
+                          ],
+                 "variants":  [
+
+                              ],
+                 "optionGroups":  [
+                                      {
+                                          "id":  "cmuihhxob0014v9h8h22xz7zq",
+                                          "name":  "Hair length",
+                                          "minSelect":  1,
+                                          "maxSelect":  1,
+                                          "isRequired":  true,
+                                          "sortOrder":  0,
+                                          "options":  [
+                                                          {
+                                                              "id":  "cmuihhxob0015v9h8i1e9whea",
+                                                              "name":  "Short",
+                                                              "priceDelta":  0,
+                                                              "imageUrl":  null,
+                                                              "isDefault":  true,
+                                                              "sortOrder":  0
+                                                          },
+                                                          {
+                                                              "id":  "cmuihhxob0016v9h8vi6jxmjv",
+                                                              "name":  "Medium",
+                                                              "priceDelta":  3,
+                                                              "imageUrl":  null,
+                                                              "isDefault":  false,
+                                                              "sortOrder":  1
+                                                          },
+                                                          {
+                                                              "id":  "cmuihhxob0017v9h8fam6dwxf",
+                                                              "name":  "Long",
+                                                              "priceDelta":  6,
+                                                              "imageUrl":  null,
+                                                              "isDefault":  false,
+                                                              "sortOrder":  2
+                                                          },
+                                                          {
+                                                              "id":  "cmuihhxob0018v9h8rwatur4r",
+                                                              "name":  "Extra long",
+                                                              "priceDelta":  10,
+                                                              "imageUrl":  null,
+                                                              "isDefault":  false,
+                                                              "sortOrder":  3
+                                                          }
+                                                      ]
+                                      }
+                                  ],
+                 "addons":  [
+                                {
+                                    "id":  "cmuihhxoh0019v9h8wi1u26g0",
+                                    "name":  "Treatment mask",
+                                    "nameAr":  null,
+                                    "price":  8,
+                                    "imageUrl":  null,
+                                    "sortOrder":  0
+                                },
+                                {
+                                    "id":  "cmuihhxoh001av9h8slqyso29",
+                                    "name":  "Scalp massage",
+                                    "nameAr":  null,
+                                    "price":  5,
+                                    "imageUrl":  null,
+                                    "sortOrder":  1
+                                },
+                                {
+                                    "id":  "cmuihhxoh001bv9h8lyenbzqg",
+                                    "name":  "Styling upgrade",
+                                    "nameAr":  null,
+                                    "price":  4,
+                                    "imageUrl":  null,
+                                    "sortOrder":  2
+                                }
+                            ],
+                 "restrictions":  {
+                                      "ageRestricted":  false,
+                                      "highValue":  false,
+                                      "age":  null,
+                                      "highValuePod":  null,
+                                      "badges":  [
+
+                                                 ]
+                                  },
+                 "ageRestriction":  {
+                                        "required":  false,
+                                        "minimumAge":  null,
+                                        "champMustCheckId":  false,
+                                        "canPurchase":  true,
+                                        "cta":  null,
+                                        "banner":  null
+                                    }
+             }
+}

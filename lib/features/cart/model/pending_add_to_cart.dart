@@ -3,13 +3,7 @@ import 'package:yjeek_app/core/providers/app_providers.dart';
 import 'package:yjeek_app/core/providers/shell_provider.dart';
 
 /// Which cart API to use when retrying a pending add.
-enum PendingCartVertical {
-  food,
-  dineIn,
-  electronics,
-  vape,
-  services,
-}
+enum PendingCartVertical { food, dineIn, electronics, vape, services }
 
 /// Add-to-cart deferred until the user logs in or picks an in-range address.
 class PendingAddToCart {
@@ -18,6 +12,7 @@ class PendingAddToCart {
     this.quantity = 1,
     this.optionIds = const [],
     this.addonIds = const [],
+    this.variantId,
     this.cartType = 'DELIVERY',
     this.vendorId,
     this.geofenceTriggerId,
@@ -30,6 +25,9 @@ class PendingAddToCart {
   final int quantity;
   final List<String> optionIds;
   final List<String> addonIds;
+
+  /// Set for a variant SKU. Null for Food and other modifier lines.
+  final String? variantId;
   final String cartType;
   final String? vendorId;
   final String? geofenceTriggerId;
@@ -43,7 +41,9 @@ class PendingAddToCart {
   bool get isPickup => cartType.toUpperCase() == 'PICKUP';
 }
 
-final pendingAddToCartProvider = StateProvider<PendingAddToCart?>((ref) => null);
+final pendingAddToCartProvider = StateProvider<PendingAddToCart?>(
+  (ref) => null,
+);
 
 /// Standalone return path when login was required without a full pending payload.
 final postLoginReturnPathProvider = StateProvider<String?>((ref) => null);
@@ -66,20 +66,17 @@ void clearPostLoginReturnPath(WidgetRef ref) {
 
 /// Retries a stored add after login or after the user saved an in-range address.
 Future<({bool ok, bool outOfRange, bool vendorConflict, String? message})>
-    retryPendingAddToCart(WidgetRef ref) async {
+retryPendingAddToCart(WidgetRef ref) async {
   final pending = ref.read(pendingAddToCartProvider);
   if (pending == null) {
-    return (
-      ok: false,
-      outOfRange: false,
-      vendorConflict: false,
-      message: null,
-    );
+    return (ok: false, outOfRange: false, vendorConflict: false, message: null);
   }
 
   switch (pending.vertical) {
     case PendingCartVertical.food:
-      final result = await ref.read(foodVendorsRepositoryProvider).addToCart(
+      final result = await ref
+          .read(foodVendorsRepositoryProvider)
+          .addToCart(
             productId: pending.productId,
             quantity: pending.quantity,
             optionIds: pending.optionIds,
@@ -101,7 +98,9 @@ Future<({bool ok, bool outOfRange, bool vendorConflict, String? message})>
       );
 
     case PendingCartVertical.dineIn:
-      final result = await ref.read(dineInVendorsRepositoryProvider).addToCart(
+      final result = await ref
+          .read(dineInVendorsRepositoryProvider)
+          .addToCart(
             productId: pending.productId,
             quantity: pending.quantity,
             optionIds: pending.optionIds,
@@ -120,14 +119,16 @@ Future<({bool ok, bool outOfRange, bool vendorConflict, String? message})>
       );
 
     case PendingCartVertical.electronics:
-      final result =
-          await ref.read(electronicsVendorsRepositoryProvider).addToCart(
-                productId: pending.productId,
-                quantity: pending.quantity,
-                optionIds: pending.optionIds,
-                addonIds: pending.addonIds,
-                replaceCart: pending.replaceCart,
-              );
+      final result = await ref
+          .read(electronicsVendorsRepositoryProvider)
+          .addToCart(
+            productId: pending.productId,
+            quantity: pending.quantity,
+            optionIds: pending.optionIds,
+            addonIds: pending.addonIds,
+            replaceCart: pending.replaceCart,
+            variantId: pending.variantId,
+          );
       if (result.ok) {
         clearPendingAddToCart(ref);
         _markCartUpdated(ref, pending);
@@ -140,7 +141,9 @@ Future<({bool ok, bool outOfRange, bool vendorConflict, String? message})>
       );
 
     case PendingCartVertical.vape:
-      final result = await ref.read(vapeVendorsRepositoryProvider).addToCart(
+      final result = await ref
+          .read(vapeVendorsRepositoryProvider)
+          .addToCart(
             productId: pending.productId,
             quantity: pending.quantity,
             optionIds: pending.optionIds,
@@ -148,6 +151,7 @@ Future<({bool ok, bool outOfRange, bool vendorConflict, String? message})>
             replaceCart: pending.replaceCart,
             vendorId: pending.vendorId,
             geofenceTriggerId: pending.geofenceTriggerId,
+            variantId: pending.variantId,
           );
       if (result.ok) {
         clearPendingAddToCart(ref);
@@ -161,14 +165,15 @@ Future<({bool ok, bool outOfRange, bool vendorConflict, String? message})>
       );
 
     case PendingCartVertical.services:
-      final result =
-          await ref.read(servicesVendorsRepositoryProvider).addToCart(
-                productId: pending.productId,
-                quantity: pending.quantity,
-                optionIds: pending.optionIds,
-                addonIds: pending.addonIds,
-                replaceCart: pending.replaceCart,
-              );
+      final result = await ref
+          .read(servicesVendorsRepositoryProvider)
+          .addToCart(
+            productId: pending.productId,
+            quantity: pending.quantity,
+            optionIds: pending.optionIds,
+            addonIds: pending.addonIds,
+            replaceCart: pending.replaceCart,
+          );
       if (result.ok) {
         clearPendingAddToCart(ref);
         _markCartUpdated(ref, pending);
@@ -186,7 +191,9 @@ void _markCartUpdated(WidgetRef ref, PendingAddToCart pending) {
   final type = pending.cartType.toUpperCase();
   switch (pending.vertical) {
     case PendingCartVertical.food:
-      ref.read(shellProvider.notifier).markCartUpdated(
+      ref
+          .read(shellProvider.notifier)
+          .markCartUpdated(
             delivery: type == 'DELIVERY',
             pickup: type == 'PICKUP',
             dineIn: type == 'DINE_IN',

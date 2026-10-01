@@ -5,6 +5,9 @@ import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/core/widgets/app_network_image.dart';
 import 'package:yjeek_app/features/browse/model/browse_data.dart';
 import 'package:yjeek_app/features/browse/model/electronics_data.dart';
+import 'package:yjeek_app/features/browse/model/pharmacy_order_modes.dart';
+
+export 'package:yjeek_app/features/browse/model/pharmacy_order_modes.dart';
 
 const Color _kMintBg = Color(0xFFE8F5E9);
 const Color _kTile = Color(0xFFE8F5E9);
@@ -227,18 +230,16 @@ class FashionVendorOrderMeta extends StatelessWidget {
   }
 }
 
-enum PharmacyDeliveryMode { deliverNow, scheduled }
-
-/// Pharmacy.md — Deliver Now / Scheduled + stats + outside-radius banner.
+/// Pharmacy order-modes — Deliver Now / Scheduled. Amounts come from the API.
 class PharmacyVendorOrderMeta extends StatelessWidget {
   const PharmacyVendorOrderMeta({
     super.key,
-    required this.store,
     required this.mode,
     required this.onModeChanged,
+    this.modes,
   });
 
-  final ElectronicsStore store;
+  final PharmacyOrderModes? modes;
   final PharmacyDeliveryMode mode;
   final ValueChanged<PharmacyDeliveryMode> onModeChanged;
 
@@ -247,10 +248,13 @@ class PharmacyVendorOrderMeta extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final onDemandOk = store.onDemandInRadius;
+    final deliverNow = modes?.deliverNow;
+    final onDemandOk = deliverNow?.enabled == true;
+    final faded = deliverNow?.faded == true;
     final effective = (!onDemandOk && mode == PharmacyDeliveryMode.deliverNow)
         ? PharmacyDeliveryMode.scheduled
         : mode;
+    final banner = modes?.banner;
 
     return Padding(
       padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 4.h),
@@ -264,6 +268,7 @@ class PharmacyVendorOrderMeta extends StatelessWidget {
                   label: 'Deliver Now',
                   selected: effective == PharmacyDeliveryMode.deliverNow,
                   enabled: onDemandOk,
+                  faded: faded,
                   onTap: onDemandOk
                       ? () => onModeChanged(PharmacyDeliveryMode.deliverNow)
                       : null,
@@ -280,7 +285,7 @@ class PharmacyVendorOrderMeta extends StatelessWidget {
               ),
             ],
           ),
-          if (!onDemandOk) ...[
+          if (banner != null && banner.isNotEmpty) ...[
             SizedBox(height: 10.h),
             Container(
               width: double.infinity,
@@ -290,7 +295,7 @@ class PharmacyVendorOrderMeta extends StatelessWidget {
                 borderRadius: BorderRadius.circular(8.r),
               ),
               child: Text(
-                "You are outside this pharmacy's instant delivery area, scheduled delivery only.",
+                banner,
                 style: AppTextStyles.caption(color: _warnText).copyWith(
                   fontWeight: FontWeight.w500,
                   fontSize: 12.sp,
@@ -300,7 +305,7 @@ class PharmacyVendorOrderMeta extends StatelessWidget {
             ),
           ],
           SizedBox(height: 14.h),
-          _StatsRow(store: store, mode: effective),
+          _StatsRow(modes: modes, mode: effective),
         ],
       ),
     );
@@ -312,12 +317,14 @@ class _ModePill extends StatelessWidget {
     required this.label,
     required this.selected,
     required this.enabled,
+    this.faded = false,
     this.onTap,
   });
 
   final String label;
   final bool selected;
   final bool enabled;
+  final bool faded;
   final VoidCallback? onTap;
 
   @override
@@ -339,7 +346,7 @@ class _ModePill extends StatelessWidget {
             : _kBorder;
 
     return Opacity(
-      opacity: enabled ? 1 : 0.85,
+      opacity: faded || !enabled ? 0.45 : 1,
       child: GestureDetector(
         onTap: enabled ? onTap : null,
         child: Container(
@@ -363,10 +370,15 @@ class _ModePill extends StatelessWidget {
   }
 }
 
-class _StatsRow extends StatelessWidget {
-  const _StatsRow({required this.store, required this.mode});
+String _bhd(double? amount) {
+  if (amount == null) return '—';
+  return 'BHD ${amount.toStringAsFixed(3)}';
+}
 
-  final ElectronicsStore store;
+class _StatsRow extends StatelessWidget {
+  const _StatsRow({required this.modes, required this.mode});
+
+  final PharmacyOrderModes? modes;
   final PharmacyDeliveryMode mode;
 
   @override
@@ -379,27 +391,21 @@ class _StatsRow extends StatelessWidget {
     late final String l3;
 
     if (mode == PharmacyDeliveryMode.deliverNow) {
-      final eta = store.deliveryTimeMin ?? 25;
-      final fee = store.deliveryFee ?? 0.5;
-      final min = store.minOrderAmount ?? 3;
-      v1 = '$eta min';
+      final now = modes?.deliverNow;
+      v1 = now?.etaMin != null ? '${now!.etaMin} min' : '—';
       l1 = 'Arrives in';
-      v2 = 'BHD ${fee.toStringAsFixed(3)}';
+      v2 = _bhd(now?.deliveryFee);
       l2 = 'Delivery fee';
-      v3 = min == min.roundToDouble()
-          ? 'BHD ${min.toStringAsFixed(0)}'
-          : 'BHD ${min.toStringAsFixed(3)}';
+      v3 = _bhd(now?.minOrderAmount);
       l3 = 'Min order';
     } else {
-      final fee = store.scheduledDeliveryFee ?? 1.0;
-      final min = store.scheduledMinOrderAmount ?? 5;
-      v1 = 'Tomorrow';
+      final scheduled = modes?.scheduled;
+      final slot = scheduled?.earliestSlotLabel;
+      v1 = (slot != null && slot.isNotEmpty) ? slot : '—';
       l1 = 'Earliest slot';
-      v2 = 'BHD ${fee.toStringAsFixed(3)}';
+      v2 = _bhd(scheduled?.shippingFee);
       l2 = 'Shipping';
-      v3 = min == min.roundToDouble()
-          ? 'BHD ${min.toStringAsFixed(0)}'
-          : 'BHD ${min.toStringAsFixed(3)}';
+      v3 = _bhd(scheduled?.minOrderAmount);
       l3 = 'Min order';
     }
 
@@ -501,37 +507,115 @@ class FashionVendorViewToggle extends StatelessWidget {
     super.key,
     required this.isGridView,
     required this.onChanged,
+    this.docked = false,
   });
 
   final bool isGridView;
   final ValueChanged<bool> onChanged;
 
+  /// Sits on the category-chip row instead of its own line.
+  final bool docked;
+
   @override
   Widget build(BuildContext context) {
+    final toggle = Container(
+      padding: EdgeInsets.all(2.w),
+      decoration: BoxDecoration(
+        color: _kMintBg,
+        borderRadius: BorderRadius.circular(8.r),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _Seg(
+            icon: Icons.grid_view_rounded,
+            active: isGridView,
+            onTap: () => onChanged(true),
+          ),
+          _Seg(
+            icon: Icons.view_list_rounded,
+            active: !isGridView,
+            onTap: () => onChanged(false),
+          ),
+        ],
+      ),
+    );
+    if (docked) return toggle;
     return Align(
       alignment: Alignment.centerRight,
       child: Padding(
         padding: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 4.h),
-        child: Container(
-          padding: EdgeInsets.all(2.w),
-          decoration: BoxDecoration(
-            color: _kMintBg,
-            borderRadius: BorderRadius.circular(8.r),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _Seg(
-                icon: Icons.grid_view_rounded,
-                active: isGridView,
-                onTap: () => onChanged(true),
-              ),
-              _Seg(
-                icon: Icons.view_list_rounded,
-                active: !isGridView,
-                onTap: () => onChanged(false),
-              ),
-            ],
+        child: toggle,
+      ),
+    );
+  }
+}
+
+/// Compact green bar after the store header scrolls away.
+class RetailVendorCollapsedBar extends StatelessWidget {
+  const RetailVendorCollapsedBar({
+    super.key,
+    required this.store,
+    required this.onBack,
+    this.onPinTap,
+  });
+
+  final ElectronicsStore store;
+  final VoidCallback onBack;
+  final VoidCallback? onPinTap;
+
+  static double contentHeight(BuildContext context) {
+    return MediaQuery.paddingOf(context).top + 8.h + 36.w + 8.h;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ColoredBox(
+      color: AppColors.primary,
+      child: Padding(
+        padding: EdgeInsets.only(top: MediaQuery.paddingOf(context).top),
+        child: SizedBox(
+          height: 8.h + 36.w + 8.h,
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(12.w, 8.h, 12.w, 8.h),
+            child: Row(
+              children: [
+                _CircleIcon(
+                  icon: Icons.chevron_left_rounded,
+                  onTap: onBack,
+                ),
+                SizedBox(width: 10.w),
+                Expanded(
+                  child: Text(
+                    store.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTextStyles.labelMedium(color: AppColors.white)
+                        .copyWith(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 15.sp,
+                    ),
+                  ),
+                ),
+                if (store.hasRating && store.rating > 0) ...[
+                  Icon(Icons.star_rounded, size: 14.sp, color: _kStar),
+                  SizedBox(width: 2.w),
+                  Text(
+                    store.rating.toStringAsFixed(1),
+                    style: AppTextStyles.labelSmall(color: AppColors.white)
+                        .copyWith(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13.sp,
+                    ),
+                  ),
+                  SizedBox(width: 8.w),
+                ],
+                _CircleIcon(
+                  icon: Icons.location_on_outlined,
+                  onTap: onPinTap ?? () {},
+                ),
+              ],
+            ),
           ),
         ),
       ),

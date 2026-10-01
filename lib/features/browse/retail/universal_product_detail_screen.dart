@@ -7,16 +7,25 @@ import 'package:yjeek_app/core/providers/app_providers.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/core/widgets/app_network_image.dart';
 import 'package:yjeek_app/features/auth/utils/require_login.dart';
+import 'package:yjeek_app/core/utils/api_media_url.dart';
 import 'package:yjeek_app/features/browse/model/browse_data.dart';
 import 'package:yjeek_app/features/browse/retail/product_detail_strategies.dart';
+import 'package:yjeek_app/features/browse/utils/vape_age_gate.dart';
 import 'package:yjeek_app/features/browse/view/widgets/item_detail_widgets.dart';
+import 'package:yjeek_app/features/catalog/model/catalog_product.dart';
+import 'package:yjeek_app/features/catalog/model/variant_match.dart';
+import 'package:yjeek_app/features/catalog/widgets/variant_axis_section.dart';
 import 'package:yjeek_app/features/browse/view/widgets/vape_widgets.dart';
 import 'package:yjeek_app/features/cart/model/delivery_range.dart';
 import 'package:yjeek_app/features/cart/model/pending_add_to_cart.dart';
 import 'package:yjeek_app/features/cart/view/widgets/cart_flow_widgets.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/navigation_widgets.dart';
 
-/// Shared product customize page for Electronics / Vape / Services.
+/// Shared product customize page.
+///
+/// `catalogMode == VARIANTS` shows axes and prices the matched SKU.
+/// Every other mode, including Food-style `MODIFIERS` and services with no
+/// catalog payload, keeps option groups. The branch is not the store type.
 class UniversalProductDetailScreen extends ConsumerStatefulWidget {
   const UniversalProductDetailScreen({
     super.key,
@@ -41,21 +50,42 @@ class _UniversalProductDetailScreenState
   int _quantity = 1;
   final Map<int, Set<int>> _selectedOptionsByGroup = {};
   final Set<int> _selectedAddons = {};
+
+  /// Axis key → selected value key. Variant catalogs only.
+  final Map<String, String> _selectedAxisValues = {};
+  CatalogVariant? _selectedVariant;
   final Set<int> _collapsedGroups = {};
   bool _addonsExpanded = true;
   bool _isGridView = true;
   bool _loading = true;
   bool _adding = false;
   bool _loadError = false;
+  bool _agePromptShown = false;
+  bool _ageFlowOpen = false;
 
   UniversalProductDetail? _detail;
 
   ProductDetailStrategy get strategy => widget.strategy;
 
+  bool get _isVariantMode => _detail?.usesVariantSelection ?? false;
+
   bool get _hasCustomize {
     final d = _detail;
     if (d == null) return false;
+    if (d.usesVariantSelection) {
+      return (d.catalog?.axes.isNotEmpty ?? false) || d.addons.isNotEmpty;
+    }
     return d.optionGroups.isNotEmpty || d.addons.isNotEmpty;
+  }
+
+  bool get _variantReady {
+    final detail = _detail;
+    if (detail == null || !detail.usesVariantSelection) return false;
+    return variantSelectionReady(
+      axes: detail.catalog?.axes ?? const [],
+      selectedAttributes: _selectedAxisValues,
+      matched: _selectedVariant,
+    );
   }
 
   @override
@@ -92,11 +122,14 @@ class _UniversalProductDetailScreenState
           );
         }
         _selectedAddons.clear();
+        _selectedAxisValues.clear();
+        _selectedVariant = null;
         _collapsedGroups.clear();
         _addonsExpanded = true;
         _quantity = 1;
         _loading = false;
       });
+      _maybePromptAgeVerification();
     } catch (_) {
       if (mounted) {
         setState(() {
@@ -107,28 +140,104 @@ class _UniversalProductDetailScreenState
     }
   }
 
-  String get _displayPrice {
+  double get _selectedAddonTotal {
     final item = _detail;
-    if (item == null) return '0.000';
-    final base = double.tryParse(item.price) ?? 0;
-    final optionExtra = optionSelectionsExtraPrice(
-      item.optionGroups,
-      _selectedOptionsByGroup,
-    );
+    if (item == null) return 0;
     var addonTotal = 0.0;
     for (final index in _selectedAddons) {
       if (index >= 0 && index < item.addons.length) {
         addonTotal += double.tryParse(item.addons[index].price) ?? 0;
       }
     }
-    return ((base + optionExtra + addonTotal) * _quantity).toStringAsFixed(3);
+    return addonTotal;
+  }
+
+  /// Addon ids for the current extras selection. The chips stay index-based
+  /// so the existing extras block is unchanged.
+  List<String> get _selectedAddonIds {
+    final item = _detail;
+    if (item == null) return const [];
+    final ids = <String>[];
+    for (final index in _selectedAddons) {
+      if (index < 0 || index >= item.addons.length) continue;
+      final id = item.addons[index].id;
+      if (id != null && id.isNotEmpty) ids.add(id);
+    }
+    return ids;
+  }
+
+  String get _displayPrice {
+    final item = _detail;
+    if (item == null) return '0.000';
+    if (item.usesVariantSelection) {
+      final unit = variantUnitWithAddons(_selectedVariant, [
+        _selectedAddonTotal,
+      ]);
+      if (unit == null) return '0.000';
+      return (unit * _quantity).toStringAsFixed(3);
+    }
+    final base = double.tryParse(item.price) ?? 0;
+    final optionExtra = optionSelectionsExtraPrice(
+      item.optionGroups,
+      _selectedOptionsByGroup,
+    );
+    return ((base + optionExtra + _selectedAddonTotal) * _quantity)
+        .toStringAsFixed(3);
   }
 
   String get _basePriceLabel {
     final item = _detail;
     if (item == null) return 'BHD 0.000';
+    if (item.usesVariantSelection) {
+      final unit = variantPrice(_selectedVariant);
+      if (unit == null) return 'BHD —';
+      return 'BHD ${unit.toStringAsFixed(3)}';
+    }
     final p = double.tryParse(item.price) ?? 0;
     return 'BHD ${p.toStringAsFixed(3)}';
+  }
+
+  bool get _requiresAgeVerification =>
+      _detail?.catalog?.ageRestriction?.requiresAgeVerification ?? false;
+
+  String get _ctaLabel {
+    if (_requiresAgeVerification) return 'Verify your age';
+    if (_isVariantMode && variantPrice(_selectedVariant) == null) {
+      return strategy.ctaVerb;
+    }
+    return '${strategy.ctaVerb} · BHD $_displayPrice';
+  }
+
+  void _maybePromptAgeVerification() {
+    if (!_requiresAgeVerification || _agePromptShown) return;
+    _agePromptShown = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _startAgeVerification();
+    });
+  }
+
+  Future<void> _startAgeVerification() async {
+    if (_ageFlowOpen) return;
+    _ageFlowOpen = true;
+    try {
+      final ok = await ensureVapeAgeVerifiedForPurchase(
+        context,
+        ref,
+        productName: _detail?.name,
+      );
+      if (!mounted || !ok) return;
+      await _load();
+    } finally {
+      _ageFlowOpen = false;
+    }
+  }
+
+  bool get _variantAddBlocked => _isVariantMode && !_variantReady;
+
+  String? get _heroImageUrl {
+    final variantImage = resolveApiMediaUrl(_selectedVariant?.imageUrl);
+    if (variantImage != null && variantImage.isNotEmpty) return variantImage;
+    return _detail?.imageUrl;
   }
 
   void _toggleOption(int groupIndex, int optionIndex) {
@@ -155,6 +264,17 @@ class _UniversalProductDetailScreenState
     });
   }
 
+  void _onAxisChanged(String axisKey, String valueKey) {
+    if (axisKey.isEmpty || valueKey.isEmpty) return;
+    setState(() {
+      _selectedAxisValues[axisKey] = valueKey;
+      _selectedVariant = matchVariant(
+        variants: _detail?.catalog?.variants ?? const [],
+        selectedAttributes: _selectedAxisValues,
+      );
+    });
+  }
+
   void _toggleAddon(int index) {
     final addons = _detail?.addons ?? const [];
     setState(() {
@@ -171,29 +291,29 @@ class _UniversalProductDetailScreenState
     final detail = _detail;
     if (_adding || detail == null) return;
 
-    final validationError = validateOptionSelections(
-      detail.optionGroups,
-      _selectedOptionsByGroup,
-    );
-    if (validationError != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(validationError)),
+    final isVariant = detail.usesVariantSelection;
+    if (isVariant) {
+      if (!_variantReady || _selectedVariant?.id == null) return;
+    } else {
+      final validationError = validateOptionSelections(
+        detail.optionGroups,
+        _selectedOptionsByGroup,
       );
-      return;
-    }
-
-    final optionIds = optionSelectionIds(
-      detail.optionGroups,
-      _selectedOptionsByGroup,
-    );
-    final addonIds = <String>[];
-    for (final index in _selectedAddons) {
-      if (index >= 0 &&
-          index < detail.addons.length &&
-          detail.addons[index].id != null) {
-        addonIds.add(detail.addons[index].id!);
+      if (validationError != null) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(validationError)));
+        return;
       }
     }
+
+    // Variant SKUs must not send option ids. Modifier lines must not send
+    // a variant id.
+    final optionIds = isVariant
+        ? const <String>[]
+        : optionSelectionIds(detail.optionGroups, _selectedOptionsByGroup);
+    final addonIds = _selectedAddonIds;
+    final variantId = isVariant ? _selectedVariant?.id : null;
 
     if (!ref.read(storageServiceProvider).hasSession) {
       rememberPendingAddToCart(
@@ -203,6 +323,7 @@ class _UniversalProductDetailScreenState
           quantity: _quantity,
           optionIds: optionIds,
           addonIds: addonIds,
+          variantId: variantId,
           vendorId: widget.storeId,
           replaceCart: replaceCart,
           cartType: strategy.cartType,
@@ -213,11 +334,7 @@ class _UniversalProductDetailScreenState
     }
 
     if (strategy.beforeAdd != null) {
-      if (!await strategy.beforeAdd!(
-        context,
-        ref,
-        productName: detail.name,
-      )) {
+      if (!await strategy.beforeAdd!(context, ref, productName: detail.name)) {
         return;
       }
     } else {
@@ -233,6 +350,7 @@ class _UniversalProductDetailScreenState
       quantity: _quantity,
       optionIds: optionIds,
       addonIds: addonIds,
+      variantId: variantId,
       replaceCart: replaceCart,
     );
 
@@ -241,12 +359,13 @@ class _UniversalProductDetailScreenState
 
     if (result.ok) {
       clearPendingAddToCart(ref);
+      final notice = result.message;
+      if (notice != null && notice.isNotEmpty && mounted) {
+        await acknowledgeExtraDeliveryCharge(context, notice);
+        if (!mounted) return;
+      }
       if (strategy.afterSuccess != null) {
-        await strategy.afterSuccess!(
-          context,
-          ref,
-          productName: detail.name,
-        );
+        await strategy.afterSuccess!(context, ref, productName: detail.name);
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -266,6 +385,7 @@ class _UniversalProductDetailScreenState
           quantity: _quantity,
           optionIds: optionIds,
           addonIds: addonIds,
+          variantId: variantId,
           vendorId: widget.storeId,
           replaceCart: replaceCart,
           vertical: strategy.pendingVertical,
@@ -301,33 +421,36 @@ class _UniversalProductDetailScreenState
               child: CircularProgressIndicator(color: AppColors.primary),
             )
           : _loadError || _detail == null
-              ? Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        'Could not load item',
-                        style: AppTextStyles.bodyMedium(
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                      SizedBox(height: 12.h),
-                      TextButton(onPressed: _load, child: const Text('Retry')),
-                    ],
-                  ),
-                )
-              : Column(
-                  children: [
-                    Expanded(child: _buildBody()),
-                    ItemAddToCartBar(
-                      label: '${strategy.ctaVerb} · BHD $_displayPrice',
-                      busy: _adding,
-                      onTap: () => _addToCart(),
+          ? Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Could not load item',
+                    style: AppTextStyles.bodyMedium(
+                      color: AppColors.textSecondary,
                     ),
-                  ],
+                  ),
+                  SizedBox(height: 12.h),
+                  TextButton(onPressed: _load, child: const Text('Retry')),
+                ],
+              ),
+            )
+          : Column(
+              children: [
+                Expanded(child: _buildBody()),
+                ItemAddToCartBar(
+                  label: _ctaLabel,
+                  busy: _adding,
+                  onTap: _requiresAgeVerification
+                      ? _startAgeVerification
+                      : (_variantAddBlocked ? null : () => _addToCart()),
                 ),
-      bottomNavigationBar:
-          ShellBottomNavBar(currentIndex: widget.bottomNavIndex),
+              ],
+            ),
+      bottomNavigationBar: ShellBottomNavBar(
+        currentIndex: widget.bottomNavIndex,
+      ),
     );
   }
 
@@ -349,36 +472,40 @@ class _UniversalProductDetailScreenState
             delegate: SliverChildListDelegate([
               Text(
                 item.name,
-                style: AppTextStyles.titleMedium(
-                  color: AppColors.textPrimary,
-                ).copyWith(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 20.sp,
-                  height: 1.2,
-                ),
+                style: AppTextStyles.titleMedium(color: AppColors.textPrimary)
+                    .copyWith(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 20.sp,
+                      height: 1.2,
+                    ),
               ),
               SizedBox(height: 6.h),
               Text(
                 _basePriceLabel,
                 style: AppTextStyles.titleSmall(color: AppColors.primary)
                     .copyWith(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 16.sp,
-                  height: 1.2,
-                ),
+                      fontWeight: FontWeight.w600,
+                      fontSize: 16.sp,
+                      height: 1.2,
+                    ),
               ),
+              if (item.catalog?.restrictions?.isHighValue == true) ...[
+                SizedBox(height: 8.h),
+                const _HighValueItemNote(),
+              ],
               if (item.description.trim().isNotEmpty &&
                   item.description.trim() != '___') ...[
                 SizedBox(height: 8.h),
                 Text(
                   item.description,
-                  style: AppTextStyles.bodyMedium(
-                    color: const Color(0xFF6B6B6B),
-                  ).copyWith(
-                    fontWeight: FontWeight.w400,
-                    fontSize: 14.sp,
-                    height: 1.25,
-                  ),
+                  style:
+                      AppTextStyles.bodyMedium(
+                        color: const Color(0xFF6B6B6B),
+                      ).copyWith(
+                        fontWeight: FontWeight.w400,
+                        fontSize: 14.sp,
+                        height: 1.25,
+                      ),
                 ),
               ],
               if (_hasCustomize) ...[
@@ -393,8 +520,11 @@ class _UniversalProductDetailScreenState
                   isGridView: _isGridView,
                   onViewChanged: (v) => setState(() => _isGridView = v),
                 ),
-                for (var gi = 0; gi < item.optionGroups.length; gi++)
-                  _buildOptionGroup(gi),
+                if (item.usesVariantSelection)
+                  ..._buildVariantAxes()
+                else
+                  for (var gi = 0; gi < item.optionGroups.length; gi++)
+                    _buildOptionGroup(gi),
                 if (item.addons.isNotEmpty) _buildAddonsSection(),
                 const Divider(
                   height: 1,
@@ -419,7 +549,7 @@ class _UniversalProductDetailScreenState
   }
 
   Widget _buildImageSection() {
-    final imageUrl = _detail?.imageUrl;
+    final imageUrl = _heroImageUrl;
     return SizedBox(
       height: 280.h,
       width: double.infinity,
@@ -470,6 +600,30 @@ class _UniversalProductDetailScreenState
         ],
       ),
     );
+  }
+
+  List<Widget> _buildVariantAxes() {
+    final axes = _detail?.catalog?.axes ?? const <CatalogAxis>[];
+    final variants = _detail?.catalog?.variants ?? const <CatalogVariant>[];
+    return [
+      for (final axis in axes)
+        if (axis.key != null && axis.key!.isNotEmpty)
+          VariantAxisSection(
+            axis: axis,
+            isGridView: _isGridView,
+            selectedValue: _selectedAxisValues[axis.key],
+            availableValues: availableValuesForAxis(
+              variants: variants,
+              axisKey: axis.key!,
+              selectedAttributes: _selectedAxisValues,
+              axisValueKeys: [
+                for (final value in axis.values)
+                  if (value.key != null && value.key!.isNotEmpty) value.key!,
+              ],
+            ),
+            onChanged: (valueKey) => _onAxisChanged(axis.key!, valueKey),
+          ),
+    ];
   }
 
   Widget _buildOptionGroup(int gi) {
@@ -581,5 +735,30 @@ class _UniversalProductDetailScreenState
       return ItemOptionGridStyle.chips;
     }
     return ItemOptionGridStyle.cards;
+  }
+}
+
+/// Customer-facing label. No OTP, driver, or fee details.
+class _HighValueItemNote extends StatelessWidget {
+  const _HighValueItemNote();
+
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
+        decoration: BoxDecoration(
+          color: const Color(0xFFE8F5E9),
+          borderRadius: BorderRadius.circular(8.r),
+        ),
+        child: Text(
+          'High value item',
+          style: AppTextStyles.labelSmall(
+            color: const Color(0xFF1B5E20),
+          ).copyWith(fontWeight: FontWeight.w600, fontSize: 12.sp),
+        ),
+      ),
+    );
   }
 }

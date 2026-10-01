@@ -85,7 +85,11 @@ class _OrderReceiptScreenState extends ConsumerState<OrderReceiptScreen> {
     final apiItems = receiptItemsFromApi(
       receipt['items'] is List ? receipt['items'] as List : null,
     );
-    final billLines = receiptBillFromTotals(totalsMap);
+    final billLines = receiptBillFromTotals(
+      totalsMap,
+      delivery: receipt['delivery'],
+      omitDeliveryLine: receiptOmitsDeliveryLine(receipt),
+    );
     final shareText = (_shareText != null && _shareText!.isNotEmpty)
         ? _shareText!
         : 'Yjeek Receipt · $orderNumber';
@@ -146,7 +150,11 @@ class _OrderReceiptScreenState extends ConsumerState<OrderReceiptScreen> {
     final items = receiptItemsFromApi(
       receipt?['items'] is List ? receipt!['items'] as List : null,
     );
-    final billLines = receiptBillFromTotals(totalsMap);
+    final billLines = receiptBillFromTotals(
+      totalsMap,
+      delivery: receipt?['delivery'],
+      omitDeliveryLine: receiptOmitsDeliveryLine(receipt),
+    );
     final badge = receiptBadgeLabel(receipt);
     final badgeLabel = badge != null ? '✓ $badge' : null;
 

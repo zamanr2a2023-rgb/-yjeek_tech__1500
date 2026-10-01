@@ -93,6 +93,11 @@ Future<void> navigateAfterLogin(BuildContext context, WidgetRef ref) async {
     if (!context.mounted) return;
 
     if (result.ok) {
+      final notice = result.message;
+      if (notice != null && notice.isNotEmpty && context.mounted) {
+        await acknowledgeExtraDeliveryCharge(context, notice);
+      }
+      if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Item added to cart'),

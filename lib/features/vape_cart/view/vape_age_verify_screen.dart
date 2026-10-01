@@ -16,10 +16,12 @@ class VapeAgeVerifyScreen extends StatelessWidget {
       body: Align(
         alignment: Alignment.bottomCenter,
         child: VapeAgeVerifyDialog(
-          onVerify: () {
-            context.push(
+          onVerify: () async {
+            final verified = await context.push<bool>(
               VapeCartRoutes.idVerify(productName: productName),
             );
+            if (!context.mounted) return;
+            context.pop(verified == true);
           },
           onDismiss: () => context.pop(),
         ),

@@ -1,0 +1,103 @@
+﻿{
+    "success":  true,
+    "data":  {
+                 "vendor":  {
+                                "id":  "cmuihhxng000ov9h8ux08mbqs",
+                                "slug":  "glow-beauty",
+                                "name":  "Glow Beauty Lounge",
+                                "logoUrl":  "https://ui-avatars.com/api/?name=GB\u0026background=7752a8\u0026color=fff",
+                                "coverUrl":  null,
+                                "rating":  4.8,
+                                "reviewCount":  610,
+                                "cuisineTags":  [
+
+                                                ],
+                                "area":  "Seef",
+                                "categoryLabel":  "Beauty \u0026 Salon",
+                                "serviceCategory":  "Beauty \u0026 Salon",
+                                "serviceCategoryId":  null,
+                                "storeTypeId":  "cmu7xoahq000jv970tzlf7du6",
+                                "storeTypeSlug":  "services",
+                                "storeTypeName":  "Services",
+                                "catalogMode":  "MODIFIERS",
+                                "ageRestricted":  false,
+                                "ageBadge":  null,
+                                "ageRestriction":  {
+                                                       "required":  false,
+                                                       "minimumAge":  null,
+                                                       "champMustCheckId":  false,
+                                                       "canPurchase":  true,
+                                                       "cta":  null,
+                                                       "banner":  null
+                                                   },
+                                "isBookable":  true,
+                                "supportsDineIn":  false,
+                                "supportsPickup":  false,
+                                "supportsDelivery":  false,
+                                "supportsScheduled":  false,
+                                "deliveryTimeMin":  null,
+                                "deliveryFee":  0,
+                                "freeDelivery":  true,
+                                "minOrderAmount":  5,
+                                "fromPrice":  12,
+                                "openStatus":  "UNKNOWN",
+                                "dineInStatusLabel":  "Open now",
+                                "dineInModeLabel":  "Dine-in",
+                                "dineInTableMin":  2,
+                                "dineInEntryLabel":  "Bookable",
+                                "openHoursTitle":  "Open · 9–21",
+                                "openHoursSubtitle":  "Today",
+                                "bookingModeLabel":  "Walk-in / book",
+                                "atVenue":  false,
+                                "atHome":  false,
+                                "branches":  [
+
+                                             ]
+                            },
+                 "vendorId":  "cmuihhxng000ov9h8ux08mbqs",
+                 "vendorName":  "Glow Beauty Lounge",
+                 "sections":  [
+                                  {
+                                      "id":  "other",
+                                      "name":  "Other",
+                                      "sortOrder":  999,
+                                      "products":  [
+                                                       {
+                                                           "id":  "cmuihhxnw0012v9h8uo6y0uus",
+                                                           "vendorId":  "cmuihhxng000ov9h8ux08mbqs",
+                                                           "menuSectionId":  null,
+                                                           "name":  "Haircut \u0026 Blow Dry",
+                                                           "nameAr":  null,
+                                                           "description":  "Consultation, wash, cut and a finished blow dry with a senior stylist.",
+                                                           "descriptionAr":  null,
+                                                           "specs":  null,
+                                                           "highlights":  [
+
+                                                                          ],
+                                                           "tags":  [
+
+                                                                    ],
+                                                           "has5G":  false,
+                                                           "price":  12,
+                                                           "priceFrom":  12,
+                                                           "compareAtPrice":  null,
+                                                           "imageUrl":  null,
+                                                           "imageUrls":  [
+
+                                                                         ],
+                                                           "prepTimeMin":  60,
+                                                           "badges":  [
+
+                                                                      ],
+                                                           "stockQty":  null,
+                                                           "inStock":  true,
+                                                           "isAvailable":  true,
+                                                           "hasModifiers":  true,
+                                                           "catalogMode":  "MODIFIERS",
+                                                           "variantCount":  0
+                                                       }
+                                                   ]
+                                  }
+                              ]
+             }
+}

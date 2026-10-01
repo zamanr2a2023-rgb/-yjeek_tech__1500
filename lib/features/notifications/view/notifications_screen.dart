@@ -8,6 +8,8 @@ import 'package:yjeek_app/core/providers/app_providers.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/features/notifications/model/customer_notification.dart';
 import 'package:yjeek_app/features/geofence/view/geofence_offer_screen.dart';
+import 'package:yjeek_app/core/deep_links/yjeek_deep_link_router.dart';
+import 'package:yjeek_app/routes/app_router.dart';
 import 'package:yjeek_app/routes/route_names.dart';
 
 class NotificationsScreen extends ConsumerStatefulWidget {
@@ -94,13 +96,34 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
       }
     }
     if (!mounted) return;
-    if (item.hasOrder) {
+    final meta = item.metadata ?? const <String, dynamic>{};
+    final deepLink = meta['deepLink']?.toString();
+    final router = AppRouter.instance;
+    if (deepLink != null && deepLink.isNotEmpty && router != null) {
+      openYjeekDeepLink(router, deepLink);
+      return;
+    }
+    final kind = meta['kind']?.toString() ?? '';
+    if (kind == 'rider_chat' && item.hasOrder) {
+      context.push('${RouteNames.orderChat}?id=${item.orderId}');
+      return;
+    }
+    if (kind == 'order_tracking' && item.hasOrder) {
+      final eta = meta['etaWindow']?.toString();
+      final base = '${RouteNames.orderStatus}?id=${item.orderId}';
+      context.push(
+        eta != null && eta.isNotEmpty
+            ? '$base&etaWindow=${Uri.encodeComponent(eta)}'
+            : base,
+      );
+      return;
+    }
+    if (item.hasOrder && kind.isEmpty) {
       context.push('${RouteNames.orderDetails}?id=${item.orderId}');
       return;
     }
     final type = item.type.toUpperCase();
     if (type == 'GEOFENCE_OFFER') {
-      final meta = item.metadata ?? const <String, dynamic>{};
       context.push(
         geofenceOfferLocation(
           triggerId: meta['triggerId']?.toString() ??
@@ -113,8 +136,18 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
       );
       return;
     }
-    if (type == 'PROMO') {
-      context.push(RouteNames.exclusiveOffers);
+    if (type == 'PROMO' || type == 'OFFERS') {
+      context.push(RouteNames.marketingOffers);
+      return;
+    }
+    if (router != null) {
+      final payload = <String, String>{
+        for (final e in meta.entries)
+          e.key: e.value?.toString() ?? '',
+        if (item.orderId != null) 'orderId': item.orderId!,
+        'type': item.type,
+      };
+      openFromMarketingPushData(router, payload);
     }
   }
 

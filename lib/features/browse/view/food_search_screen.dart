@@ -7,7 +7,7 @@ import 'package:yjeek_app/core/constants/app_colors.dart';
 import 'package:yjeek_app/core/constants/app_text_styles.dart';
 import 'package:yjeek_app/core/constants/browse_strings.dart';
 import 'package:yjeek_app/core/providers/app_providers.dart';
-import 'package:yjeek_app/core/services/location_service.dart';
+import 'package:yjeek_app/features/location/provider/delivery_location_provider.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/features/browse/browse_routes.dart';
 import 'package:yjeek_app/features/browse/model/browse_data.dart';
@@ -42,7 +42,14 @@ class _FoodSearchScreenState extends ConsumerState<FoodSearchScreen> {
     super.initState();
     _query = widget.initialQuery;
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      _position = await const LocationService().currentPosition();
+      var delivery = ref.read(deliveryLocationProvider).valueOrNull;
+      if (delivery == null || !delivery.hasCoordinates) {
+        await ref.read(deliveryLocationProvider.notifier).refresh(force: true);
+        delivery = ref.read(deliveryLocationProvider).valueOrNull;
+      }
+      if (delivery != null && delivery.hasCoordinates) {
+        _position = (lat: delivery.latitude!, lng: delivery.longitude!);
+      }
       await _loadRecent();
       await _search(_query);
     });
@@ -204,6 +211,11 @@ class _FoodSearchScreenState extends ConsumerState<FoodSearchScreen> {
                             onTap: () => context.push(
                               BrowseRoutes.vendorMenu(
                                 vendorId: _results[index].id,
+                                tab: widget.bottomNavIndex,
+                                returnTo: BrowseRoutes.foodSearch(
+                                  query: _query,
+                                  tab: widget.bottomNavIndex,
+                                ),
                               ),
                             ),
                           ),

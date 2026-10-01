@@ -88,7 +88,13 @@ class _PickupCategoriesScreenState
   void _openSpotlight() {
     final vendorId = _spotlight?.vendorId;
     if (vendorId != null && vendorId.isNotEmpty) {
-      context.push(BrowseRoutes.vendorMenu(vendorId: vendorId));
+      context.push(
+        BrowseRoutes.vendorMenu(
+          vendorId: vendorId,
+          cartType: 'pickup',
+          returnTo: BrowseRoutes.pickupBrowse(),
+        ),
+      );
       return;
     }
     context.push(BrowseRoutes.pickupBrowse());

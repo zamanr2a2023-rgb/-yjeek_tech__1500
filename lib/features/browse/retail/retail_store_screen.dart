@@ -8,11 +8,15 @@ import 'package:yjeek_app/core/providers/app_providers.dart';
 import 'package:yjeek_app/features/auth/utils/require_login.dart';
 import 'package:yjeek_app/features/browse/model/browse_data.dart';
 import 'package:yjeek_app/features/browse/model/electronics_data.dart';
+import 'package:yjeek_app/features/browse/model/pharmacy_order_modes.dart';
+import 'package:yjeek_app/features/browse/model/pharmacy_repository.dart';
 import 'package:yjeek_app/features/browse/model/fashion_menu_grouping.dart';
 import 'package:yjeek_app/features/browse/model/vendor_menu_grouping.dart';
 import 'package:yjeek_app/features/browse/retail/retail_store_config.dart';
 import 'package:yjeek_app/features/browse/view/widgets/fashion_vendor_store_widgets.dart';
 import 'package:yjeek_app/features/browse/view/widgets/retail_vendor_store_scaffold.dart';
+import 'package:yjeek_app/core/providers/shell_provider.dart';
+import 'package:yjeek_app/features/cart/model/cart_repository.dart';
 import 'package:yjeek_app/features/cart/model/delivery_range.dart';
 import 'package:yjeek_app/features/cart/model/pending_add_to_cart.dart';
 import 'package:yjeek_app/features/cart/view/widgets/cart_flow_widgets.dart';
@@ -48,6 +52,10 @@ class _RetailStoreScreenState extends ConsumerState<RetailStoreScreen> {
   String? _addingItemId;
   Timer? _debounce;
   PharmacyDeliveryMode _pharmacyMode = PharmacyDeliveryMode.deliverNow;
+  PharmacyOrderModes? _orderModes;
+  String? _addressKey;
+  bool _pharmacyModeTouched = false;
+  bool _syncingModes = false;
   int _cartItemCount = 0;
   String _cartTotalLabel = '0.000';
   String? _cartVendorId;
@@ -59,6 +67,15 @@ class _RetailStoreScreenState extends ConsumerState<RetailStoreScreen> {
     super.initState();
     _isGridView = ref.read(storageServiceProvider).retailCategoryGridView;
     WidgetsBinding.instance.addPostFrameCallback((_) => _load());
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final current = ModalRoute.of(context)?.isCurrent ?? false;
+    if (current && _loadedOnce && _store?.isPharmacy == true) {
+      _syncPharmacyOrderModes();
+    }
   }
 
   @override
@@ -115,6 +132,77 @@ class _RetailStoreScreenState extends ConsumerState<RetailStoreScreen> {
     });
   }
 
+  bool get _pharmacyDeliverNow =>
+      _store?.isPharmacy == true &&
+      _pharmacyMode == PharmacyDeliveryMode.deliverNow;
+
+  void _publishPharmacySession({bool clearContinue = false}) {
+    final store = _store;
+    if (store == null || !store.isPharmacy) return;
+    final current = ref.read(pharmacySessionProvider);
+    final keepContinue = !clearContinue &&
+        current != null &&
+        current.matches(store.id) &&
+        current.continueDeliveryAsScheduled;
+    ref.read(pharmacySessionProvider.notifier).state = PharmacySession(
+      vendorId: store.id,
+      mode: _pharmacyMode,
+      continueDeliveryAsScheduled: keepContinue,
+      banner: _orderModes?.banner,
+    );
+  }
+
+  Future<void> _syncPharmacyOrderModes({bool force = false}) async {
+    final store = _store;
+    if (store == null || !store.isPharmacy || _syncingModes) return;
+    _syncingModes = true;
+    final address =
+        await ref.read(addressesRepositoryProvider).defaultAddress();
+    if (!mounted) {
+      _syncingModes = false;
+      return;
+    }
+    final key = '${address?.id}|${address?.latitude}|${address?.longitude}';
+    final addressChanged = key != _addressKey;
+    if (!force && !addressChanged && _orderModes != null) {
+      _syncingModes = false;
+      return;
+    }
+
+    try {
+      final modes = await ref.read(pharmacyRepositoryProvider).fetchOrderModes(
+            vendorId: store.id,
+            latitude: address?.latitude,
+            longitude: address?.longitude,
+          );
+      if (!mounted) return;
+      final session = ref.read(pharmacySessionProvider);
+      setState(() {
+        _addressKey = key;
+        _orderModes = modes;
+        if (session != null &&
+            session.matches(store.id) &&
+            session.banner != null &&
+            modes.banner == null) {
+          _orderModes = modes.copyWith(banner: session.banner);
+        }
+        if (addressChanged || !_pharmacyModeTouched) {
+          _pharmacyMode = modes.selectedMode;
+        }
+        if (!modes.deliverNow.enabled) {
+          _pharmacyMode = PharmacyDeliveryMode.scheduled;
+        }
+      });
+      _publishPharmacySession(
+        clearContinue: addressChanged && modes.deliverNow.enabled,
+      );
+    } catch (_) {
+      // Keep the last server modes. Do not fill fees locally.
+    } finally {
+      _syncingModes = false;
+    }
+  }
+
   Future<void> _load() async {
     setState(() => _loading = true);
     try {
@@ -124,15 +212,6 @@ class _RetailStoreScreenState extends ConsumerState<RetailStoreScreen> {
         query: _query,
         loadedOnce: _loadedOnce,
       );
-
-      if (catalog.store.hasPharmacyDeliveryModes &&
-          !catalog.store.onDemandInRadius) {
-        _pharmacyMode = PharmacyDeliveryMode.scheduled;
-      } else if (catalog.store.hasPharmacyDeliveryModes &&
-          catalog.store.onDemandInRadius &&
-          !_loadedOnce) {
-        _pharmacyMode = PharmacyDeliveryMode.deliverNow;
-      }
 
       if (!mounted) return;
       setState(() {
@@ -144,6 +223,10 @@ class _RetailStoreScreenState extends ConsumerState<RetailStoreScreen> {
         _loading = false;
         _loadedOnce = true;
       });
+
+      if (catalog.store.isPharmacy) {
+        await _syncPharmacyOrderModes(force: true);
+      }
 
       await config.afterLoad?.call(
         context,
@@ -222,8 +305,28 @@ class _RetailStoreScreenState extends ConsumerState<RetailStoreScreen> {
         _cartVendorId != widget.storeId &&
         _cartItemCount > 0;
 
-    // Electronics fetches cart at add-time (may be empty until login).
+    // Electronics fetches the scheduled cart at add-time.
+    // Pharmacy Deliver Now uses the delivery cart instead.
     if (config.vertical == RetailStoreVertical.electronics) {
+      if (_pharmacyDeliverNow) {
+        final cart = await ref
+            .read(cartRepositoryProvider)
+            .fetchCart(CartOrderType.delivery);
+        final cartVendorId = cart.vendorId;
+        final replace = cartVendorId != null &&
+            cartVendorId.isNotEmpty &&
+            cartVendorId != widget.storeId &&
+            cart.itemCount > 0;
+        if (replace) {
+          showCartNewCartDialog(
+            context,
+            onConfirm: () => _doAdd(item, replace: true),
+          );
+          return;
+        }
+        await _doAdd(item);
+        return;
+      }
       final cart =
           await ref.read(electronicsVendorsRepositoryProvider).fetchCart();
       final cartVendorId = cart.vendorId;
@@ -254,17 +357,39 @@ class _RetailStoreScreenState extends ConsumerState<RetailStoreScreen> {
 
   Future<void> _doAdd(BrowseMenuItem item, {bool replace = false}) async {
     setState(() => _addingItemId = item.id);
-    final result = await config.quickAdd(
+    final RetailAddResult result;
+    if (_pharmacyDeliverNow) {
+      final added = await ref.read(pharmacyRepositoryProvider).addDeliverNow(
+            productId: item.id,
+            quantity: 1,
+            replaceCart: replace,
+          );
+      if (added.ok) {
+        ref.read(shellProvider.notifier).markCartUpdated(delivery: true);
+      }
+      result = RetailAddResult(
+        ok: added.ok,
+        vendorConflict: added.vendorConflict,
+        message: added.message,
+      );
+    } else {
+      result = await config.quickAdd(
       ref,
       storeId: widget.storeId,
       item: item,
-      replaceCart: replace,
-    );
+        replaceCart: replace,
+      );
+    }
     if (!mounted) return;
     setState(() => _addingItemId = null);
 
     if (result.ok) {
       clearPendingAddToCart(ref);
+      final notice = result.message;
+      if (notice != null && notice.isNotEmpty && mounted) {
+        await acknowledgeExtraDeliveryCharge(context, notice);
+        if (!mounted) return;
+      }
       if (config.afterAddSuccess != null) {
         await config.afterAddSuccess!(
           context,
@@ -367,12 +492,19 @@ class _RetailStoreScreenState extends ConsumerState<RetailStoreScreen> {
       orderMeta: config.orderMetaBuilder?.call(
         store: store,
         pharmacyMode: _pharmacyMode,
+        pharmacyModes: _orderModes,
         onPharmacyModeChanged: (m) {
           if (m == PharmacyDeliveryMode.deliverNow &&
-              !store.onDemandInRadius) {
+              _orderModes?.deliverNow.enabled != true) {
             return;
           }
-          setState(() => _pharmacyMode = m);
+          setState(() {
+            _pharmacyMode = m;
+            _pharmacyModeTouched = true;
+          });
+          _publishPharmacySession(
+            clearContinue: m == PharmacyDeliveryMode.deliverNow,
+          );
         },
       ),
       banner: config.bannerBuilder?.call(),

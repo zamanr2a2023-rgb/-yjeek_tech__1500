@@ -11,10 +11,14 @@ class ServicesLocationToggle extends StatelessWidget {
     super.key,
     required this.atVenue,
     required this.onChanged,
+    this.allowVenue = true,
+    this.allowHome = true,
   });
 
   final bool atVenue;
   final ValueChanged<bool> onChanged;
+  final bool allowVenue;
+  final bool allowHome;
 
   static const Color _chipBorder = Color(0xFFE0E6E0);
   static const Color _labelMuted = Color(0xFF6B756E);
@@ -25,23 +29,32 @@ class ServicesLocationToggle extends StatelessWidget {
       children: [
         _pill(
           ServicesBookingStrings.atVenue,
-          selected: atVenue,
+          selected: atVenue && allowVenue,
+          enabled: allowVenue,
           onTap: () => onChanged(true),
         ),
         SizedBox(width: 8.w),
         _pill(
           ServicesBookingStrings.atHome,
-          selected: !atVenue,
+          selected: !atVenue && allowHome,
+          enabled: allowHome,
           onTap: () => onChanged(false),
         ),
       ],
     );
   }
 
-  Widget _pill(String label, {required bool selected, required VoidCallback onTap}) {
+  Widget _pill(
+    String label, {
+    required bool selected,
+    required bool enabled,
+    required VoidCallback onTap,
+  }) {
     return GestureDetector(
-      onTap: onTap,
-      child: Container(
+      onTap: enabled ? onTap : null,
+      child: Opacity(
+        opacity: enabled ? 1 : 0.4,
+        child: Container(
         padding: EdgeInsets.symmetric(horizontal: 13.w, vertical: 7.h),
         decoration: BoxDecoration(
           color: selected ? AppColors.offerBadgeGreenBg : AppColors.white,
@@ -56,6 +69,7 @@ class ServicesLocationToggle extends StatelessWidget {
           style: AppTextStyles.labelSmall(
             color: selected ? AppColors.offerBadgeGreenText : _labelMuted,
           ).copyWith(fontWeight: FontWeight.w600, fontSize: 12.5.sp),
+        ),
         ),
       ),
     );
