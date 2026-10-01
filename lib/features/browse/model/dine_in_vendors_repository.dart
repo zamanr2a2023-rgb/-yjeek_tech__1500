@@ -88,10 +88,15 @@ class DineInVendorsRepository {
     bool offersOnly = false,
     String sort = 'rating',
     String? query,
+
+    /// Hub browse uses `dine_in`; Food tab uses `food` restaurants with dine-in.
+    String category = 'dine_in',
+    double? latitude,
+    double? longitude,
   }) async {
     final params = <String, String>{
       'supportsDineIn': 'true',
-      'category': 'dine_in',
+      'category': category,
       'sort': sort,
     };
     if (cuisine != null &&
@@ -103,6 +108,10 @@ class DineInVendorsRepository {
     if (offersOnly) params['hasOffers'] = 'true';
     if (query != null && query.trim().isNotEmpty) {
       params['q'] = query.trim();
+    }
+    if (latitude != null && longitude != null) {
+      params['latitude'] = latitude.toString();
+      params['longitude'] = longitude.toString();
     }
 
     final qs = params.entries
@@ -120,6 +129,7 @@ class DineInVendorsRepository {
     final items = <DineInRestaurant>[];
     for (final raw in data) {
       if (raw is! Map<String, dynamic>) continue;
+      if (raw['supportsDineIn'] != true) continue;
       final mapped = dineInRestaurantFromVendorJson(raw);
       if (mapped != null) items.add(mapped);
     }
@@ -158,11 +168,11 @@ class DineInVendorsRepository {
     final vendorRaw = data['vendor'];
     final restaurant = vendorRaw is Map<String, dynamic>
         ? (dineInRestaurantFromVendorJson({
-              ...vendorRaw,
-              'id': vendorRaw['id'] ?? vendorId,
-              'slug': vendorRaw['slug'] ?? vendorId,
-            }) ??
-            await fetchVendor(vendorId))
+                ...vendorRaw,
+                'id': vendorRaw['id'] ?? vendorId,
+                'slug': vendorRaw['slug'] ?? vendorId,
+              }) ??
+              await fetchVendor(vendorId))
         : await fetchVendor(vendorId);
 
     final sectionsRaw = data['sections'];
@@ -208,9 +218,9 @@ class DineInVendorsRepository {
     }
 
     final item = browseMenuItemFromProductJson(
-          data,
-          section: data['menuSectionName'] as String? ?? 'Menu',
-        );
+      data,
+      section: data['menuSectionName'] as String? ?? 'Menu',
+    );
     if (item == null) {
       throw StateError('Product not found');
     }
@@ -249,7 +259,8 @@ class DineInVendorsRepository {
       // Keep EN description on detail; UI picks AR via item.descriptionAr.
       optionGroups: optionGroups,
       addons: addons,
-      imageUrl: resolveApiMediaUrl(data['imageUrl'] as String?) ??
+      imageUrl:
+          resolveApiMediaUrl(data['imageUrl'] as String?) ??
           resolveApiMediaUrlFromList(data['imageUrls']) ??
           item.imageUrl,
     );
@@ -301,19 +312,15 @@ class DineInVendorsRepository {
     List<String> addonIds = const [],
     bool replaceCart = false,
   }) async {
-    final response = await _apiClient.postJson(
-      '/cart/items?type=DINE_IN',
-      {
-        'productId': productId,
-        'quantity': quantity,
-        'replaceCart': replaceCart,
-        'options': {
-          if (optionIds.isNotEmpty) 'optionIds': optionIds,
-          if (addonIds.isNotEmpty) 'addonIds': addonIds,
-        },
+    final response = await _apiClient.postJson('/cart/items?type=DINE_IN', {
+      'productId': productId,
+      'quantity': quantity,
+      'replaceCart': replaceCart,
+      'options': {
+        if (optionIds.isNotEmpty) 'optionIds': optionIds,
+        if (addonIds.isNotEmpty) 'addonIds': addonIds,
       },
-      bearerToken: _token,
-    );
+    }, bearerToken: _token);
 
     if (response.ok) return (ok: true, vendorConflict: false, message: null);
 
@@ -321,7 +328,8 @@ class DineInVendorsRepository {
     final details = error is Map ? error['details'] : null;
     final detailCode = details is Map ? details['code']?.toString() : null;
     final code = error is Map ? error['code']?.toString() : null;
-    final conflict = response.statusCode == 409 ||
+    final conflict =
+        response.statusCode == 409 ||
         code == 'VENDOR_CART_CONFLICT' ||
         detailCode == 'VENDOR_CART_CONFLICT' ||
         code == 'CONFLICT';
@@ -342,8 +350,8 @@ class DineInVendorsRepository {
     final list = data is List
         ? data
         : (data is Map<String, dynamic>
-            ? data['items'] ?? data['history']
-            : null);
+              ? data['items'] ?? data['history']
+              : null);
     if (list is! List || list.isEmpty) {
       return const ['VEERA', 'Lebanese', 'Sushi', 'Grill'];
     }
@@ -405,27 +413,29 @@ DineInRestaurant? dineInRestaurantFromVendorJson(Map<String, dynamic> json) {
       ? DineInVenueStatus.closed
       : DineInVenueStatus.open;
 
-  final statusLabel = (json['dineInStatusLabel'] as String?)?.trim().isNotEmpty ==
-          true
+  final statusLabel =
+      (json['dineInStatusLabel'] as String?)?.trim().isNotEmpty == true
       ? (json['dineInStatusLabel'] as String).trim()
       : (status == DineInVenueStatus.closed ? 'Closed' : 'Open now');
 
   final modeLabel =
       (json['dineInModeLabel'] as String?)?.trim().isNotEmpty == true
-          ? (json['dineInModeLabel'] as String).trim()
-          : 'Dine-in';
+      ? (json['dineInModeLabel'] as String).trim()
+      : 'Dine-in';
 
   final entryLabel =
       (json['dineInEntryLabel'] as String?)?.trim().isNotEmpty == true
-          ? (json['dineInEntryLabel'] as String).trim()
-          : (isBookable ? 'Bookable' : 'Walk-in');
+      ? (json['dineInEntryLabel'] as String).trim()
+      : (isBookable ? 'Bookable' : 'Walk-in');
 
   final tableMinRaw = json['dineInTableMin'] ?? json['tableMin'];
   final tableMin = tableMinRaw is num
       ? tableMinRaw.toInt()
       : int.tryParse(tableMinRaw?.toString() ?? '') ?? 2;
 
-  final imageUrl = resolveApiMediaUrl(json['coverUrl'] as String?) ??
+  final imageUrl =
+      resolveApiMediaUrl(json['logoUrl'] as String?) ??
+      resolveApiMediaUrl(json['coverUrl'] as String?) ??
       resolveApiMediaUrlFromList(json['imageUrls']);
   final colors = _gradientForName(name);
 

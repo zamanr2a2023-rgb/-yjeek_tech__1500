@@ -7,9 +7,12 @@ import 'package:yjeek_app/features/cart/cart_routes.dart';
 import 'package:yjeek_app/features/cart/model/addresses_repository.dart';
 import 'package:yjeek_app/features/cart/model/cart_flow_data.dart';
 import 'package:yjeek_app/features/cart/model/cart_repository.dart';
+import 'package:yjeek_app/features/cart/model/voucher_evaluate_key.dart';
 import 'package:yjeek_app/features/cart/model/checkout_helpers.dart';
 import 'package:yjeek_app/features/cart/model/delivery_quote.dart';
 import 'package:yjeek_app/features/cart/model/delivery_range.dart';
+import 'package:yjeek_app/features/location/provider/delivery_location_provider.dart';
+import 'package:yjeek_app/features/location/utils/checkout_delivery_address.dart';
 import 'package:yjeek_app/features/cart/model/payment_methods_repository.dart';
 import 'package:yjeek_app/features/cart/model/pending_checkout.dart';
 import 'package:yjeek_app/features/cart/view/widgets/cart_flow_widgets.dart';
@@ -42,6 +45,8 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   bool _loading = true;
   bool _submitting = false;
   String? _selectedVoucherId;
+  bool _useWalletBalance = false;
+  bool _applyReferralCredit = false;
 
   double get _tipAmount => tipAmountFrom(
         CartFlowData.tipOptions,
@@ -75,7 +80,8 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       final cart = await ref
           .read(cartRepositoryProvider)
           .fetchCart(CartOrderType.delivery);
-      final address =
+      final deliveryLoc = ref.read(deliveryLocationProvider).valueOrNull;
+      final address = checkoutAddressDisplay(deliveryLoc) ??
           await ref.read(addressesRepositoryProvider).defaultAddress();
       final payments = await ref
           .read(paymentMethodsRepositoryProvider)
@@ -148,13 +154,15 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       return;
     }
     if (cart.delivery?.blocksCheckout == true) return;
-    final addressId = _address?.id;
-    if (addressId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Add a delivery address first')),
-      );
-      return;
+    var address = _address;
+    if (address == null || address.id.isEmpty) {
+      final saved = await ensureSavedAddressForCheckout(context, ref);
+      if (!mounted) return;
+      if (saved == null) return;
+      setState(() => _address = saved);
+      address = saved;
     }
+    final addressId = address.id;
     if (_voucherSelected && _paymentId == 'wallet') {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -175,6 +183,10 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
           failClosed: true,
         );
         if (!mounted) return;
+        if (range.isExtraCharge && cart.delivery?.waived != true) {
+          final proceed = await confirmExtraDeliveryCharge(context, range);
+          if (!mounted || !proceed) return;
+        }
         if (!range.allowsDelivery) {
           await pushOutOfDelivery(
             context,
@@ -185,6 +197,22 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       }
 
       // Order is placed on Review & confirm (Confirm now / auto-timer), not here.
+      final cartSnapshot = _cart;
+      double? walletAmount;
+      if (_useWalletBalance &&
+          !_voucherSelected &&
+          _paymentId != 'wallet' &&
+          _payments.walletBalance > 0) {
+        final payable = cartSnapshot?.grandTotal ?? cartSnapshot?.totalAmount ?? 0;
+        walletAmount = payable < _payments.walletBalance
+            ? payable
+            : _payments.walletBalance;
+      }
+      double? referralAmount;
+      if (_applyReferralCredit && !_voucherSelected) {
+        final credit = cartSnapshot?.referralCredit;
+        referralAmount = credit?.maxApplicable ?? credit?.available;
+      }
       ref.read(pendingCheckoutProvider.notifier).state = PendingCheckout(
         paymentId: _paymentId,
         tipAmount: _tipAmount,
@@ -192,6 +220,8 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
         dropOffIndices: _dropOffIndices,
         saveDropOff: _saveDropOff,
         voucherId: _selectedVoucherId,
+        walletAmount: walletAmount,
+        referralCreditAmount: referralAmount,
       );
       if (!mounted) return;
       context.pushReplacement(CartRoutes.review);
@@ -275,7 +305,34 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                   orderType: CartOrderType.delivery.apiValue,
                   selectedVoucherId: _selectedVoucherId,
                   onSelected: _onVoucherSelected,
+                  cartId: cart?.cartId,
+                  evaluateKey: voucherEvaluateKey(cart),
                 ),
+                if (cart?.referralCredit?.hasAvailable == true &&
+                    !_voucherSelected) ...[
+                  SizedBox(height: 12.h),
+                  SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(
+                      'Apply referral credit (up to BHD ${cart!.referralCredit!.maxApplicable?.toStringAsFixed(3) ?? cart.referralCredit!.available?.toStringAsFixed(3) ?? '0.000'})',
+                      style: TextStyle(fontSize: 13.sp),
+                    ),
+                    value: _applyReferralCredit,
+                    onChanged: (v) => setState(() => _applyReferralCredit = v),
+                  ),
+                ],
+                if (_payments.walletBalance > 0 && !_voucherSelected) ...[
+                  SizedBox(height: 8.h),
+                  SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(
+                      'Use wallet balance (BHD ${_payments.walletBalance.toStringAsFixed(3)})',
+                      style: TextStyle(fontSize: 13.sp),
+                    ),
+                    value: _useWalletBalance,
+                    onChanged: (v) => setState(() => _useWalletBalance = v),
+                  ),
+                ],
                 SizedBox(height: 18.h),
                 CartSectionTitle(CartFlowStrings.paymentMethod),
                 if (_voucherSelected)

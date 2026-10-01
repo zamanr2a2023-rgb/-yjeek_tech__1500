@@ -117,6 +117,7 @@ class UserProfile {
     this.addressCount = 0,
     this.dateOfBirth,
     this.gender,
+    this.marketingOptIn = true,
   });
 
   final String? firstName;
@@ -128,6 +129,7 @@ class UserProfile {
   final int addressCount;
   final DateTime? dateOfBirth;
   final String? gender;
+  final bool marketingOptIn;
 
   factory UserProfile.fromJson(Map<String, dynamic> json) {
     DateTime? dob;
@@ -145,6 +147,7 @@ class UserProfile {
       addressCount: (json['addressCount'] as num?)?.toInt() ?? 0,
       dateOfBirth: dob,
       gender: json['gender']?.toString(),
+      marketingOptIn: json['marketingOptIn'] != false,
     );
   }
 

@@ -208,6 +208,7 @@ class VapeVendorsRepository {
       );
     }
 
+    String? extraChargeMessage;
     final addresses = _addresses;
     if (addresses != null && vendorId != null && vendorId.isNotEmpty) {
       final range = await checkDeliveryRange(
@@ -223,6 +224,7 @@ class VapeVendorsRepository {
           message: 'This address is outside the vendor delivery area',
         );
       }
+      if (range.isExtraCharge) extraChargeMessage = range.warningMessage;
     }
 
     final response = await _apiClient.postJson(
@@ -244,7 +246,7 @@ class VapeVendorsRepository {
         ok: true,
         vendorConflict: false,
         outOfRange: false,
-        message: null,
+        message: extraChargeMessage,
       );
     }
 

@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:yjeek_app/core/constants/app_colors.dart';
 import 'package:yjeek_app/core/constants/app_text_styles.dart';
@@ -13,6 +15,32 @@ const _textDark = Color(0xFF1A1A1A);
 const _textMuted = Color(0xFF6B6B6B);
 const _divider = Color(0xFFE2E2E2);
 const _starGold = Color(0xFFC9A84C);
+
+/// Fixed sliver header heights — keep in sync with [VendorMenuCoverHeader] et al.
+abstract final class VendorMenuLayout {
+  static double expandedBodyHeight(
+    BuildContext context, {
+    required bool searchVisible,
+  }) {
+    final pillText = 12.sp * 1.35;
+    final orderTabsRow = 10.h + 7.h + 7.h + pillText;
+    final statBlock = 13.sp * 1.25 + 3.h + 10.sp * 1.25;
+    final statsRow = 10.h + 10.h + math.max(28.h, statBlock);
+    final nameLine = 15.sp * 1.25;
+    final subtitleLine = 11.sp * 1.25;
+    final identityRow = math.max(40.w, nameLine + 2.h + subtitleLine);
+    var height = 137.h + (24.h + identityRow) + orderTabsRow + statsRow + 1;
+    if (searchVisible) {
+      height += 8.h + 10.h + 10.h + 22.sp + 8.h;
+    }
+    return height + 6.h;
+  }
+
+  static double pinnedFiltersHeight(BuildContext context) {
+    final toggleRow = 10.h + 27.h + 6.w;
+    return 4.h + 40.h + toggleRow + 6.h + 4.h;
+  }
+}
 
 /// Soft mint cover with back/search controls (MENU OPTION E).
 class VendorMenuCoverHeader extends StatelessWidget {
@@ -37,7 +65,7 @@ class VendorMenuCoverHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final coverUrl = restaurant.imageUrl?.trim();
+    final coverUrl = restaurant.displayCoverUrl?.trim();
     final hasCover = coverUrl != null && coverUrl.isNotEmpty;
 
     return Column(
@@ -161,18 +189,30 @@ class _CircleIconButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 30.w,
-        height: 30.w,
-        decoration: BoxDecoration(
-          color: background,
-          shape: BoxShape.circle,
-          border: Border.all(color: borderColor),
+    final visual = 30.w;
+    final hit = math.max(visual, 44.w);
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        customBorder: const CircleBorder(),
+        child: SizedBox(
+          width: hit,
+          height: hit,
+          child: Center(
+            child: Container(
+              width: visual,
+              height: visual,
+              decoration: BoxDecoration(
+                color: background,
+                shape: BoxShape.circle,
+                border: Border.all(color: borderColor),
+              ),
+              alignment: Alignment.center,
+              child: child,
+            ),
+          ),
         ),
-        alignment: Alignment.center,
-        child: child,
       ),
     );
   }
@@ -197,7 +237,7 @@ class VendorMenuIdentityBar extends StatelessWidget {
     ];
     final subtitle =
         subtitleParts.isEmpty ? 'Food' : subtitleParts.join(' · ');
-    final logoUrl = restaurant.imageUrl?.trim();
+    final logoUrl = restaurant.displayLogoUrl?.trim();
 
     return Container(
       color: AppColors.primary,
@@ -552,7 +592,7 @@ class VendorMenuCategoryChips extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 34.h,
+      height: 40.h,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         padding: EdgeInsets.symmetric(horizontal: 16.w),
@@ -815,10 +855,25 @@ class VendorMenuItemRow extends StatelessWidget {
                         .copyWith(fontSize: 12.sp, height: 1.35),
                   ),
                   SizedBox(height: 6.h),
-                  Text(
-                    'BHD ${item.price}',
-                    style: AppTextStyles.labelMedium(color: AppColors.primary)
-                        .copyWith(fontWeight: FontWeight.w700, fontSize: 13.sp),
+                  Row(
+                    children: [
+                      Text(
+                        'BHD ${item.price}',
+                        style: AppTextStyles.labelMedium(
+                          color: AppColors.primary,
+                        ).copyWith(fontWeight: FontWeight.w700, fontSize: 13.sp),
+                      ),
+                      if (item.onPromotion &&
+                          item.strikeThroughPrice != null) ...[
+                        SizedBox(width: 6.w),
+                        Text(
+                          'BHD ${item.strikeThroughPrice}',
+                          style: AppTextStyles.labelSmall(
+                            color: AppColors.textSecondary,
+                          ).copyWith(decoration: TextDecoration.lineThrough),
+                        ),
+                      ],
+                    ],
                   ),
                 ],
               ),

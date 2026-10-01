@@ -20,6 +20,8 @@ import 'package:yjeek_app/features/pickup_cart/pickup_cart_routes.dart';
 import 'package:yjeek_app/features/scheduled_cart/scheduled_cart_routes.dart';
 import 'package:yjeek_app/features/services_booking/services_booking_routes.dart';
 import 'package:yjeek_app/features/vape_cart/vape_cart_routes.dart';
+import 'package:yjeek_app/features/auth/utils/require_login.dart';
+import 'package:yjeek_app/routes/route_names.dart';
 
 class CartScreen extends ConsumerStatefulWidget {
   const CartScreen({
@@ -88,6 +90,11 @@ class _CartScreenState extends ConsumerState<CartScreen> {
   }
 
   Future<void> _loadAll({bool showSpinner = true}) async {
+    if (!ref.read(storageServiceProvider).hasSession) {
+      if (!mounted) return;
+      setState(() => _loading = false);
+      return;
+    }
     if (_fetching) {
       _reloadQueued = true;
       return;
@@ -389,7 +396,13 @@ class _CartScreenState extends ConsumerState<CartScreen> {
             context.push(BrowseRoutes.servicesProvider(providerId: vendorId));
             return;
           }
-          context.push(BrowseRoutes.vendorMenu(vendorId: vendorId));
+          context.push(
+            BrowseRoutes.vendorMenu(
+              vendorId: vendorId,
+              tab: 2,
+              returnTo: '${RouteNames.home}?tab=2',
+            ),
+          );
           return;
         }
         widget.onBrowseVendors();
@@ -459,7 +472,20 @@ class _CartScreenState extends ConsumerState<CartScreen> {
     );
   }
 
+  Future<void> _signInForCart() async {
+    if (!await requireLogin(context, ref)) return;
+    if (!mounted) return;
+    await _loadAll();
+  }
+
   Widget _buildTabBody(CartTab tab) {
+    final loggedIn = ref.watch(storageServiceProvider).hasSession;
+    if (!loggedIn) {
+      return GuestSignInEmptyState(
+        message: NavigationStrings.signInToViewYourCart,
+        onSignIn: _signInForCart,
+      );
+    }
     if (_loading) {
       return const Center(
         child: CircularProgressIndicator(color: AppColors.primary),

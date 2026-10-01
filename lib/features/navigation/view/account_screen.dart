@@ -29,10 +29,21 @@ class AccountScreen extends ConsumerWidget {
     context.go(RouteNames.welcome);
   }
 
+  Future<void> _requireSignIn(
+    BuildContext context,
+    WidgetRef ref,
+    VoidCallback onSignedIn,
+  ) async {
+    if (!await requireLogin(context, ref)) return;
+    if (!context.mounted) return;
+    onSignedIn();
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final loggedIn = ref.watch(storageServiceProvider).hasSession;
     final userAsync = ref.watch(userMeProvider);
-    final user = userAsync.valueOrNull;
+    final user = loggedIn ? userAsync.valueOrNull : null;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -41,9 +52,21 @@ class AccountScreen extends ConsumerWidget {
           SliverToBoxAdapter(
             child: _AccountHeader(
               user: user,
+              loggedIn: loggedIn,
               unreadCount:
                   ref.watch(notificationsUnreadCountProvider).valueOrNull ?? 0,
-              onNotificationsTap: () => context.push(RouteNames.notifications),
+              onNotificationsTap: () {
+                if (!loggedIn) {
+                  _requireSignIn(
+                    context,
+                    ref,
+                    () => context.push(RouteNames.notifications),
+                  );
+                  return;
+                }
+                context.push(RouteNames.notifications);
+              },
+              onSignIn: () => _requireSignIn(context, ref, () {}),
             ),
           ),
           const SliverToBoxAdapter(
@@ -56,10 +79,31 @@ class AccountScreen extends ConsumerWidget {
             child: Padding(
               padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 0),
               child: _WalletCashbackRow(
+                loggedIn: loggedIn,
                 balanceLabel: user?.wallet.balanceLabel ?? 'BHD 0.000',
                 cashbackLabel: user?.wallet.cashbackLabel ?? 'BHD 0.000',
-                onWalletTap: () => context.push(RouteNames.wallet),
-                onCashbackTap: () => context.push(RouteNames.walletCashback),
+                onWalletTap: () {
+                  if (!loggedIn) {
+                    _requireSignIn(
+                      context,
+                      ref,
+                      () => context.push(RouteNames.wallet),
+                    );
+                    return;
+                  }
+                  context.push(RouteNames.wallet);
+                },
+                onCashbackTap: () {
+                  if (!loggedIn) {
+                    _requireSignIn(
+                      context,
+                      ref,
+                      () => context.push(RouteNames.walletCashback),
+                    );
+                    return;
+                  }
+                  context.push(RouteNames.walletCashback);
+                },
               ),
             ),
           ),
@@ -70,19 +114,43 @@ class AccountScreen extends ConsumerWidget {
                 ProfileMenuTile(
                   iconAsset: AppAssets.accountPersonal,
                   title: NavigationStrings.personalInfo,
-                  onTap: () => context.push(RouteNames.personalInfo),
+                  trailing: loggedIn ? null : NavigationStrings.signInToView,
+                  onTap: loggedIn
+                      ? () => context.push(RouteNames.personalInfo)
+                      : () => _requireSignIn(
+                            context,
+                            ref,
+                            () => context.push(RouteNames.personalInfo),
+                          ),
                 ),
                 ProfileMenuTile(
                   iconAsset: AppAssets.accountIdCard,
                   title: NavigationStrings.idVerification,
-                  badge: user?.verificationBadge ?? NavigationStrings.notVerified,
-                  onTap: () => context.push(RouteNames.idVerification),
+                  badge: loggedIn
+                      ? (user?.verificationBadge ?? NavigationStrings.notVerified)
+                      : null,
+                  trailing: loggedIn ? null : NavigationStrings.signInToView,
+                  onTap: loggedIn
+                      ? () => context.push(RouteNames.idVerification)
+                      : () => _requireSignIn(
+                            context,
+                            ref,
+                            () => context.push(RouteNames.idVerification),
+                          ),
                 ),
                 ProfileMenuTile(
                   iconAsset: AppAssets.accountLocation,
                   title: NavigationStrings.savedAddresses,
-                  trailing: '${user?.profile.addressCount ?? 0}',
-                  onTap: () => context.push(RouteNames.savedAddresses),
+                  trailing: loggedIn
+                      ? '${user?.profile.addressCount ?? 0}'
+                      : NavigationStrings.signInToView,
+                  onTap: loggedIn
+                      ? () => context.push(RouteNames.savedAddresses)
+                      : () => _requireSignIn(
+                            context,
+                            ref,
+                            () => context.push(RouteNames.savedAddresses),
+                          ),
                 ),
               ],
             ),
@@ -94,17 +162,50 @@ class AccountScreen extends ConsumerWidget {
                 ProfileMenuTile(
                   iconAsset: AppAssets.accountOrderHistory,
                   title: NavigationStrings.orderHistory,
-                  onTap: () => context.goHome(tab: 1),
+                  trailing: loggedIn ? null : NavigationStrings.signInToView,
+                  onTap: loggedIn
+                      ? () => context.goHome(tab: 1)
+                      : () => _requireSignIn(
+                            context,
+                            ref,
+                            () => context.goHome(tab: 1),
+                          ),
                 ),
                 ProfileMenuTile(
                   iconAsset: AppAssets.walletCashBack,
                   title: 'My Rewards',
-                  onTap: () => context.push(RouteNames.rewards),
+                  trailing: loggedIn ? null : NavigationStrings.signInToView,
+                  onTap: loggedIn
+                      ? () => context.push(RouteNames.rewards)
+                      : () => _requireSignIn(
+                            context,
+                            ref,
+                            () => context.push(RouteNames.rewards),
+                          ),
+                ),
+                ProfileMenuTile(
+                  iconAsset: AppAssets.accountHelp,
+                  title: 'Invite a friend',
+                  trailing: loggedIn ? null : NavigationStrings.signInToView,
+                  onTap: loggedIn
+                      ? () => context.push(RouteNames.referral)
+                      : () => _requireSignIn(
+                            context,
+                            ref,
+                            () => context.push(RouteNames.referral),
+                          ),
                 ),
                 ProfileMenuTile(
                   iconAsset: AppAssets.accountWallet,
                   title: NavigationStrings.yjeekWallet,
-                  onTap: () => context.push(RouteNames.wallet),
+                  trailing: loggedIn ? null : NavigationStrings.signInToView,
+                  onTap: loggedIn
+                      ? () => context.push(RouteNames.wallet)
+                      : () => _requireSignIn(
+                            context,
+                            ref,
+                            () => context.push(RouteNames.wallet),
+                          ),
                 ),
               ],
             ),
@@ -155,20 +256,29 @@ class AccountScreen extends ConsumerWidget {
           SliverToBoxAdapter(
             child: Padding(
               padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 8.h),
-              child: ProfileMenuTile(
-                iconAsset: AppAssets.accountLogout,
-                title: NavigationStrings.logout,
-                destructive: true,
-                onTap: () => _logout(context, ref),
+              child: loggedIn
+                  ? ProfileMenuTile(
+                      iconAsset: AppAssets.accountLogout,
+                      title: NavigationStrings.logout,
+                      destructive: true,
+                      onTap: () => _logout(context, ref),
+                    )
+                  : ProfileMenuTile(
+                      icon: Icons.login_rounded,
+                      title: NavigationStrings.signIn,
+                      onTap: () => _requireSignIn(context, ref, () {}),
+                    ),
+            ),
+          ),
+          if (loggedIn)
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(20.w, 8.h, 20.w, 24.h),
+                child: const _AccountDeletionLink(),
               ),
-            ),
-          ),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: EdgeInsets.fromLTRB(20.w, 8.h, 20.w, 24.h),
-              child: const _AccountDeletionLink(),
-            ),
-          ),
+            )
+          else
+            SliverToBoxAdapter(child: SizedBox(height: 24.h)),
         ],
       ),
     );
@@ -269,26 +379,33 @@ class _AccountDeletionLinkState extends ConsumerState<_AccountDeletionLink> {
 class _AccountHeader extends StatelessWidget {
   const _AccountHeader({
     this.user,
+    this.loggedIn = true,
     this.unreadCount = 0,
     this.onNotificationsTap,
+    this.onSignIn,
   });
 
   final UserMe? user;
+  final bool loggedIn;
   final int unreadCount;
   final VoidCallback? onNotificationsTap;
+  final VoidCallback? onSignIn;
 
   @override
   Widget build(BuildContext context) {
-    final name = user?.displayName ?? 'Customer';
-    final phone = user?.formattedPhone ?? '';
-    final letter = user?.avatarLetter ?? 'C';
+    final name =
+        loggedIn ? (user?.displayName ?? 'Customer') : NavigationStrings.guest;
+    final phone = loggedIn
+        ? (user?.formattedPhone ?? '')
+        : NavigationStrings.signInToView;
+    final letter = loggedIn ? (user?.avatarLetter ?? 'C') : '?';
 
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.fromLTRB(20.w, 14.h, 20.w, 20.h),
+      padding: EdgeInsets.fromLTRB(20.w, 6.h, 20.w, 14.h),
       decoration: BoxDecoration(
         color: AppColors.primary,
-        borderRadius: BorderRadius.vertical(bottom: Radius.circular(24.r)),
+        borderRadius: BorderRadius.vertical(bottom: Radius.circular(20.r)),
       ),
       child: SafeArea(
         bottom: false,
@@ -360,12 +477,12 @@ class _AccountHeader extends StatelessWidget {
                 ),
               ],
             ),
-            SizedBox(height: 18.h),
+            SizedBox(height: 10.h),
             Row(
               children: [
                 Container(
-                  width: 64.w,
-                  height: 64.w,
+                  width: 52.w,
+                  height: 52.w,
                   decoration: const BoxDecoration(
                     color: AppColors.white,
                     shape: BoxShape.circle,
@@ -375,10 +492,10 @@ class _AccountHeader extends StatelessWidget {
                     letter,
                     style: AppTextStyles.displayMedium(
                       color: AppColors.primary,
-                    ).copyWith(fontSize: 24.sp),
+                    ).copyWith(fontSize: 20.sp),
                   ),
                 ),
-                SizedBox(width: 14.w),
+                SizedBox(width: 12.w),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -387,51 +504,76 @@ class _AccountHeader extends StatelessWidget {
                         name,
                         style: AppTextStyles.titleSmall(
                           color: AppColors.white,
-                        ).copyWith(fontSize: 20.sp),
+                        ).copyWith(fontSize: 18.sp),
                       ),
-                      SizedBox(height: 2.h),
+                      SizedBox(height: 1.h),
                       Text(
                         phone,
                         style: AppTextStyles.bodyMedium(
                           color: const Color(0xFFDCE7D4),
-                        ).copyWith(fontSize: 13.sp),
+                        ).copyWith(fontSize: 12.5.sp),
                       ),
                     ],
                   ),
                 ),
-                Container(
-                  padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(10.r),
-                    border: Border.all(
-                      color: AppColors.white,
-                      width: 1.4,
+                if (loggedIn)
+                  Container(
+                    padding:
+                        EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(10.r),
+                      border: Border.all(
+                        color: AppColors.white,
+                        width: 1.4,
+                      ),
                     ),
-                  ),
-                  child: GestureDetector(
-                    onTap: () => context.push(RouteNames.editPersonalInfo),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.edit_outlined,
-                          size: 15.sp,
-                          color: AppColors.white,
-                        ),
-                        SizedBox(width: 6.w),
-                        Text(
-                          NavigationStrings.editProfile,
-                          style: AppTextStyles.labelSmall(
+                    child: GestureDetector(
+                      onTap: () => context.push(RouteNames.editPersonalInfo),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.edit_outlined,
+                            size: 15.sp,
                             color: AppColors.white,
-                          ).copyWith(
-                            fontWeight: FontWeight.w700,
-                            fontSize: 12.sp,
                           ),
+                          SizedBox(width: 6.w),
+                          Text(
+                            NavigationStrings.editProfile,
+                            style: AppTextStyles.labelSmall(
+                              color: AppColors.white,
+                            ).copyWith(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 12.sp,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                else
+                  GestureDetector(
+                    onTap: onSignIn,
+                    child: Container(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 12.w,
+                        vertical: 6.h,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.white,
+                        borderRadius: BorderRadius.circular(10.r),
+                      ),
+                      child: Text(
+                        NavigationStrings.signIn,
+                        style: AppTextStyles.labelSmall(
+                          color: AppColors.primary,
+                        ).copyWith(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 12.sp,
                         ),
-                      ],
+                      ),
                     ),
                   ),
-                ),
               ],
             ),
           ],
@@ -443,12 +585,14 @@ class _AccountHeader extends StatelessWidget {
 
 class _WalletCashbackRow extends StatelessWidget {
   const _WalletCashbackRow({
+    required this.loggedIn,
     required this.balanceLabel,
     required this.cashbackLabel,
     required this.onWalletTap,
     required this.onCashbackTap,
   });
 
+  final bool loggedIn;
   final String balanceLabel;
   final String cashbackLabel;
   final VoidCallback onWalletTap;
@@ -494,8 +638,15 @@ class _WalletCashbackRow extends StatelessWidget {
                   ),
                   SizedBox(height: 5.h),
                   Text(
-                    balanceLabel,
-                    style: AppTextStyles.titleSmall().copyWith(fontSize: 18.sp),
+                    loggedIn
+                        ? balanceLabel
+                        : NavigationStrings.signInToView,
+                    style: AppTextStyles.titleSmall().copyWith(
+                      fontSize: loggedIn ? 18.sp : 13.sp,
+                      color: loggedIn
+                          ? AppColors.textPrimary
+                          : AppColors.textSecondary,
+                    ),
                   ),
                 ],
               ),
@@ -531,8 +682,15 @@ class _WalletCashbackRow extends StatelessWidget {
                   ),
                   SizedBox(height: 5.h),
                   Text(
-                    cashbackLabel,
-                    style: AppTextStyles.titleSmall().copyWith(fontSize: 18.sp),
+                    loggedIn
+                        ? cashbackLabel
+                        : NavigationStrings.signInToView,
+                    style: AppTextStyles.titleSmall().copyWith(
+                      fontSize: loggedIn ? 18.sp : 13.sp,
+                      color: loggedIn
+                          ? AppColors.textPrimary
+                          : AppColors.textSecondary,
+                    ),
                   ),
                 ],
               ),

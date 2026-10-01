@@ -7,7 +7,9 @@ import 'package:yjeek_app/core/constants/app_colors.dart';
 import 'package:yjeek_app/core/providers/app_providers.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/features/browse/model/services_vendors_repository.dart';
+import 'package:yjeek_app/features/cart/model/addresses_repository.dart';
 import 'package:yjeek_app/features/cart/model/cart_repository.dart';
+import 'package:yjeek_app/features/location/utils/checkout_delivery_address.dart';
 import 'package:yjeek_app/features/cart/model/checkout_helpers.dart';
 import 'package:yjeek_app/features/cart/model/pending_checkout.dart';
 import 'package:yjeek_app/features/cart/view/widgets/cart_flow_widgets.dart';
@@ -254,9 +256,16 @@ class _ServicesReviewScreenState extends ConsumerState<ServicesReviewScreen> {
           .read(cartRepositoryProvider)
           .fetchCart(CartOrderType.service);
       final mode = cart.serviceMode ?? 'IN_SALON';
-      final address = mode == 'AT_HOME'
-          ? await ref.read(addressesRepositoryProvider).defaultAddress()
-          : null;
+      DeliveryAddressSnapshot? address;
+      if (mode == 'AT_HOME') {
+        final saved = await ensureSavedAddressForCheckout(context, ref);
+        if (!mounted) return;
+        if (saved == null) {
+          setState(() => _placing = false);
+          return;
+        }
+        address = saved;
+      }
       final extras = serviceCheckoutExtras(
         serviceFulfillmentMode: mode,
         scheduledAt: cart.serviceScheduledAt,

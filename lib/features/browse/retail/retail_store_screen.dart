@@ -385,6 +385,11 @@ class _RetailStoreScreenState extends ConsumerState<RetailStoreScreen> {
 
     if (result.ok) {
       clearPendingAddToCart(ref);
+      final notice = result.message;
+      if (notice != null && notice.isNotEmpty && mounted) {
+        await acknowledgeExtraDeliveryCharge(context, notice);
+        if (!mounted) return;
+      }
       if (config.afterAddSuccess != null) {
         await config.afterAddSuccess!(
           context,

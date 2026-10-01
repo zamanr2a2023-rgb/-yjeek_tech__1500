@@ -39,7 +39,8 @@ class RewardWalletCard extends StatelessWidget {
           ),
           SizedBox(height: 14.h),
           PrimaryGreenButton(
-            label: '${NavigationStrings.cashOutCashback} · ${wallet.withdrawableLabel}',
+            label:
+                '${NavigationStrings.withdrawableBalance} · ${wallet.withdrawableLabel}',
             backgroundColor: AppColors.primary,
             onPressed: () => context.push(RouteNames.withdrawBank),
           ),

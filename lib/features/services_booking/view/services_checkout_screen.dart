@@ -7,6 +7,8 @@ import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/features/browse/model/services_vendors_repository.dart';
 import 'package:yjeek_app/features/cart/cart_routes.dart';
 import 'package:yjeek_app/features/cart/model/addresses_repository.dart';
+import 'package:yjeek_app/features/location/provider/delivery_location_provider.dart';
+import 'package:yjeek_app/features/location/utils/checkout_delivery_address.dart';
 import 'package:yjeek_app/features/cart/model/cart_repository.dart';
 import 'package:yjeek_app/features/cart/model/checkout_helpers.dart';
 import 'package:yjeek_app/features/cart/model/payment_methods_repository.dart';
@@ -82,7 +84,9 @@ class _ServicesCheckoutScreenState
 
       DeliveryAddressSnapshot? address;
       try {
-        address = await ref.read(addressesRepositoryProvider).defaultAddress();
+        final deliveryLoc = ref.read(deliveryLocationProvider).valueOrNull;
+        address = checkoutAddressDisplay(deliveryLoc) ??
+            await ref.read(addressesRepositoryProvider).defaultAddress();
       } catch (_) {}
 
       final vendorId = cart.vendorId;
@@ -132,7 +136,15 @@ class _ServicesCheckoutScreenState
     );
   }
 
-  void _goToReview() {
+  Future<void> _goToReview() async {
+    if (_cart?.serviceMode == 'AT_HOME') {
+      final saved = await ensureSavedAddressForCheckout(context, ref);
+      if (!mounted || saved == null) return;
+      setState(() {
+        _addressArea = saved.area;
+        _addressCity = saved.city;
+      });
+    }
     // Booking is placed on Review (Confirm / auto-timer), not here.
     ref.read(pendingServiceCheckoutProvider.notifier).state =
         PendingServiceCheckout(

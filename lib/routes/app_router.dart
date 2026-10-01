@@ -89,6 +89,10 @@ import 'package:yjeek_app/features/navigation/view/wallet_screen.dart';
 import 'package:yjeek_app/features/navigation/view/withdraw_bank_screen.dart';
 import 'package:yjeek_app/features/rewards/view/my_rewards_screen.dart';
 import 'package:yjeek_app/features/vouchers/view/vouchers_screen.dart';
+import 'package:yjeek_app/features/vouchers/view/voucher_detail_screen.dart';
+import 'package:yjeek_app/features/offers/view/marketing_offers_screen.dart';
+import 'package:yjeek_app/features/referral/view/referral_screen.dart';
+import 'package:yjeek_app/features/spin/view/spin_wheel_screen.dart';
 import 'package:yjeek_app/features/dine_in_cart/view/dine_in_checkout_screen.dart';
 import 'package:yjeek_app/features/dine_in_order_flow/view/dine_in_confirmed_screen.dart';
 import 'package:yjeek_app/features/dine_in_order_flow/view/dine_in_complete_screen.dart';
@@ -218,10 +222,12 @@ class AppRouter {
                 state.uri.queryParameters['id'] ?? BrowseRoutes.defaultVendorId;
             final tab = int.tryParse(state.uri.queryParameters['tab'] ?? '') ?? 0;
             final cartType = state.uri.queryParameters['cart'];
+            final returnTo = state.uri.queryParameters['returnTo'];
             return VendorMenuScreen(
               vendorId: vendorId,
               bottomNavIndex: tab,
               cartType: cartType,
+              returnTo: returnTo,
             );
           },
         ),
@@ -506,6 +512,26 @@ class AppRouter {
         GoRoute(
           path: RouteNames.exclusiveOffers,
           builder: (_, _) => const ExclusiveOffersScreen(),
+        ),
+        GoRoute(
+          path: RouteNames.marketingOffers,
+          builder: (_, _) => const MarketingOffersScreen(),
+        ),
+        GoRoute(
+          path: RouteNames.referral,
+          builder: (_, _) => const ReferralScreen(),
+        ),
+        GoRoute(
+          path: RouteNames.spinWheel,
+          builder: (_, state) => SpinWheelScreen(
+            campaignId: state.uri.queryParameters['campaignId'],
+          ),
+        ),
+        GoRoute(
+          path: RouteNames.voucherDetail,
+          builder: (_, state) => VoucherDetailScreen(
+            voucherId: state.uri.queryParameters['id'] ?? '',
+          ),
         ),
         GoRoute(
           path: RouteNames.geofenceOffer,

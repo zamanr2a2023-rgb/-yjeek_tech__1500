@@ -181,6 +181,9 @@ const Map<String, String> kArabicTranslations = {
   'Check in': 'تسجيل الوصول',
   'Checkout': 'إتمام الطلب',
   'Choose another address': 'اختر عنواناً آخر',
+  'Extra delivery charge': 'رسوم توصيل إضافية',
+  'This address is {km} km past the included delivery radius. An extra BHD {amount} will be charged.':
+      'هذا العنوان يتجاوز نطاق التوصيل المشمول بمقدار {km} كم. سيتم احتساب {amount} د.ب إضافية.',
   'Choose one': 'اختر واحداً',
   'Choose up to': 'اختر حتى',
   'Choose where to deliver': 'اختر مكان التوصيل',

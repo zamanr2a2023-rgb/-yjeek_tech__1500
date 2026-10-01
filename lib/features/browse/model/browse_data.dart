@@ -18,6 +18,8 @@ class BrowseRestaurant {
     this.minOrder = '5',
     this.distance = '2.4 km',
     this.imageUrl,
+    this.logoUrl,
+    this.coverUrl,
     this.reviewCount = '___',
     this.reviewCountValue = 0,
     this.hasRating = false,
@@ -36,6 +38,11 @@ class BrowseRestaurant {
     this.supportsDelivery = true,
     this.supportsPickup = false,
     this.supportsDineIn = false,
+    this.hasOffers = false,
+    this.offersLabel,
+    this.vouchersAccepted = false,
+    this.vouchersAcceptedBadge,
+    this.acceptsMyVouchers,
   });
 
   final String id;
@@ -50,8 +57,19 @@ class BrowseRestaurant {
   final String deliveryFee;
   final String minOrder;
   final String distance;
+  /// Legacy list/thumb URL; prefer [displayLogoUrl].
   final String? imageUrl;
+  final String? logoUrl;
+  final String? coverUrl;
   final String reviewCount;
+
+  /// Logo for avatars and list thumbnails.
+  String? get displayLogoUrl =>
+      logoUrl ?? imageUrl ?? coverUrl;
+
+  /// Hero / banner image on vendor menu.
+  String? get displayCoverUrl =>
+      coverUrl ?? logoUrl ?? imageUrl;
   final int reviewCountValue;
   /// True only when real customer reviews exist (not a placeholder 0.0).
   final bool hasRating;
@@ -73,6 +91,25 @@ class BrowseRestaurant {
   final bool supportsDelivery;
   final bool supportsPickup;
   final bool supportsDineIn;
+  final bool hasOffers;
+  final String? offersLabel;
+  final bool vouchersAccepted;
+  final String? vouchersAcceptedBadge;
+  final bool? acceptsMyVouchers;
+
+  String? get promoBadgeLabel {
+    if (offersLabel != null && offersLabel!.isNotEmpty) return offersLabel;
+    if (hasOffers) return 'Offers';
+    return null;
+  }
+
+  String? get voucherBadgeLabel {
+    if (vouchersAcceptedBadge != null && vouchersAcceptedBadge!.isNotEmpty) {
+      return vouchersAcceptedBadge;
+    }
+    if (vouchersAccepted) return 'Vouchers accepted';
+    return null;
+  }
 
   BrowseRestaurant copyWith({
     double? distanceKm,
@@ -95,6 +132,8 @@ class BrowseRestaurant {
       minOrder: minOrder,
       distance: distance ?? this.distance,
       imageUrl: imageUrl,
+      logoUrl: logoUrl,
+      coverUrl: coverUrl,
       reviewCount: reviewCount,
       reviewCountValue: reviewCountValue,
       hasRating: hasRating,
@@ -129,6 +168,9 @@ class BrowseMenuItem {
     this.descriptionAr,
     this.hasModifiers = false,
     this.badges = const [],
+    this.onPromotion = false,
+    this.strikeThroughPrice,
+    this.promotionId,
   });
 
   final String id;
@@ -144,6 +186,9 @@ class BrowseMenuItem {
   final bool hasModifiers;
   /// Product restriction / handling badges from API (e.g. HIGH_VALUE, AGE_RESTRICTED).
   final List<String> badges;
+  final bool onPromotion;
+  final String? strikeThroughPrice;
+  final String? promotionId;
 
   bool get isHighValue =>
       badges.any((b) => b.toUpperCase().replaceAll('-', '_') == 'HIGH_VALUE');

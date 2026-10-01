@@ -9,7 +9,7 @@ import 'package:yjeek_app/core/constants/app_colors.dart';
 import 'package:yjeek_app/core/constants/app_text_styles.dart';
 import 'package:yjeek_app/core/providers/app_providers.dart';
 import 'package:yjeek_app/core/providers/shell_provider.dart';
-import 'package:yjeek_app/core/services/location_service.dart';
+import 'package:yjeek_app/features/location/provider/delivery_location_provider.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/features/auth/utils/require_login.dart';
 import 'package:yjeek_app/features/browse/browse_routes.dart';
@@ -34,12 +34,17 @@ class VendorMenuScreen extends ConsumerStatefulWidget {
     required this.vendorId,
     this.bottomNavIndex = 0,
     this.cartType,
+    this.returnTo,
   });
 
   final String vendorId;
   final int bottomNavIndex;
+
   /// When `pickup` / `dine_in`, item detail adds to that cart type.
   final String? cartType;
+
+  /// Where to go when the route stack cannot pop (deep link / `go()` entry).
+  final String? returnTo;
 
   @override
   ConsumerState<VendorMenuScreen> createState() => _VendorMenuScreenState();
@@ -67,9 +72,7 @@ class _VendorMenuScreenState extends ConsumerState<VendorMenuScreen> {
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _menuScroll = ScrollController();
   final Map<String, ({List<String> sections, List<BrowseMenuItem> items})>
-      _menuCache = {};
-  double? _expandedHeaderHeight;
-
+  _menuCache = {};
   VendorMenuChipGroup? get _activeChipGroup {
     for (final g in _chipGroups) {
       if (g.label == _selectedChip) return g;
@@ -180,7 +183,6 @@ class _VendorMenuScreenState extends ConsumerState<VendorMenuScreen> {
   void _toggleSearch() {
     setState(() {
       _searchVisible = !_searchVisible;
-      _expandedHeaderHeight = null;
       if (!_searchVisible) {
         _searchController.clear();
         if (_menuQuery.isNotEmpty) {
@@ -188,7 +190,6 @@ class _VendorMenuScreenState extends ConsumerState<VendorMenuScreen> {
         }
       }
     });
-    if (_menuScroll.hasClients) _menuScroll.jumpTo(0);
   }
 
   Future<void> _openVendorMap(BrowseRestaurant restaurant) async {
@@ -202,36 +203,60 @@ class _VendorMenuScreenState extends ConsumerState<VendorMenuScreen> {
     await launchUrl(uri, mode: LaunchMode.externalApplication);
   }
 
-  void _onExpandedHeaderSize(Size size) {
-    if (size.height < 1) return;
-    final current = _expandedHeaderHeight;
-    if (current != null && (current - size.height).abs() < 0.5) return;
-    setState(() => _expandedHeaderHeight = size.height);
+  double _expandedHeaderHeight(BuildContext context) =>
+      VendorMenuLayout.expandedBodyHeight(
+        context,
+        searchVisible: _searchVisible,
+      );
+
+  void _handleBack() {
+    if (context.canPop()) {
+      context.pop();
+      return;
+    }
+    final returnTo = widget.returnTo?.trim();
+    if (returnTo != null && returnTo.isNotEmpty) {
+      context.go(returnTo);
+      return;
+    }
+    context.go(BrowseRoutes.foodBrowse(tab: widget.bottomNavIndex));
   }
 
-  double _pinnedFiltersHeight() => 8.h + 34.h + 10.h + 27.h + 6.w;
+  double _pinnedFiltersHeightEstimate(BuildContext context) =>
+      VendorMenuLayout.pinnedFiltersHeight(context);
+
+  Widget _pinnedFiltersBody() {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: EdgeInsets.only(top: 4.h),
+          child: VendorMenuCategoryChips(
+            sections: _chipGroups.map((g) => g.label).toList(),
+            selected: _selectedChip,
+            onSelected: _onChipSelected,
+          ),
+        ),
+        VendorMenuViewToggleRow(
+          isGridView: _isGridView,
+          onViewChanged: (v) => setState(() => _isGridView = v),
+        ),
+        SizedBox(height: 6.h),
+      ],
+    );
+  }
 
   Widget _pinnedFilters() {
     return ColoredBox(
       color: AppColors.white,
       child: SizedBox(
-        height: _pinnedFiltersHeight(),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Padding(
-              padding: EdgeInsets.only(top: 8.h),
-              child: VendorMenuCategoryChips(
-                sections: _chipGroups.map((g) => g.label).toList(),
-                selected: _selectedChip,
-                onSelected: _onChipSelected,
-              ),
-            ),
-            VendorMenuViewToggleRow(
-              isGridView: _isGridView,
-              onViewChanged: (v) => setState(() => _isGridView = v),
-            ),
-          ],
+        height: _pinnedFiltersHeightEstimate(context),
+        child: ClipRect(
+          child: Align(
+            alignment: Alignment.topCenter,
+            child: _pinnedFiltersBody(),
+          ),
         ),
       ),
     );
@@ -349,22 +374,26 @@ class _VendorMenuScreenState extends ConsumerState<VendorMenuScreen> {
         restaurant = menu.restaurant;
       }
 
-      final cart =
-          await repo.fetchDeliveryCart(cartType: effectiveCartMode);
+      final cart = await repo.fetchDeliveryCart(cartType: effectiveCartMode);
       if (!mounted || gen != _loadGen) return;
 
       // Only resolve GPS distance once — reuse on soft order-type switches.
       if (_restaurant?.distanceKm == null ||
           restaurant.latitude != _restaurant?.latitude ||
           restaurant.longitude != _restaurant?.longitude) {
-        final position = await const LocationService().currentPosition();
+        var delivery = ref.read(deliveryLocationProvider).valueOrNull;
+        if (delivery == null || !delivery.hasCoordinates) {
+          await ref.read(deliveryLocationProvider.notifier).refresh();
+          delivery = ref.read(deliveryLocationProvider).valueOrNull;
+        }
         if (!mounted || gen != _loadGen) return;
-        if (position != null &&
+        if (delivery != null &&
+            delivery.hasCoordinates &&
             restaurant.latitude != null &&
             restaurant.longitude != null) {
           final km = _haversineKm(
-            position.lat,
-            position.lng,
+            delivery.latitude!,
+            delivery.longitude!,
             restaurant.latitude!,
             restaurant.longitude!,
           );
@@ -416,16 +445,12 @@ class _VendorMenuScreenState extends ConsumerState<VendorMenuScreen> {
     }
   }
 
-  double _haversineKm(
-    double lat1,
-    double lon1,
-    double lat2,
-    double lon2,
-  ) {
+  double _haversineKm(double lat1, double lon1, double lat2, double lon2) {
     const earthKm = 6371.0;
     final dLat = _degToRad(lat2 - lat1);
     final dLon = _degToRad(lon2 - lon1);
-    final a = math.sin(dLat / 2) * math.sin(dLat / 2) +
+    final a =
+        math.sin(dLat / 2) * math.sin(dLat / 2) +
         math.cos(_degToRad(lat1)) *
             math.cos(_degToRad(lat2)) *
             math.sin(dLon / 2) *
@@ -446,7 +471,8 @@ class _VendorMenuScreenState extends ConsumerState<VendorMenuScreen> {
 
   Future<void> _openItem(BrowseMenuItem item) async {
     final cartVendorId = _cart.vendorId;
-    final needsReplace = cartVendorId != null &&
+    final needsReplace =
+        cartVendorId != null &&
         cartVendorId.isNotEmpty &&
         cartVendorId != widget.vendorId &&
         _cart.itemCount > 0;
@@ -461,8 +487,8 @@ class _VendorMenuScreenState extends ConsumerState<VendorMenuScreen> {
             ),
           )
           .then((_) {
-        if (mounted) _load(query: _menuQuery, soft: true);
-      });
+            if (mounted) _load(query: _menuQuery, soft: true);
+          });
     }
 
     if (needsReplace) {
@@ -497,14 +523,21 @@ class _VendorMenuScreenState extends ConsumerState<VendorMenuScreen> {
     if (!mounted) return;
 
     final cartVendorId = _cart.vendorId;
-    final needsReplace = cartVendorId != null &&
+    final needsReplace =
+        cartVendorId != null &&
         cartVendorId.isNotEmpty &&
         cartVendorId != widget.vendorId &&
         _cart.itemCount > 0;
 
     Future<void> doAdd({bool replace = false}) async {
       setState(() => _addingItemId = item.id);
-      final result = await ref.read(foodVendorsRepositoryProvider).addToCart(
+      final rangeArgs = ref
+          .read(deliveryLocationProvider)
+          .valueOrNull
+          ?.forRangeCheck;
+      final result = await ref
+          .read(foodVendorsRepositoryProvider)
+          .addToCart(
             productId: item.id,
             quantity: 1,
             replaceCart: replace,
@@ -515,13 +548,18 @@ class _VendorMenuScreenState extends ConsumerState<VendorMenuScreen> {
               vendorId: widget.vendorId,
               orderType: _apiCartType,
             ),
+            deliveryAddressId: rangeArgs?.addressId,
+            deliveryLatitude: rangeArgs?.latitude,
+            deliveryLongitude: rangeArgs?.longitude,
           );
       if (!mounted) return;
       setState(() => _addingItemId = null);
 
       if (result.ok) {
         clearPendingAddToCart(ref);
-        ref.read(shellProvider.notifier).markCartUpdated(
+        ref
+            .read(shellProvider.notifier)
+            .markCartUpdated(
               delivery: _cartMode == 'DELIVERY',
               pickup: _cartMode == 'PICKUP',
               dineIn: _cartMode == 'DINE_IN',
@@ -533,6 +571,11 @@ class _VendorMenuScreenState extends ConsumerState<VendorMenuScreen> {
           if (mounted) setState(() => _cart = cart);
         } catch (_) {}
         if (!mounted) return;
+        final notice = result.message;
+        if (notice != null && notice.isNotEmpty) {
+          await acknowledgeExtraDeliveryCharge(context, notice);
+          if (!mounted) return;
+        }
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('${item.localizedName} added to cart'),
@@ -562,10 +605,7 @@ class _VendorMenuScreenState extends ConsumerState<VendorMenuScreen> {
         return;
       }
       if (result.vendorConflict) {
-        showCartNewCartDialog(
-          context,
-          onConfirm: () => doAdd(replace: true),
-        );
+        showCartNewCartDialog(context, onConfirm: () => doAdd(replace: true));
         return;
       }
       if (await redirectToLoginIfAuthError(context, ref, result.message)) {
@@ -721,119 +761,118 @@ class _VendorMenuScreenState extends ConsumerState<VendorMenuScreen> {
     }
     final showFilters = _chipGroups.isNotEmpty;
     final collapsedHeight = VendorMenuCollapsedBar.contentHeight(context);
-    final footerHeight = showFilters ? _pinnedFiltersHeight() : 0.0;
+    final footerHeight = showFilters
+        ? _pinnedFiltersHeightEstimate(context)
+        : 0.0;
     final expandedHeight = math.max(
-      _expandedHeaderHeight ?? (137.h + 64.h + 48.h + 56.h),
+      _expandedHeaderHeight(context),
       collapsedHeight,
     );
-    final expandedHeader = _MeasureSize(
-      onChange: _onExpandedHeaderSize,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          VendorMenuCoverHeader(
-            restaurant: restaurant,
-            onBack: () => context.pop(),
-            onSearchTap: _toggleSearch,
-            showSearchField: _searchVisible,
-            searchController: _searchController,
-            onSearchChanged: _onMenuQueryChanged,
-            onSearchClose: _toggleSearch,
-          ),
-          VendorMenuIdentityBar(restaurant: restaurant),
-          VendorMenuOrderTypeTabs(
-            selected: _orderType,
-            onChanged: _onOrderTypeChanged,
-            enabledTypes: _enabledOrderTypes,
-          ),
-          VendorMenuStatsRow(
-            restaurant: restaurant,
-            orderType: _orderType,
-          ),
-          const Divider(height: 1, color: Color(0xFFE2E2E2)),
-        ],
-      ),
+    final expandedHeader = Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        VendorMenuCoverHeader(
+          restaurant: restaurant,
+          onBack: _handleBack,
+          onSearchTap: _toggleSearch,
+          showSearchField: _searchVisible,
+          searchController: _searchController,
+          onSearchChanged: _onMenuQueryChanged,
+          onSearchClose: _toggleSearch,
+        ),
+        VendorMenuIdentityBar(restaurant: restaurant),
+        VendorMenuOrderTypeTabs(
+          selected: _orderType,
+          onChanged: _onOrderTypeChanged,
+          enabledTypes: _enabledOrderTypes,
+        ),
+        VendorMenuStatsRow(restaurant: restaurant, orderType: _orderType),
+        const Divider(height: 1, color: Color(0xFFE2E2E2)),
+      ],
     );
 
-    return Scaffold(
-      backgroundColor: AppColors.white,
-      body: Column(
-        children: [
-          Expanded(
-            child: CustomScrollView(
-                  controller: _menuScroll,
-                  slivers: [
-                    if (_expandedHeaderHeight == null)
-                      SliverToBoxAdapter(child: expandedHeader)
-                    else
-                      SliverPersistentHeader(
-                        pinned: true,
-                        delegate: _VendorMenuCollapseDelegate(
-                          expanded: expandedHeader,
-                          collapsed: VendorMenuCollapsedBar(
-                            restaurant: restaurant,
-                            onBack: () => context.pop(),
-                            onPinTap: () => _openVendorMap(restaurant),
-                          ),
-                          pinnedFooter: showFilters
-                              ? _pinnedFilters()
-                              : const SizedBox.shrink(),
-                          expandedBodyHeight: expandedHeight,
-                          collapsedBodyHeight: collapsedHeight,
-                          footerHeight: footerHeight,
-                        ),
+    final canPopRoute = context.canPop();
+    return PopScope(
+      canPop: canPopRoute,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _handleBack();
+      },
+      child: Scaffold(
+        backgroundColor: AppColors.white,
+        body: Column(
+          children: [
+            Expanded(
+              child: CustomScrollView(
+                controller: _menuScroll,
+                slivers: [
+                  SliverPersistentHeader(
+                    pinned: true,
+                    delegate: _VendorMenuCollapseDelegate(
+                      expanded: expandedHeader,
+                      collapsed: VendorMenuCollapsedBar(
+                        restaurant: restaurant,
+                        onBack: _handleBack,
+                        onPinTap: () => _openVendorMap(restaurant),
                       ),
-                    if (_expandedHeaderHeight == null && showFilters)
-                      SliverToBoxAdapter(child: _pinnedFilters()),
+                      pinnedFooter: showFilters
+                          ? _pinnedFilters()
+                          : const SizedBox.shrink(),
+                      expandedBodyHeight: expandedHeight,
+                      collapsedBodyHeight: collapsedHeight,
+                      footerHeight: footerHeight,
+                    ),
+                  ),
+                  const SliverToBoxAdapter(
+                    child: UiPlacementBanner(
+                      placementKey: 'store_top',
+                      padding: EdgeInsets.fromLTRB(16, 8, 16, 0),
+                    ),
+                  ),
+                  const SliverToBoxAdapter(
+                    child: UiPlacementBanner(
+                      placementKey: 'store_mid',
+                      padding: EdgeInsets.fromLTRB(16, 8, 16, 0),
+                    ),
+                  ),
+                  if (_menuSwitching)
                     const SliverToBoxAdapter(
-                      child: UiPlacementBanner(
-                        placementKey: 'store_top',
-                        padding: EdgeInsets.fromLTRB(16, 8, 16, 0),
+                      child: LinearProgressIndicator(
+                        minHeight: 2,
+                        color: AppColors.primary,
+                        backgroundColor: Color(0xFFE8F5E9),
                       ),
                     ),
-                    const SliverToBoxAdapter(
-                      child: UiPlacementBanner(
-                        placementKey: 'store_mid',
-                        padding: EdgeInsets.fromLTRB(16, 8, 16, 0),
-                      ),
-                    ),
-                    if (_menuSwitching)
-                      const SliverToBoxAdapter(
-                        child: LinearProgressIndicator(
-                          minHeight: 2,
+                  if (_loading && !_loadedOnce)
+                    const SliverFillRemaining(
+                      hasScrollBody: false,
+                      child: Center(
+                        child: CircularProgressIndicator(
                           color: AppColors.primary,
-                          backgroundColor: Color(0xFFE8F5E9),
                         ),
                       ),
-                    if (_loading && !_loadedOnce)
-                      const SliverFillRemaining(
-                        hasScrollBody: false,
-                        child: Center(
-                          child: CircularProgressIndicator(
-                            color: AppColors.primary,
-                          ),
-                        ),
-                      )
-                    else
-                      SliverToBoxAdapter(
-                        child: Padding(
-                          padding: EdgeInsets.only(bottom: 8.h),
-                          child: _buildMenuBody(),
-                        ),
+                    )
+                  else
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: EdgeInsets.only(bottom: 8.h),
+                        child: _buildMenuBody(),
                       ),
-                  ],
-                ),
-          ),
-          BrowseCartBar(
-            itemCount: _cart.itemCount,
-            totalLabel: _cart.totalLabel,
-            onTap: () => context.goHome(tab: 2, cartHasItems: true),
-          ),
-        ],
+                    ),
+                ],
+              ),
+            ),
+            BrowseCartBar(
+              itemCount: _cart.itemCount,
+              totalLabel: _cart.totalLabel,
+              onTap: () => context.goHome(tab: 2, cartHasItems: true),
+            ),
+          ],
+        ),
+        bottomNavigationBar: ShellBottomNavBar(
+          currentIndex: widget.bottomNavIndex,
+        ),
       ),
-      bottomNavigationBar:
-          ShellBottomNavBar(currentIndex: widget.bottomNavIndex),
     );
   }
 }
@@ -870,9 +909,11 @@ class _VendorMenuCollapseDelegate extends SliverPersistentHeaderDelegate {
     final range = maxExtent - minExtent;
     final t = range <= 0 ? 1.0 : (shrinkOffset / range).clamp(0.0, 1.0);
     final bodyHeight = expandedBodyHeight - shrinkOffset;
-    final visibleBody =
-        bodyHeight < collapsedBodyHeight ? collapsedBodyHeight : bodyHeight;
-    final showCollapsed = t >= 0.92;
+    final visibleBody = bodyHeight < collapsedBodyHeight
+        ? collapsedBodyHeight
+        : bodyHeight;
+    final expandedInteractive = t <= 0.5;
+    final collapsedInteractive = t > 0.5;
 
     return ColoredBox(
       color: AppColors.white,
@@ -881,18 +922,36 @@ class _VendorMenuCollapseDelegate extends SliverPersistentHeaderDelegate {
           SizedBox(
             height: visibleBody,
             child: ClipRect(
-              child: showCollapsed
-                  ? collapsed
-                  : OverflowBox(
-                      alignment: Alignment.bottomCenter,
-                      minHeight: expandedBodyHeight,
-                      maxHeight: expandedBodyHeight,
-                      child: expanded,
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  Opacity(
+                    opacity: (1 - t).clamp(0.0, 1.0),
+                    child: IgnorePointer(
+                      ignoring: !expandedInteractive,
+                      child: OverflowBox(
+                        alignment: Alignment.topCenter,
+                        maxHeight: double.infinity,
+                        child: expanded,
+                      ),
                     ),
+                  ),
+                  Opacity(
+                    opacity: t.clamp(0.0, 1.0),
+                    child: IgnorePointer(
+                      ignoring: !collapsedInteractive,
+                      child: collapsed,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
           if (footerHeight > 0)
-            SizedBox(height: footerHeight, child: pinnedFooter),
+            SizedBox(
+              height: footerHeight,
+              child: ClipRect(child: pinnedFooter),
+            ),
         ],
       ),
     );
@@ -906,33 +965,5 @@ class _VendorMenuCollapseDelegate extends SliverPersistentHeaderDelegate {
         expanded != oldDelegate.expanded ||
         collapsed != oldDelegate.collapsed ||
         pinnedFooter != oldDelegate.pinnedFooter;
-  }
-}
-
-class _MeasureSize extends StatefulWidget {
-  const _MeasureSize({required this.onChange, required this.child});
-
-  final ValueChanged<Size> onChange;
-  final Widget child;
-
-  @override
-  State<_MeasureSize> createState() => _MeasureSizeState();
-}
-
-class _MeasureSizeState extends State<_MeasureSize> {
-  Size? _old;
-
-  @override
-  Widget build(BuildContext context) {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      final box = context.findRenderObject() as RenderBox?;
-      if (box == null || !box.hasSize) return;
-      final size = box.size;
-      if (_old == size) return;
-      _old = size;
-      widget.onChange(size);
-    });
-    return widget.child;
   }
 }

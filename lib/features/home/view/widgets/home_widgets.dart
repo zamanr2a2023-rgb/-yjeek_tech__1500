@@ -360,21 +360,20 @@ class _CategoryRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.start,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        for (var i = 0; i < items.length; i++) ...[
-          if (i > 0) const SizedBox(width: _gap),
-          SizedBox(
-            width: _itemWidth,
-            child: GestureDetector(
-              onTap: onCategoryTap != null
-                  ? () => onCategoryTap!(items[i])
-                  : null,
-              child: CategoryIconTile(category: items[i]),
+        for (var i = 0; i < items.length; i++)
+          Expanded(
+            child: Padding(
+              padding: EdgeInsets.only(right: i < items.length - 1 ? 8.w : 0),
+              child: GestureDetector(
+                onTap: onCategoryTap != null
+                    ? () => onCategoryTap!(items[i])
+                    : null,
+                child: CategoryIconTile(category: items[i]),
+              ),
             ),
           ),
-        ],
       ],
     );
   }
@@ -432,19 +431,19 @@ class CategoryIconTile extends StatelessWidget {
                     size: iconSize,
                   ),
           ),
-          const SizedBox(height: 7),
+          SizedBox(height: compact ? 6 : 7),
           SizedBox(
-            width: size,
+            width: double.infinity,
             child: Text(
               category.displayName,
               textAlign: TextAlign.center,
-              maxLines: 2,
+              maxLines: compact ? 1 : 2,
               overflow: TextOverflow.ellipsis,
               style: AppTextStyles.labelSmall(color: AppColors.textPrimary)
                   .copyWith(
                     fontWeight: FontWeight.w600,
-                    fontSize: 11.5,
-                    height: 1.15,
+                    fontSize: compact ? 10.5.sp : 11.5,
+                    height: 1.1,
                   ),
             ),
           ),

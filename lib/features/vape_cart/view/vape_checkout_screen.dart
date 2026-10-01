@@ -9,6 +9,8 @@ import 'package:yjeek_app/features/cart/model/cart_repository.dart';
 import 'package:yjeek_app/features/cart/model/checkout_helpers.dart';
 import 'package:yjeek_app/features/cart/model/delivery_quote.dart';
 import 'package:yjeek_app/features/cart/model/delivery_range.dart';
+import 'package:yjeek_app/features/location/provider/delivery_location_provider.dart';
+import 'package:yjeek_app/features/location/utils/checkout_delivery_address.dart';
 import 'package:yjeek_app/features/cart/model/payment_methods_repository.dart';
 import 'package:yjeek_app/features/cart/view/widgets/cart_flow_widgets.dart';
 import 'package:yjeek_app/features/navigation/model/navigation_data.dart';
@@ -165,9 +167,9 @@ class _VapeCheckoutScreenState extends ConsumerState<VapeCheckoutScreen> {
         });
         return;
       }
-      final address = await ref
-          .read(addressesRepositoryProvider)
-          .defaultAddress();
+      final deliveryLoc = ref.read(deliveryLocationProvider).valueOrNull;
+      final address = checkoutAddressDisplay(deliveryLoc) ??
+          await ref.read(addressesRepositoryProvider).defaultAddress();
       final payments = await ref
           .read(paymentMethodsRepositoryProvider)
           .fetchCheckoutMethods(preferredDefaultId: 'benefitpay');
@@ -227,13 +229,15 @@ class _VapeCheckoutScreenState extends ConsumerState<VapeCheckoutScreen> {
       return;
     }
     if (_placing) return;
-    final addressId = _address?.id;
-    if (addressId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Add a delivery address first')),
-      );
-      return;
+    var address = _address;
+    if (address == null || address.id.isEmpty) {
+      final saved = await ensureSavedAddressForCheckout(context, ref);
+      if (!mounted) return;
+      if (saved == null) return;
+      setState(() => _address = saved);
+      address = saved;
     }
+    final addressId = address.id;
     if (!_selectedMethod.available) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Selected delivery method unavailable')),
@@ -259,6 +263,10 @@ class _VapeCheckoutScreenState extends ConsumerState<VapeCheckoutScreen> {
         failClosed: true,
       );
       if (!mounted) return;
+      if (range.isExtraCharge && _cart?.delivery?.waived != true) {
+        final proceed = await confirmExtraDeliveryCharge(context, range);
+        if (!mounted || !proceed) return;
+      }
       if (!range.allowsDelivery) {
         await pushOutOfDelivery(context, address: range.address ?? _address);
         return;

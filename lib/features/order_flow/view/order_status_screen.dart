@@ -76,8 +76,13 @@ class _OrderStatusScreenState extends ConsumerState<OrderStatusScreen> {
     }
     if (showSpinner && mounted) setState(() => _loading = true);
     try {
+      final pushEta =
+          GoRouterState.of(context).uri.queryParameters['etaWindow']?.trim();
       final data = await ref.read(ordersRepositoryProvider).trackOrder(id);
       if (!mounted) return;
+      if (pushEta != null && pushEta.isNotEmpty) {
+        _arrival = pushEta;
+      }
       if (data == null) {
         setState(() => _loading = false);
         return;

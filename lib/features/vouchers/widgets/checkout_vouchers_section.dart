@@ -14,6 +14,8 @@ class CheckoutVouchersSection extends ConsumerStatefulWidget {
     required this.selectedVoucherId,
     required this.onSelected,
     this.voucherTitles = const {},
+    this.cartId,
+    this.evaluateKey = '',
   });
 
   final String orderType;
@@ -22,6 +24,11 @@ class CheckoutVouchersSection extends ConsumerStatefulWidget {
 
   /// Optional id → title map from list API for richer labels.
   final Map<String, String> voucherTitles;
+
+  final String? cartId;
+
+  /// Changes when cart lines/totals change — triggers re-evaluate.
+  final String evaluateKey;
 
   @override
   ConsumerState<CheckoutVouchersSection> createState() =>
@@ -34,6 +41,7 @@ class _CheckoutVouchersSectionState
   bool _loading = true;
   String? _error;
   bool _didAutoSelect = false;
+  String _lastEvaluateKey = '';
 
   @override
   void initState() {
@@ -44,19 +52,26 @@ class _CheckoutVouchersSectionState
   @override
   void didUpdateWidget(covariant CheckoutVouchersSection oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.orderType != widget.orderType) {
-      _didAutoSelect = false;
+    final keyChanged = oldWidget.evaluateKey != widget.evaluateKey;
+    final typeChanged = oldWidget.orderType != widget.orderType;
+    final cartChanged = oldWidget.cartId != widget.cartId;
+    if (typeChanged || keyChanged || cartChanged) {
+      if (typeChanged || cartChanged) _didAutoSelect = false;
       _load();
     }
   }
 
   Future<void> _load() async {
+    final key = '${widget.cartId ?? ''}|${widget.evaluateKey}';
+    if (_loading && key == _lastEvaluateKey && _eval != null) return;
+    _lastEvaluateKey = key;
     setState(() {
       _loading = true;
       _error = null;
     });
     try {
       final eval = await ref.read(vouchersRepositoryProvider).evaluate(
+            cartId: widget.cartId,
             orderType: widget.orderType,
           );
       if (!mounted) return;

@@ -8,6 +8,7 @@ import 'package:yjeek_app/core/providers/app_providers.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/features/navigation/model/user_me.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/account_widgets.dart';
+import 'package:yjeek_app/features/navigation/view/widgets/marketing_opt_in_tile.dart';
 import 'package:yjeek_app/routes/route_names.dart';
 
 class EditProfileScreen extends ConsumerWidget {
@@ -123,6 +124,10 @@ class EditProfileScreen extends ConsumerWidget {
                         child: GenderChipRow(
                           selected: me?.profile.genderLabel ?? '',
                         ),
+                      ),
+                      SizedBox(height: 20.h),
+                      MarketingOptInTile(
+                        initialValue: me?.profile.marketingOptIn ?? true,
                       ),
                     ],
                   ),

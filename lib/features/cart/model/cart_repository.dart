@@ -3,6 +3,7 @@ import 'package:yjeek_app/core/network/api_client.dart';
 import 'package:yjeek_app/core/services/storage_service.dart';
 import 'package:yjeek_app/features/cart/model/addresses_repository.dart';
 import 'package:yjeek_app/features/cart/model/cashback_preview.dart';
+import 'package:yjeek_app/features/cart/model/cart_referral_credit.dart';
 import 'package:yjeek_app/features/browse/model/pharmacy_order_modes.dart';
 import 'package:yjeek_app/features/cart/model/delivery_quote.dart';
 import 'package:yjeek_app/features/cart/model/delivery_range.dart';
@@ -252,6 +253,8 @@ class CartSnapshot {
     this.cashbackPreview,
     this.pricingModel,
     this.delivery,
+    this.cartId,
+    this.referralCredit,
   });
 
   final CartOrderType orderType;
@@ -310,6 +313,9 @@ class CartSnapshot {
 
   /// Null for pickup, dine-in, and services. Present for delivery quotes.
   final DeliveryQuote? delivery;
+
+  final String? cartId;
+  final CartReferralCredit? referralCredit;
 
   /// Electronics vendor cart — no cutlery / kitchen-note preferences.
   bool get isElectronics => storeTypeSlug == 'electronics';
@@ -466,6 +472,9 @@ class CartRepository {
     int quantity = 1,
     String? vendorId,
     String? geofenceTriggerId,
+    String? deliveryAddressId,
+    double? deliveryLatitude,
+    double? deliveryLongitude,
   }) async {
     final addresses = _addresses;
     if (type == CartOrderType.delivery &&
@@ -476,6 +485,9 @@ class CartRepository {
       final range = await checkDeliveryRange(
         addresses: addresses,
         vendorId: vendorId,
+        addressId: deliveryAddressId,
+        latitude: deliveryLatitude,
+        longitude: deliveryLongitude,
         failClosed: false,
       );
       if (range.isOutOfRange) {
@@ -721,6 +733,7 @@ class CartRepository {
     double tipAmount = 0,
     String? addressId,
     double? walletAmount,
+    double? referralCreditAmount,
     String? voucherId,
     List<String>? dropOffPreferences,
     bool saveDropOffPreferences = false,
@@ -742,6 +755,8 @@ class CartRepository {
           'tipAmount': tipAmount,
           if (addressId != null) 'addressId': addressId,
           if (walletAmount != null) 'walletAmount': walletAmount,
+          if (referralCreditAmount != null)
+            'referralCreditAmount': referralCreditAmount,
           if (voucherId != null && voucherId.isNotEmpty) 'voucherId': voucherId,
           if (dropOffPreferences != null && dropOffPreferences.isNotEmpty)
             'dropOffPreferences': dropOffPreferences,
@@ -1293,6 +1308,8 @@ CartSnapshot cartSnapshotFromJson(
     dineIn: _dineInInfoFromJson(json['dineIn']),
     pricingModel: json['pricingModel']?.toString(),
     delivery: delivery,
+    cartId: json['id']?.toString() ?? json['cartId']?.toString(),
+    referralCredit: CartReferralCredit.tryParse(summaryMap),
   );
 }
 
@@ -1446,6 +1463,8 @@ CartSnapshot? scheduledCartSnapshotFromJson(Map<String, dynamic> json) {
     totalAmount: scheduledTotal,
     vatAmount: vatAmount,
     grandTotal: grandTotal,
+    cartId: json['id']?.toString() ?? json['cartId']?.toString(),
+    referralCredit: CartReferralCredit.tryParse(summaryMap),
   );
 }
 

@@ -19,6 +19,9 @@ import 'package:yjeek_app/features/home/model/active_order_repository.dart';
 import 'package:yjeek_app/features/home/model/categories_repository.dart';
 import 'package:yjeek_app/features/home/model/category_item.dart';
 import 'package:yjeek_app/features/home/model/home_feed.dart';
+import 'package:yjeek_app/features/home/model/top_picks_models.dart';
+import 'package:yjeek_app/features/home/model/top_picks_repository.dart';
+import 'package:yjeek_app/features/location/provider/delivery_location_provider.dart';
 import 'package:yjeek_app/features/home/model/home_repository.dart';
 import 'package:yjeek_app/features/navigation/model/content_repository.dart';
 import 'package:yjeek_app/features/notifications/model/notifications_repository.dart';
@@ -37,6 +40,12 @@ import 'package:yjeek_app/features/ui_content/model/banner_models.dart';
 import 'package:yjeek_app/features/ui_content/model/banners_repository.dart';
 import 'package:yjeek_app/features/vouchers/model/voucher_models.dart';
 import 'package:yjeek_app/features/vouchers/model/vouchers_repository.dart';
+import 'package:yjeek_app/features/offers/model/marketing_offers_repository.dart';
+import 'package:yjeek_app/features/rewards/model/wallet_ledger_repository.dart';
+import 'package:yjeek_app/features/referral/model/referral_repository.dart';
+import 'package:yjeek_app/features/spin/model/spin_repository.dart';
+import 'package:yjeek_app/features/campaigns/model/campaigns_repository.dart';
+import 'package:yjeek_app/core/services/device_id_service.dart';
 
 final storageServiceProvider = Provider<StorageService>(
   (ref) => Get.find<StorageService>(),
@@ -120,6 +129,30 @@ final homeRepositoryProvider = Provider<HomeRepository>(
 
 final homeFeedProvider = FutureProvider<HomeFeed>((ref) {
   return ref.watch(homeRepositoryProvider).fetchHome();
+});
+
+final topPicksRepositoryProvider = Provider<TopPicksRepository>(
+  (ref) => TopPicksRepository(
+    ref.watch(apiClientProvider),
+    ref.watch(storageServiceProvider),
+  ),
+);
+
+/// Coordinates only — avoids refetch when location reloads with the same lat/lng.
+final _topPicksCoordsProvider = Provider<({double lat, double lng})?>((ref) {
+  final loc = ref.watch(deliveryLocationProvider).valueOrNull;
+  if (loc == null || !loc.hasCoordinates) return null;
+  return (lat: loc.latitude!, lng: loc.longitude!);
+});
+
+/// Branch-scoped picks from GET /home/top-picks (backend filters by radius).
+final topPicksProvider = FutureProvider<List<HomeTopPickItem>>((ref) async {
+  final coords = ref.watch(_topPicksCoordsProvider);
+  if (coords == null) return const [];
+  return ref.read(topPicksRepositoryProvider).fetchTopPicks(
+        latitude: coords.lat,
+        longitude: coords.lng,
+      );
 });
 
 final bannersRepositoryProvider = Provider<BannersRepository>(
@@ -318,4 +351,40 @@ final appLanguagesProvider = FutureProvider<List<AppLanguageOption>>((ref) {
 
 final contentRepositoryProvider = Provider<ContentRepository>(
   (ref) => ContentRepository(ref.watch(apiClientProvider)),
+);
+
+final marketingOffersRepositoryProvider = Provider<MarketingOffersRepository>(
+  (ref) => MarketingOffersRepository(
+    ref.watch(apiClientProvider),
+    ref.watch(storageServiceProvider),
+  ),
+);
+
+final walletLedgerRepositoryProvider = Provider<WalletLedgerRepository>(
+  (ref) => WalletLedgerRepository(
+    ref.watch(apiClientProvider),
+    ref.watch(storageServiceProvider),
+  ),
+);
+
+final referralRepositoryProvider = Provider<ReferralRepository>(
+  (ref) => ReferralRepository(
+    ref.watch(apiClientProvider),
+    ref.watch(storageServiceProvider),
+  ),
+);
+
+final spinRepositoryProvider = Provider<SpinRepository>(
+  (ref) => SpinRepository(
+    ref.watch(apiClientProvider),
+    ref.watch(storageServiceProvider),
+  ),
+);
+
+final campaignsRepositoryProvider = Provider<CampaignsRepository>(
+  (ref) => CampaignsRepository(ref.watch(apiClientProvider)),
+);
+
+final deviceIdServiceProvider = Provider<DeviceIdService>(
+  (ref) => DeviceIdService(ref.watch(storageServiceProvider)),
 );

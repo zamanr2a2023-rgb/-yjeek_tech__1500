@@ -516,6 +516,59 @@ class _CartCategoryTabsState extends State<CartCategoryTabs> {
   }
 }
 
+class GuestSignInEmptyState extends StatelessWidget {
+  const GuestSignInEmptyState({
+    super.key,
+    required this.message,
+    required this.onSignIn,
+  });
+
+  final String message;
+  final VoidCallback onSignIn;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: 30.w, vertical: 24.h),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: AppTextStyles.bodyMedium(
+                color: AppColors.textSecondary,
+              ).copyWith(fontSize: 15.sp, height: 1.35),
+            ),
+            SizedBox(height: 20.h),
+            SizedBox(
+              width: double.infinity,
+              height: 55.h,
+              child: ElevatedButton(
+                onPressed: onSignIn,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: AppColors.white,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(28.r),
+                  ),
+                ),
+                child: Text(
+                  NavigationStrings.signIn,
+                  style: AppTextStyles.labelLarge(),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class EmptyCartBody extends StatelessWidget {
   const EmptyCartBody({
     super.key,

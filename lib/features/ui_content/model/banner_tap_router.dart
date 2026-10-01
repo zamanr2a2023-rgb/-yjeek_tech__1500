@@ -6,6 +6,8 @@ import 'package:yjeek_app/features/home/model/category_item.dart';
 import 'package:yjeek_app/features/home/model/category_navigation.dart';
 import 'package:yjeek_app/features/home/model/home_data.dart';
 import 'package:yjeek_app/features/ui_content/model/banner_models.dart';
+import 'package:yjeek_app/core/deep_links/yjeek_deep_link_router.dart';
+import 'package:yjeek_app/routes/app_router.dart';
 import 'package:yjeek_app/routes/route_names.dart';
 
 /// Safe tap router — invalid targets are ignored (no crash).
@@ -23,7 +25,12 @@ Future<void> handleUiBannerTap(
     switch (action) {
       case 'OPEN_STORE':
         if (target == null || target.isEmpty) return;
-        context.push(BrowseRoutes.vendorMenu(vendorId: target));
+        context.push(
+          BrowseRoutes.vendorMenu(
+            vendorId: target,
+            returnTo: RouteNames.home,
+          ),
+        );
         return;
       case 'OPEN_CATEGORY':
         if (target == null || target.isEmpty) return;
@@ -39,11 +46,16 @@ Future<void> handleUiBannerTap(
         if (target == null || target.isEmpty) return;
         final uri = Uri.tryParse(target);
         if (uri == null) return;
+        if (uri.scheme == 'yjeek') {
+          final router = AppRouter.instance;
+          if (router != null) openYjeekDeepLink(router, target);
+          return;
+        }
         if (uri.scheme != 'http' && uri.scheme != 'https') return;
         await launchUrl(uri, mode: LaunchMode.externalApplication);
         return;
       case 'OPEN_OFFER':
-        context.push(RouteNames.exclusiveOffers);
+        context.push(RouteNames.marketingOffers);
         return;
       default:
         return;

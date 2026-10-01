@@ -7,12 +7,14 @@ class ServiceCategoryItem {
     required this.name,
     required this.emoji,
     required this.iconBackground,
+    this.iconUrl,
   });
 
   final String id;
   final String name;
   final String emoji;
   final Color iconBackground;
+  final String? iconUrl;
 }
 
 class ServiceProvider {

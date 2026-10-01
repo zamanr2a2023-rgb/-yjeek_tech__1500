@@ -219,6 +219,9 @@ abstract final class ElectronicsData {
       'stationery' => 'Stationery',
       'baby-kids' || 'baby_kids' => 'Baby & Kids',
       'sports' || 'sport' => 'Sports',
+      'health-wellness' || 'health_wellness' => 'Health & Wellness',
+      'pets' || 'pet' => 'Pets',
+      'fragrance' || 'fragrances' => 'Fragrance',
       _ => 'Electronics',
     });
   }
@@ -236,6 +239,9 @@ abstract final class ElectronicsData {
       'stationery' => 'Search stationery, stores…',
       'baby-kids' || 'baby_kids' => 'Search baby & kids…',
       'sports' || 'sport' => 'Search sports, brands…',
+      'health-wellness' || 'health_wellness' => 'Search health & wellness…',
+      'pets' || 'pet' => 'Search pet stores…',
+      'fragrance' || 'fragrances' => 'Search fragrance, brands…',
       _ => 'Search devices, brands…',
     });
   }

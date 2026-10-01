@@ -586,6 +586,11 @@ ServiceCategoryItem? serviceCategoryFromMenuJson(Map<String, dynamic> json) {
 
   final apiId = json['id']?.toString();
   final slug = json['slug']?.toString();
+  final iconUrl =
+      resolveApiMediaUrl(json['iconUrl'] as String?) ??
+      resolveApiMediaUrl(json['icon'] as String?) ??
+      resolveApiMediaUrl(json['imageUrl'] as String?);
+
   return ServiceCategoryItem(
     id: apiId ?? slug ?? _slugify(name) ?? name,
     name: name,
@@ -593,6 +598,7 @@ ServiceCategoryItem? serviceCategoryFromMenuJson(Map<String, dynamic> json) {
         ? (json['emoji'] as String).trim()
         : _emojiForServiceName(name),
     iconBackground: const Color(0xFFE8F5E9),
+    iconUrl: iconUrl,
   );
 }
 

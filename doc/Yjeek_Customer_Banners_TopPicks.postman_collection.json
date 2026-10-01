@@ -1,0 +1,74 @@
+{
+  "info": {
+    "name": "Yjeek Customer — Banners & Top Picks",
+    "description": "Customer app APIs for UI Editor banners (static / carousel / pop-up) and branch Top Picks.\n\nRequires optional Bearer token for audience segmentation on banners.\n\n**Top Picks** (`GET /home/top-picks`): pass `latitude` and `longitude`. Response includes:\n- `branches[]` — per-branch configs within each branch radius, nearest first\n- `items[]` — flat list for the home \"Top picks near you\" section (product + branch metadata)\n\nAdmin configures per branch under **UI Editor → Top picks** (menu items, order, radius km, active toggle). No publish step — changes are live.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }]
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000/api/v1" },
+    { "key": "accessToken", "value": "" },
+    { "key": "latitude", "value": "26.2235" },
+    { "key": "longitude", "value": "50.5876" }
+  ],
+  "item": [
+    {
+      "name": "Home feed (includes banners)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/home"
+      }
+    },
+    {
+      "name": "Banners — all published (customer)",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/banners"
+      }
+    },
+    {
+      "name": "Banners — by placement home_top",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/banners?placementKey=home_top",
+          "host": ["{{baseUrl}}"],
+          "path": ["banners"],
+          "query": [{ "key": "placementKey", "value": "home_top" }]
+        }
+      }
+    },
+    {
+      "name": "Banners — home screen slots",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/banners?screen=home",
+          "host": ["{{baseUrl}}"],
+          "path": ["banners"],
+          "query": [{ "key": "screen", "value": "home" }]
+        }
+      }
+    },
+    {
+      "name": "Top Picks near customer",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/home/top-picks?latitude={{latitude}}&longitude={{longitude}}&limit=20",
+          "host": ["{{baseUrl}}"],
+          "path": ["home", "top-picks"],
+          "query": [
+            { "key": "latitude", "value": "{{latitude}}" },
+            { "key": "longitude", "value": "{{longitude}}" },
+            { "key": "limit", "value": "20" }
+          ]
+        }
+      }
+    }
+  ]
+}

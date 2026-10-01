@@ -29,19 +29,20 @@ class UiPlacementBanner extends ConsumerWidget {
     final async = ref.watch(cmsBannersProvider(placementKey));
     return async.when(
       data: (banners) {
-        if (banners.isEmpty) {
+        final inline = banners.where((b) => !b.isPopup).toList();
+        if (inline.isEmpty) {
           return fallbackWhenEmpty ?? const SizedBox.shrink();
         }
         final loadCategories = () => ref.read(categoriesProvider.future);
-        final scroll = banners.any((b) => b.isScroll) || banners.length > 1;
-        final child = scroll
+        final pages = UiBanner.expandCarouselPages(inline);
+        final child = pages.length > 1
             ? UiBannerCarousel(
-                banners: banners,
+                banners: pages,
                 height: height,
                 loadCategories: loadCategories,
               )
             : UiStaticBanner(
-                banner: banners.first,
+                banner: pages.first,
                 height: height,
                 loadCategories: loadCategories,
               );
@@ -71,11 +72,8 @@ class UiStaticBanner extends StatelessWidget {
     return _BannerCard(
       banner: banner,
       height: height,
-      onTap: () => handleUiBannerTap(
-        context,
-        banner,
-        loadCategories: loadCategories,
-      ),
+      onTap: () =>
+          handleUiBannerTap(context, banner, loadCategories: loadCategories),
     );
   }
 }
@@ -149,7 +147,9 @@ class _UiBannerCarouselState extends State<UiBannerCarousel> {
             itemBuilder: (context, i) {
               final banner = banners[i];
               return Padding(
-                padding: EdgeInsets.only(right: i == banners.length - 1 ? 0 : 8),
+                padding: EdgeInsets.only(
+                  right: i == banners.length - 1 ? 0 : 8,
+                ),
                 child: _BannerCard(
                   banner: banner,
                   height: widget.height,
@@ -240,7 +240,9 @@ class _BannerCard extends StatelessWidget {
                         begin: Alignment.centerLeft,
                         end: Alignment.centerRight,
                         colors: [
-                          Colors.black.withValues(alpha: hasImage ? 0.55 : 0.15),
+                          Colors.black.withValues(
+                            alpha: hasImage ? 0.55 : 0.15,
+                          ),
                           Colors.transparent,
                         ],
                       ),
@@ -353,7 +355,9 @@ class _UiAppOpenPopupHostState extends ConsumerState<UiAppOpenPopupHost> {
       builder: (ctx) {
         return Dialog(
           insetPadding: const EdgeInsets.symmetric(horizontal: 28),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(20),
             child: Column(
@@ -364,8 +368,12 @@ class _UiAppOpenPopupHostState extends ConsumerState<UiAppOpenPopupHost> {
                   child: Stack(
                     fit: StackFit.expand,
                     children: [
-                      if (banner.imageUrl != null && banner.imageUrl!.isNotEmpty)
-                        AppNetworkImage(url: banner.imageUrl!, fit: BoxFit.cover)
+                      if (banner.imageUrl != null &&
+                          banner.imageUrl!.isNotEmpty)
+                        AppNetworkImage(
+                          url: banner.imageUrl!,
+                          fit: BoxFit.cover,
+                        )
                       else
                         Container(color: AppColors.primary),
                       Positioned(

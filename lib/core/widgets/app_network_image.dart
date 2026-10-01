@@ -1,9 +1,25 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:yjeek_app/core/constants/api_constants.dart';
 import 'package:yjeek_app/core/constants/app_colors.dart';
 import 'package:yjeek_app/core/services/cache_service.dart';
+import 'package:yjeek_app/core/utils/network_image_request.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
+
+bool _shouldMemCacheResize(String url) {
+  final uri = Uri.tryParse(url);
+  if (uri == null) return false;
+  final host = uri.host.toLowerCase();
+  final apiHost = Uri.tryParse(ApiConstants.baseUrl)?.host.toLowerCase();
+  if (apiHost != null && host == apiHost) return true;
+  final path = uri.path.toLowerCase();
+  return path.endsWith('.jpg') ||
+      path.endsWith('.jpeg') ||
+      path.endsWith('.png') ||
+      path.endsWith('.webp') ||
+      path.endsWith('.gif');
+}
 
 class AppNetworkImage extends StatelessWidget {
   const AppNetworkImage({
@@ -29,42 +45,25 @@ class AppNetworkImage extends StatelessWidget {
   Widget build(BuildContext context) {
     final trimmed = url.trim();
     if (trimmed.isEmpty) {
-      return _wrap(errorWidget ?? _defaultError());
+      return _wrap(context, errorWidget ?? _defaultError());
     }
 
-    final dpr = MediaQuery.devicePixelRatioOf(context);
-    final memW = width == null || !width!.isFinite || width!.isInfinite
-        ? null
-        : (width! * dpr).round();
-    final memH = height == null || !height!.isFinite || height!.isInfinite
-        ? null
-        : (height! * dpr).round();
-
-    final lowerUrl = trimmed.toLowerCase();
-    final keepAlpha = lowerUrl.contains('.png') || lowerUrl.contains('.webp');
-    final image = CachedNetworkImage(
-      imageUrl: trimmed,
-      width: width,
-      height: height,
-      fit: fit,
-      cacheManager: appCacheManager,
-      memCacheWidth: keepAlpha ? null : memW,
-      memCacheHeight: keepAlpha ? null : memH,
-      fadeInDuration: const Duration(milliseconds: 150),
-      placeholder: showShimmer
-          ? (_, _) => ShimmerBox(
-                width: width ?? double.infinity,
-                height: height ?? 76.h,
-                borderRadius: borderRadius,
-              )
-          : (_, _) => SizedBox(width: width, height: height),
-      errorWidget: (_, _, _) => errorWidget ?? _defaultError(),
+    return _wrap(
+      context,
+      _AppNetworkImageBody(
+        url: trimmed,
+        width: width,
+        height: height,
+        fit: fit,
+        showShimmer: showShimmer,
+        borderRadius: borderRadius,
+        errorWidget: errorWidget,
+        defaultError: _defaultError(),
+      ),
     );
-
-    return _wrap(image);
   }
 
-  Widget _wrap(Widget child) {
+  Widget _wrap(BuildContext context, Widget child) {
     if (borderRadius == null) return child;
     return ClipRRect(borderRadius: borderRadius!, child: child);
   }
@@ -79,6 +78,102 @@ class AppNetworkImage extends StatelessWidget {
         color: AppColors.textSecondary,
         size: 24.sp,
       ),
+    );
+  }
+}
+
+class _AppNetworkImageBody extends StatefulWidget {
+  const _AppNetworkImageBody({
+    required this.url,
+    required this.width,
+    required this.height,
+    required this.fit,
+    required this.showShimmer,
+    required this.borderRadius,
+    required this.errorWidget,
+    required this.defaultError,
+  });
+
+  final String url;
+  final double? width;
+  final double? height;
+  final BoxFit fit;
+  final bool showShimmer;
+  final BorderRadius? borderRadius;
+  final Widget? errorWidget;
+  final Widget defaultError;
+
+  @override
+  State<_AppNetworkImageBody> createState() => _AppNetworkImageBodyState();
+}
+
+class _AppNetworkImageBodyState extends State<_AppNetworkImageBody> {
+  bool _useDirectNetwork = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final headers = networkImageHttpHeaders(widget.url);
+    final dpr = MediaQuery.devicePixelRatioOf(context);
+    final memW = widget.width == null ||
+            !widget.width!.isFinite ||
+            widget.width!.isInfinite
+        ? null
+        : (widget.width! * dpr).round();
+    final memH = widget.height == null ||
+            !widget.height!.isFinite ||
+            widget.height!.isInfinite
+        ? null
+        : (widget.height! * dpr).round();
+
+    final lowerUrl = widget.url.toLowerCase();
+    final keepAlpha = lowerUrl.contains('.png') || lowerUrl.contains('.webp');
+    final resizeInMem = _shouldMemCacheResize(widget.url);
+
+    if (_useDirectNetwork) {
+      return Image.network(
+        widget.url,
+        headers: headers,
+        width: widget.width,
+        height: widget.height,
+        fit: widget.fit,
+        filterQuality: FilterQuality.medium,
+        errorBuilder: (_, _, _) => widget.errorWidget ?? widget.defaultError,
+        loadingBuilder: (context, child, progress) {
+          if (!widget.showShimmer || progress == null) return child;
+          return ShimmerBox(
+            width: widget.width ?? double.infinity,
+            height: widget.height ?? 76.h,
+            borderRadius: widget.borderRadius,
+          );
+        },
+      );
+    }
+
+    return CachedNetworkImage(
+      imageUrl: widget.url,
+      httpHeaders: headers,
+      width: widget.width,
+      height: widget.height,
+      fit: widget.fit,
+      cacheManager: appCacheManager,
+      memCacheWidth: !resizeInMem || keepAlpha ? null : memW,
+      memCacheHeight: !resizeInMem || keepAlpha ? null : memH,
+      fadeInDuration: const Duration(milliseconds: 150),
+      placeholder: widget.showShimmer
+          ? (_, _) => ShimmerBox(
+              width: widget.width ?? double.infinity,
+              height: widget.height ?? 76.h,
+              borderRadius: widget.borderRadius,
+            )
+          : (_, _) => SizedBox(width: widget.width, height: widget.height),
+      errorWidget: (_, _, _) {
+        if (!_useDirectNetwork) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) setState(() => _useDirectNetwork = true);
+          });
+        }
+        return widget.errorWidget ?? widget.defaultError;
+      },
     );
   }
 }

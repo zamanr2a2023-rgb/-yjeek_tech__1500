@@ -14,6 +14,8 @@ import 'package:yjeek_app/features/cart/model/cart_repository.dart';
 import 'package:yjeek_app/features/cart/model/checkout_helpers.dart';
 import 'package:yjeek_app/features/cart/model/delivery_range.dart';
 import 'package:yjeek_app/features/cart/model/pending_checkout.dart';
+import 'package:yjeek_app/features/location/provider/delivery_location_provider.dart';
+import 'package:yjeek_app/features/location/utils/checkout_delivery_address.dart';
 import 'package:yjeek_app/features/cart/view/widgets/cart_flow_widgets.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/account_widgets.dart';
 import 'package:yjeek_app/features/order_flow/model/order_api_mappers.dart';
@@ -142,7 +144,8 @@ class _ReviewConfirmScreenState extends ConsumerState<ReviewConfirmScreen> {
     final cart = await ref
         .read(cartRepositoryProvider)
         .fetchCart(CartOrderType.delivery);
-    final address =
+    final deliveryLoc = ref.read(deliveryLocationProvider).valueOrNull;
+    final address = checkoutAddressDisplay(deliveryLoc) ??
         await ref.read(addressesRepositoryProvider).defaultAddress();
     if (!mounted) return;
 
@@ -245,6 +248,8 @@ class _ReviewConfirmScreenState extends ConsumerState<ReviewConfirmScreen> {
             dropOffPreferences: dropOff.isEmpty ? null : dropOff,
             saveDropOffPreferences: pending.saveDropOff,
             voucherId: pending.voucherId,
+            walletAmount: pending.walletAmount,
+            referralCreditAmount: pending.referralCreditAmount,
             fulfillmentType: fulfillmentType,
             deliverySpeed: deliverySpeed,
           );

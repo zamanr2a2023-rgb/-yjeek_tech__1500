@@ -62,6 +62,10 @@ abstract final class RouteNames {
   static const String servicesOrderComplete = '/services/order/complete';
   static const String servicesOrderReceipt = '/services/order/receipt';
   static const String exclusiveOffers = '/exclusive-offers';
+  static const String marketingOffers = '/offers';
+  static const String voucherDetail = '/vouchers/detail';
+  static const String referral = '/referral';
+  static const String spinWheel = '/spin';
   static const String geofenceOffer = '/geofence-offer';
   static const String orderDetails = '/order-details';
   static const String wallet = '/wallet';

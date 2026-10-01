@@ -5,9 +5,11 @@ import 'package:yjeek_app/core/constants/app_colors.dart';
 import 'package:yjeek_app/core/constants/app_text_styles.dart';
 import 'package:yjeek_app/core/constants/home_strings.dart';
 import 'package:yjeek_app/core/providers/app_providers.dart';
-import 'package:yjeek_app/features/auth/utils/require_login.dart';
+import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/features/browse/browse_routes.dart';
-import 'package:yjeek_app/features/cart/cart_routes.dart';
+import 'package:yjeek_app/features/location/provider/delivery_location_provider.dart';
+import 'package:yjeek_app/features/location/utils/delivery_location_display.dart';
+import 'package:yjeek_app/features/location/utils/open_delivery_location_picker.dart';
 import 'package:yjeek_app/features/home/model/category_item.dart';
 import 'package:yjeek_app/features/home/model/category_navigation.dart';
 import 'package:yjeek_app/features/home/view/widgets/category_icon_image.dart';
@@ -37,8 +39,13 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
         ? const <CategoryItem>[]
         : (categoriesAsync.valueOrNull ?? const <CategoryItem>[]);
     final home = ref.watch(homeFeedProvider).valueOrNull;
-    final deliverTo =
-        home?.deliverToLabel ?? HomeStrings.chooseLocation;
+    final loggedIn = ref.watch(storageServiceProvider).hasSession;
+    final deliveryLoc = ref.watch(deliveryLocationProvider).valueOrNull;
+    final deliverTo = deliveryLocationHeaderLabel(
+      location: deliveryLoc,
+      homeFeed: home,
+      loggedIn: loggedIn,
+    );
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -67,13 +74,8 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
                         children: [
                           Expanded(
                             child: GestureDetector(
-                              onTap: () async {
-                                final ok = await requireLogin(context, ref);
-                                if (!ok || !context.mounted) return;
-                                await context.push(CartRoutes.changeAddress);
-                                if (!context.mounted) return;
-                                ref.invalidate(homeFeedProvider);
-                              },
+                              onTap: () =>
+                                  openDeliveryLocationPicker(context, ref),
                               behavior: HitTestBehavior.opaque,
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -283,11 +285,11 @@ class SliverGridCategories extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SliverGrid(
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 4,
-        mainAxisSpacing: 8,
-        crossAxisSpacing: 0,
-        mainAxisExtent: 96,
+        mainAxisSpacing: 12.h,
+        crossAxisSpacing: 8.w,
+        mainAxisExtent: 100.h,
       ),
       delegate: SliverChildBuilderDelegate(
         (context, index) => GestureDetector(

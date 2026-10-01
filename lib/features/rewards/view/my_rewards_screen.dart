@@ -10,6 +10,8 @@ import 'package:yjeek_app/features/navigation/view/widgets/navigation_widgets.da
 import 'package:yjeek_app/features/rewards/model/rewards_summary.dart';
 import 'package:yjeek_app/features/rewards/widgets/reward_summary_cards.dart';
 import 'package:yjeek_app/features/rewards/widgets/reward_wallet_card.dart';
+import 'package:yjeek_app/features/rewards/widgets/reward_ledger_section.dart';
+import 'package:yjeek_app/features/spin/spin_routes.dart';
 import 'package:yjeek_app/routes/route_names.dart';
 
 class MyRewardsScreen extends ConsumerWidget {
@@ -117,12 +119,21 @@ class _RewardsBody extends StatelessWidget {
         SizedBox(height: 20.h),
         const SectionHeaderLabel(label: 'SPIN WHEEL'),
         SizedBox(height: 10.h),
-        _PlaceholderTile(
-          title: summary.spin.live
-              ? 'Spins remaining: ${summary.spin.spinsRemaining}'
-              : 'No live spin campaign',
-          subtitle: 'Coming soon',
-        ),
+        if (summary.spin.live &&
+            summary.spin.campaignId != null &&
+            summary.spin.campaignId!.isNotEmpty)
+          _NavTile(
+            title: 'Spin the wheel',
+            trailing: '${summary.spin.spinsRemaining}',
+            onTap: () => context.push(
+              SpinRoutes.wheel(campaignId: summary.spin.campaignId!),
+            ),
+          )
+        else
+          const _PlaceholderTile(
+            title: 'No live spin campaign',
+            subtitle: 'Check back later',
+          ),
         SizedBox(height: 20.h),
         const SectionHeaderLabel(label: 'MISSIONS'),
         SizedBox(height: 10.h),
@@ -141,6 +152,8 @@ class _RewardsBody extends StatelessWidget {
               ),
             ),
           ),
+        SizedBox(height: 20.h),
+        const RewardLedgerSection(),
         SizedBox(height: 16.h),
         TextButton(
           onPressed: () => context.push(RouteNames.wallet),

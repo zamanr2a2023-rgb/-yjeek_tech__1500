@@ -359,6 +359,11 @@ class _UniversalProductDetailScreenState
 
     if (result.ok) {
       clearPendingAddToCart(ref);
+      final notice = result.message;
+      if (notice != null && notice.isNotEmpty && mounted) {
+        await acknowledgeExtraDeliveryCharge(context, notice);
+        if (!mounted) return;
+      }
       if (strategy.afterSuccess != null) {
         await strategy.afterSuccess!(context, ref, productName: detail.name);
       } else {

@@ -111,7 +111,7 @@ class CheckoutVoucherEvaluation {
     for (final v in applicable) {
       if (v.autoSelect) return v.voucherId;
     }
-    return applicable.isNotEmpty ? applicable.first.voucherId : null;
+    return null;
   }
 
   factory CheckoutVoucherEvaluation.fromJson(Map<String, dynamic> json) {

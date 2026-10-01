@@ -12,6 +12,12 @@ class StorageService {
   static const _keyLanguage = 'language_code';
   static const _keyRetailGridView = 'retail_category_grid_view';
   static const _keyResumeLocation = 'resume_location';
+  static const _keyDeliveryLocKind = 'delivery_loc_kind';
+  static const _keyDeliveryLocLat = 'delivery_loc_lat';
+  static const _keyDeliveryLocLng = 'delivery_loc_lng';
+  static const _keyDeliveryLocTitle = 'delivery_loc_title';
+  static const _keyDeliveryLocSubtitle = 'delivery_loc_subtitle';
+  static const _keyDeliveryLocAddressId = 'delivery_loc_address_id';
 
   static Future<StorageService> init() async {
     final prefs = await SharedPreferences.getInstance();
@@ -37,8 +43,7 @@ class StorageService {
       _prefs.setString(_keyLanguage, value);
 
   /// Customer preferred grid/list on Fashion/Flowers-style category pages.
-  bool get retailCategoryGridView =>
-      _prefs.getBool(_keyRetailGridView) ?? true;
+  bool get retailCategoryGridView => _prefs.getBool(_keyRetailGridView) ?? true;
 
   Future<void> setRetailCategoryGridView(bool isGrid) =>
       _prefs.setBool(_keyRetailGridView, isGrid);
@@ -61,4 +66,67 @@ class StorageService {
   }
 
   bool get hasSession => isLoggedIn && (token?.isNotEmpty ?? false);
+
+  String? readString(String key) => _prefs.getString(key);
+
+  Future<void> writeString(String key, String value) =>
+      _prefs.setString(key, value);
+
+  Future<void> saveDeliveryLocationCache({
+    required String kind,
+    required double latitude,
+    required double longitude,
+    required String displayTitle,
+    String? displaySubtitle,
+    String? addressId,
+  }) async {
+    await _prefs.setString(_keyDeliveryLocKind, kind);
+    await _prefs.setDouble(_keyDeliveryLocLat, latitude);
+    await _prefs.setDouble(_keyDeliveryLocLng, longitude);
+    await _prefs.setString(_keyDeliveryLocTitle, displayTitle);
+    if (displaySubtitle != null && displaySubtitle.isNotEmpty) {
+      await _prefs.setString(_keyDeliveryLocSubtitle, displaySubtitle);
+    } else {
+      await _prefs.remove(_keyDeliveryLocSubtitle);
+    }
+    if (addressId != null && addressId.isNotEmpty) {
+      await _prefs.setString(_keyDeliveryLocAddressId, addressId);
+    } else {
+      await _prefs.remove(_keyDeliveryLocAddressId);
+    }
+  }
+
+  DeliveryLocationCache? loadDeliveryLocationCache() {
+    final kind = _prefs.getString(_keyDeliveryLocKind);
+    final lat = _prefs.getDouble(_keyDeliveryLocLat);
+    final lng = _prefs.getDouble(_keyDeliveryLocLng);
+    final title = _prefs.getString(_keyDeliveryLocTitle);
+    if (kind == null || lat == null || lng == null) return null;
+    return DeliveryLocationCache(
+      kind: kind,
+      latitude: lat,
+      longitude: lng,
+      displayTitle: title ?? '',
+      displaySubtitle: _prefs.getString(_keyDeliveryLocSubtitle),
+      addressId: _prefs.getString(_keyDeliveryLocAddressId),
+    );
+  }
+}
+
+class DeliveryLocationCache {
+  const DeliveryLocationCache({
+    required this.kind,
+    required this.latitude,
+    required this.longitude,
+    required this.displayTitle,
+    this.displaySubtitle,
+    this.addressId,
+  });
+
+  final String kind;
+  final double latitude;
+  final double longitude;
+  final String displayTitle;
+  final String? displaySubtitle;
+  final String? addressId;
 }
