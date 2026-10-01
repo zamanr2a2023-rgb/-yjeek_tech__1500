@@ -12,6 +12,7 @@ import 'package:yjeek_app/features/dine_in_order_flow/model/dine_in_order_flow_d
 import 'package:yjeek_app/features/dine_in_order_flow/view/widgets/dine_in_order_flow_widgets.dart';
 import 'package:yjeek_app/features/order_flow/model/order_api_mappers.dart';
 import 'package:yjeek_app/features/order_flow/view/widgets/order_flow_widgets.dart';
+import 'package:yjeek_app/features/payments/benefit_pay_debug.dart';
 import 'package:yjeek_app/features/payments/model/benefit_pay_models.dart';
 import 'package:yjeek_app/features/payments/pay_now_helper.dart';
 import 'package:yjeek_app/routes/route_names.dart';
@@ -250,10 +251,13 @@ class _DineInPayScreenState extends ConsumerState<DineInPayScreen> {
       showHeader: false,
       backgroundColor: _screenBg,
       bottomNavIndex: 1,
+      busy: _paying,
+      busyMessage: 'Opening BenefitPay…',
       body: ListView(
         padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 16.h),
         children: [
           SizedBox(height: MediaQuery.paddingOf(context).top),
+          BenefitPayDebugPanel(methodApi: _methodApi),
           DineInAcceptedBanner(vendorName: _vendor),
           SizedBox(height: 14.h),
           DineInPayTimerCard(timerLabel: _timerLabel),

@@ -109,7 +109,8 @@ class BenefitPayNativeSession {
         'merchantName': merchantName,
         'merchantCity': merchantCity,
         'countryCode': countryCode,
-        'callBackTag': callBackTag,
+        // Must match ios/Runner/Info.plist CFBundleURLSchemes.
+        'callBackTag': 'yjeekbp',
       };
 }
 

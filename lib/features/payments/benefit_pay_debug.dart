@@ -4,9 +4,14 @@ import 'package:flutter/services.dart';
 import 'package:yjeek_app/core/network/api_client.dart';
 import 'package:yjeek_app/core/utils/app_logger.dart';
 
-/// DEBUG-only BenefitPay Wallet / native-session tracing. No-op in release builds.
+/// BenefitPay tracing. Console logs stay debug-only.
+/// The on-screen panel is separate: TestFlight is a release build, so
+/// [kDebugMode] is false there and cannot be used to show the panel.
 abstract final class BenefitPayDebug {
   static const _logTag = 'BenefitPayDebug';
+
+  /// Temporary UAT panel. Turn off before a production App Store release.
+  static const bool showPanel = true;
 
   static const _sensitiveKeys = <String>{
     'secretkey',
@@ -158,6 +163,66 @@ abstract final class BenefitPayDebug {
     return '${text.substring(0, 4)}…${text.substring(text.length - 4)}';
   }
 
+  /// Latest BenefitPay attempt. Updated when [showPanel] is on, including TestFlight.
+  static final ValueNotifier<BenefitPayDebugSnapshot?> trace =
+      ValueNotifier<BenefitPayDebugSnapshot?>(null);
+
+  static void beginTrace() {
+    if (!showPanel) return;
+    trace.value = const BenefitPayDebugSnapshot();
+  }
+
+  static void noteSession({
+    required bool ok,
+    int? httpStatus,
+    String? errorCode,
+    String? errorMessage,
+    String? gatewayRef,
+    String? amount,
+    String? currencyCode,
+  }) {
+    if (!showPanel) return;
+    final current = trace.value ?? const BenefitPayDebugSnapshot();
+    trace.value = BenefitPayDebugSnapshot(
+      sessionOk: ok,
+      httpStatus: httpStatus,
+      errorCode: errorCode,
+      sessionErrorMessage: errorMessage,
+      gatewayRef: gatewayRef,
+      amount: amount,
+      currencyCode: currencyCode,
+      appAvailable: current.appAvailable,
+    );
+  }
+
+  static void noteAvailability(bool available) {
+    if (!showPanel) return;
+    final current = trace.value ?? const BenefitPayDebugSnapshot();
+    trace.value = current.copyWith(appAvailable: available);
+  }
+
+  static void noteLaunchRequested() {
+    if (!showPanel) return;
+    final current = trace.value ?? const BenefitPayDebugSnapshot();
+    trace.value = current.copyWith(launchRequested: true);
+  }
+
+  static void noteNativeResult({
+    required String status,
+    String? referenceId,
+    String? amount,
+    String? message,
+  }) {
+    if (!showPanel) return;
+    final current = trace.value ?? const BenefitPayDebugSnapshot();
+    trace.value = current.copyWith(
+      resultStatus: status,
+      resultReferenceId: referenceId,
+      resultAmount: amount,
+      resultMessage: message,
+    );
+  }
+
   static Future<void> showFailureDiagnostics(
     BuildContext context,
     BenefitPayFailureDiagnostic diagnostic,
@@ -214,6 +279,166 @@ abstract final class BenefitPayDebug {
         );
       },
     );
+  }
+}
+
+class BenefitPayDebugSnapshot {
+  const BenefitPayDebugSnapshot({
+    this.sessionOk,
+    this.httpStatus,
+    this.errorCode,
+    this.sessionErrorMessage,
+    this.gatewayRef,
+    this.amount,
+    this.currencyCode,
+    this.appAvailable,
+    this.launchRequested = false,
+    this.resultStatus,
+    this.resultReferenceId,
+    this.resultAmount,
+    this.resultMessage,
+  });
+
+  final bool? sessionOk;
+  final int? httpStatus;
+  final String? errorCode;
+  final String? sessionErrorMessage;
+  final String? gatewayRef;
+  final String? amount;
+  final String? currencyCode;
+  final bool? appAvailable;
+  final bool launchRequested;
+  final String? resultStatus;
+  final String? resultReferenceId;
+  final String? resultAmount;
+  final String? resultMessage;
+
+  BenefitPayDebugSnapshot copyWith({
+    bool? appAvailable,
+    bool? launchRequested,
+    String? resultStatus,
+    String? resultReferenceId,
+    String? resultAmount,
+    String? resultMessage,
+  }) {
+    return BenefitPayDebugSnapshot(
+      sessionOk: sessionOk,
+      httpStatus: httpStatus,
+      errorCode: errorCode,
+      sessionErrorMessage: sessionErrorMessage,
+      gatewayRef: gatewayRef,
+      amount: amount,
+      currencyCode: currencyCode,
+      appAvailable: appAvailable ?? this.appAvailable,
+      launchRequested: launchRequested ?? this.launchRequested,
+      resultStatus: resultStatus ?? this.resultStatus,
+      resultReferenceId: resultReferenceId ?? this.resultReferenceId,
+      resultAmount: resultAmount ?? this.resultAmount,
+      resultMessage: resultMessage ?? this.resultMessage,
+    );
+  }
+}
+
+/// Temporary BenefitPay status card, including TestFlight release builds.
+class BenefitPayDebugPanel extends StatelessWidget {
+  const BenefitPayDebugPanel({super.key, required this.methodApi});
+
+  final String methodApi;
+
+  static bool _isBenefitPay(String methodApi) {
+    final key = methodApi.toUpperCase();
+    return key == 'BENEFIT_PAY' || key == 'BENEFITPAY';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!BenefitPayDebug.showPanel || !_isBenefitPay(methodApi)) {
+      return const SizedBox.shrink();
+    }
+    return ValueListenableBuilder<BenefitPayDebugSnapshot?>(
+      valueListenable: BenefitPayDebug.trace,
+      builder: (context, snap, _) {
+        final data = snap;
+        return Container(
+          width: double.infinity,
+          margin: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: const Color(0xFFFFF8E8),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xFFE2B657)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'BenefitPay debug',
+                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+              ),
+              const SizedBox(height: 8),
+              _DiagRow(
+                label: 'Native session',
+                value: data?.sessionOk == null
+                    ? '—'
+                    : (data!.sessionOk! ? 'success' : 'failure'),
+              ),
+              _DiagRow(
+                label: 'HTTP status',
+                value: data?.httpStatus?.toString() ?? '—',
+              ),
+              _DiagRow(label: 'Error code', value: _text(data?.errorCode)),
+              _DiagRow(
+                label: 'Session error',
+                value: _text(data?.sessionErrorMessage),
+              ),
+              _DiagRow(
+                label: 'Gateway reference',
+                value: _text(data?.gatewayRef),
+              ),
+              _DiagRow(label: 'Amount', value: _text(data?.amount)),
+              _DiagRow(label: 'Currency', value: _text(data?.currencyCode)),
+              _DiagRow(
+                label: 'BenefitPay app',
+                value: data?.appAvailable == null
+                    ? '—'
+                    : (data!.appAvailable! ? 'available' : 'not available'),
+              ),
+              _DiagRow(
+                label: 'Launch requested',
+                value: data == null
+                    ? '—'
+                    : (data.launchRequested ? 'true' : 'false'),
+              ),
+              _DiagRow(
+                label: 'Result status',
+                value: _text(data?.resultStatus),
+              ),
+              _DiagRow(
+                label: 'Result reference',
+                value: _text(data?.resultReferenceId),
+              ),
+              _DiagRow(
+                label: 'Result amount',
+                value: _text(data?.resultAmount),
+              ),
+              _DiagRow(
+                label: 'Result message',
+                value: _text(data?.resultMessage),
+              ),
+              _DiagRow(
+                label: 'Error message',
+                value: _text(data?.resultMessage),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  static String _text(String? value) {
+    final trimmed = value?.trim() ?? '';
+    return trimmed.isEmpty ? '—' : trimmed;
   }
 }
 

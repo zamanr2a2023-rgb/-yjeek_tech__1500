@@ -25,6 +25,7 @@ import GoogleMaps
     options: [UIApplication.OpenURLOptionsKey: Any] = [:]
   ) -> Bool {
     if BenefitPayDeepLinkHandler.shared.handle(url) {
+      NSLog("[BenefitPay] AppDelegate handled %@", url.absoluteString)
       return true
     }
     return super.application(app, open: url, options: options)
@@ -36,6 +37,7 @@ final class BenefitPayDeepLinkHandler {
   static let shared = BenefitPayDeepLinkHandler()
   weak var plugin: BenefitPayPlugin?
 
+  @discardableResult
   func handle(_ url: URL) -> Bool {
     plugin?.deliverDeepLink(url) ?? false
   }

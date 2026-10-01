@@ -7,6 +7,7 @@ import 'package:yjeek_app/core/providers/app_providers.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/features/order_flow/model/order_api_mappers.dart';
 import 'package:yjeek_app/features/order_flow/view/widgets/order_flow_widgets.dart';
+import 'package:yjeek_app/features/payments/benefit_pay_debug.dart';
 import 'package:yjeek_app/features/payments/model/benefit_pay_models.dart';
 import 'package:yjeek_app/features/payments/pay_now_helper.dart';
 import 'package:yjeek_app/features/scheduled_order_flow/model/scheduled_order_api_mappers.dart';
@@ -261,10 +262,13 @@ class _ScheduledPayScreenState extends ConsumerState<ScheduledPayScreen> {
       showHeader: false,
       bottomNavIndex: 0,
       backgroundColor: const Color(0xFFF2F7F2),
+      busy: _paying,
+      busyMessage: 'Opening BenefitPay…',
       body: ListView(
         padding: EdgeInsets.fromLTRB(20.w, 8.h, 20.w, 16.h),
         children: [
           SizedBox(height: MediaQuery.paddingOf(context).top + 8.h),
+          BenefitPayDebugPanel(methodApi: _methodApi),
           ScheduledAcceptedBanner(vendorName: _vendor),
           SizedBox(height: 14.h),
           ScheduledPayTimerCard(

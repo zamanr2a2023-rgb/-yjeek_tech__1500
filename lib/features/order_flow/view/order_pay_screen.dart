@@ -9,6 +9,7 @@ import 'package:yjeek_app/features/order_flow/model/order_api_mappers.dart';
 import 'package:yjeek_app/features/order_flow/model/order_flow_data.dart';
 import 'package:yjeek_app/features/order_flow/order_flow_routes.dart';
 import 'package:yjeek_app/features/order_flow/view/widgets/order_flow_widgets.dart';
+import 'package:yjeek_app/features/payments/benefit_pay_debug.dart';
 import 'package:yjeek_app/features/payments/model/benefit_pay_models.dart';
 import 'package:yjeek_app/features/payments/pay_now_helper.dart';
 import 'package:yjeek_app/features/pickup_order_flow/view/widgets/pickup_order_flow_widgets.dart';
@@ -336,10 +337,13 @@ class _OrderPayScreenState extends ConsumerState<OrderPayScreen> {
     return OrderFlowScaffold(
       showHeader: false,
       bottomNavIndex: 1,
+      busy: _paying,
+      busyMessage: 'Opening BenefitPay…',
       body: ListView(
         padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 16.h),
         children: [
           SizedBox(height: MediaQuery.paddingOf(context).top + 8.h),
+          BenefitPayDebugPanel(methodApi: _methodApi),
           PickupAcceptedBanner(vendorName: _vendor),
           SizedBox(height: 14.h),
           PickupPayTimerCard(

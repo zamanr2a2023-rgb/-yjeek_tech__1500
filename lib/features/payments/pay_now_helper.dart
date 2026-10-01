@@ -435,6 +435,17 @@ class PayNowHelper {
       final sessionResult = await ref
           .read(ordersRepositoryProvider)
           .fetchBenefitPayNativeSession(orderId);
+      BenefitPayDebug.beginTrace();
+      final tracedSession = sessionResult.session;
+      BenefitPayDebug.noteSession(
+        ok: sessionResult.ok && tracedSession != null,
+        httpStatus: sessionResult.httpStatus,
+        errorCode: sessionResult.errorCode,
+        errorMessage: sessionResult.errorMessage,
+        gatewayRef: tracedSession?.gatewayRef,
+        amount: tracedSession?.amount,
+        currencyCode: tracedSession?.currencyCode,
+      );
       if (!sessionResult.ok || sessionResult.session == null) {
         final message =
             sessionResult.errorMessage ?? 'Could not start BenefitPay';
@@ -471,6 +482,7 @@ class PayNowHelper {
       }
 
       final available = await BenefitPayNative.isAvailable();
+      BenefitPayDebug.noteAvailability(available);
       BenefitPayDebug.logNativeLaunch(
         available: available,
         gatewayRef: gatewayRef,
@@ -492,7 +504,14 @@ class PayNowHelper {
         return false;
       }
 
+      BenefitPayDebug.noteLaunchRequested();
       final native = await BenefitPayNative.pay(session);
+      BenefitPayDebug.noteNativeResult(
+        status: native.status,
+        referenceId: native.referenceId,
+        amount: native.amount,
+        message: native.message,
+      );
       BenefitPayDebug.logAppResume(
         phase: 'after_native_pay',
         orderId: orderId,

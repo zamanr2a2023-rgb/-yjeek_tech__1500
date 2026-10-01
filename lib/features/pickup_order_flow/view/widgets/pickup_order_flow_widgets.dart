@@ -467,45 +467,44 @@ class PickupPayStickyFooter extends StatelessWidget {
           ),
         ],
       ),
-      child: SafeArea(
-        top: false,
-        child: Row(
-          children: [
-            Container(
-              padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
-              decoration: BoxDecoration(
-                color: const Color(0xFFFFF8E8),
-                borderRadius: BorderRadius.circular(10.r),
-              ),
-              child: Text(
-                '${PickupOrderFlowStrings.payIn} $timerLabel',
-                style: AppTextStyles.caption(
-                  color: const Color(0xFF8A5A12),
-                ).copyWith(fontWeight: FontWeight.w800, fontSize: 11.sp),
-              ),
+      // Already above Scaffold.bottomNavigationBar — do not apply bottom
+      // SafeArea again or the Pay bar can look clipped against the tab bar.
+      child: Row(
+        children: [
+          Container(
+            padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFF8E8),
+              borderRadius: BorderRadius.circular(10.r),
             ),
-            SizedBox(width: 12.w),
-            Expanded(
-              child: GestureDetector(
-                onTap: onPay,
-                child: Container(
-                  padding: EdgeInsets.symmetric(vertical: 16.h),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary,
-                    borderRadius: BorderRadius.circular(28.r),
-                  ),
-                  alignment: Alignment.center,
-                  child: Text(
-                    '${PickupOrderFlowStrings.pay} $amount',
-                    style: AppTextStyles.labelMedium(
-                      color: AppColors.white,
-                    ).copyWith(fontWeight: FontWeight.w700, fontSize: 15.sp),
-                  ),
+            child: Text(
+              '${PickupOrderFlowStrings.payIn} $timerLabel',
+              style: AppTextStyles.caption(
+                color: const Color(0xFF8A5A12),
+              ).copyWith(fontWeight: FontWeight.w800, fontSize: 11.sp),
+            ),
+          ),
+          SizedBox(width: 12.w),
+          Expanded(
+            child: GestureDetector(
+              onTap: onPay,
+              child: Container(
+                padding: EdgeInsets.symmetric(vertical: 16.h),
+                decoration: BoxDecoration(
+                  color: AppColors.primary,
+                  borderRadius: BorderRadius.circular(28.r),
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  '${PickupOrderFlowStrings.pay} $amount',
+                  style: AppTextStyles.labelMedium(
+                    color: AppColors.white,
+                  ).copyWith(fontWeight: FontWeight.w700, fontSize: 15.sp),
                 ),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

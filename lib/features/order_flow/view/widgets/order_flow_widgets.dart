@@ -22,6 +22,8 @@ class OrderFlowScaffold extends StatelessWidget {
     this.showHeader = true,
     this.lightHeader = false,
     this.backgroundColor,
+    this.busy = false,
+    this.busyMessage,
   });
 
   final Widget body;
@@ -34,11 +36,13 @@ class OrderFlowScaffold extends StatelessWidget {
   final bool showHeader;
   final bool lightHeader;
   final Color? backgroundColor;
+  final bool busy;
+  final String? busyMessage;
 
   @override
   Widget build(BuildContext context) {
     final bg = backgroundColor ?? AppColors.background;
-    return Scaffold(
+    final scaffold = Scaffold(
       backgroundColor: bg,
       body: ColoredBox(
         color: bg,
@@ -66,6 +70,54 @@ class OrderFlowScaffold extends StatelessWidget {
         ),
       ),
       bottomNavigationBar: ShellBottomNavBar(currentIndex: bottomNavIndex),
+    );
+    if (!busy) return scaffold;
+    return Stack(
+      children: [
+        scaffold,
+        const ModalBarrier(dismissible: false, color: AppColors.overlay),
+        Center(
+          child: Material(
+            color: Colors.transparent,
+            child: Container(
+              margin: EdgeInsets.symmetric(horizontal: 40.w),
+              padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 20.h),
+              decoration: BoxDecoration(
+                color: AppColors.white,
+                borderRadius: BorderRadius.circular(16.r),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.12),
+                    blurRadius: 20,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const SizedBox(
+                    width: 36,
+                    height: 36,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 3,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                  SizedBox(height: 14.h),
+                  Text(
+                    busyMessage ?? 'Processing payment…',
+                    textAlign: TextAlign.center,
+                    style: AppTextStyles.labelMedium(
+                      color: AppColors.textPrimary,
+                    ).copyWith(fontWeight: FontWeight.w600),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
