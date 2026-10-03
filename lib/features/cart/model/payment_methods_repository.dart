@@ -17,8 +17,12 @@ class CheckoutPaymentMethods {
   static CheckoutPaymentMethods fallback({
     List<PaymentOption>? base,
     String defaultId = 'benefitpay',
+    bool includeCod = true,
   }) {
     final options = List<PaymentOption>.from(base ?? CartFlowData.paymentOptions);
+    if (!includeCod) {
+      options.removeWhere((option) => option.id == 'cod');
+    }
     final preferred = options.any((o) => o.id == defaultId)
         ? defaultId
         : (options.isNotEmpty ? options.first.id : defaultId);
@@ -46,6 +50,7 @@ class PaymentMethodsRepository {
     if (!_storage.hasSession) {
       return CheckoutPaymentMethods.fallback(
         base: base,
+        includeCod: includeCod,
         defaultId: preferredDefaultId ?? 'benefitpay',
       );
     }
@@ -59,6 +64,7 @@ class PaymentMethodsRepository {
       if (data is! Map<String, dynamic>) {
         return CheckoutPaymentMethods.fallback(
           base: base,
+          includeCod: includeCod,
           defaultId: preferredDefaultId ?? 'benefitpay',
         );
       }
@@ -90,6 +96,7 @@ class PaymentMethodsRepository {
       if (options.isEmpty) {
         return CheckoutPaymentMethods.fallback(
           base: base,
+          includeCod: includeCod,
           defaultId: preferredDefaultId ?? 'benefitpay',
         );
       }
@@ -107,6 +114,7 @@ class PaymentMethodsRepository {
     } catch (_) {
       return CheckoutPaymentMethods.fallback(
         base: base,
+        includeCod: includeCod,
         defaultId: preferredDefaultId ?? 'benefitpay',
       );
     }

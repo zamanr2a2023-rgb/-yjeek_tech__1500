@@ -179,18 +179,52 @@ class CartDeliveryEta {
   final String etaLabel;
 }
 
+class DineInSeatingOption {
+  const DineInSeatingOption({
+    required this.preference,
+    required this.available,
+  });
+
+  final String preference;
+  final bool available;
+}
+
+class DineInOccasionPackage {
+  const DineInOccasionPackage({
+    required this.id,
+    required this.name,
+    required this.price,
+  });
+
+  final String id;
+  final String name;
+  final double price;
+}
+
 class CartDineInInfo {
   const CartDineInInfo({
     required this.readyInMin,
     required this.readyLabel,
     this.prepMode,
     this.scheduledAt,
+    this.seatingMode,
+    this.allowAny = false,
+    this.seatingOptions = const [],
+    this.occasionEnabled = false,
+    this.occasionPackages = const [],
+    this.selectedPackageId,
   });
 
   final int readyInMin;
   final String readyLabel;
   final String? prepMode;
   final DateTime? scheduledAt;
+  final String? seatingMode;
+  final bool allowAny;
+  final List<DineInSeatingOption> seatingOptions;
+  final bool occasionEnabled;
+  final List<DineInOccasionPackage> occasionPackages;
+  final String? selectedPackageId;
 }
 
 class DineInTimeSlot {
@@ -524,6 +558,8 @@ class CartRepository {
     int? partySize,
     String? seatingPreference,
     bool? specialOccasionEnabled,
+    String? specialOccasionPackageId,
+    bool clearSpecialOccasionPackage = false,
     String? serviceMode,
     DateTime? serviceScheduledAt,
     String? dineInPrepMode,
@@ -541,6 +577,10 @@ class CartRepository {
         'specialOccasion': specialOccasionEnabled
             ? 'Candles & a little surprise on the table'
             : null,
+      if (clearSpecialOccasionPackage)
+        'specialOccasionPackageId': null
+      else if (specialOccasionPackageId != null)
+        'specialOccasionPackageId': specialOccasionPackageId,
       if (serviceMode != null) 'serviceMode': serviceMode,
       if (serviceScheduledAt != null)
         'serviceScheduledAt': serviceScheduledAt.toUtc().toIso8601String(),
@@ -1326,6 +1366,42 @@ CartDineInInfo? _dineInInfoFromJson(dynamic raw) {
   if (raw is! Map) return null;
   final readyInMin = (raw['readyInMin'] as num?)?.toInt() ?? 60;
   final readyLabel = raw['readyLabel']?.toString();
+  final seatingRaw = raw['seating'];
+  final seatingMap = seatingRaw is Map ? seatingRaw : null;
+  final seatingOptions = <DineInSeatingOption>[];
+  final optionRows = seatingMap?['options'];
+  if (optionRows is List) {
+    for (final row in optionRows) {
+      if (row is! Map) continue;
+      final preference = row['seatingPreference']?.toString();
+      if (preference == null || preference.isEmpty) continue;
+      seatingOptions.add(
+        DineInSeatingOption(
+          preference: preference,
+          available: row['available'] != false,
+        ),
+      );
+    }
+  }
+  final occasionRaw = raw['specialOccasion'];
+  final occasionMap = occasionRaw is Map ? occasionRaw : null;
+  final packages = <DineInOccasionPackage>[];
+  final packageRows = occasionMap?['packages'];
+  if (packageRows is List) {
+    for (final row in packageRows) {
+      if (row is! Map) continue;
+      final id = row['id']?.toString();
+      final name = row['name']?.toString();
+      if (id == null || id.isEmpty || name == null || name.isEmpty) continue;
+      packages.add(
+        DineInOccasionPackage(
+          id: id,
+          name: name,
+          price: (row['price'] as num?)?.toDouble() ?? 0,
+        ),
+      );
+    }
+  }
   return CartDineInInfo(
     readyInMin: readyInMin,
     readyLabel: (readyLabel != null && readyLabel.isNotEmpty)
@@ -1337,6 +1413,12 @@ CartDineInInfo? _dineInInfoFromJson(dynamic raw) {
     scheduledAt: DateTime.tryParse(
       raw['scheduledAt']?.toString() ?? '',
     )?.toLocal(),
+    seatingMode: seatingMap?['mode']?.toString(),
+    allowAny: seatingMap?['allowAny'] == true,
+    seatingOptions: seatingOptions,
+    occasionEnabled: occasionMap?['enabled'] == true && packages.isNotEmpty,
+    occasionPackages: packages,
+    selectedPackageId: raw['selectedSpecialOccasionPackageId']?.toString(),
   );
 }
 
@@ -1516,8 +1598,23 @@ List<BillLine> _billLinesFromSummary(
   if (summary == null) return const [];
   final lines = <BillLine>[];
   lines.add(
-    BillLine(label: 'Subtotal', value: _money(summary['subtotal'] ?? 0)),
+    BillLine(
+      label: 'Subtotal',
+      value: _money(summary['itemsSubtotal'] ?? summary['subtotal'] ?? 0),
+    ),
   );
+  final occasionAmount =
+      (summary['specialOccasionAmount'] as num?)?.toDouble() ?? 0;
+  if (occasionAmount > 0) {
+    final pkg = summary['specialOccasionPackage'];
+    final name = pkg is Map ? pkg['name']?.toString() : null;
+    lines.add(
+      BillLine(
+        label: (name != null && name.isNotEmpty) ? name : 'Special occasion',
+        value: _money(occasionAmount),
+      ),
+    );
+  }
   final discount = (summary['discountAmount'] as num?)?.toDouble() ?? 0;
   if (discount > 0) {
     lines.add(
@@ -1581,10 +1678,32 @@ Color _dineInUpsellColor(int index) {
   return colors[index % colors.length];
 }
 
+String _formatReadyInMinutes(int minutes) {
+  final rounded = minutes < 1 ? 1 : minutes;
+  return 'Ready in $rounded ${rounded == 1 ? 'minute' : 'minutes'}';
+}
+
+/// Longest item prep time. Pickup ready time is this, not a chosen clock slot.
+int? _maxCartItemPrepMin(Map<String, dynamic> json) {
+  final items = json['items'];
+  if (items is! List) return null;
+  var max = 0;
+  for (final raw in items) {
+    if (raw is! Map) continue;
+    final product = raw['product'];
+    if (product is! Map) continue;
+    final prep = product['prepTimeMin'];
+    if (prep is num && prep > max) max = prep.toInt();
+  }
+  return max > 0 ? max : null;
+}
+
 String _pickupReadyLabel(
   Map<String, dynamic> pickupRaw,
   Map<String, dynamic> json,
 ) {
+  final fromItems = _maxCartItemPrepMin(json);
+  if (fromItems != null) return _formatReadyInMinutes(fromItems);
   final ready = pickupRaw['readyLabel'] as String?;
   if (ready != null && ready.isNotEmpty) return ready;
   final eta = json['deliveryEta'];

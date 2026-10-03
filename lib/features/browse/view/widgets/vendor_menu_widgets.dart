@@ -28,8 +28,8 @@ abstract final class VendorMenuLayout {
     final statsRow = 10.h + 10.h + math.max(28.h, statBlock);
     final nameLine = 15.sp * 1.25;
     final subtitleLine = 11.sp * 1.25;
-    final identityRow = math.max(40.w, nameLine + 2.h + subtitleLine);
-    var height = 137.h + (24.h + identityRow) + orderTabsRow + statsRow + 1;
+    final identityRow = math.max(48.w, nameLine + 2.h + subtitleLine);
+    var height = 116.h + (12.h + identityRow) + orderTabsRow + statsRow + 1;
     if (searchVisible) {
       height += 8.h + 10.h + 10.h + 22.sp + 8.h;
     }
@@ -53,6 +53,7 @@ class VendorMenuCoverHeader extends StatelessWidget {
     this.searchController,
     this.onSearchChanged,
     this.onSearchClose,
+    this.searchHint,
   });
 
   final BrowseRestaurant restaurant;
@@ -62,6 +63,7 @@ class VendorMenuCoverHeader extends StatelessWidget {
   final TextEditingController? searchController;
   final ValueChanged<String>? onSearchChanged;
   final VoidCallback? onSearchClose;
+  final String? searchHint;
 
   @override
   Widget build(BuildContext context) {
@@ -72,7 +74,7 @@ class VendorMenuCoverHeader extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         SizedBox(
-          height: 137.h,
+          height: 116.h,
           child: Stack(
             fit: StackFit.expand,
             children: [
@@ -134,7 +136,7 @@ class VendorMenuCoverHeader extends StatelessWidget {
                     autofocus: true,
                     onChanged: onSearchChanged,
                     decoration: InputDecoration(
-                      hintText: BrowseStrings.searchThisMenu,
+                      hintText: searchHint ?? BrowseStrings.searchThisMenu,
                       hintStyle: AppTextStyles.bodySmall(color: _textMuted),
                       filled: true,
                       fillColor: AppColors.white,
@@ -241,12 +243,12 @@ class VendorMenuIdentityBar extends StatelessWidget {
 
     return Container(
       color: AppColors.primary,
-      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 6.h),
       child: Row(
         children: [
           Container(
-            width: 40.w,
-            height: 40.w,
+            width: 48.w,
+            height: 48.w,
             decoration: BoxDecoration(
               color: _mintCover,
               borderRadius: BorderRadius.circular(10.r),
@@ -256,8 +258,8 @@ class VendorMenuIdentityBar extends StatelessWidget {
             child: logoUrl != null && logoUrl.isNotEmpty
                 ? AppNetworkImage(
                     url: logoUrl,
-                    width: 40.w,
-                    height: 40.w,
+                    width: 48.w,
+                    height: 48.w,
                     fit: BoxFit.cover,
                     borderRadius: BorderRadius.circular(10.r),
                   )
@@ -577,7 +579,7 @@ class VendorMenuStatsRow extends StatelessWidget {
   }
 }
 
-class VendorMenuCategoryChips extends StatelessWidget {
+class VendorMenuCategoryChips extends StatefulWidget {
   const VendorMenuCategoryChips({
     super.key,
     required this.sections,
@@ -590,37 +592,104 @@ class VendorMenuCategoryChips extends StatelessWidget {
   final ValueChanged<String> onSelected;
 
   @override
+  State<VendorMenuCategoryChips> createState() => _VendorMenuCategoryChipsState();
+}
+
+class _VendorMenuCategoryChipsState extends State<VendorMenuCategoryChips> {
+  final _scroll = ScrollController();
+  bool _showMoreHint = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _scroll.addListener(_syncHint);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _syncHint());
+  }
+
+  @override
+  void didUpdateWidget(covariant VendorMenuCategoryChips oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _syncHint());
+  }
+
+  void _syncHint() {
+    if (!_scroll.hasClients) return;
+    final max = _scroll.position.maxScrollExtent;
+    final show = max > 4 && _scroll.offset < max - 4;
+    if (show != _showMoreHint) setState(() => _showMoreHint = show);
+  }
+
+  @override
+  void dispose() {
+    _scroll.removeListener(_syncHint);
+    _scroll.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return SizedBox(
       height: 40.h,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        padding: EdgeInsets.symmetric(horizontal: 16.w),
-        itemCount: sections.length,
-        separatorBuilder: (_, _) => SizedBox(width: 8.w),
-        itemBuilder: (context, index) {
-          final section = sections[index];
-          final active = section == selected;
-          return GestureDetector(
-            onTap: () => onSelected(section),
-            child: Container(
-              padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 8.h),
-              decoration: BoxDecoration(
-                color: active ? AppColors.primary : AppColors.white,
-                borderRadius: BorderRadius.circular(20.r),
-                border: Border.all(
-                  color: active ? AppColors.primary : _divider,
+      child: Stack(
+        children: [
+          ListView.separated(
+            controller: _scroll,
+            scrollDirection: Axis.horizontal,
+            padding: EdgeInsets.symmetric(horizontal: 16.w),
+            itemCount: widget.sections.length,
+            separatorBuilder: (_, _) => SizedBox(width: 8.w),
+            itemBuilder: (context, index) {
+              final section = widget.sections[index];
+              final active = section == widget.selected;
+              return GestureDetector(
+                onTap: () => widget.onSelected(section),
+                child: Container(
+                  padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 8.h),
+                  decoration: BoxDecoration(
+                    color: active ? AppColors.primary : AppColors.white,
+                    borderRadius: BorderRadius.circular(20.r),
+                    border: Border.all(
+                      color: active ? AppColors.primary : _divider,
+                    ),
+                  ),
+                  child: Text(
+                    L10n.tr(section),
+                    style: AppTextStyles.labelSmall(
+                      color: active ? AppColors.white : _textDark,
+                    ).copyWith(fontWeight: FontWeight.w600, fontSize: 13.sp),
+                  ),
+                ),
+              );
+            },
+          ),
+          if (_showMoreHint)
+            Positioned(
+              right: 0,
+              top: 0,
+              bottom: 0,
+              width: 40.w,
+              child: IgnorePointer(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        AppColors.white.withValues(alpha: 0),
+                        AppColors.white,
+                      ],
+                    ),
+                  ),
+                  child: Align(
+                    alignment: Alignment.centerRight,
+                    child: Icon(
+                      Icons.chevron_right_rounded,
+                      size: 20.sp,
+                      color: _textMuted,
+                    ),
+                  ),
                 ),
               ),
-              child: Text(
-                L10n.tr(section),
-                style: AppTextStyles.labelSmall(
-                  color: active ? AppColors.white : _textDark,
-                ).copyWith(fontWeight: FontWeight.w600, fontSize: 13.sp),
-              ),
             ),
-          );
-        },
+        ],
       ),
     );
   }

@@ -77,6 +77,9 @@ class _OutOfDeliveryScreenState extends ConsumerState<OutOfDeliveryScreen> {
         .fetchCart(CartOrderType.delivery);
     final vendorId = cart.vendorId;
     if (!mounted || vendorId == null || vendorId.isEmpty) return;
+    // The cart quote is the same gate as the red bill line. Stay on this
+    // screen while that quote still says the address cannot be delivered.
+    if (cart.delivery?.outOfRange == true) return;
 
     final range = await checkDeliveryRange(
       addresses: ref.read(addressesRepositoryProvider),

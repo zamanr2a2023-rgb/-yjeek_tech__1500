@@ -149,11 +149,12 @@ class _TopPickCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            SizedBox(
-              height: 88.h,
+            Expanded(
               child: imageUrl != null && imageUrl.isNotEmpty
                   ? AppNetworkImage(url: imageUrl, fit: BoxFit.cover)
-                  : ColoredBox(color: AppColors.primary.withValues(alpha: 0.08)),
+                  : ColoredBox(
+                      color: AppColors.primary.withValues(alpha: 0.08),
+                    ),
             ),
             Padding(
               padding: EdgeInsets.fromLTRB(8.w, 6.h, 8.w, 6.h),

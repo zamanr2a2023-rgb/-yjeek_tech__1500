@@ -665,23 +665,33 @@ class OrderStatusBadge extends StatelessWidget {
 
   Color get _background {
     final lower = label.toLowerCase();
+    if (lower.contains('cancel') || lower.contains('reject')) {
+      return const Color(0xFFFDE8E8);
+    }
     if (lower.contains('delivery')) return const Color(0xFFD9EFE0);
     if (lower.contains('deliver') || lower.contains('complet')) {
       return const Color(0xFFE3F2EB);
     }
     if (lower.contains('upcoming')) return const Color(0xFFFFF2D9);
-    if (lower.contains('progress')) return const Color(0xFFFCF0D4);
+    if (lower.contains('progress') || lower.contains('return')) {
+      return const Color(0xFFFCF0D4);
+    }
     return const Color(0xFFE3F2EB);
   }
 
   Color get _foreground {
     final lower = label.toLowerCase();
+    if (lower.contains('cancel') || lower.contains('reject')) {
+      return const Color(0xFFB42318);
+    }
     if (lower.contains('delivery')) return AppColors.primary;
     if (lower.contains('deliver') || lower.contains('complet')) {
       return AppColors.successText;
     }
     if (lower.contains('upcoming')) return const Color(0xFFD98C1A);
-    if (lower.contains('progress')) return const Color(0xFF996B0D);
+    if (lower.contains('progress') || lower.contains('return')) {
+      return const Color(0xFF996B0D);
+    }
     return AppColors.successText;
   }
 
@@ -1149,10 +1159,10 @@ class ShellBottomNavBar extends StatelessWidget {
     return HomeBottomNavBar(
       currentIndex: currentIndex,
       onTap: (index) {
-        // Home must always open the home shell — nested screens often
-        // highlight tab 0 without being on /home, so pop would stay off-home.
-        if (index == 0) {
-          context.goHome(tab: 0);
+        // Home and Cart must open the shell. Popping when the icon is already
+        // highlighted (menu opened with tab=2) dropped the user on Home.
+        if (index == 0 || index == 2) {
+          context.goHome(tab: index);
           return;
         }
         if (index == currentIndex) {

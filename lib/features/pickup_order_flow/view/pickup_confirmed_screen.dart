@@ -11,6 +11,7 @@ import 'package:yjeek_app/features/order_flow/view/widgets/order_flow_widgets.da
 import 'package:yjeek_app/features/pickup_order_flow/model/pickup_order_flow_data.dart';
 import 'package:yjeek_app/features/pickup_order_flow/pickup_order_flow_routes.dart';
 import 'package:yjeek_app/features/pickup_order_flow/view/widgets/pickup_order_flow_widgets.dart';
+import 'package:yjeek_app/features/pickup_order_flow/model/pickup_order_api_mappers.dart';
 import 'package:yjeek_app/features/scheduled_order_flow/model/scheduled_order_api_mappers.dart';
 
 class PickupConfirmedScreen extends ConsumerStatefulWidget {
@@ -61,7 +62,7 @@ class _PickupConfirmedScreenState extends ConsumerState<PickupConfirmedScreen> {
             loc['name']?.toString() ??
             loc['address']?.toString())
         : null;
-    final eta = order['etaLabel']?.toString();
+    final eta = pickupReadyEtaLabel(order) ?? order['etaLabel']?.toString();
     final place = locArea ?? area;
 
     setState(() {
@@ -70,7 +71,10 @@ class _PickupConfirmedScreenState extends ConsumerState<PickupConfirmedScreen> {
       _items = itemsSummaryFromOrderApi(order);
       if (vendorName != null && vendorName.isNotEmpty) {
         if (eta != null && eta.isNotEmpty) {
-          _pickup = '$vendorName · ready in $eta';
+          final detail = eta.toLowerCase().startsWith('ready in')
+              ? eta
+              : 'ready in $eta';
+          _pickup = '$vendorName · $detail';
         } else if (place != null && place.isNotEmpty) {
           _pickup = '$vendorName · $place';
         } else {

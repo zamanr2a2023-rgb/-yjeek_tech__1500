@@ -138,6 +138,18 @@ final serviceSlotContextProvider = StateProvider<ServiceSlotContext?>(
   (ref) => null,
 );
 
+class ServiceTypeLanding {
+  const ServiceTypeLanding({
+    required this.title,
+    required this.slug,
+    required this.categories,
+  });
+
+  final String title;
+  final String slug;
+  final List<ServiceCategoryItem> categories;
+}
+
 class ServicesVendorsRepository {
   const ServicesVendorsRepository(this._apiClient, this._storage);
 
@@ -146,11 +158,24 @@ class ServicesVendorsRepository {
 
   String? get _token => _storage.token;
 
-  /// GET /categories/services — menuCategories (preferred) or subTypes.
-  Future<List<ServiceCategoryItem>> fetchServiceCategories() async {
-    final response = await _apiClient.getJson('/categories/services');
+  /// GET /categories/:slug — catalog sub-types for that store type.
+  /// Menu categories are product folders and must not replace those tiles.
+  Future<ServiceTypeLanding> fetchServiceLanding({String? slug}) async {
+    final storeSlug = (slug == null || slug.trim().isEmpty)
+        ? 'services'
+        : slug.trim();
+    final response = await _apiClient.getJson(
+      '/categories/${Uri.encodeComponent(storeSlug)}',
+    );
     final data = response?['data'];
-    if (data is! Map<String, dynamic>) return const [];
+    if (data is! Map<String, dynamic>) {
+      return ServiceTypeLanding(title: '', slug: storeSlug, categories: const []);
+    }
+
+    final title = (data['name'] as String?)?.trim() ?? '';
+    final resolvedSlug = (data['slug'] as String?)?.trim().isNotEmpty == true
+        ? (data['slug'] as String).trim()
+        : storeSlug;
 
     final items = <ServiceCategoryItem>[];
 
@@ -163,14 +188,29 @@ class ServicesVendorsRepository {
       }
     }
 
-    addFromList(data['menuCategories']);
-    if (items.isEmpty) addFromList(data['subTypes']);
-    if (items.isEmpty) addFromList(data['children']);
-    return items;
+    final twoLevel =
+        (data['structure'] as String?)?.trim().toUpperCase() == 'TWO_LEVEL';
+    if (twoLevel) {
+      addFromList(data['subTypes']);
+      if (items.isEmpty) addFromList(data['children']);
+    } else {
+      addFromList(data['subTypes']);
+      if (items.isEmpty) addFromList(data['children']);
+      if (items.isEmpty) addFromList(data['menuCategories']);
+    }
+    return ServiceTypeLanding(
+      title: title,
+      slug: resolvedSlug,
+      categories: items,
+    );
   }
 
-  Future<ServiceCategoryItem> fetchCategoryById(String categoryId) async {
-    final categories = await fetchServiceCategories();
+  Future<ServiceCategoryItem> fetchCategoryById(
+    String categoryId, {
+    String? storeSlug,
+  }) async {
+    final categories =
+        (await fetchServiceLanding(slug: storeSlug)).categories;
     for (final c in categories) {
       if (c.id == categoryId ||
           c.id.toLowerCase() == categoryId.toLowerCase() ||
@@ -184,13 +224,17 @@ class ServicesVendorsRepository {
   /// GET /vendors?category=services&isBookable=true&sort=&subcategory=&q=&hasOffers=
   Future<List<ServiceProvider>> fetchProviders({
     String sort = 'popular',
+    String? category,
     String? subcategory,
     String? query,
     String? venueFilter,
     bool offersOnly = false,
   }) async {
+    final storeSlug = (category == null || category.trim().isEmpty)
+        ? 'services'
+        : category.trim();
     final params = <String, String>{
-      'category': 'services',
+      'category': storeSlug,
       'isBookable': 'true',
       'sort': sort,
     };
@@ -674,8 +718,9 @@ ServiceProvider? serviceProviderFromVendorJson(Map<String, dynamic> json) {
   final offer = json['offerBadge'] ?? json['badgeLabel'] ?? json['promoBadge'];
   final offerBadge = offer?.toString().trim();
   final area = (json['area'] as String?)?.trim();
-  final imageUrl = resolveApiMediaUrl(json['logoUrl'] as String?) ??
-      resolveApiMediaUrl(json['coverUrl'] as String?);
+  final logoUrl = resolveApiMediaUrl(json['logoUrl'] as String?);
+  final coverUrl = resolveApiMediaUrl(json['coverUrl'] as String?);
+  final imageUrl = logoUrl ?? coverUrl;
   final openStatus = (json['openStatus'] as String?)?.toUpperCase() ?? 'UNKNOWN';
   final hasRating = json['hasRating'] == true || (reviewCount > 0 && rating > 0);
   final fullyBooked = json['fullyBooked'] == true ||
@@ -715,7 +760,8 @@ ServiceProvider? serviceProviderFromVendorJson(Map<String, dynamic> json) {
     offerBadge:
         (offerBadge != null && offerBadge.isNotEmpty) ? offerBadge : null,
     area: (area != null && area.isNotEmpty) ? area : null,
-    imageUrl: imageUrl,
+    imageUrl: logoUrl ?? coverUrl,
+    coverUrl: coverUrl,
     hasRating: hasRating,
     openStatus: openStatus,
     fullyBooked: fullyBooked,
@@ -769,6 +815,7 @@ ServiceMenuItem? serviceMenuItemFromProductJson(
     duration: duration,
     hasModifiers: hasModifiers,
     durationMinutes: (prep != null && prep > 0) ? prep : null,
+    imageUrl: resolveApiMediaUrl(json['imageUrl'] as String?),
   );
 }
 

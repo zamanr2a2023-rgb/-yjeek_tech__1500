@@ -159,6 +159,7 @@ RetailStoreConfig servicesStoreConfig({
       }
     },
     searchHint: 'Search services…',
+    headerStyle: RetailStoreHeaderStyle.foodMenu,
     emptyMessage: 'No services available right now',
     emptySearchMessage: 'No services found',
     errorMessage: 'Could not load provider',
@@ -189,4 +190,9 @@ void openVapeCartFromStore(WidgetRef ref, BuildContext context) {
 
 void openServicesBooking(BuildContext context) {
   context.push(ServicesBookingRoutes.booking);
+}
+
+void openServicesCartFromStore(WidgetRef ref, BuildContext context) {
+  ref.read(shellProvider.notifier).openServicesCartWithItems();
+  context.goHome(tab: 2, servicesCart: true);
 }

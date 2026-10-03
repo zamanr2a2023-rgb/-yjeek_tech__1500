@@ -41,6 +41,7 @@ class _VapeCheckoutScreenState extends ConsumerState<VapeCheckoutScreen> {
   DeliveryAddressSnapshot? _address;
   CheckoutPaymentMethods _payments = CheckoutPaymentMethods.fallback(
     base: VapeCartData.paymentOptions,
+    includeCod: false,
   );
   List<VapeDeliveryMethod> _deliveryMethods = const [];
   List<Map<String, dynamic>> _deliveryOptions = const [];
@@ -172,7 +173,11 @@ class _VapeCheckoutScreenState extends ConsumerState<VapeCheckoutScreen> {
           await ref.read(addressesRepositoryProvider).defaultAddress();
       final payments = await ref
           .read(paymentMethodsRepositoryProvider)
-          .fetchCheckoutMethods(preferredDefaultId: 'benefitpay');
+          .fetchCheckoutMethods(
+            fallback: VapeCartData.paymentOptions,
+            includeCod: false,
+            preferredDefaultId: 'benefitpay',
+          );
       final me = await ref.read(userRepositoryProvider).fetchMe();
       final age = await ref
           .read(ageVerificationRepositoryProvider)

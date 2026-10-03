@@ -708,6 +708,7 @@ const Map<String, String> kArabicTranslations = {
   'Time': 'الوقت',
   'Tip': 'إكرامية',
   'Tip the specialist (optional)': 'إكرامية للأخصائي (اختياري)',
+  '100% goes straight to your specialist': '100٪ تذهب مباشرة إلى الأخصائي',
   'Tip the staff (optional)': 'إكرامية للطاقم (اختياري)',
   'Tip your champ': 'إكرامية للشامب',
   'To change your phone number, use \'Change phone number\'.': 'لتغيير رقم هاتفك، استخدم «تغيير رقم الهاتف».',

@@ -185,6 +185,7 @@ class AppRouter {
             final scheduled = state.uri.queryParameters['scheduled'] == '1';
             final pickup = state.uri.queryParameters['pickup'] == '1';
             final vape = state.uri.queryParameters['vape'] == '1';
+            final servicesCart = state.uri.queryParameters['service'] == '1';
             return MainShell(
               initialIndex: tab,
               cartHasItems: cart,
@@ -193,6 +194,7 @@ class AppRouter {
               scheduledHasItems: scheduled,
               pickupHasItems: pickup,
               vapeHasItems: vape,
+              servicesHasItems: servicesCart,
             );
           },
         ),
@@ -204,7 +206,10 @@ class AppRouter {
           path: RouteNames.foodBrowse,
           builder: (_, state) {
             final tab = int.tryParse(state.uri.queryParameters['tab'] ?? '') ?? 0;
-            return FoodBrowseScreen(bottomNavIndex: tab);
+            return FoodBrowseScreen(
+              bottomNavIndex: tab,
+              categorySlug: state.uri.queryParameters['category'],
+            );
           },
         ),
         GoRoute(
@@ -212,7 +217,11 @@ class AppRouter {
           builder: (_, state) {
             final query = state.uri.queryParameters['q'] ?? '';
             final tab = int.tryParse(state.uri.queryParameters['tab'] ?? '') ?? 0;
-            return FoodSearchScreen(initialQuery: query, bottomNavIndex: tab);
+            return FoodSearchScreen(
+              initialQuery: query,
+              bottomNavIndex: tab,
+              categorySlug: state.uri.queryParameters['category'],
+            );
           },
         ),
         GoRoute(
@@ -301,7 +310,11 @@ class AppRouter {
           path: RouteNames.servicesBrowse,
           builder: (_, state) {
             final tab = int.tryParse(state.uri.queryParameters['tab'] ?? '') ?? 0;
-            return ServicesBrowseScreen(bottomNavIndex: tab);
+            final slug = state.uri.queryParameters['slug'];
+            return ServicesBrowseScreen(
+              bottomNavIndex: tab,
+              storeTypeSlug: slug,
+            );
           },
         ),
         GoRoute(
@@ -319,9 +332,11 @@ class AppRouter {
           path: RouteNames.servicesCategory,
           builder: (_, state) {
             final tab = int.tryParse(state.uri.queryParameters['tab'] ?? '') ?? 0;
-            final categoryId = state.uri.queryParameters['id'] ?? 'salon-beauty';
+            final categoryId = state.uri.queryParameters['id'] ?? '';
+            final storeSlug = state.uri.queryParameters['store'];
             return ServicesCategoryScreen(
               categoryId: categoryId,
+              storeSlug: storeSlug,
               bottomNavIndex: tab,
             );
           },
@@ -895,14 +910,7 @@ class AppRouter {
           builder: (_, state) {
             final paymentId =
                 state.uri.queryParameters['payment'] ?? 'benefitpay';
-            final tip = double.tryParse(
-                  state.uri.queryParameters['tip'] ?? '',
-                ) ??
-                0;
-            return PickupReviewScreen(
-              paymentId: paymentId,
-              tipAmount: tip,
-            );
+            return PickupReviewScreen(paymentId: paymentId);
           },
         ),
         GoRoute(
@@ -1155,6 +1163,7 @@ extension AppNavigation on BuildContext {
     bool scheduledCart = false,
     bool pickupCart = false,
     bool vapeCart = false,
+    bool servicesCart = false,
   }) {
     // Remember where we came from so Cart back can restore that screen.
     if (tab == 2) {
@@ -1176,6 +1185,7 @@ extension AppNavigation on BuildContext {
     if (scheduledCart) params.add('scheduled=1');
     if (pickupCart) params.add('pickup=1');
     if (vapeCart) params.add('vape=1');
+    if (servicesCart) params.add('service=1');
     go('${RouteNames.home}?${params.join('&')}');
   }
 }

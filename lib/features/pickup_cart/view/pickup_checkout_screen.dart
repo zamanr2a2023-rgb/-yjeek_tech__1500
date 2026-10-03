@@ -15,7 +15,7 @@ import 'package:yjeek_app/features/pickup_cart/pickup_cart_routes.dart';
 import 'package:yjeek_app/features/pickup_cart/view/widgets/pickup_cart_widgets.dart';
 import 'package:yjeek_app/features/scheduled_cart/view/widgets/scheduled_cart_widgets.dart';
 
-/// Pickup checkout — layout from Figma; vendor / bill / ready time / slots from API.
+/// Pickup checkout. Ready time is the longest item prep; the customer does not pick a slot.
 class PickupCheckoutScreen extends ConsumerStatefulWidget {
   const PickupCheckoutScreen({super.key});
 
@@ -25,23 +25,13 @@ class PickupCheckoutScreen extends ConsumerStatefulWidget {
 }
 
 class _PickupCheckoutScreenState extends ConsumerState<PickupCheckoutScreen> {
-  /// No tip selected until user taps a chip (keeps cart CTA total aligned).
-  int _tipIndex = -1;
-  double _customTipAmount = 0;
-  final _customTipController = TextEditingController();
   String _paymentId = 'benefitpay';
   CartSnapshot? _cart;
-  PickupSlotsSnapshot? _slots;
   CheckoutPaymentMethods _payments = CheckoutPaymentMethods.fallback(
     base: PickupCartData.paymentOptions,
+    includeCod: false,
   );
   bool _loading = true;
-
-  double get _tipAmount => tipAmountFrom(
-        PickupCartData.tipOptions,
-        _tipIndex,
-        customAmount: _customTipAmount,
-      );
 
   @override
   void initState() {
@@ -49,28 +39,21 @@ class _PickupCheckoutScreenState extends ConsumerState<PickupCheckoutScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) => _load());
   }
 
-  @override
-  void dispose() {
-    _customTipController.dispose();
-    super.dispose();
-  }
-
   Future<void> _load() async {
     setState(() => _loading = true);
     try {
       final cartRepo = ref.read(cartRepositoryProvider);
       final cart = await cartRepo.fetchCart(CartOrderType.pickup);
-      final slots = await cartRepo.fetchPickupSlots();
       final payments = await ref
           .read(paymentMethodsRepositoryProvider)
           .fetchCheckoutMethods(
             fallback: PickupCartData.paymentOptions,
+            includeCod: false,
             preferredDefaultId: 'benefitpay',
           );
       if (!mounted) return;
       setState(() {
         _cart = cart;
-        _slots = slots;
         _payments = payments;
         _paymentId = payments.defaultId;
         _loading = false;
@@ -78,58 +61,6 @@ class _PickupCheckoutScreenState extends ConsumerState<PickupCheckoutScreen> {
     } catch (_) {
       if (!mounted) return;
       setState(() => _loading = false);
-    }
-  }
-
-  Future<void> _changePickupTime() async {
-    final slots = _slots?.slots ?? const <PickupTimeSlot>[];
-    if (slots.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No pickup slots available')),
-      );
-      return;
-    }
-
-    final selected = await showModalBottomSheet<PickupTimeSlot>(
-      context: context,
-      showDragHandle: true,
-      builder: (context) {
-        return SafeArea(
-          child: ListView(
-            shrinkWrap: true,
-            children: [
-              for (final slot in slots)
-                ListTile(
-                  title: Text(slot.label),
-                  trailing: (_slots?.selectedId == slot.id)
-                      ? const Icon(Icons.check, color: Color(0xFF4CAF50))
-                      : null,
-                  onTap: () => Navigator.pop(context, slot),
-                ),
-            ],
-          ),
-        );
-      },
-    );
-    if (selected == null || !mounted) return;
-
-    try {
-      final cart = await ref.read(cartRepositoryProvider).updatePreferences(
-            type: CartOrderType.pickup,
-            pickupScheduledAt: selected.scheduledAt,
-            clearPickupScheduledAt: selected.isAsap,
-          );
-      final refreshed = await ref.read(cartRepositoryProvider).fetchPickupSlots();
-      if (!mounted) return;
-      setState(() {
-        _cart = cart;
-        _slots = refreshed;
-      });
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
-      );
     }
   }
 
@@ -142,10 +73,7 @@ class _PickupCheckoutScreenState extends ConsumerState<PickupCheckoutScreen> {
     }
     // Order is placed on Review (Confirm / auto-timer), not here.
     context.pushReplacement(
-      PickupCartRoutes.reviewFor(
-        paymentId: _paymentId,
-        tipAmount: _tipAmount,
-      ),
+      PickupCartRoutes.reviewFor(paymentId: _paymentId),
     );
   }
 
@@ -156,22 +84,14 @@ class _PickupCheckoutScreenState extends ConsumerState<PickupCheckoutScreen> {
         ? cart!.vendorName
         : 'Pickup';
     final pickup = cart?.pickup;
-    final billLines = cart != null
-        ? billLinesWithTip(cart, _tipAmount)
-        : const <BillLine>[];
+    final billLines = cart?.billLines ?? const <BillLine>[];
     final footerTotal = cart != null
-        ? formatCheckoutTotal(cart, _tipAmount)
+        ? formatCheckoutTotal(cart, 0)
         : 'BHD 0.000';
 
-    final selectedSlot = _slots?.slots
-        .where((s) => s.id == _slots!.selectedId)
-        .cast<PickupTimeSlot?>()
-        .firstWhere((_) => true, orElse: () => null);
-    final timeLabel = selectedSlot?.label ??
-        formatPickupTimeLabel(
-          pickup?.scheduledAt,
-          readyLabel: pickup?.readyLabel,
-        );
+    final timeLabel = pickup != null && pickup.readyLabel.trim().isNotEmpty
+        ? pickup.readyLabel
+        : 'Ready soon';
 
     return CartFlowScaffold(
       title: PickupCartStrings.checkout,
@@ -194,7 +114,6 @@ class _PickupCheckoutScreenState extends ConsumerState<PickupCheckoutScreen> {
                 CartSectionTitle(PickupCartStrings.pickupTime),
                 PickupTimeCard(
                   timeLabel: timeLabel,
-                  onChange: _changePickupTime,
                 ),
                 SizedBox(height: 10.h),
                 PickupPolicyBanner(
@@ -208,19 +127,6 @@ class _PickupCheckoutScreenState extends ConsumerState<PickupCheckoutScreen> {
                   selectedId: _paymentId,
                   onSelected: (id) => setState(() => _paymentId = id),
                   showSecurityNotes: true,
-                ),
-                SizedBox(height: 14.h),
-                CartTipSelector(
-                  showHeader: true,
-                  options: PickupCartData.tipOptions,
-                  selectedIndex: _tipIndex,
-                  customController: _customTipController,
-                  onSelected: (index) => setState(() => _tipIndex = index),
-                  onCustomChanged: (raw) {
-                    setState(() {
-                      _customTipAmount = parseTipInput(raw) ?? 0;
-                    });
-                  },
                 ),
                 SizedBox(height: 14.h),
                 CartZoodPromoBanner(

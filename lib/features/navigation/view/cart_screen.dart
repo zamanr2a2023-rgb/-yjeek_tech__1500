@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -58,6 +60,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
   bool _fetching = false;
   bool _reloadQueued = false;
   int _loadedRevision = -1;
+  bool _openingOutOfRange = false;
 
   CartSnapshot _delivery = CartSnapshot.empty(CartOrderType.delivery);
   CartSnapshot _dineIn = CartSnapshot.empty(CartOrderType.dineIn);
@@ -120,6 +123,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
         _loading = false;
       });
       _syncShellFlags();
+      _scheduleOutOfRangeScreen(_delivery);
     } catch (_) {
       if (!mounted) return;
       setState(() => _loading = false);
@@ -135,7 +139,9 @@ class _CartScreenState extends ConsumerState<CartScreen> {
   Future<void> _onRefresh() => _loadAll(showSpinner: false);
 
   void _syncShellFlags() {
-    ref.read(shellProvider.notifier).syncCartFlags(
+    ref
+        .read(shellProvider.notifier)
+        .syncCartFlags(
           delivery: _delivery.hasItems,
           dineIn: _dineIn.hasItems,
           pickup: _pickup.hasItems,
@@ -221,6 +227,39 @@ class _CartScreenState extends ConsumerState<CartScreen> {
     };
   }
 
+  /// Out of range belongs on the delivery address screen, not as a cart line.
+  void _scheduleOutOfRangeScreen(CartSnapshot cart) {
+    if (!cart.hasItems || cart.delivery?.outOfRange != true) return;
+    if (_tabIndex != CartTab.orders.index) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _openOutOfRangeScreen(cart);
+    });
+  }
+
+  Future<void> _openOutOfRangeScreen(CartSnapshot cart) async {
+    if (!mounted || _openingOutOfRange) return;
+    if (!cart.hasItems || cart.delivery?.outOfRange != true) return;
+    if (_tabIndex != CartTab.orders.index) return;
+    _openingOutOfRange = true;
+    try {
+      final vendorId = cart.vendorId;
+      if (vendorId != null && vendorId.isNotEmpty) {
+        final range = await checkDeliveryRange(
+          addresses: ref.read(addressesRepositoryProvider),
+          vendorId: vendorId,
+          failClosed: false,
+        );
+        if (!mounted) return;
+        if (range.allowsDelivery) return;
+        await pushOutOfDelivery(context, address: range.address);
+        return;
+      }
+      await pushOutOfDelivery(context);
+    } finally {
+      if (mounted) _openingOutOfRange = false;
+    }
+  }
+
   Future<void> _setCart(CartOrderType type, CartSnapshot snap) async {
     setState(() {
       switch (type) {
@@ -246,13 +285,13 @@ class _CartScreenState extends ConsumerState<CartScreen> {
     final snap = _snapshotForTab(tab);
     final type = _typeForTab(tab);
     final repo = ref.read(cartRepositoryProvider);
-    final isScheduledOnly =
-        _scheduled != null && identical(snap, _scheduled);
+    final isScheduledOnly = _scheduled != null && identical(snap, _scheduled);
 
     return LiveCartBody(
       cart: snap,
       initialPromoCode: null,
-      showCutlery: tab == CartTab.orders &&
+      showCutlery:
+          tab == CartTab.orders &&
           !snap.isVape &&
           !snap.isElectronics &&
           !isScheduledOnly,
@@ -290,9 +329,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
       },
       onUpsellAdd: (productId) async {
         if (isScheduledOnly) {
-          _setScheduled(
-            await repo.addScheduledProduct(productId: productId),
-          );
+          _setScheduled(await repo.addScheduledProduct(productId: productId));
           return;
         }
         final next = await repo.addProduct(
@@ -313,9 +350,9 @@ class _CartScreenState extends ConsumerState<CartScreen> {
             _setScheduled(await repo.applyScheduledPromo(code));
           } catch (_) {
             if (!mounted) return;
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Invalid promo code')),
-            );
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(const SnackBar(content: Text('Invalid promo code')));
           }
           return;
         }
@@ -356,6 +393,15 @@ class _CartScreenState extends ConsumerState<CartScreen> {
         final next = await repo.updatePreferences(
           type: type,
           specialOccasionEnabled: enabled,
+          clearSpecialOccasionPackage: !enabled,
+        );
+        await _setCart(type, next);
+      },
+      onOccasionPackageSelected: (packageId) async {
+        final next = await repo.updatePreferences(
+          type: type,
+          specialOccasionPackageId: packageId,
+          clearSpecialOccasionPackage: packageId == null,
         );
         await _setCart(type, next);
       },
@@ -383,10 +429,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
           return;
         }
         context.push(
-          BrowseRoutes.itemDetail(
-            vendorId: vendorId,
-            itemId: item.productId,
-          ),
+          BrowseRoutes.itemDetail(vendorId: vendorId, itemId: item.productId),
         );
       },
       onAddMore: () {
@@ -400,6 +443,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
             BrowseRoutes.vendorMenu(
               vendorId: vendorId,
               tab: 2,
+              cartType: tab == CartTab.pickup ? 'pickup' : null,
               returnTo: '${RouteNames.home}?tab=2',
             ),
           );
@@ -449,14 +493,10 @@ class _CartScreenState extends ConsumerState<CartScreen> {
               if (!mounted) return;
               if (!range.allowsDelivery) {
                 if (range.outcome == DeliveryRangeOutcome.noAddress) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Add a delivery address first'),
-                    ),
-                  );
+                  unawaited(context.push(CartRoutes.changeAddress));
                   return;
                 }
-                await pushOutOfDelivery(context, address: range.address);
+                unawaited(pushOutOfDelivery(context, address: range.address));
                 return;
               }
             }

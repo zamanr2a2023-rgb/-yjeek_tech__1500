@@ -1,10 +1,13 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:yjeek_app/core/constants/app_assets.dart';
 import 'package:yjeek_app/core/constants/app_colors.dart';
 import 'package:yjeek_app/core/constants/app_text_styles.dart';
 import 'package:yjeek_app/core/providers/app_providers.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
+import 'package:yjeek_app/features/cart/model/cart_flow_data.dart';
+import 'package:yjeek_app/features/cart/view/widgets/cart_flow_widgets.dart';
 import 'package:yjeek_app/features/order_flow/model/order_api_mappers.dart';
 import 'package:yjeek_app/features/payments/benefit_pay_debug.dart';
 import 'package:yjeek_app/features/payments/benefit_pay_native.dart';
@@ -32,12 +35,12 @@ class PayNowHelper {
   final BuildContext context;
 
   static const defaultPaymentOptions = <PayNowOption>[
-    PayNowOption(api: 'YJEEK_WALLET', label: 'Yjeek Wallet', enabled: true),
     PayNowOption(api: 'BENEFIT_PAY', label: 'BenefitPay', enabled: true),
     PayNowOption(api: 'APPLE_PAY', label: 'Apple Pay', enabled: false),
     PayNowOption(api: 'GOOGLE_PAY', label: 'Google Pay', enabled: false),
     PayNowOption(api: 'BENEFIT', label: 'Benefit', enabled: true),
     PayNowOption(api: 'CARD', label: 'Add new card', enabled: false),
+    PayNowOption(api: 'YJEEK_WALLET', label: 'Yjeek Wallet', enabled: true),
   ];
 
   static bool isWallet(String methodApi) {
@@ -192,64 +195,56 @@ class PayNowHelper {
     required String currentApi,
     required String balanceLabel,
   }) async {
+    final rows = options
+        .where((option) => !isCashMethod(option.api))
+        .map(_checkoutStyleOption)
+        .toList();
     return showModalBottomSheet<String>(
       context: context,
       isDismissible: true,
       enableDrag: true,
+      backgroundColor: AppColors.background,
       builder: (ctx) {
-        final maxHeight = MediaQuery.sizeOf(ctx).height * 0.72;
         return SafeArea(
-          child: ConstrainedBox(
-            constraints: BoxConstraints(maxHeight: maxHeight),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Padding(
-                  padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 4.h),
-                  child: Text(
-                    'Pay with',
-                    style: AppTextStyles.labelMedium(
-                      color: AppColors.textPrimary,
-                    ).copyWith(fontWeight: FontWeight.w700),
-                  ),
-                ),
-                Flexible(
-                  child: ListView(
-                    shrinkWrap: true,
-                    children: [
-                      for (final opt in options)
-                        ListTile(
-                          leading: Icon(
-                            isWallet(opt.api)
-                                ? Icons.account_balance_wallet_outlined
-                                : Icons.payment_outlined,
-                            color: AppColors.primary,
-                          ),
-                          title: Text(
-                            opt.label,
-                            style: TextStyle(
-                              color: opt.enabled ? null : AppColors.textSecondary,
-                            ),
-                          ),
-                          subtitle: (() {
-                            final subtitle = subtitleForOption(opt, balanceLabel);
-                            return subtitle == null ? null : Text(subtitle);
-                          })(),
-                          trailing: methodsMatch(currentApi, opt.api)
-                              ? const Icon(Icons.check, color: AppColors.primary)
-                              : null,
-                          onTap: opt.enabled
-                              ? () => Navigator.pop(ctx, opt.api)
-                              : null,
-                        ),
-                    ],
-                  ),
-                ),
-                SizedBox(height: 8.h),
-              ],
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 16.h),
+            child: CartPaymentMethodList(
+              options: rows,
+              selectedId: currentApi.toUpperCase(),
+              onSelected: (id) {
+                PayNowOption? match;
+                for (final option in options) {
+                  if (option.api.toUpperCase() == id.toUpperCase()) {
+                    match = option;
+                    break;
+                  }
+                }
+                if (match == null || !match.enabled) {
+                  snack('Coming soon');
+                  return;
+                }
+                Navigator.pop(ctx, match.api);
+              },
             ),
           ),
         );
+      },
+    );
+  }
+
+  PaymentOption _checkoutStyleOption(PayNowOption option) {
+    final api = option.api.toUpperCase();
+    return PaymentOption(
+      id: api,
+      label: api == 'CARD' ? 'Add new card' : option.label,
+      iconAsset: switch (api) {
+        'BENEFIT_PAY' => AppAssets.payBenefitPay,
+        'APPLE_PAY' => AppAssets.payApple,
+        'GOOGLE_PAY' => AppAssets.payGoogle,
+        'BENEFIT' => AppAssets.payBenefit,
+        'CARD' => AppAssets.payAddCard,
+        'YJEEK_WALLET' => AppAssets.payWallet,
+        _ => AppAssets.payWallet,
       },
     );
   }
@@ -342,6 +337,56 @@ class PayNowHelper {
         paymentMethod: 'YJEEK_WALLET',
       );
       if (!ok) return false;
+    }
+    return true;
+  }
+
+  Future<bool> payWithCard({required List<String> orderIds}) async {
+    for (final orderId in orderIds) {
+      final initiated = await ref
+          .read(ordersRepositoryProvider)
+          .initiatePaymentDetailed(orderId);
+      if (!initiated.ok) {
+        snack(
+          initiated.errorMessage ?? 'Could not start card payment',
+          color: const Color(0xFFB42318),
+        );
+        return false;
+      }
+      final paymentUrl = initiated.paymentUrl?.trim();
+      final gatewayRef = initiated.gatewayRef;
+      if (paymentUrl == null ||
+          paymentUrl.isEmpty ||
+          gatewayRef == null ||
+          gatewayRef.isEmpty) {
+        snack('Card payment is not available right now');
+        return false;
+      }
+      if (!context.mounted) return false;
+      final checkout = await Navigator.of(context).push<BenefitPayCheckoutResult>(
+        MaterialPageRoute(
+          fullscreenDialog: true,
+          builder: (_) => BenefitPayCheckoutScreen(
+            paymentUrl: paymentUrl,
+            paymentId: initiated.paymentId,
+            referenceNumber: gatewayRef,
+            amountLabel: initiated.amountLabel,
+            title: 'Card',
+          ),
+        ),
+      );
+      if (!context.mounted) return false;
+      if (checkout?.outcome != BenefitPayCheckoutOutcome.success) {
+        snack(checkout?.message ?? 'Card payment cancelled');
+        return false;
+      }
+      final ok = await confirmAuthorized(
+        orderId: orderId,
+        paymentMethod: 'CARD',
+        gatewayRef: gatewayRef,
+      );
+      if (!ok && !await isOrderSettled(orderId)) return false;
+      snack('Payment successful');
     }
     return true;
   }
@@ -669,6 +714,9 @@ class PayNowHelper {
     }
     if (isBenefitHosted(methodApi)) {
       return payWithBenefitHosted(orderIds: unpaid);
+    }
+    if (methodApi.toUpperCase() == 'CARD') {
+      return payWithCard(orderIds: unpaid);
     }
     if (isBenefitPayNative(methodApi)) {
       return payWithBenefitPayNative(orderIds: unpaid);

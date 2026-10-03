@@ -7,6 +7,9 @@ import 'package:yjeek_app/features/cart/model/pending_add_to_cart.dart';
 
 enum RetailStoreVertical { electronics, vape, services }
 
+/// Store page header chrome (Food menu vs Fashion/retail strip).
+enum RetailStoreHeaderStyle { fashion, foodMenu }
+
 class RetailCatalog {
   const RetailCatalog({
     required this.store,
@@ -126,6 +129,7 @@ class RetailStoreConfig {
     this.emptyMessage = 'No items available right now',
     this.emptySearchMessage = 'No items found',
     this.errorMessage = 'Could not load store',
+    this.headerStyle = RetailStoreHeaderStyle.fashion,
   });
 
   final RetailStoreVertical vertical;
@@ -146,4 +150,5 @@ class RetailStoreConfig {
   final String emptyMessage;
   final String emptySearchMessage;
   final String errorMessage;
+  final RetailStoreHeaderStyle headerStyle;
 }

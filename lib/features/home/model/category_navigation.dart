@@ -17,7 +17,12 @@ void openHomeCategory(BuildContext context, CategoryItem category) {
   }
 
   if (key.contains('food') && !key.contains('baby')) {
-    context.push(BrowseRoutes.foodBrowse());
+    final storeSlug = slug.isNotEmpty ? slug : key;
+    context.push(
+      BrowseRoutes.foodBrowse(
+        category: storeSlug == 'food' ? null : storeSlug,
+      ),
+    );
     return;
   }
   if (key.contains('dine')) {
@@ -25,7 +30,11 @@ void openHomeCategory(BuildContext context, CategoryItem category) {
     return;
   }
   if (key.contains('service')) {
-    context.push(BrowseRoutes.servicesBrowse());
+    context.push(
+      BrowseRoutes.servicesBrowse(
+        slug: slug.isNotEmpty ? slug : null,
+      ),
+    );
     return;
   }
   if (key.contains('electronic')) {

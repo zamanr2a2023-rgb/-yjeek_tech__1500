@@ -41,11 +41,12 @@ class _ScheduledCheckoutScreenState
   int _tipIndex = -1;
   double _customTipAmount = 0;
   final _customTipController = TextEditingController();
-  String _paymentId = 'cod';
+  String _paymentId = 'benefitpay';
   CartSnapshot? _cart;
   DeliveryAddressSnapshot? _address;
-  CheckoutPaymentMethods _payments =
-      CheckoutPaymentMethods.fallback(defaultId: 'cod');
+  CheckoutPaymentMethods _payments = CheckoutPaymentMethods.fallback(
+    includeCod: false,
+  );
   List<ScheduledDeliveryMethod> _deliveryMethods = const [];
   List<Map<String, dynamic>> _deliveryOptions = const [];
   bool _loading = true;
@@ -168,7 +169,8 @@ class _ScheduledCheckoutScreenState
       final payments = await ref
           .read(paymentMethodsRepositoryProvider)
           .fetchCheckoutMethods(
-            preferredDefaultId: 'cod',
+            includeCod: false,
+            preferredDefaultId: 'benefitpay',
           );
       if (!mounted) return;
       var deliveryId = _deliveryId;

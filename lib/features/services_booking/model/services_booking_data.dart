@@ -57,6 +57,8 @@ abstract final class ServicesBookingStrings {
   static String get specialist => L10n.tr('Specialist');
   static String get people => L10n.tr('People');
   static String get tipSpecialist => L10n.tr('Tip the specialist (optional)');
+  static String get tipSpecialistSubtitle =>
+      L10n.tr('100% goes straight to your specialist');
   static String get paymentMethod => L10n.tr('Payment method');
   static String get placeBooking => L10n.tr('Place booking');
   static String get sendingBooking => L10n.tr('Sending your booking to Glow Beauty Lounge');

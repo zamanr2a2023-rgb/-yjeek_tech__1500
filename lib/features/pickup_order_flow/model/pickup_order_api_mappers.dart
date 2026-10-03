@@ -2,6 +2,33 @@ import 'package:yjeek_app/features/navigation/model/navigation_data.dart';
 import 'package:yjeek_app/features/order_flow/model/order_api_mappers.dart';
 import 'package:yjeek_app/features/pickup_order_flow/model/pickup_order_flow_data.dart';
 
+/// Longest preparation time among the order's items.
+int? maxOrderItemPrepMin(Map<String, dynamic> order) {
+  final items = order['items'];
+  if (items is! List) return null;
+  var max = 0;
+  for (final raw in items) {
+    if (raw is! Map) continue;
+    final direct = raw['prepTimeMin'];
+    final product = raw['product'];
+    final nested = product is Map ? product['prepTimeMin'] : null;
+    final prep = direct is num
+        ? direct
+        : nested is num
+            ? nested
+            : null;
+    if (prep != null && prep > max) max = prep.toInt();
+  }
+  return max > 0 ? max : null;
+}
+
+/// Pickup ready copy from item prep times. Example: 10 and 20 minutes → ready in ~20 min.
+String? pickupReadyEtaLabel(Map<String, dynamic> order) {
+  final minutes = maxOrderItemPrepMin(order);
+  if (minutes == null) return null;
+  return 'ready in ~$minutes min';
+}
+
 /// Figma pickup status: placed → accepted → preparing → ready → collected.
 List<PickupOrderTimelineStep> pickupTimelineFromTrack({
   required List<dynamic>? timeline,

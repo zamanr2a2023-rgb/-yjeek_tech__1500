@@ -214,8 +214,7 @@ class _ServicesCheckoutScreenState
                       : '${cart!.partySize} people',
                 ),
                 SizedBox(height: 14.h),
-                CartSectionTitle(ServicesBookingStrings.tipSpecialist),
-                ServicesTipSelector(
+                CartTipSelector(
                   options: ServicesBookingData.tipOptions,
                   selectedIndex: _tipIndex,
                   customController: _customTipController,
@@ -225,6 +224,9 @@ class _ServicesCheckoutScreenState
                       _customTipAmount = parseTipInput(raw) ?? 0;
                     });
                   },
+                  showHeader: true,
+                  headerTitle: ServicesBookingStrings.tipSpecialist,
+                  headerSubtitle: ServicesBookingStrings.tipSpecialistSubtitle,
                 ),
                 SizedBox(height: 14.h),
                 CartSectionTitle(ServicesBookingStrings.paymentMethod),

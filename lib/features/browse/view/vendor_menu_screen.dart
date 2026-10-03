@@ -23,6 +23,7 @@ import 'package:yjeek_app/features/cart/model/delivery_range.dart';
 import 'package:yjeek_app/features/cart/model/pending_add_to_cart.dart';
 import 'package:yjeek_app/features/cart/view/widgets/cart_flow_widgets.dart';
 import 'package:yjeek_app/features/geofence/model/active_geofence_order_context.dart';
+import 'package:yjeek_app/features/home/view/widgets/home_widgets.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/navigation_widgets.dart';
 import 'package:yjeek_app/l10n/locale_controller.dart';
 import 'package:yjeek_app/routes/app_router.dart';
@@ -209,6 +210,45 @@ class _VendorMenuScreenState extends ConsumerState<VendorMenuScreen> {
         searchVisible: _searchVisible,
       );
 
+  Widget _menuBottomNav() {
+    return HomeBottomNavBar(
+      currentIndex: widget.bottomNavIndex,
+      onTap: (index) {
+        if (index == 2) {
+          _openMatchingCart();
+          return;
+        }
+        if (index == 0) {
+          context.goHome(tab: 0);
+          return;
+        }
+        if (index == widget.bottomNavIndex && context.canPop()) {
+          context.pop();
+          return;
+        }
+        context.goHome(tab: index);
+      },
+    );
+  }
+
+  void _openMatchingCart() {
+    final notifier = ref.read(shellProvider.notifier);
+    switch (_orderType) {
+      case FoodOrderType.dineIn:
+        notifier.openDineInCartWithItems();
+      case FoodOrderType.pickup:
+        notifier.openPickupCartWithItems();
+      case FoodOrderType.delivery:
+        notifier.openCartWithItems();
+    }
+    context.goHome(
+      tab: 2,
+      cartHasItems: _orderType == FoodOrderType.delivery,
+      dineInCart: _orderType == FoodOrderType.dineIn,
+      pickupCart: _orderType == FoodOrderType.pickup,
+    );
+  }
+
   void _handleBack() {
     if (context.canPop()) {
       context.pop();
@@ -341,10 +381,20 @@ class _VendorMenuScreenState extends ConsumerState<VendorMenuScreen> {
 
     try {
       final repo = ref.read(foodVendorsRepositoryProvider);
+      var delivery = ref.read(deliveryLocationProvider).valueOrNull;
+      if (delivery == null || !delivery.hasCoordinates) {
+        await ref.read(deliveryLocationProvider.notifier).refresh();
+        delivery = ref.read(deliveryLocationProvider).valueOrNull;
+      }
+      if (!mounted || gen != _loadGen) return;
+      final lat = delivery?.latitude;
+      final lng = delivery?.longitude;
       var menu = await repo.fetchVendorMenu(
         widget.vendorId,
         query: q,
         orderType: requestedOrderType,
+        latitude: lat,
+        longitude: lng,
       );
       if (!mounted || gen != _loadGen) return;
 
@@ -369,6 +419,8 @@ class _VendorMenuScreenState extends ConsumerState<VendorMenuScreen> {
           widget.vendorId,
           query: q,
           orderType: effectiveOrderParam,
+          latitude: lat,
+          longitude: lng,
         );
         if (!mounted || gen != _loadGen) return;
         restaurant = menu.restaurant;
@@ -865,13 +917,11 @@ class _VendorMenuScreenState extends ConsumerState<VendorMenuScreen> {
             BrowseCartBar(
               itemCount: _cart.itemCount,
               totalLabel: _cart.totalLabel,
-              onTap: () => context.goHome(tab: 2, cartHasItems: true),
+              onTap: _openMatchingCart,
             ),
           ],
         ),
-        bottomNavigationBar: ShellBottomNavBar(
-          currentIndex: widget.bottomNavIndex,
-        ),
+        bottomNavigationBar: _menuBottomNav(),
       ),
     );
   }

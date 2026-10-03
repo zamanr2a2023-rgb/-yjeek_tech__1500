@@ -9,7 +9,6 @@ import 'package:yjeek_app/features/cart/model/cart_flow_data.dart';
 import 'package:yjeek_app/features/cart/model/cart_repository.dart';
 import 'package:yjeek_app/features/cart/model/voucher_evaluate_key.dart';
 import 'package:yjeek_app/features/cart/model/checkout_helpers.dart';
-import 'package:yjeek_app/features/cart/model/delivery_quote.dart';
 import 'package:yjeek_app/features/cart/model/delivery_range.dart';
 import 'package:yjeek_app/features/location/provider/delivery_location_provider.dart';
 import 'package:yjeek_app/features/location/utils/checkout_delivery_address.dart';
@@ -47,6 +46,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   String? _selectedVoucherId;
   bool _useWalletBalance = false;
   bool _applyReferralCredit = false;
+  DeliveryRangeCheck? _liveRange;
 
   double get _tipAmount => tipAmountFrom(
         CartFlowData.tipOptions,
@@ -83,19 +83,35 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       final deliveryLoc = ref.read(deliveryLocationProvider).valueOrNull;
       final address = checkoutAddressDisplay(deliveryLoc) ??
           await ref.read(addressesRepositoryProvider).defaultAddress();
+      final allowCod = allowsCashOnDelivery(cart);
       final payments = await ref
           .read(paymentMethodsRepositoryProvider)
-          .fetchCheckoutMethods(preferredDefaultId: 'benefitpay');
+          .fetchCheckoutMethods(
+            includeCod: allowCod,
+            preferredDefaultId: 'benefitpay',
+          );
       final UserMe? me = await ref.read(userRepositoryProvider).fetchMe();
       if (!mounted) return;
       if (!cart.hasItems) {
         leaveCheckoutIfCartEmpty(context, cart: cart);
         return;
       }
+      DeliveryRangeCheck? liveRange;
+      final vendorId = cart.vendorId;
+      if (vendorId != null && vendorId.isNotEmpty) {
+        liveRange = await checkDeliveryRange(
+          addresses: ref.read(addressesRepositoryProvider),
+          vendorId: vendorId,
+          addressId: address?.id,
+          failClosed: false,
+        );
+      }
+      if (!mounted) return;
       final previousPaymentId = _paymentId;
       setState(() {
         _cart = cart;
         _address = address;
+        _liveRange = liveRange;
         _payments = payments;
         _paymentId = payments.options.any((o) => o.id == previousPaymentId)
             ? previousPaymentId
@@ -143,14 +159,6 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     final cart = _cart;
     if (cart == null || !cart.hasItems) {
       showEmptyCartSnackBar(context);
-      return;
-    }
-    if (cart.delivery?.outOfRange == true) {
-      await pushOutOfDelivery(
-        context,
-        address: _address,
-        message: kOutOfDeliveryRangeMessage,
-      );
       return;
     }
     if (cart.delivery?.blocksCheckout == true) return;
@@ -365,14 +373,20 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                       cart?.cashbackLabel,
                   cashbackMessage: cart?.cashbackPreview?.message,
                 ),
-                deliveryQuoteNotices(cart?.delivery),
+                deliveryQuoteNotices(
+                  cart?.delivery,
+                  liveRange: _liveRange,
+                ),
               ],
             ),
       bottom: CartStickyFooter(
         total: total,
         buttonLabel: CartFlowStrings.placeOrder,
         loading: _loading || _submitting,
-        onPressed: deliveryQuoteBlocksPlaceOrder(cart?.delivery)
+        onPressed: checkoutPlaceOrderBlocked(
+              cart?.delivery,
+              liveRange: _liveRange,
+            )
             ? null
             : _goToReview,
       ),

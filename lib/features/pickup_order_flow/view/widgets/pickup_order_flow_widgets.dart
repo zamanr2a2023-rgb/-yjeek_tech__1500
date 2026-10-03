@@ -580,20 +580,23 @@ class PickupOrderDetailsCard extends StatelessWidget {
     return Padding(
       padding: EdgeInsets.only(bottom: 10.h),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          Text(
+            label,
+            style: AppTextStyles.labelSmall(
+              color: AppColors.textSecondary,
+            ).copyWith(fontSize: 13.sp),
+          ),
+          SizedBox(width: 12.w),
           Expanded(
             child: Text(
-              label,
-              style: AppTextStyles.labelSmall(
-                color: AppColors.textSecondary,
-              ).copyWith(fontSize: 13.sp),
-            ),
-          ),
-          Text(
-            value,
-            style: AppTextStyles.labelMedium().copyWith(
-              fontWeight: bold ? FontWeight.w800 : FontWeight.w600,
-              fontSize: bold ? 16.sp : 13.sp,
+              value,
+              textAlign: TextAlign.end,
+              style: AppTextStyles.labelMedium().copyWith(
+                fontWeight: bold ? FontWeight.w800 : FontWeight.w600,
+                fontSize: bold ? 16.sp : 13.sp,
+              ),
             ),
           ),
         ],
@@ -813,7 +816,7 @@ class PickupStatusSummaryCard extends StatelessWidget {
     return Padding(
       padding: EdgeInsets.only(bottom: 8.h),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             label,
@@ -821,11 +824,15 @@ class PickupStatusSummaryCard extends StatelessWidget {
               color: AppColors.textSecondary,
             ).copyWith(fontSize: 13.sp),
           ),
-          Text(
-            value,
-            style: AppTextStyles.labelMedium().copyWith(
-              fontWeight: bold ? FontWeight.w800 : FontWeight.w600,
-              fontSize: bold ? 16.sp : 13.sp,
+          SizedBox(width: 12.w),
+          Expanded(
+            child: Text(
+              value,
+              textAlign: TextAlign.end,
+              style: AppTextStyles.labelMedium().copyWith(
+                fontWeight: bold ? FontWeight.w800 : FontWeight.w600,
+                fontSize: bold ? 16.sp : 13.sp,
+              ),
             ),
           ),
         ],

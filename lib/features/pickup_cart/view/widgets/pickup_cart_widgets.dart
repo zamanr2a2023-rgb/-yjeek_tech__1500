@@ -785,17 +785,18 @@ class PickupTimeCard extends StatelessWidget {
               ],
             ),
           ),
-          GestureDetector(
-            onTap: onChange,
-            child: Text(
-              PickupCartStrings.change,
-              style: AppTextStyles.labelSmall(color: const Color(0xFF4CAF50)).copyWith(
-                fontWeight: FontWeight.w700,
-                fontSize: 13.sp,
-                height: 1.28,
+          if (onChange != null)
+            GestureDetector(
+              onTap: onChange,
+              child: Text(
+                PickupCartStrings.change,
+                style: AppTextStyles.labelSmall(color: const Color(0xFF4CAF50)).copyWith(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 13.sp,
+                  height: 1.28,
+                ),
               ),
             ),
-          ),
         ],
       ),
     );

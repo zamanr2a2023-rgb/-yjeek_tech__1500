@@ -28,6 +28,7 @@ Future<RetailCatalog> loadServicesCatalog(
         description: i.description,
         price: i.price,
         section: i.section,
+        imageUrl: i.imageUrl,
         hasModifiers: i.hasModifiers,
       ),
   ];
@@ -46,6 +47,7 @@ Future<RetailCatalog> loadServicesCatalog(
     area: provider.area ?? provider.locationLabel,
     imageUrl: provider.imageUrl,
     logoUrl: provider.imageUrl,
+    coverUrl: provider.coverUrl ?? provider.imageUrl,
     offerBadge: provider.offerBadge,
     categoryLabel: provider.category,
     minOrderAmount: null,

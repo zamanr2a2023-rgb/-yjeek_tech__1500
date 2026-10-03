@@ -15,6 +15,7 @@ import 'package:yjeek_app/features/order_flow/model/order_api_mappers.dart';
 import 'package:yjeek_app/features/order_flow/model/order_flow_data.dart';
 import 'package:yjeek_app/features/order_flow/order_flow_routes.dart';
 import 'package:yjeek_app/features/order_flow/view/widgets/order_flow_widgets.dart';
+import 'package:yjeek_app/features/payments/pay_now_helper.dart';
 import 'package:yjeek_app/features/ui_content/view/ui_banner_widgets.dart';
 
 class OrderStatusScreen extends ConsumerStatefulWidget {
@@ -43,6 +44,11 @@ class _OrderStatusScreenState extends ConsumerState<OrderStatusScreen> {
   bool _loading = true;
   bool _hasChamp = false;
   bool _canChangePayment = false;
+  bool _changingPayment = false;
+  bool _restoredUnpaidSwitch = false;
+  String _methodApi = '';
+  double _totalAmount = 0;
+  List<PayNowOption> _payOptions = const [];
   bool _navigatingToRate = false;
   double _mapLat = MapsConfig.defaultLat;
   double _mapLng = MapsConfig.defaultLng;
@@ -159,12 +165,46 @@ class _OrderStatusScreenState extends ConsumerState<OrderStatusScreen> {
           _dropoffLng = null;
         }
         final paymentRaw = data['paymentMethod']?.toString();
+        _methodApi = (paymentRaw ?? '').toUpperCase();
         _payment = paymentRaw == null || paymentRaw.isEmpty
             ? _dash
             : formatPaymentMethod(paymentRaw);
+        _totalAmount = (data['totalAmount'] as num?)?.toDouble() ?? 0;
         _canChangePayment = data['canChangePayment'] == true;
+        _payOptions = PayNowHelper.parsePayNowOptions(
+          data['availablePaymentMethods'],
+          orderPaymentMethod: _methodApi,
+        ).where((option) => !PayNowHelper.isCashMethod(option.api)).toList();
         _loading = false;
       });
+
+      final paymentStatus = (data['paymentStatus']?.toString() ?? '').toUpperCase();
+      final unpaid = paymentStatus != 'PAID' &&
+          paymentStatus != 'AUTHORIZED' &&
+          paymentStatus != 'REFUNDED';
+      final statusUpperNow = (status ?? '').toUpperCase();
+      const afterAccept = {
+        'VENDOR_ACCEPTED',
+        'CONFIRMED',
+        'PREPARING',
+        'READY',
+        'SEARCHING_DRIVER',
+        'DRIVER_ASSIGNED',
+        'PICKED_UP',
+        'IN_TRANSIT',
+        'ON_THE_WAY',
+        'ARRIVED_AT_CUSTOMER',
+      };
+      if (!_changingPayment &&
+          !_restoredUnpaidSwitch &&
+          unpaid &&
+          _canChangePayment &&
+          afterAccept.contains(statusUpperNow) &&
+          _methodApi.isNotEmpty &&
+          !PayNowHelper.isCashMethod(_methodApi)) {
+        _restoredUnpaidSwitch = true;
+        unawaited(_restoreCashBecauseUnpaid(id));
+      }
 
       if (canRate && isDelivered && !_navigatingToRate) {
         _navigatingToRate = true;
@@ -175,6 +215,12 @@ class _OrderStatusScreenState extends ConsumerState<OrderStatusScreen> {
     } catch (_) {
       if (mounted) setState(() => _loading = false);
     }
+  }
+
+  Future<void> _restoreCashBecauseUnpaid(String orderId) async {
+    await ref.read(ordersRepositoryProvider).changePaymentMethod(orderId, 'CASH');
+    if (!mounted || _changingPayment) return;
+    await _load(showSpinner: false);
   }
 
   Future<void> _onCall() async {
@@ -219,7 +265,7 @@ class _OrderStatusScreenState extends ConsumerState<OrderStatusScreen> {
 
   Future<void> _changePayment() async {
     final orderId = widget.orderId;
-    if (orderId == null || orderId.isEmpty) return;
+    if (orderId == null || orderId.isEmpty || _changingPayment) return;
     if (!_canChangePayment) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -229,50 +275,80 @@ class _OrderStatusScreenState extends ConsumerState<OrderStatusScreen> {
       );
       return;
     }
-    const options = <(String, String)>[
-      ('CASH', 'Cash on delivery'),
-      ('CARD', 'Card'),
-      ('BENEFIT_PAY', 'BenefitPay'),
-      ('YJEEK_WALLET', 'Yjeek Wallet'),
-    ];
-    final selected = await showModalBottomSheet<String>(
-      context: context,
-      builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Padding(
-              padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 4.h),
-              child: Text(
-                'Change payment method',
-                style: AppTextStyles.labelMedium(color: AppColors.textPrimary)
-                    .copyWith(fontWeight: FontWeight.w700),
-              ),
-            ),
-            for (final opt in options)
-              ListTile(
-                title: Text(opt.$2),
-                onTap: () => Navigator.pop(ctx, opt.$1),
-              ),
-          ],
-        ),
-      ),
+    final options = _payOptions.isNotEmpty
+        ? _payOptions
+        : PayNowHelper.parsePayNowOptions(const [
+            'BENEFIT_PAY',
+            'CARD',
+            'YJEEK_WALLET',
+            'BENEFIT',
+            'APPLE_PAY',
+            'GOOGLE_PAY',
+          ]).where((option) => !PayNowHelper.isCashMethod(option.api)).toList();
+    final selected = await PayNowHelper(ref, context).showMethodSheet(
+      options: options,
+      currentApi: _methodApi,
+      balanceLabel: '',
     );
     if (selected == null || !mounted) return;
-    final ok = await ref
-        .read(ordersRepositoryProvider)
-        .changePaymentMethod(orderId, selected);
+    if (PayNowHelper.methodsMatch(selected, _methodApi)) return;
+
+    final helper = PayNowHelper(ref, context);
+    if (PayNowHelper.isWallet(selected)) {
+      final balance = await helper.fetchWalletBalance();
+      if (!mounted) return;
+      if (balance < _totalAmount) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Insufficient wallet balance. Top up or switch to BenefitPay.',
+            ),
+            backgroundColor: Color(0xFFB42318),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        return;
+      }
+    }
+
+    setState(() => _changingPayment = true);
+    final orders = ref.read(ordersRepositoryProvider);
+    final ok = await orders.changePaymentMethod(orderId, selected);
     if (!mounted) return;
     if (!ok) {
+      setState(() => _changingPayment = false);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Could not change payment method')),
       );
       return;
     }
-    setState(() => _payment = formatPaymentMethod(selected));
+
+    final paid = await helper.pay(
+      orderIds: [orderId],
+      methodApi: selected,
+      totalAmount: _totalAmount,
+    );
+    if (!mounted) return;
+
+    if (!paid) {
+      await orders.changePaymentMethod(orderId, 'CASH');
+      if (!mounted) return;
+      setState(() => _changingPayment = false);
+      await _load(showSpinner: false);
+      return;
+    }
+
+    setState(() {
+      _changingPayment = false;
+      _canChangePayment = false;
+      _methodApi = selected;
+      _payment = formatPaymentMethod(selected);
+    });
+    await _load(showSpinner: false);
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Payment updated to ${formatPaymentMethod(selected)}'),
+        content: Text('Paid with ${formatPaymentMethod(selected)}'),
         behavior: SnackBarBehavior.floating,
       ),
     );
@@ -332,8 +408,10 @@ class _OrderStatusScreenState extends ConsumerState<OrderStatusScreen> {
                 ),
                 SizedBox(height: 16.h),
                 OrderPaymentRow(
-                  paymentMethod: _payment,
-                  onChange: _canChangePayment ? _changePayment : null,
+                  paymentMethod: _changingPayment ? 'Updating payment…' : _payment,
+                  onChange: _canChangePayment && !_changingPayment
+                      ? _changePayment
+                      : null,
                 ),
                 SizedBox(height: 16.h),
                 OrderContactSupportButton(

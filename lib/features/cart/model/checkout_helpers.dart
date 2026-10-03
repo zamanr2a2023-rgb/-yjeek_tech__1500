@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:yjeek_app/core/constants/navigation_strings.dart';
 import 'package:yjeek_app/features/cart/model/cart_repository.dart';
 import 'package:yjeek_app/features/cart/model/delivery_quote.dart';
+import 'package:yjeek_app/features/cart/model/delivery_range.dart';
 import 'package:yjeek_app/features/cart/model/checkout_pricing.dart';
 import 'package:yjeek_app/features/cart/model/pending_checkout.dart';
 import 'package:yjeek_app/features/geofence/model/active_geofence_order_context.dart';
@@ -13,6 +14,15 @@ import 'package:yjeek_app/routes/app_router.dart';
 import 'package:yjeek_app/features/navigation/model/navigation_data.dart';
 
 export 'package:yjeek_app/features/cart/model/checkout_pricing.dart';
+
+/// Store types that may offer cash on delivery: on-demand hot food only.
+const hotFoodOnDemandSlugs = {'food', 'cafe', 'restaurant', 'coffee'};
+
+bool allowsCashOnDelivery(CartSnapshot cart) {
+  if (cart.isVape || cart.orderType != CartOrderType.delivery) return false;
+  final slug = cart.storeTypeSlug?.trim().toLowerCase() ?? '';
+  return hotFoodOnDemandSlugs.contains(slug);
+}
 
 /// Maps UI payment option ids → backend PaymentMethod enum values.
 String paymentMethodApiValue(String paymentId) {
@@ -401,12 +411,42 @@ bool leaveCheckoutIfCartEmpty(
   return true;
 }
 
-/// Server prompt copy. Free-delivery text does not block. Min-order and
-/// out-of-range text is shown beside a disabled place-order action.
-Widget deliveryQuoteNotices(DeliveryQuote? quote) {
+/// Prefer a live `GET /addresses/check-range` result over a stale cart quote.
+bool deliveryQuoteShowsOutOfRange(
+  DeliveryQuote? quote, {
+  DeliveryRangeCheck? liveRange,
+}) {
+  if (liveRange != null) {
+    if (liveRange.allowsDelivery) return false;
+    if (liveRange.isOutOfRange) return true;
+  }
+  return quote?.outOfRange == true;
+}
+
+bool checkoutPlaceOrderBlocked(
+  DeliveryQuote? quote, {
+  DeliveryRangeCheck? liveRange,
+}) {
+  if (liveRange != null && liveRange.allowsDelivery) {
+    return quote?.blocksCheckout == true;
+  }
+  if (liveRange != null && liveRange.isOutOfRange) return true;
+  return deliveryQuoteBlocksPlaceOrder(quote);
+}
+
+/// Server prompt copy. Free-delivery text does not block. Min-order text is
+/// shown beside a disabled place-order action. Out of range opens the
+/// delivery address screen instead of a line under the bill.
+Widget deliveryQuoteNotices(
+  DeliveryQuote? quote, {
+  bool hideOutOfRange = false,
+  DeliveryRangeCheck? liveRange,
+}) {
   if (quote == null) return const SizedBox.shrink();
+  final showOutOfRange = !hideOutOfRange &&
+      deliveryQuoteShowsOutOfRange(quote, liveRange: liveRange);
   final lines = <String>[
-    if (quote.outOfRange) kOutOfDeliveryRangeMessage,
+    if (showOutOfRange) kOutOfDeliveryRangeMessage,
     if (quote.minOrderMessage != null) quote.minOrderMessage!,
     if (quote.freeDeliveryMessage != null) quote.freeDeliveryMessage!,
   ];

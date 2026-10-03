@@ -3,6 +3,7 @@ import 'package:yjeek_app/core/constants/app_assets.dart';
 import 'package:yjeek_app/core/constants/app_colors.dart';
 import 'package:yjeek_app/core/constants/app_text_styles.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
+import 'package:yjeek_app/features/cart/model/cart_repository.dart';
 import 'package:yjeek_app/features/cart/view/widgets/cart_flow_widgets.dart';
 import 'package:yjeek_app/features/dine_in_cart/model/dine_in_cart_data.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/navigation_widgets.dart';
@@ -115,6 +116,12 @@ class DineInPreferencesCard extends StatelessWidget {
     required this.onPartySizeChanged,
     required this.onSeatingChanged,
     required this.onSpecialOccasionChanged,
+    this.seatingOptions = const [],
+    this.showAny = true,
+    this.showSpecialOccasion = true,
+    this.occasionPackages = const [],
+    this.selectedPackageId,
+    this.onOccasionPackageSelected,
     this.kitchenNoteHint,
     this.onKitchenNoteTap,
   });
@@ -125,8 +132,47 @@ class DineInPreferencesCard extends StatelessWidget {
   final ValueChanged<int> onPartySizeChanged;
   final ValueChanged<DineInSeating> onSeatingChanged;
   final ValueChanged<bool> onSpecialOccasionChanged;
+  final List<DineInSeatingOption> seatingOptions;
+  final bool showAny;
+  final bool showSpecialOccasion;
+  final List<DineInOccasionPackage> occasionPackages;
+  final String? selectedPackageId;
+  final ValueChanged<String?>? onOccasionPackageSelected;
   final String? kitchenNoteHint;
   final VoidCallback? onKitchenNoteTap;
+
+  List<DineInSeatingOption> _seatingChoices() {
+    if (seatingOptions.isNotEmpty) return seatingOptions;
+    return const [
+      DineInSeatingOption(preference: 'INDOOR', available: true),
+      DineInSeatingOption(preference: 'OUTDOOR', available: true),
+    ];
+  }
+
+  bool _showAnyChip() {
+    if (seatingOptions.isEmpty) return showAny;
+    return showAny && seatingOptions.length > 1;
+  }
+
+  bool _matchesSeating(String preference) {
+    return switch (preference.toUpperCase()) {
+      'OUTDOOR' => seating == DineInSeating.outdoor,
+      'INDOOR' => seating == DineInSeating.indoor,
+      _ => false,
+    };
+  }
+
+  DineInSeating _seatingValue(String preference) {
+    return preference.toUpperCase() == 'OUTDOOR'
+        ? DineInSeating.outdoor
+        : DineInSeating.indoor;
+  }
+
+  String _seatingLabel(String preference) {
+    return preference.toUpperCase() == 'OUTDOOR'
+        ? DineInCartStrings.outdoor
+        : DineInCartStrings.indoor;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -209,64 +255,88 @@ class DineInPreferencesCard extends StatelessWidget {
           SizedBox(height: 8.h),
           Row(
             children: [
-              _SeatingChip(
-                label: DineInCartStrings.indoor,
-                selected: seating == DineInSeating.indoor,
-                onTap: () => onSeatingChanged(DineInSeating.indoor),
-              ),
-              SizedBox(width: 8.w),
-              _SeatingChip(
-                label: DineInCartStrings.outdoor,
-                selected: seating == DineInSeating.outdoor,
-                onTap: () => onSeatingChanged(DineInSeating.outdoor),
-              ),
-              SizedBox(width: 8.w),
-              _SeatingChip(
-                label: DineInCartStrings.any,
-                selected: seating == DineInSeating.any,
-                onTap: () => onSeatingChanged(DineInSeating.any),
-              ),
-            ],
-          ),
-          SizedBox(height: 14.h),
-          Row(
-            children: [
-              Icon(Icons.card_giftcard_outlined, size: 22.sp, color: const Color(0xFF0F4D27)),
-              SizedBox(width: 12.w),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      DineInCartStrings.specialOccasion,
-                      style: AppTextStyles.labelMedium(color: AppColors.textPrimary).copyWith(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 14.sp,
-                        height: 1.28,
-                      ),
-                    ),
-                    SizedBox(height: 2.h),
-                    Text(
-                      DineInCartStrings.specialOccasionHint,
-                      style: AppTextStyles.caption(color: const Color(0xFF6B7B6E)).copyWith(
-                        fontWeight: FontWeight.w500,
-                        fontSize: 12.sp,
-                        height: 1.28,
-                      ),
-                    ),
-                  ],
+              for (final choice in _seatingChoices()) ...[
+                _SeatingChip(
+                  label: _seatingLabel(choice.preference),
+                  selected: _matchesSeating(choice.preference),
+                  enabled: choice.available,
+                  onTap: choice.available
+                      ? () => onSeatingChanged(_seatingValue(choice.preference))
+                      : null,
                 ),
-              ),
-              Switch.adaptive(
-                value: specialOccasion,
-                onChanged: onSpecialOccasionChanged,
-                activeTrackColor: AppColors.cartTabActive,
-                activeThumbColor: AppColors.white,
-                inactiveTrackColor: const Color(0xFFC5CCBE),
-                inactiveThumbColor: AppColors.white,
-              ),
+                SizedBox(width: 8.w),
+              ],
+              if (_showAnyChip())
+                _SeatingChip(
+                  label: DineInCartStrings.any,
+                  selected: seating == DineInSeating.any,
+                  onTap: () => onSeatingChanged(DineInSeating.any),
+                ),
             ],
           ),
+          if (showSpecialOccasion) ...[
+            SizedBox(height: 14.h),
+            Row(
+              children: [
+                Icon(Icons.card_giftcard_outlined, size: 22.sp, color: const Color(0xFF0F4D27)),
+                SizedBox(width: 12.w),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        DineInCartStrings.specialOccasion,
+                        style: AppTextStyles.labelMedium(color: AppColors.textPrimary).copyWith(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 14.sp,
+                          height: 1.28,
+                        ),
+                      ),
+                      SizedBox(height: 2.h),
+                      Text(
+                        occasionPackages.isEmpty
+                            ? DineInCartStrings.specialOccasionHint
+                            : 'Choose a package from this restaurant.',
+                        style: AppTextStyles.caption(color: const Color(0xFF6B7B6E)).copyWith(
+                          fontWeight: FontWeight.w500,
+                          fontSize: 12.sp,
+                          height: 1.28,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Switch.adaptive(
+                  value: specialOccasion || selectedPackageId != null,
+                  onChanged: (on) {
+                    if (occasionPackages.isEmpty) {
+                      onSpecialOccasionChanged(on);
+                      return;
+                    }
+                    onOccasionPackageSelected?.call(
+                      on ? occasionPackages.first.id : null,
+                    );
+                  },
+                  activeTrackColor: AppColors.cartTabActive,
+                  activeThumbColor: AppColors.white,
+                  inactiveTrackColor: const Color(0xFFC5CCBE),
+                  inactiveThumbColor: AppColors.white,
+                ),
+              ],
+            ),
+            if ((specialOccasion || selectedPackageId != null) &&
+                occasionPackages.isNotEmpty) ...[
+              SizedBox(height: 10.h),
+              for (final pkg in occasionPackages) ...[
+                _OccasionPackageTile(
+                  package: pkg,
+                  selected: selectedPackageId == pkg.id,
+                  onTap: () => onOccasionPackageSelected?.call(pkg.id),
+                ),
+                SizedBox(height: 8.h),
+              ],
+            ],
+          ],
           Divider(height: 20.h, color: const Color(0xFFE2E8DD)),
           InkWell(
             onTap: onKitchenNoteTap,
@@ -1132,34 +1202,104 @@ class _SeatingChip extends StatelessWidget {
   const _SeatingChip({
     required this.label,
     required this.selected,
+    this.enabled = true,
     required this.onTap,
   });
 
   final String label;
   final bool selected;
-  final VoidCallback onTap;
+  final bool enabled;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
+    final color = !enabled
+        ? const Color(0xFFB0B6B0)
+        : selected
+            ? const Color(0xFF127036)
+            : AppColors.textPrimary;
     return Expanded(
       child: GestureDetector(
-        onTap: onTap,
+        onTap: enabled ? onTap : null,
         child: Container(
           padding: EdgeInsets.symmetric(vertical: 7.h, horizontal: 14.w),
           decoration: BoxDecoration(
-            color: selected ? const Color(0xFFE3F2EB) : AppColors.white,
+            color: !enabled
+                ? const Color(0xFFF3F4F2)
+                : selected
+                    ? const Color(0xFFE3F2EB)
+                    : AppColors.white,
             borderRadius: BorderRadius.circular(20.r),
             border: Border.all(
-              color: selected ? AppColors.cartTabActive : const Color(0xFFD9DED9),
+              color: !enabled
+                  ? const Color(0xFFE2E4E0)
+                  : selected
+                      ? AppColors.cartTabActive
+                      : const Color(0xFFD9DED9),
               width: 1.5,
             ),
           ),
           alignment: Alignment.center,
           child: Text(
-            label,
-            style: AppTextStyles.labelSmall(
-              color: selected ? const Color(0xFF127036) : AppColors.textPrimary,
-            ).copyWith(fontWeight: FontWeight.w600, fontSize: 13.sp),
+            enabled ? label : '$label full',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: AppTextStyles.labelSmall(color: color).copyWith(
+              fontWeight: FontWeight.w600,
+              fontSize: 13.sp,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _OccasionPackageTile extends StatelessWidget {
+  const _OccasionPackageTile({
+    required this.package,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final DineInOccasionPackage package;
+  final bool selected;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final price = package.price <= 0
+        ? 'Free'
+        : 'BHD ${package.price.toStringAsFixed(3)}';
+    return Material(
+      color: selected ? const Color(0xFFE3F2EB) : AppColors.white,
+      borderRadius: BorderRadius.circular(12.r),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12.r),
+        child: Container(
+          padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12.r),
+            border: Border.all(
+              color: selected ? AppColors.cartTabActive : const Color(0xFFD9DED9),
+            ),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  package.name,
+                  style: AppTextStyles.labelMedium(color: AppColors.textPrimary)
+                      .copyWith(fontWeight: FontWeight.w600, fontSize: 14.sp),
+                ),
+              ),
+              Text(
+                price,
+                style: AppTextStyles.labelSmall(color: const Color(0xFF127036))
+                    .copyWith(fontWeight: FontWeight.w700, fontSize: 13.sp),
+              ),
+            ],
           ),
         ),
       ),

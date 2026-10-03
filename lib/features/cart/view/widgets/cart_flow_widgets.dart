@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:yjeek_app/core/constants/app_assets.dart';
 import 'package:yjeek_app/core/constants/app_colors.dart';
 import 'package:yjeek_app/core/constants/app_text_styles.dart';
@@ -9,6 +10,7 @@ import 'package:yjeek_app/features/cart/model/cart_flow_data.dart';
 import 'package:yjeek_app/features/cart/model/checkout_helpers.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/account_widgets.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/navigation_widgets.dart';
+import 'package:yjeek_app/routes/route_names.dart';
 
 class CartFlowScaffold extends StatelessWidget {
   const CartFlowScaffold({
@@ -92,6 +94,14 @@ class CartFlowScaffold extends StatelessWidget {
   }
 }
 
+void popCartFlow(BuildContext context) {
+  if (context.canPop()) {
+    context.pop();
+    return;
+  }
+  context.go('${RouteNames.home}?tab=2');
+}
+
 class _CheckoutLightHeader extends StatelessWidget {
   const _CheckoutLightHeader({
     required this.title,
@@ -114,7 +124,7 @@ class _CheckoutLightHeader extends StatelessWidget {
         child: Row(
           children: [
             NavCircleBackButton(
-              onTap: onBack ?? () => Navigator.of(context).maybePop(),
+              onTap: onBack ?? () => popCartFlow(context),
               iconColor: AppColors.textPrimary,
             ),
             SizedBox(width: 12.w),
@@ -565,6 +575,8 @@ class CartTipSelector extends StatelessWidget {
     this.customController,
     this.onCustomChanged,
     this.showHeader = false,
+    this.headerTitle,
+    this.headerSubtitle,
   });
 
   final List<TipOption> options;
@@ -573,6 +585,8 @@ class CartTipSelector extends StatelessWidget {
   final TextEditingController? customController;
   final ValueChanged<String>? onCustomChanged;
   final bool showHeader;
+  final String? headerTitle;
+  final String? headerSubtitle;
 
   bool get _customSelected {
     if (selectedIndex < 0 || selectedIndex >= options.length) return false;
@@ -701,14 +715,14 @@ class CartTipSelector extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      CartFlowStrings.tipYourChamp,
+                      headerTitle ?? CartFlowStrings.tipYourChamp,
                       style: AppTextStyles.titleSmall().copyWith(
                         fontSize: 15.sp,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
                     Text(
-                      CartFlowStrings.tipChampSubtitle,
+                      headerSubtitle ?? CartFlowStrings.tipChampSubtitle,
                       style: AppTextStyles.labelSmall(
                         color: AppColors.textSecondary,
                       ).copyWith(

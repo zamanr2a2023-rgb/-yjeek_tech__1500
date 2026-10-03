@@ -22,7 +22,7 @@ class ServicesProviderScreen extends ConsumerWidget {
       storeId: providerId,
       bottomNavIndex: bottomNavIndex,
       config: servicesStoreConfig(
-        onOpenBooking: () => openServicesBooking(context),
+        onOpenBooking: () => openServicesCartFromStore(ref, context),
       ),
     );
   }

@@ -13,7 +13,6 @@ import 'package:yjeek_app/features/cart/model/cart_repository.dart';
 import 'package:yjeek_app/features/cart/model/delivery_range.dart';
 import 'package:yjeek_app/features/cart/model/pending_add_to_cart.dart';
 import 'package:yjeek_app/features/cart/view/widgets/cart_flow_widgets.dart';
-import 'package:yjeek_app/features/home/model/category_item.dart';
 import 'package:yjeek_app/features/home/model/category_navigation.dart';
 import 'package:yjeek_app/features/home/model/home_data.dart';
 import 'package:yjeek_app/features/home/view/widgets/home_top_picks_section.dart';
@@ -236,7 +235,7 @@ class HomeScreen extends ConsumerWidget {
                     const HomeCategoriesGridShimmer()
                   else if (feed != null && feed.categories.isNotEmpty)
                     HomeCategoriesGrid(
-                      categories: _homeCategoriesWithOffers(feed.categories),
+                      categories: feed.categories.take(8).toList(),
                       onCategoryTap: (category) =>
                           openHomeCategory(context, category),
                     ),
@@ -318,19 +317,4 @@ class HomeScreen extends ConsumerWidget {
       ),
     );
   }
-}
-
-List<CategoryItem> _homeCategoriesWithOffers(List<CategoryItem> fromFeed) {
-  const offers = CategoryItem(
-    name: 'Offers',
-    slug: 'marketing-offers',
-    icon: Icons.local_offer_outlined,
-    backgroundColor: Color(0xFFFFF2D9),
-  );
-  final already = fromFeed.any((c) {
-    final s = (c.slug ?? c.name).toLowerCase();
-    return s.contains('marketing-offers') || s == 'offers';
-  });
-  if (already) return fromFeed.take(8).toList();
-  return [offers, ...fromFeed.take(7)];
 }

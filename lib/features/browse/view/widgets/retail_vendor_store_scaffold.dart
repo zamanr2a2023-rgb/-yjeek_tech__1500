@@ -8,8 +8,10 @@ import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/features/browse/model/browse_data.dart';
 import 'package:yjeek_app/features/browse/model/electronics_data.dart';
 import 'package:yjeek_app/features/browse/model/vendor_menu_grouping.dart';
+import 'package:yjeek_app/features/browse/retail/retail_store_config.dart';
 import 'package:yjeek_app/features/browse/view/widgets/browse_widgets.dart';
 import 'package:yjeek_app/features/browse/view/widgets/fashion_vendor_store_widgets.dart';
+import 'package:yjeek_app/features/browse/view/widgets/vendor_menu_widgets.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/navigation_widgets.dart';
 
 /// Shared vendor/store page chrome (Fashion · Electronics · Flowers · Vape · Services).
@@ -44,6 +46,7 @@ class RetailVendorStoreScaffold extends StatelessWidget {
     this.emptyMessage = 'No items available right now',
     this.emptySearchMessage = 'No items found',
     this.bottomNavIndex = 0,
+    this.headerStyle = RetailStoreHeaderStyle.fashion,
   });
 
   final ElectronicsStore store;
@@ -72,6 +75,7 @@ class RetailVendorStoreScaffold extends StatelessWidget {
   final String emptyMessage;
   final String emptySearchMessage;
   final int bottomNavIndex;
+  final RetailStoreHeaderStyle headerStyle;
 
   @override
   Widget build(BuildContext context) {
@@ -101,13 +105,33 @@ class _RetailVendorStoreBody extends StatefulWidget {
 
 class _RetailVendorStoreBodyState extends State<_RetailVendorStoreBody> {
   final ScrollController _scroll = ScrollController();
+  final TextEditingController _searchController = TextEditingController();
   double? _expandedHeaderHeight;
 
   RetailVendorStoreScaffold get s => widget.scaffold;
 
+  bool get _foodMenuHeader =>
+      s.headerStyle == RetailStoreHeaderStyle.foodMenu;
+
+  @override
+  void initState() {
+    super.initState();
+    _searchController.text = s.query;
+  }
+
+  @override
+  void didUpdateWidget(covariant _RetailVendorStoreBody oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.scaffold.query != s.query &&
+        _searchController.text != s.query) {
+      _searchController.text = s.query;
+    }
+  }
+
   @override
   void dispose() {
     _scroll.dispose();
+    _searchController.dispose();
     super.dispose();
   }
 
@@ -120,6 +144,9 @@ class _RetailVendorStoreBodyState extends State<_RetailVendorStoreBody> {
 
   double _filtersHeight() {
     if (s.chipGroups.isEmpty) return 0;
+    if (_foodMenuHeader) {
+      return VendorMenuLayout.pinnedFiltersHeight(context);
+    }
     final row = math.max(36.h, 28.w + 4.w);
     return 8.h + row + 4.h;
   }
@@ -136,6 +163,35 @@ class _RetailVendorStoreBodyState extends State<_RetailVendorStoreBody> {
   }
 
   Widget _expandedHeader() {
+    if (_foodMenuHeader) {
+      final restaurant = browseRestaurantForStoreHeader(s.store);
+      return _MeasureSize(
+        onChange: _onExpandedHeaderSize,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            VendorMenuCoverHeader(
+              restaurant: restaurant,
+              onBack: s.onBack,
+              onSearchTap: s.onSearchToggle,
+              showSearchField: s.searchOpen,
+              searchController: _searchController,
+              searchHint: s.searchHint,
+              onSearchChanged: s.onQueryChanged,
+              onSearchClose: () {
+                _searchController.clear();
+                s.onCancelSearch();
+              },
+            ),
+            VendorMenuIdentityBar(restaurant: restaurant),
+            if (s.banner != null) s.banner!,
+            if (s.orderMeta != null) s.orderMeta!,
+          ],
+        ),
+      );
+    }
+
     return _MeasureSize(
       onChange: _onExpandedHeaderSize,
       child: Column(
@@ -169,6 +225,38 @@ class _RetailVendorStoreBodyState extends State<_RetailVendorStoreBody> {
 
   Widget _pinnedFilters() {
     final labels = s.chipGroups.map((g) => g.label).toList(growable: false);
+    if (_foodMenuHeader) {
+      return ColoredBox(
+        color: AppColors.white,
+        child: SizedBox(
+          height: _filtersHeight(),
+          child: ClipRect(
+            child: Align(
+              alignment: Alignment.topCenter,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Padding(
+                    padding: EdgeInsets.only(top: 4.h),
+                    child: VendorMenuCategoryChips(
+                      sections: labels,
+                      selected: s.selectedChip,
+                      onSelected: s.onChipSelected,
+                    ),
+                  ),
+                  VendorMenuViewToggleRow(
+                    isGridView: s.isGridView,
+                    onViewChanged: s.onGridChanged,
+                  ),
+                  SizedBox(height: 6.h),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
     return ColoredBox(
       color: AppColors.white,
       child: SizedBox(
@@ -199,7 +287,12 @@ class _RetailVendorStoreBodyState extends State<_RetailVendorStoreBody> {
   @override
   Widget build(BuildContext context) {
     final expanded = _expandedHeader();
-    final collapsedHeight = RetailVendorCollapsedBar.contentHeight(context);
+    final restaurant = _foodMenuHeader
+        ? browseRestaurantForStoreHeader(s.store)
+        : null;
+    final collapsedHeight = _foodMenuHeader
+        ? VendorMenuCollapsedBar.contentHeight(context)
+        : RetailVendorCollapsedBar.contentHeight(context);
     final footerHeight = _filtersHeight();
     final expandedHeight = math.max(
       _expandedHeaderHeight ?? (collapsedHeight + 120.h),
@@ -221,11 +314,17 @@ class _RetailVendorStoreBodyState extends State<_RetailVendorStoreBody> {
               pinned: true,
               delegate: _RetailCollapseDelegate(
                 expanded: expanded,
-                collapsed: RetailVendorCollapsedBar(
-                  store: s.store,
-                  onBack: s.onBack,
-                  onPinTap: _openMap,
-                ),
+                collapsed: _foodMenuHeader && restaurant != null
+                    ? VendorMenuCollapsedBar(
+                        restaurant: restaurant,
+                        onBack: s.onBack,
+                        onPinTap: _openMap,
+                      )
+                    : RetailVendorCollapsedBar(
+                        store: s.store,
+                        onBack: s.onBack,
+                        onPinTap: _openMap,
+                      ),
                 pinnedFooter:
                     showFilters ? _pinnedFilters() : const SizedBox.shrink(),
                 expandedBodyHeight: expandedHeight,
@@ -265,6 +364,7 @@ class _RetailVendorStoreBodyState extends State<_RetailVendorStoreBody> {
                   onAccordionTap: s.onAccordionTap,
                   onOpenItem: s.onOpenItem,
                   onAddItem: s.onAddItem,
+                  useFoodMenuTiles: _foodMenuHeader,
                 ),
               ),
             ),
@@ -382,6 +482,7 @@ List<Widget> buildRetailVendorAccordionChildren({
   required void Function(BrowseMenuItem item) onOpenItem,
   required void Function(BrowseMenuItem item) onAddItem,
   String? addingItemId,
+  bool useFoodMenuTiles = false,
 }) {
   final children = <Widget>[];
 
@@ -416,7 +517,11 @@ List<Widget> buildRetailVendorAccordionChildren({
     for (final group in accordion.groups) {
       final label = group.label?.trim();
       if (label != null && label.isNotEmpty) {
-        children.add(FashionVendorSubgroupLabel(label: label));
+        children.add(
+          useFoodMenuTiles
+              ? VendorMenuSubgroupLabel(label: label)
+              : FashionVendorSubgroupLabel(label: label),
+        );
       }
 
       if (isGridView) {
@@ -429,12 +534,20 @@ List<Widget> buildRetailVendorAccordionChildren({
               itemCount: group.items.length,
               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 2,
-                mainAxisSpacing: 12.h,
-                crossAxisSpacing: 12.w,
+                mainAxisSpacing: useFoodMenuTiles ? 10.h : 12.h,
+                crossAxisSpacing: useFoodMenuTiles ? 10.w : 12.w,
                 childAspectRatio: 0.72,
               ),
               itemBuilder: (context, index) {
                 final item = group.items[index];
+                if (useFoodMenuTiles) {
+                  return VendorMenuGridItem(
+                    item: item,
+                    isAdding: addingItemId == item.id,
+                    onTap: () => onOpenItem(item),
+                    onAdd: () => onAddItem(item),
+                  );
+                }
                 return FashionVendorProductGridTile(
                   item: item,
                   isAdding: addingItemId == item.id,
@@ -445,6 +558,30 @@ List<Widget> buildRetailVendorAccordionChildren({
             ),
           ),
         );
+      } else if (useFoodMenuTiles) {
+        for (var i = 0; i < group.items.length; i++) {
+          final item = group.items[i];
+          children.add(
+            VendorMenuItemRow(
+              item: item,
+              isAdding: addingItemId == item.id,
+              onTap: () => onOpenItem(item),
+              onAdd: () => onAddItem(item),
+            ),
+          );
+          if (i < group.items.length - 1) {
+            children.add(
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16.w),
+                child: const Divider(
+                  height: 1,
+                  thickness: 1,
+                  color: Color(0xFFE2E2E2),
+                ),
+              ),
+            );
+          }
+        }
       } else {
         for (final item in group.items) {
           children.add(

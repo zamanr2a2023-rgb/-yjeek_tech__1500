@@ -18,10 +18,12 @@ class ServicesCategoryScreen extends ConsumerStatefulWidget {
   const ServicesCategoryScreen({
     super.key,
     required this.categoryId,
+    this.storeSlug,
     this.bottomNavIndex = 0,
   });
 
   final String categoryId;
+  final String? storeSlug;
   final int bottomNavIndex;
 
   @override
@@ -76,8 +78,12 @@ class _ServicesCategoryScreenState
     setState(() => _loading = true);
     try {
       final repo = ref.read(servicesVendorsRepositoryProvider);
-      final category = await repo.fetchCategoryById(widget.categoryId);
+      final category = await repo.fetchCategoryById(
+        widget.categoryId,
+        storeSlug: widget.storeSlug,
+      );
       final providers = await repo.fetchProviders(
+        category: widget.storeSlug,
         subcategory: widget.categoryId,
         sort: _topRated ? 'rating' : 'popular',
         offersOnly: _offersOnly,

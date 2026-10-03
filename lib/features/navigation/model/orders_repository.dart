@@ -477,6 +477,9 @@ OrderStatus _mapStatus(String status, bool isActive) {
 }
 
 String _badgeFor(String status, String orderType, bool isActive) {
+  if (status == 'CANCELLED' || status == 'REJECTED') return 'Cancelled';
+  if (status == 'RETURNING_TO_VENDOR') return 'Returning';
+  if (status == 'RETURNED_TO_VENDOR') return 'Returned';
   if (!isActive) {
     if (status == 'COLLECTED') return 'Collected';
     if (status == 'COMPLETED') return 'Completed';

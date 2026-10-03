@@ -38,7 +38,7 @@ class _ChangeAddressScreenState extends ConsumerState<ChangeAddressScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) => _load());
   }
 
-  Future<void> _load() async {
+  Future<void> _load({bool preferDefault = false}) async {
     setState(() => _loading = true);
     final addresses =
         await ref.read(addressesRepositoryProvider).listAddresses();
@@ -54,7 +54,9 @@ class _ChangeAddressScreenState extends ConsumerState<ChangeAddressScreen> {
       }
     }
     preferred ??= addresses.isEmpty ? null : addresses.first;
-    final selectedId = _selectedId ?? preferred?.id;
+    final selectedId = preferDefault
+        ? (preferred?.id ?? _selectedId)
+        : (_selectedId ?? preferred?.id);
     final mapped = addresses
         .map((a) => a.toCartAddress(selected: a.id == selectedId))
         .toList();
@@ -183,7 +185,11 @@ class _ChangeAddressScreenState extends ConsumerState<ChangeAddressScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   GestureDetector(
-                    onTap: () => context.push(CartRoutes.setLocation),
+                    onTap: () async {
+                      await context.push(CartRoutes.setLocation);
+                      if (!mounted) return;
+                      await _load(preferDefault: true);
+                    },
                     child: Container(
                       width: double.infinity,
                       padding: EdgeInsets.symmetric(

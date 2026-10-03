@@ -20,16 +20,24 @@ class FoodSearchScreen extends ConsumerStatefulWidget {
     super.key,
     this.initialQuery = '',
     this.bottomNavIndex = 0,
+    this.categorySlug,
   });
 
   final String initialQuery;
   final int bottomNavIndex;
+  final String? categorySlug;
 
   @override
   ConsumerState<FoodSearchScreen> createState() => _FoodSearchScreenState();
 }
 
 class _FoodSearchScreenState extends ConsumerState<FoodSearchScreen> {
+  String get _storeCategory {
+    final slug = widget.categorySlug?.trim();
+    if (slug == null || slug.isEmpty) return 'food';
+    return slug;
+  }
+
   late String _query;
   List<BrowseRestaurant> _results = const [];
   List<String> _recent = const [];
@@ -81,6 +89,7 @@ class _FoodSearchScreenState extends ConsumerState<FoodSearchScreen> {
     final pos = _position;
     final repo = ref.read(foodVendorsRepositoryProvider);
     var results = await repo.fetchVendors(
+      category: _storeCategory,
       query: value,
       sort: pos != null ? 'distance' : 'rating',
       latitude: pos?.lat,
@@ -90,6 +99,7 @@ class _FoodSearchScreenState extends ConsumerState<FoodSearchScreen> {
     );
     if (pos != null && results.isEmpty) {
       results = await repo.fetchVendors(
+        category: _storeCategory,
         query: value,
         sort: 'rating',
         latitude: pos.lat,

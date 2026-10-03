@@ -36,6 +36,7 @@ class _DineInCheckoutScreenState extends ConsumerState<DineInCheckoutScreen> {
   DineInSlotsSnapshot? _slots;
   List<PaymentOption> _paymentOptions = DineInCartData.paymentOptions;
   bool _loading = true;
+  bool _changingTime = false;
 
   @override
   void initState() {
@@ -131,6 +132,7 @@ class _DineInCheckoutScreenState extends ConsumerState<DineInCheckoutScreen> {
   }
 
   Future<void> _changeDineInTime() async {
+    if (_changingTime) return;
     final slots = _slots?.slots ?? const <DineInTimeSlot>[];
     if (slots.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -163,6 +165,7 @@ class _DineInCheckoutScreenState extends ConsumerState<DineInCheckoutScreen> {
     );
     if (selected == null || !mounted) return;
 
+    setState(() => _changingTime = true);
     try {
       final cart = await ref.read(cartRepositoryProvider).updatePreferences(
             type: CartOrderType.dineIn,
@@ -182,6 +185,8 @@ class _DineInCheckoutScreenState extends ConsumerState<DineInCheckoutScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
       );
+    } finally {
+      if (mounted) setState(() => _changingTime = false);
     }
   }
 
@@ -302,16 +307,25 @@ class _DineInCheckoutScreenState extends ConsumerState<DineInCheckoutScreen> {
                           ),
                         ),
                         GestureDetector(
-                          onTap: _changeDineInTime,
-                          child: Text(
-                            'Change',
-                            style: AppTextStyles.labelSmall(
-                              color: AppColors.primary,
-                            ).copyWith(
-                              fontWeight: FontWeight.w700,
-                              fontSize: 13.sp,
-                            ),
-                          ),
+                          onTap: _changingTime ? null : _changeDineInTime,
+                          child: _changingTime
+                              ? SizedBox(
+                                  width: 18.w,
+                                  height: 18.w,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: AppColors.primary,
+                                  ),
+                                )
+                              : Text(
+                                  'Change',
+                                  style: AppTextStyles.labelSmall(
+                                    color: AppColors.primary,
+                                  ).copyWith(
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 13.sp,
+                                  ),
+                                ),
                         ),
                       ],
                     ),

@@ -8,6 +8,7 @@ import 'package:yjeek_app/core/constants/app_colors.dart';
 import 'package:yjeek_app/core/constants/app_text_styles.dart';
 import 'package:yjeek_app/core/constants/maps_config.dart';
 import 'package:yjeek_app/core/providers/app_providers.dart';
+import 'package:yjeek_app/core/services/location_service.dart';
 import 'package:yjeek_app/features/location/model/customer_delivery_location.dart';
 import 'package:yjeek_app/features/location/provider/delivery_location_provider.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
@@ -25,27 +26,127 @@ class SetLocationScreen extends ConsumerStatefulWidget {
   ConsumerState<SetLocationScreen> createState() => _SetLocationScreenState();
 }
 
-class _SetLocationScreenState extends ConsumerState<SetLocationScreen> {
+class _SetLocationScreenState extends ConsumerState<SetLocationScreen>
+    with WidgetsBindingObserver {
   final _searchController = TextEditingController();
+  final _locationService = const LocationService();
   Timer? _debounce;
   ReverseGeocodeResult? _location;
   List<LocationSuggestion> _suggestions = const [];
   bool _loading = true;
   bool _searching = false;
+  bool _saving = false;
+  bool _pinMovedByUser = false;
+  bool _hasFix = false;
+  bool _askingLocation = false;
+  LocationPermissionOutcome? _locationBlock;
   double _lat = MapsConfig.defaultLat;
   double _lng = MapsConfig.defaultLng;
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _reverse());
+    WidgetsBinding.instance.addObserver(this);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _loadCurrentLocation());
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _debounce?.cancel();
     _searchController.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.resumed) return;
+    if (_hasFix || _pinMovedByUser) return;
+    unawaited(_loadCurrentLocation(prompt: false));
+  }
+
+  Future<void> _loadCurrentLocation({bool prompt = true}) async {
+    if (_pinMovedByUser) return;
+    setState(() => _loading = true);
+    final outcome = await _locationService.requestPermission();
+    if (!mounted || _pinMovedByUser) return;
+    if (outcome != LocationPermissionOutcome.granted) {
+      setState(() {
+        _loading = false;
+        _locationBlock = outcome;
+        _location = null;
+      });
+      if (prompt) await _askToEnableLocation(outcome);
+      return;
+    }
+
+    final position = await _locationService.readCurrentFix();
+    if (!mounted || _pinMovedByUser) return;
+    if (position == null) {
+      setState(() {
+        _loading = false;
+        _locationBlock = LocationPermissionOutcome.serviceDisabled;
+        _location = null;
+      });
+      if (prompt) {
+        await _askToEnableLocation(LocationPermissionOutcome.serviceDisabled);
+      }
+      return;
+    }
+
+    setState(() {
+      _lat = position.lat;
+      _lng = position.lng;
+      _hasFix = true;
+      _locationBlock = null;
+    });
+    await _reverse();
+  }
+
+  String _locationBlockMessage(LocationPermissionOutcome outcome) {
+    return switch (outcome) {
+      LocationPermissionOutcome.serviceDisabled =>
+        'Turn on location to see your current position.',
+      LocationPermissionOutcome.deniedForever =>
+        'Location permission is blocked. Enable it in Settings.',
+      LocationPermissionOutcome.denied =>
+        'Allow location access to drop the pin on your current position.',
+      LocationPermissionOutcome.granted =>
+        'Turn on location to see your current position.',
+    };
+  }
+
+  Future<void> _askToEnableLocation(LocationPermissionOutcome outcome) async {
+    if (_askingLocation || !mounted) return;
+    _askingLocation = true;
+    final openSettings = outcome == LocationPermissionOutcome.serviceDisabled ||
+        outcome == LocationPermissionOutcome.deniedForever;
+    final enable = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Turn on location'),
+        content: Text(_locationBlockMessage(outcome)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Not now'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(openSettings ? 'Turn on' : 'Allow'),
+          ),
+        ],
+      ),
+    );
+    _askingLocation = false;
+    if (enable != true || !mounted) return;
+    if (outcome == LocationPermissionOutcome.serviceDisabled) {
+      await _locationService.openLocationSettings();
+    } else if (outcome == LocationPermissionOutcome.deniedForever) {
+      await _locationService.openAppSettings();
+    } else {
+      await _loadCurrentLocation(prompt: false);
+    }
   }
 
   Future<void> _reverse() async {
@@ -62,10 +163,13 @@ class _SetLocationScreenState extends ConsumerState<SetLocationScreen> {
   }
 
   void _onCameraIdle(LatLng target) {
+    if (!_hasFix && !_pinMovedByUser) return;
     final moved =
         (target.latitude - _lat).abs() > 0.00005 ||
         (target.longitude - _lng).abs() > 0.00005;
     if (!moved) return;
+    _pinMovedByUser = true;
+    _hasFix = true;
     _lat = target.latitude;
     _lng = target.longitude;
     _reverse();
@@ -108,6 +212,9 @@ class _SetLocationScreenState extends ConsumerState<SetLocationScreen> {
     }
     if (!mounted) return;
     setState(() {
+      _hasFix = true;
+      _pinMovedByUser = true;
+      _locationBlock = null;
       _location = details ??
           ReverseGeocodeResult(
             label: suggestion.title,
@@ -122,6 +229,10 @@ class _SetLocationScreenState extends ConsumerState<SetLocationScreen> {
   }
 
   Future<void> _confirm() async {
+    if (!_hasFix && !_pinMovedByUser) {
+      await _loadCurrentLocation();
+      return;
+    }
     final loc = _location;
     final storage = ref.read(storageServiceProvider);
     final title = loc?.label ?? CartFlowData.detectedLocation;
@@ -137,22 +248,48 @@ class _SetLocationScreenState extends ConsumerState<SetLocationScreen> {
       displayTitle: title,
       displaySubtitle: detail.isEmpty ? null : detail,
     );
-    await ref.read(deliveryLocationProvider.notifier).refresh(force: true);
 
     if (!storage.hasSession) {
+      await ref.read(deliveryLocationProvider.notifier).refresh(force: true);
       if (mounted) context.pop(true);
       return;
+    }
+
+    final area = (loc?.area != null && loc!.area!.trim().isNotEmpty)
+        ? loc.area!.trim()
+        : (loc?.label.trim().isNotEmpty == true ? loc!.label.trim() : title);
+    final road = loc?.road?.trim() ?? '';
+    final block = loc?.block?.trim() ?? '';
+    if (area.isNotEmpty && road.isNotEmpty && block.isNotEmpty) {
+      setState(() => _saving = true);
+      final response = await ref.read(addressesRepositoryProvider).createAddress({
+        'label': 'HOME',
+        'area': area,
+        'block': block,
+        'road': road,
+        'city': (loc?.city != null && loc!.city!.trim().isNotEmpty)
+            ? loc.city!.trim()
+            : 'Manama',
+        'isDefault': true,
+        'latitude': _lat,
+        'longitude': _lng,
+      });
+      if (!mounted) return;
+      setState(() => _saving = false);
+      if (response.ok) {
+        ref.invalidate(deliveryLocationProvider);
+        await ref.read(deliveryLocationProvider.notifier).refresh(force: true);
+        if (mounted) context.pop(true);
+        return;
+      }
     }
 
     final params = <String, String>{
       'lat': _lat.toStringAsFixed(6),
       'lng': _lng.toStringAsFixed(6),
-      if (loc?.area != null && loc!.area!.isNotEmpty)
-        'area': loc.area!
-      else if (loc?.label != null && loc!.label.isNotEmpty)
-        'area': loc.label,
-      if (loc?.road != null && loc!.road!.isNotEmpty) 'road': loc.road!,
-      if (loc?.block != null && loc!.block!.isNotEmpty) 'block': loc.block!,
+      if (area.isNotEmpty) 'area': area,
+      if (road.isNotEmpty) 'road': road,
+      if (block.isNotEmpty) 'block': block,
     };
     final query = params.entries
         .map(
@@ -164,10 +301,57 @@ class _SetLocationScreenState extends ConsumerState<SetLocationScreen> {
     if (mounted) context.pop(true);
   }
 
+  Widget _locationPromptPanel() {
+    final outcome = _locationBlock ?? LocationPermissionOutcome.serviceDisabled;
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 24.h),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(16.r),
+        border: Border.all(color: const Color(0xFFE0E6E0)),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.location_off,
+            color: AppColors.primary,
+            size: 36.sp,
+          ),
+          SizedBox(height: 12.h),
+          Text(
+            _locationBlockMessage(outcome),
+            textAlign: TextAlign.center,
+            style: AppTextStyles.bodySmall(color: AppColors.textPrimary)
+                .copyWith(fontSize: 14.sp),
+          ),
+          SizedBox(height: 16.h),
+          PrimaryGreenButton(
+            label: outcome == LocationPermissionOutcome.denied
+                ? 'Allow location'
+                : 'Turn on location',
+            backgroundColor: AppColors.cartTabActive,
+            height: 48,
+            onPressed: () => _askToEnableLocation(outcome),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final title = _location?.label ?? CartFlowData.detectedLocation;
-    final detail = [
+    final title = _location?.label ??
+        (_loading
+            ? 'Finding your location…'
+            : _hasFix
+                ? 'Current location'
+                : 'Turn on location');
+    final blocked = _locationBlock != null && !_hasFix && !_pinMovedByUser;
+    final detail = blocked
+        ? _locationBlockMessage(_locationBlock!)
+        : [
       if (_location?.area != null && _location!.area!.isNotEmpty)
         _location!.area,
       if (_location?.road != null && _location!.road!.isNotEmpty)
@@ -257,11 +441,15 @@ class _SetLocationScreenState extends ConsumerState<SetLocationScreen> {
             ],
             SizedBox(height: 14.h),
             Expanded(
-              child: AppMapPicker(
-                latitude: _lat,
-                longitude: _lng,
-                onCameraIdle: _onCameraIdle,
-              ),
+              child: _hasFix || _pinMovedByUser
+                  ? AppMapPicker(
+                      latitude: _lat,
+                      longitude: _lng,
+                      onCameraIdle: _onCameraIdle,
+                    )
+                  : _loading
+                      ? const Center(child: CircularProgressIndicator())
+                      : _locationPromptPanel(),
             ),
             SizedBox(height: 14.h),
             Container(
@@ -345,7 +533,9 @@ class _SetLocationScreenState extends ConsumerState<SetLocationScreen> {
                   label: CartFlowStrings.confirmLocation,
                   backgroundColor: AppColors.cartTabActive,
                   height: 54,
-                  enabled: !_loading,
+                  enabled: !_loading &&
+                      !_saving &&
+                      (_hasFix || _pinMovedByUser),
                   onPressed: _confirm,
                 ),
               ),

@@ -12,16 +12,26 @@ abstract final class BrowseRoutes {
   static const defaultVapeStoreId = 'vapeology-bahrain';
   static const defaultVapeProductId = 'mango-ice-disposable';
 
-  static String foodBrowse({int tab = 0}) {
-    if (tab == 0) return RouteNames.foodBrowse;
-    return '${RouteNames.foodBrowse}?tab=$tab';
+  static String foodBrowse({int tab = 0, String? category}) {
+    final params = <String>[];
+    if (tab != 0) params.add('tab=$tab');
+    final slug = category?.trim();
+    if (slug != null && slug.isNotEmpty && slug != 'food') {
+      params.add('category=${Uri.encodeQueryComponent(slug)}');
+    }
+    if (params.isEmpty) return RouteNames.foodBrowse;
+    return '${RouteNames.foodBrowse}?${params.join('&')}';
   }
 
-  static String foodSearch({String? query, int tab = 0}) {
+  static String foodSearch({String? query, int tab = 0, String? category}) {
     final queryBuffer = StringBuffer(RouteNames.foodSearch);
     final params = <String>[];
     if (query != null && query.isNotEmpty) params.add('q=$query');
     if (tab != 0) params.add('tab=$tab');
+    final slug = category?.trim();
+    if (slug != null && slug.isNotEmpty && slug != 'food') {
+      params.add('category=${Uri.encodeQueryComponent(slug)}');
+    }
     if (params.isNotEmpty) queryBuffer.write('?${params.join('&')}');
     return queryBuffer.toString();
   }
@@ -101,9 +111,15 @@ abstract final class BrowseRoutes {
     return buffer.toString();
   }
 
-  static String servicesBrowse({int tab = 0}) {
-    if (tab == 0) return RouteNames.servicesBrowse;
-    return '${RouteNames.servicesBrowse}?tab=$tab';
+  static String servicesBrowse({int tab = 0, String? slug}) {
+    final params = <String>[];
+    if (tab != 0) params.add('tab=$tab');
+    final storeSlug = slug?.trim() ?? '';
+    if (storeSlug.isNotEmpty) {
+      params.add('slug=${Uri.encodeQueryComponent(storeSlug)}');
+    }
+    if (params.isEmpty) return RouteNames.servicesBrowse;
+    return '${RouteNames.servicesBrowse}?${params.join('&')}';
   }
 
   static String servicesSearch({String query = '', int tab = 0}) {
@@ -118,9 +134,14 @@ abstract final class BrowseRoutes {
   static String servicesCategory({
     required String categoryId,
     int tab = 0,
+    String? storeSlug,
   }) {
     final buffer = StringBuffer('${RouteNames.servicesCategory}?id=$categoryId');
     if (tab != 0) buffer.write('&tab=$tab');
+    final slug = storeSlug?.trim() ?? '';
+    if (slug.isNotEmpty) {
+      buffer.write('&store=${Uri.encodeQueryComponent(slug)}');
+    }
     return buffer.toString();
   }
 

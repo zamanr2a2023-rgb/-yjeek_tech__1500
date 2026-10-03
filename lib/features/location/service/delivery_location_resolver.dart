@@ -68,19 +68,11 @@ class DeliveryLocationResolver {
 
     var title = _cachedTitle() ?? 'Current location';
     String? subtitle;
-    if (storage.hasSession && locations != null) {
+    if (locations != null) {
       final reverse = await locations!.reverse(lat: lat, lng: lng);
       if (reverse != null) {
         title = reverse.label;
         subtitle = _formatReverseSubtitle(reverse);
-      }
-    } else {
-      final cache = storage.loadDeliveryLocationCache();
-      if (cache != null &&
-          cache.displayTitle.isNotEmpty &&
-          cache.kind == CustomerDeliveryLocationKind.detected.name) {
-        title = cache.displayTitle;
-        subtitle = cache.displaySubtitle;
       }
     }
 

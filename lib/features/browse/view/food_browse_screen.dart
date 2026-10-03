@@ -18,24 +18,48 @@ import 'package:yjeek_app/features/navigation/view/widgets/navigation_widgets.da
 import 'package:yjeek_app/routes/app_router.dart';
 
 class FoodBrowseScreen extends ConsumerStatefulWidget {
-  const FoodBrowseScreen({super.key, this.bottomNavIndex = 0});
+  const FoodBrowseScreen({
+    super.key,
+    this.bottomNavIndex = 0,
+    this.categorySlug,
+  });
 
   final int bottomNavIndex;
+
+  /// Store type slug from the category tile. Null means the Food store type.
+  final String? categorySlug;
 
   @override
   ConsumerState<FoodBrowseScreen> createState() => _FoodBrowseScreenState();
 }
 
 class _FoodBrowseScreenState extends ConsumerState<FoodBrowseScreen> {
+  String get _storeCategory {
+    final slug = widget.categorySlug?.trim();
+    if (slug == null || slug.isEmpty) return 'food';
+    return slug;
+  }
+
   void _openVendorMenu(String vendorId, {String? cartType}) {
     context.push(
       BrowseRoutes.vendorMenu(
         vendorId: vendorId,
         tab: widget.bottomNavIndex,
-        cartType: cartType,
-        returnTo: BrowseRoutes.foodBrowse(tab: widget.bottomNavIndex),
+        cartType: cartType ?? _cartTypeFor(_orderType),
+        returnTo: BrowseRoutes.foodBrowse(
+          tab: widget.bottomNavIndex,
+          category: _storeCategory,
+        ),
       ),
     );
+  }
+
+  String? _cartTypeFor(FoodOrderType type) {
+    return switch (type) {
+      FoodOrderType.pickup => 'pickup',
+      FoodOrderType.dineIn => 'dine_in',
+      FoodOrderType.delivery => null,
+    };
   }
 
   FoodOrderType _orderType = FoodOrderType.delivery;
@@ -139,12 +163,13 @@ class _FoodBrowseScreenState extends ConsumerState<FoodBrowseScreen> {
     final hasLocation = delivery?.hasCoordinates ?? false;
     final lat = delivery?.latitude;
     final lng = delivery?.longitude;
-    final apiFilters = await repo.fetchCuisineFilters();
+    final apiFilters = await repo.fetchCuisineFilters(category: _storeCategory);
     final cuisine =
         _selectedCuisine == 'All' ? null : _selectedCuisine;
     // Same discovery scope as Pickup/Dine-in — do not hide vendors outside
     // delivery radius on the list (checkout still validates range).
     var vendors = await repo.fetchVendors(
+      category: _storeCategory,
       cuisine: cuisine,
       freeDelivery: _freeDeliveryOnly,
       openNow: _openNow,
@@ -162,6 +187,7 @@ class _FoodBrowseScreenState extends ConsumerState<FoodBrowseScreen> {
     // Cuisine tags may be unset on vendors — soft-match name when catalog filter is empty.
     if (cuisine != null && vendors.isEmpty) {
       final unfiltered = await repo.fetchVendors(
+        category: _storeCategory,
         freeDelivery: _freeDeliveryOnly,
         openNow: _openNow,
         hasOffers: _hasOffers,
@@ -234,10 +260,13 @@ class _FoodBrowseScreenState extends ConsumerState<FoodBrowseScreen> {
     final hasLocation = delivery?.hasCoordinates ?? false;
     final lat = delivery?.latitude;
     final lng = delivery?.longitude;
-    final apiFilters = await foodRepo.fetchCuisineFilters();
+    final apiFilters = await foodRepo.fetchCuisineFilters(
+      category: _storeCategory,
+    );
     final cuisine =
         _selectedCuisine == 'All' ? null : _selectedCuisine;
     var vendors = await foodRepo.fetchVendors(
+      category: _storeCategory,
       cuisine: cuisine,
       openNow: _openNow,
       sort: _sort,
@@ -249,6 +278,7 @@ class _FoodBrowseScreenState extends ConsumerState<FoodBrowseScreen> {
     vendors = vendors.where((r) => r.supportsDineIn).toList();
     if (cuisine != null && vendors.isEmpty) {
       final unfiltered = await foodRepo.fetchVendors(
+        category: _storeCategory,
         openNow: _openNow,
         sort: _sort,
         latitude: lat,
@@ -290,10 +320,11 @@ class _FoodBrowseScreenState extends ConsumerState<FoodBrowseScreen> {
     final hasLocation = delivery?.hasCoordinates ?? false;
     final lat = delivery?.latitude;
     final lng = delivery?.longitude;
-    final filters = await foodRepo.fetchCuisineFilters();
+    final filters = await foodRepo.fetchCuisineFilters(category: _storeCategory);
     final cuisine =
         _selectedCuisine == 'All' ? null : _selectedCuisine;
     var vendors = await foodRepo.fetchVendors(
+      category: _storeCategory,
       cuisine: cuisine,
       openNow: _openNow,
       sort: 'distance',
@@ -305,6 +336,7 @@ class _FoodBrowseScreenState extends ConsumerState<FoodBrowseScreen> {
     vendors = vendors.where((r) => r.supportsPickup).toList();
     if (cuisine != null && vendors.isEmpty) {
       final unfiltered = await foodRepo.fetchVendors(
+        category: _storeCategory,
         openNow: _openNow,
         sort: 'distance',
         latitude: lat,
@@ -515,7 +547,9 @@ class _FoodBrowseScreenState extends ConsumerState<FoodBrowseScreen> {
   VoidCallback get _searchTap {
     switch (_orderType) {
       case FoodOrderType.delivery:
-        return () => context.push(BrowseRoutes.foodSearch());
+        return () => context.push(
+          BrowseRoutes.foodSearch(category: _storeCategory),
+        );
       case FoodOrderType.dineIn:
         return () => context.push(BrowseRoutes.dineInSearch());
       case FoodOrderType.pickup:
@@ -725,9 +759,7 @@ class _FoodBrowseScreenState extends ConsumerState<FoodBrowseScreen> {
                     final restaurant = _filteredDineIn[index];
                     return FoodDineInGridCard(
                       restaurant: restaurant,
-                      onTap: () => context.push(
-                        BrowseRoutes.dineInMenu(restaurantId: restaurant.id),
-                      ),
+                      onTap: () => _openVendorMenu(restaurant.id),
                     );
                   },
                   childCount: _filteredDineIn.length,
@@ -746,9 +778,7 @@ class _FoodBrowseScreenState extends ConsumerState<FoodBrowseScreen> {
                 final restaurant = _filteredDineIn[index];
                 return FoodDineInListCard(
                   restaurant: restaurant,
-                  onTap: () => context.push(
-                    BrowseRoutes.dineInMenu(restaurantId: restaurant.id),
-                  ),
+                  onTap: () => _openVendorMenu(restaurant.id),
                 );
               },
             ),

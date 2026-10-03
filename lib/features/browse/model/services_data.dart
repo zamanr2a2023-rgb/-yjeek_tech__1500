@@ -39,6 +39,7 @@ class ServiceProvider {
     this.offerBadge,
     this.area,
     this.imageUrl,
+    this.coverUrl,
     this.hasRating = false,
     this.openStatus = 'UNKNOWN',
     this.fullyBooked = false,
@@ -66,6 +67,7 @@ class ServiceProvider {
   final String? offerBadge;
   final String? area;
   final String? imageUrl;
+  final String? coverUrl;
   final bool hasRating;
   /// OPEN | CLOSED | UNKNOWN — used when the API omits [nextAvailableAt].
   final String openStatus;
@@ -101,6 +103,7 @@ class ServiceMenuItem {
     required this.duration,
     this.hasModifiers = false,
     this.durationMinutes,
+    this.imageUrl,
   });
 
   final String id;
@@ -109,6 +112,7 @@ class ServiceMenuItem {
   final String price;
   final String section;
   final String duration;
+  final String? imageUrl;
 
   /// Product `prepTimeMin` in minutes. Null when the API omits it.
   final int? durationMinutes;

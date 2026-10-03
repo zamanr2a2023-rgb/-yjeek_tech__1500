@@ -29,6 +29,7 @@ class MainShell extends ConsumerStatefulWidget {
     this.scheduledHasItems = false,
     this.pickupHasItems = false,
     this.vapeHasItems = false,
+    this.servicesHasItems = false,
   });
 
   final int initialIndex;
@@ -38,6 +39,7 @@ class MainShell extends ConsumerStatefulWidget {
   final bool scheduledHasItems;
   final bool pickupHasItems;
   final bool vapeHasItems;
+  final bool servicesHasItems;
 
   @override
   ConsumerState<MainShell> createState() => _MainShellState();
@@ -138,7 +140,8 @@ class _MainShellState extends ConsumerState<MainShell>
         oldWidget.dineInHasItems != widget.dineInHasItems ||
         oldWidget.scheduledHasItems != widget.scheduledHasItems ||
         oldWidget.pickupHasItems != widget.pickupHasItems ||
-        oldWidget.vapeHasItems != widget.vapeHasItems) {
+        oldWidget.vapeHasItems != widget.vapeHasItems ||
+        oldWidget.servicesHasItems != widget.servicesHasItems) {
       Future.microtask(_applyInitialTab);
     }
   }
@@ -148,6 +151,8 @@ class _MainShellState extends ConsumerState<MainShell>
     final notifier = ref.read(shellProvider.notifier);
     if (widget.dineInHasItems) {
       notifier.openDineInCartWithItems();
+    } else if (widget.servicesHasItems) {
+      notifier.openServicesCartWithItems();
     } else if (widget.vapeHasItems) {
       notifier.openVapeCartWithItems();
     } else if (widget.pickupHasItems) {

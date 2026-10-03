@@ -32,6 +32,7 @@ class LiveCartBody extends StatefulWidget {
     this.onPartySizeChanged,
     this.onSeatingChanged,
     this.onSpecialOccasionChanged,
+    this.onOccasionPackageSelected,
     this.showCutlery = true,
     this.showDineInPreferences = false,
     this.showPickupHeader = false,
@@ -52,6 +53,7 @@ class LiveCartBody extends StatefulWidget {
   final Future<void> Function(int partySize)? onPartySizeChanged;
   final Future<void> Function(String seatingPreference)? onSeatingChanged;
   final Future<void> Function(bool enabled)? onSpecialOccasionChanged;
+  final Future<void> Function(String? packageId)? onOccasionPackageSelected;
   final VoidCallback onAddMore;
   final Future<void> Function() onCheckout;
   final bool showCutlery;
@@ -224,7 +226,14 @@ class _LiveCartBodyState extends State<LiveCartBody> {
                 DineInPreferencesCard(
                   partySize: cart.partySize ?? DineInCartData.defaultPartySize,
                   seating: _seatingFromApi(cart.seatingPreference),
-                  specialOccasion: cart.specialOccasion?.trim().isNotEmpty == true,
+                  specialOccasion:
+                      cart.dineIn?.selectedPackageId?.isNotEmpty == true ||
+                      cart.specialOccasion?.trim().isNotEmpty == true,
+                  seatingOptions: cart.dineIn?.seatingOptions ?? const [],
+                  showAny: cart.dineIn?.allowAny ?? true,
+                  showSpecialOccasion: cart.dineIn?.occasionEnabled ?? false,
+                  occasionPackages: cart.dineIn?.occasionPackages ?? const [],
+                  selectedPackageId: cart.dineIn?.selectedPackageId,
                   kitchenNoteHint: cart.kitchenNote,
                   onPartySizeChanged: (v) {
                     final cb = widget.onPartySizeChanged;
@@ -237,6 +246,10 @@ class _LiveCartBodyState extends State<LiveCartBody> {
                   onSpecialOccasionChanged: (v) {
                     final cb = widget.onSpecialOccasionChanged;
                     if (cb != null) _run(() => cb(v));
+                  },
+                  onOccasionPackageSelected: (id) {
+                    final cb = widget.onOccasionPackageSelected;
+                    if (cb != null) _run(() => cb(id));
                   },
                   onKitchenNoteTap: widget.onKitchenNote == null
                       ? null
@@ -369,15 +382,15 @@ class _LiveCartBodyState extends State<LiveCartBody> {
                     cart.cashbackLabel,
                 cashbackMessage: cart.cashbackPreview?.message,
               ),
-              deliveryQuoteNotices(cart.delivery),
+              deliveryQuoteNotices(cart.delivery, hideOutOfRange: true),
             ],
           ),
         ),
         if (isPickupFood)
           _PickupCheckoutFooter(
-            totalLabel: cart.totalLabel,
             loading: _checkoutBusy,
             enabled: !deliveryQuoteBlocksPlaceOrder(cart.delivery),
+            onAddMore: _checkoutBusy ? null : widget.onAddMore,
             onCheckout: _handleCheckout,
           )
         else
@@ -413,7 +426,7 @@ class _LiveCartBodyState extends State<LiveCartBody> {
                   Expanded(
                     child: ElevatedButton(
                       onPressed: _checkoutBusy ||
-                              deliveryQuoteBlocksPlaceOrder(cart.delivery)
+                              (cart.delivery?.blocksCheckout == true)
                           ? null
                           : _handleCheckout,
                       style: ElevatedButton.styleFrom(
@@ -515,16 +528,14 @@ class _LiveCartBodyState extends State<LiveCartBody> {
   }
 
   /// Matches dine-in design: title → subtitle → Edit, price pinned near bottom (under image).
+  /// Height follows the longer description so a long subtitle does not overflow.
   Widget _dineInMainBlock(CartLineItem item) {
-    // Right column: 82 image + 8 gap + ~31 qty pill.
-    const rightColumnHeight = 82.0 + 8.0 + 31.0;
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return IntrinsicHeight(
+      child: Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Expanded(
-          child: SizedBox(
-            height: rightColumnHeight,
-            child: Column(
+          child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
@@ -610,7 +621,6 @@ class _LiveCartBodyState extends State<LiveCartBody> {
               ],
             ),
           ),
-        ),
         const SizedBox(width: 12),
         Column(
           children: [
@@ -651,6 +661,7 @@ class _LiveCartBodyState extends State<LiveCartBody> {
           ],
         ),
       ],
+      ),
     );
   }
 
@@ -1495,78 +1506,83 @@ class _PickupCartItemRow extends StatelessWidget {
 
 class _PickupCheckoutFooter extends StatelessWidget {
   const _PickupCheckoutFooter({
-    required this.totalLabel,
     required this.onCheckout,
+    this.onAddMore,
     this.loading = false,
     this.enabled = true,
   });
 
-  final String totalLabel;
   final Future<void> Function() onCheckout;
+  final VoidCallback? onAddMore;
   final bool loading;
   final bool enabled;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
       decoration: const BoxDecoration(
         color: AppColors.white,
         border: Border(top: BorderSide(color: Color(0xFFE2E8DD))),
       ),
       child: SafeArea(
         top: false,
-        child: GestureDetector(
-          onTap: loading || !enabled ? null : () => unawaited(onCheckout()),
-          child: Opacity(
-            opacity: loading || !enabled ? 0.55 : 1,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-              decoration: BoxDecoration(
-                color: AppColors.primary,
-                borderRadius: BorderRadius.circular(28),
-              ),
-              child: Row(
-                children: [
-                  if (loading)
-                    const SizedBox(
-                      height: 20,
-                      width: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2.5,
-                        color: AppColors.white,
-                      ),
-                    )
-                  else
-                    const Icon(
-                      Icons.shopping_bag_outlined,
-                      color: AppColors.white,
-                      size: 20,
-                    ),
-                  const SizedBox(width: 8),
-                  Text(
-                    loading ? 'Loading…' : 'Go to checkout',
-                    style: AppTextStyles.labelMedium(color: AppColors.white)
-                        .copyWith(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 15,
-                    ),
+        child: Row(
+          children: [
+            Expanded(
+              child: OutlinedButton(
+                onPressed: loading ? null : onAddMore,
+                style: OutlinedButton.styleFrom(
+                  backgroundColor: AppColors.white,
+                  foregroundColor: AppColors.textPrimary,
+                  minimumSize: const Size.fromHeight(48),
+                  side: const BorderSide(color: Color(0xFFE2E8DD)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
                   ),
-                  const Spacer(),
-                  if (!loading)
-                    Text(
-                      totalLabel,
-                      style:
-                          AppTextStyles.labelMedium(color: AppColors.white)
-                              .copyWith(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 15,
-                      ),
-                    ),
-                ],
+                ),
+                child: Text(
+                  NavigationStrings.addMore,
+                  style: AppTextStyles.labelMedium(
+                    color: AppColors.textPrimary,
+                  ).copyWith(fontWeight: FontWeight.w700),
+                ),
               ),
             ),
-          ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: ElevatedButton(
+                onPressed: loading || !enabled
+                    ? null
+                    : () => unawaited(onCheckout()),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: AppColors.white,
+                  disabledBackgroundColor: AppColors.primary,
+                  disabledForegroundColor: AppColors.white,
+                  minimumSize: const Size.fromHeight(48),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+                child: loading
+                    ? const SizedBox(
+                        height: 22,
+                        width: 22,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.5,
+                          color: AppColors.white,
+                        ),
+                      )
+                    : Text(
+                        NavigationStrings.checkout,
+                        style: AppTextStyles.labelMedium(
+                          color: AppColors.white,
+                        ).copyWith(fontWeight: FontWeight.w700),
+                      ),
+              ),
+            ),
+          ],
         ),
       ),
     );

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:yjeek_app/features/browse/model/browse_data.dart';
 import 'package:yjeek_app/l10n/l10n.dart';
 
 class ElectronicsStore {
@@ -17,6 +18,7 @@ class ElectronicsStore {
     this.area,
     this.imageUrl,
     this.logoUrl,
+    this.coverUrl,
     this.offerBadge,
     this.categoryLabel,
     this.minOrderAmount,
@@ -47,6 +49,7 @@ class ElectronicsStore {
   final String? area;
   final String? imageUrl;
   final String? logoUrl;
+  final String? coverUrl;
   final String? offerBadge;
   /// Store type / category label from backend (e.g. Fashion).
   final String? categoryLabel;
@@ -384,4 +387,24 @@ abstract final class ElectronicsData {
       _ => items,
     };
   }
+}
+
+/// Food-style vendor menu header (cover + green identity band).
+BrowseRestaurant browseRestaurantForStoreHeader(ElectronicsStore store) {
+  final typeLabel = (store.categoryLabel ?? store.categories).trim();
+  return BrowseRestaurant(
+    id: store.id,
+    name: store.name,
+    cuisine: typeLabel.isNotEmpty ? typeLabel : 'Services',
+    rating: store.rating,
+    gradientStart: store.gradientStart,
+    gradientEnd: store.gradientEnd,
+    imageUrl: store.imageUrl,
+    logoUrl: store.logoUrl ?? store.imageUrl,
+    coverUrl: store.coverUrl,
+    reviewCount: store.reviewCount,
+    hasRating: store.hasRating,
+    area: store.area,
+    categoryLabel: store.categoryLabel,
+  );
 }

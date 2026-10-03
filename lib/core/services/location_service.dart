@@ -49,6 +49,11 @@ class LocationService {
   Future<({double lat, double lng})?> currentPosition() async {
     final allowed = await ensurePermission();
     if (!allowed) return null;
+    return readCurrentFix();
+  }
+
+  /// GPS fix after permission is already granted. Falls back to the last known fix.
+  Future<({double lat, double lng})?> readCurrentFix() async {
     try {
       final position = await Geolocator.getCurrentPosition(
         locationSettings: const LocationSettings(
@@ -58,7 +63,13 @@ class LocationService {
       );
       return (lat: position.latitude, lng: position.longitude);
     } catch (_) {
-      return null;
+      try {
+        final last = await Geolocator.getLastKnownPosition();
+        if (last == null) return null;
+        return (lat: last.latitude, lng: last.longitude);
+      } catch (_) {
+        return null;
+      }
     }
   }
 }

@@ -81,10 +81,10 @@ class FoodVendorsRepository {
 
   String? get _token => _storage.token;
 
-  /// GET /vendors/cuisines?category=food
-  Future<List<String>> fetchCuisineFilters() async {
+  /// GET /vendors/cuisines?category={store type slug}
+  Future<List<String>> fetchCuisineFilters({String category = 'food'}) async {
     final response = await _apiClient.getJson(
-      '/vendors/cuisines?category=food',
+      '/vendors/cuisines?category=${Uri.encodeQueryComponent(category)}',
     );
     final data = response?['data'];
     final list = data is Map<String, dynamic> ? data['cuisines'] : null;
@@ -102,8 +102,9 @@ class FoodVendorsRepository {
     return names.length > 1 ? names : const ['All'];
   }
 
-  /// GET /vendors?category=food&supportsDelivery=&sort=&cuisine=&freeDelivery=&openNow=&minRating=&maxDeliveryTime=&hasOffers=&q=&latitude=&longitude=&withinDeliveryRadius=
+  /// GET /vendors?category={store type slug}&supportsDelivery=&sort=&cuisine=&freeDelivery=&openNow=&minRating=&maxDeliveryTime=&hasOffers=&q=&latitude=&longitude=&withinDeliveryRadius=
   Future<List<BrowseRestaurant>> fetchVendors({
+    String category = 'food',
     String? cuisine,
     bool freeDelivery = false,
     bool openNow = false,
@@ -120,7 +121,7 @@ class FoodVendorsRepository {
     bool supportsPickup = false,
     bool supportsDineIn = false,
   }) async {
-    final params = <String, String>{'category': 'food', 'sort': sort};
+    final params = <String, String>{'category': category, 'sort': sort};
     if (supportsDelivery) params['supportsDelivery'] = 'true';
     if (supportsPickup) params['supportsPickup'] = 'true';
     if (supportsDineIn) params['supportsDineIn'] = 'true';
@@ -196,6 +197,8 @@ class FoodVendorsRepository {
     String vendorId, {
     String? query,
     String? orderType,
+    double? latitude,
+    double? longitude,
   }) async {
     final params = <String, String>{};
     if (query != null && query.trim().isNotEmpty) {
@@ -203,6 +206,10 @@ class FoodVendorsRepository {
     }
     if (orderType != null && orderType.trim().isNotEmpty) {
       params['orderType'] = orderType.trim().toUpperCase();
+    }
+    if (latitude != null && longitude != null) {
+      params['latitude'] = latitude.toString();
+      params['longitude'] = longitude.toString();
     }
     final qs = params.isEmpty
         ? ''

@@ -19,11 +19,9 @@ class PickupReviewScreen extends ConsumerStatefulWidget {
   const PickupReviewScreen({
     super.key,
     this.paymentId = 'benefitpay',
-    this.tipAmount = 0,
   });
 
   final String paymentId;
-  final double tipAmount;
 
   @override
   ConsumerState<PickupReviewScreen> createState() => _PickupReviewScreenState();
@@ -89,7 +87,7 @@ class _PickupReviewScreenState extends ConsumerState<PickupReviewScreen> {
       final order = await ref.read(cartRepositoryProvider).checkout(
             type: CartOrderType.pickup,
             paymentMethod: paymentMethodApiValue(widget.paymentId),
-            tipAmount: widget.tipAmount,
+            tipAmount: 0,
           );
       if (!mounted) return;
       final orderId = order?['id']?.toString();
@@ -147,7 +145,7 @@ class _PickupReviewScreenState extends ConsumerState<PickupReviewScreen> {
     final collectAt = cart.pickup?.address ??
         cart.pickup?.vendorLabel ??
         '—';
-    final total = formatCheckoutTotal(cart, widget.tipAmount);
+    final total = formatCheckoutTotal(cart, 0);
     final payment = formatPaymentMethod(
       paymentMethodApiValue(widget.paymentId),
     );

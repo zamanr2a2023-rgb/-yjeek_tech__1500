@@ -16,9 +16,14 @@ import 'package:yjeek_app/features/navigation/view/widgets/navigation_widgets.da
 /// Services landing — sub-categories only (services.md Figma).
 /// Grid / list → tap opens provider list (booking mode, no cart/delivery).
 class ServicesBrowseScreen extends ConsumerStatefulWidget {
-  const ServicesBrowseScreen({super.key, this.bottomNavIndex = 0});
+  const ServicesBrowseScreen({
+    super.key,
+    this.bottomNavIndex = 0,
+    this.storeTypeSlug,
+  });
 
   final int bottomNavIndex;
+  final String? storeTypeSlug;
 
   @override
   ConsumerState<ServicesBrowseScreen> createState() =>
@@ -29,6 +34,8 @@ class _ServicesBrowseScreenState extends ConsumerState<ServicesBrowseScreen> {
   late bool _isGridView;
   bool _loading = true;
   String _query = '';
+  String _title = '';
+  String _storeSlug = 'services';
   List<ServiceCategoryItem> _all = const [];
   List<ServiceCategoryItem> _visible = const [];
   Timer? _debounce;
@@ -56,21 +63,21 @@ class _ServicesBrowseScreenState extends ConsumerState<ServicesBrowseScreen> {
   Future<void> _load() async {
     setState(() => _loading = true);
     try {
-      var categories =
-          await ref.read(servicesVendorsRepositoryProvider).fetchServiceCategories();
-      if (categories.isEmpty) {
-        categories = ServicesData.categories;
-      }
+      final landing = await ref
+          .read(servicesVendorsRepositoryProvider)
+          .fetchServiceLanding(slug: widget.storeTypeSlug);
       if (!mounted) return;
       setState(() {
-        _all = categories;
+        _title = landing.title;
+        _storeSlug = landing.slug;
+        _all = landing.categories;
         _applyFilter();
         _loading = false;
       });
     } catch (_) {
       if (!mounted) return;
       setState(() {
-        _all = ServicesData.categories;
+        _all = const [];
         _applyFilter();
         _loading = false;
       });
@@ -97,7 +104,12 @@ class _ServicesBrowseScreenState extends ConsumerState<ServicesBrowseScreen> {
   }
 
   void _openCategory(ServiceCategoryItem category) {
-    context.push(BrowseRoutes.servicesCategory(categoryId: category.id));
+    context.push(
+      BrowseRoutes.servicesCategory(
+        categoryId: category.id,
+        storeSlug: _storeSlug,
+      ),
+    );
   }
 
   @override
@@ -110,7 +122,7 @@ class _ServicesBrowseScreenState extends ConsumerState<ServicesBrowseScreen> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           BrowseBackTitleHeader(
-            title: ServicesData.homeTitle,
+            title: _title.isEmpty ? ServicesData.homeTitle : _title,
             onBack: () {
               if (context.canPop()) {
                 context.pop();

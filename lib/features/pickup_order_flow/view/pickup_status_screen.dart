@@ -10,10 +10,10 @@ import 'package:yjeek_app/features/navigation/view/widgets/account_widgets.dart'
 import 'package:yjeek_app/features/order_flow/model/order_api_mappers.dart';
 import 'package:yjeek_app/features/order_flow/view/widgets/order_flow_widgets.dart';
 import 'package:yjeek_app/features/pickup_order_flow/model/pickup_order_api_mappers.dart';
+import 'package:yjeek_app/features/scheduled_order_flow/model/scheduled_order_api_mappers.dart';
 import 'package:yjeek_app/features/pickup_order_flow/model/pickup_order_flow_data.dart';
 import 'package:yjeek_app/features/pickup_order_flow/pickup_order_flow_routes.dart';
 import 'package:yjeek_app/features/pickup_order_flow/view/widgets/pickup_order_flow_widgets.dart';
-import 'package:yjeek_app/features/scheduled_order_flow/model/scheduled_order_api_mappers.dart';
 
 class PickupStatusScreen extends ConsumerStatefulWidget {
   const PickupStatusScreen({super.key, this.orderId});
@@ -83,7 +83,7 @@ class _PickupStatusScreenState extends ConsumerState<PickupStatusScreen> {
     final orderNumber = data['orderNumber']?.toString();
     final status = data['status']?.toString();
     final statusUpper = (status ?? '').toUpperCase();
-    final eta = data['etaLabel']?.toString();
+    final eta = pickupReadyEtaLabel(data) ?? data['etaLabel']?.toString();
     final statusLabel = formatStatusLabel(status);
 
     final trackSteps = pickupTimelineFromTrack(
@@ -186,8 +186,6 @@ class _PickupStatusScreenState extends ConsumerState<PickupStatusScreen> {
               : ListView(
                   padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 16.h),
                   children: [
-                    const OrderMapPlaceholder(),
-                    SizedBox(height: 14.h),
                     const PickupNotifyBanner(),
                     SizedBox(height: 10.h),
                     PickupPreparingBanner(label: _preparing),

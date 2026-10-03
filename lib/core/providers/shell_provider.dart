@@ -227,6 +227,18 @@ class ShellNotifier extends StateNotifier<ShellState> {
     );
   }
 
+  void openServicesCartWithItems() {
+    state = state.copyWith(
+      previousIndex: state.currentIndex == 2
+          ? state.previousIndex
+          : state.currentIndex,
+      focusScheduledCart: false,
+      currentIndex: 2,
+      cartTab: CartTab.services,
+      cartRevision: _nextRevision,
+    );
+  }
+
   void openVapeCartWithItems() {
     state = state.copyWith(
       previousIndex: state.currentIndex == 2

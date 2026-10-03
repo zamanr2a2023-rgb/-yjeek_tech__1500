@@ -385,6 +385,9 @@ class _RetailStoreScreenState extends ConsumerState<RetailStoreScreen> {
 
     if (result.ok) {
       clearPendingAddToCart(ref);
+      if (config.vertical == RetailStoreVertical.services) {
+        ref.read(shellProvider.notifier).markCartDirty();
+      }
       final notice = result.message;
       if (notice != null && notice.isNotEmpty && mounted) {
         await acknowledgeExtraDeliveryCharge(context, notice);
@@ -489,6 +492,7 @@ class _RetailStoreScreenState extends ConsumerState<RetailStoreScreen> {
       searchHint: config.searchHint,
       emptyMessage: config.emptyMessage,
       emptySearchMessage: config.emptySearchMessage,
+      headerStyle: config.headerStyle,
       orderMeta: config.orderMetaBuilder?.call(
         store: store,
         pharmacyMode: _pharmacyMode,
