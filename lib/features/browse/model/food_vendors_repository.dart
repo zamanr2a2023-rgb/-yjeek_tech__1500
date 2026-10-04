@@ -105,7 +105,7 @@ class FoodVendorsRepository {
   /// GET /vendors?category={store type slug}&supportsDelivery=&sort=&cuisine=&freeDelivery=&openNow=&minRating=&maxDeliveryTime=&hasOffers=&q=&latitude=&longitude=&withinDeliveryRadius=
   Future<List<BrowseRestaurant>> fetchVendors({
     String category = 'food',
-    String? cuisine,
+    List<String> cuisines = const [],
     bool freeDelivery = false,
     bool openNow = false,
     bool hasOffers = false,
@@ -125,11 +125,10 @@ class FoodVendorsRepository {
     if (supportsDelivery) params['supportsDelivery'] = 'true';
     if (supportsPickup) params['supportsPickup'] = 'true';
     if (supportsDineIn) params['supportsDineIn'] = 'true';
-    if (cuisine != null &&
-        cuisine.isNotEmpty &&
-        cuisine.toLowerCase() != 'all') {
-      params['cuisine'] = cuisine;
-    }
+    buildVendorListQueryParams(
+      params,
+      cuisines: cuisines,
+    );
     if (freeDelivery) params['freeDelivery'] = 'true';
     if (openNow) params['openNow'] = 'true';
     if (hasOffers) params['hasOffers'] = 'true';
@@ -507,20 +506,59 @@ class FoodVendorsRepository {
   }
 }
 
+/// Normalized cuisine tag list from vendor JSON (`cuisineTags`).
+List<String> parseCuisineTagsFromJson(dynamic raw) {
+  if (raw is! List) return const [];
+  final seen = <String>{};
+  final out = <String>[];
+  for (final item in raw) {
+    final trimmed = item.toString().trim();
+    if (trimmed.isEmpty) continue;
+    final key = trimmed.toLowerCase();
+    if (seen.contains(key)) continue;
+    seen.add(key);
+    out.add(trimmed);
+  }
+  return out;
+}
+
+/// Adds OR `cuisine` filter (`name1,name2`) when [cuisines] is non-empty.
+void buildVendorListQueryParams(
+  Map<String, String> params, {
+  List<String> cuisines = const [],
+}) {
+  final names = <String>[];
+  final seen = <String>{};
+  for (final raw in cuisines) {
+    final trimmed = raw.trim();
+    if (trimmed.isEmpty || trimmed.toLowerCase() == 'all') continue;
+    final key = trimmed.toLowerCase();
+    if (seen.contains(key)) continue;
+    seen.add(key);
+    names.add(trimmed);
+  }
+  if (names.isNotEmpty) {
+    params['cuisine'] = names.join(',');
+  }
+}
+
 BrowseRestaurant? browseRestaurantFromVendorJson(Map<String, dynamic> json) {
   final id = (json['id'] ?? json['slug'])?.toString();
   final name = json['name'] as String?;
   if (id == null || id.isEmpty || name == null || name.isEmpty) return null;
 
-  final tags = json['cuisineTags'];
+  final cuisineTags = parseCuisineTagsFromJson(json['cuisineTags']);
   final categoryLabel =
       (json['categoryLabel'] as String?)?.trim() ??
       (json['serviceCategory'] as String?)?.trim();
-  final cuisine = tags is List && tags.isNotEmpty
-      ? tags.map((e) => e.toString()).where((e) => e.isNotEmpty).join(' · ')
-      : (categoryLabel != null && categoryLabel.isNotEmpty
-            ? categoryLabel
-            : 'Food');
+  final apiCuisine = (json['cuisine'] as String?)?.trim();
+  final cuisine = apiCuisine != null && apiCuisine.isNotEmpty
+      ? apiCuisine
+      : (cuisineTags.isNotEmpty
+            ? cuisineTags.first
+            : (categoryLabel != null && categoryLabel.isNotEmpty
+                  ? categoryLabel
+                  : 'Food'));
 
   final reviewCountRaw = json['reviewCount'];
   final reviewCountValue = reviewCountRaw is num ? reviewCountRaw.toInt() : 0;
@@ -591,6 +629,7 @@ BrowseRestaurant? browseRestaurantFromVendorJson(Map<String, dynamic> json) {
     id: id,
     name: name,
     cuisine: cuisine,
+    cuisineTags: cuisineTags,
     rating: double.parse(rating.toStringAsFixed(1)),
     gradientStart: colors.$1,
     gradientEnd: colors.$2,

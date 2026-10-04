@@ -316,10 +316,9 @@ ElectronicsStore? electronicsStoreFromVendorJson(
   final offer = json['offerBadge'] ?? json['badgeLabel'] ?? json['promoBadge'];
   final offerBadge = offer?.toString().trim();
   final logoUrl = resolveApiMediaUrl(json['logoUrl'] as String?);
+  final coverUrl = resolveApiMediaUrl(json['coverUrl'] as String?);
   final imageUrl =
-      resolveApiMediaUrl(json['coverUrl'] as String?) ??
-      logoUrl ??
-      resolveApiMediaUrlFromList(json['imageUrls']);
+      logoUrl ?? coverUrl ?? resolveApiMediaUrlFromList(json['imageUrls']);
   final categoryLabelRaw = (json['categoryLabel'] as String?)?.trim();
   final minOrderRaw = json['minOrderAmount'];
   final minOrderAmount = minOrderRaw is num
@@ -361,6 +360,7 @@ ElectronicsStore? electronicsStoreFromVendorJson(
     area: (area != null && area.isNotEmpty) ? area : null,
     imageUrl: imageUrl,
     logoUrl: logoUrl,
+    coverUrl: coverUrl,
     offerBadge: (offerBadge != null && offerBadge.isNotEmpty)
         ? offerBadge
         : null,

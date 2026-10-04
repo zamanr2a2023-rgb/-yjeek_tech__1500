@@ -30,6 +30,39 @@ class CheckoutVoucherException implements Exception {
   String toString() => message;
 }
 
+/// Thrown when checkout rejects CASH / cash on delivery.
+class CheckoutCashUnavailableException implements Exception {
+  CheckoutCashUnavailableException(this.message);
+
+  final String message;
+
+  @override
+  String toString() => message;
+}
+
+/// COD eligibility from GET /cart → `payment` (vendor cash + order shape).
+class CartPaymentEligibility {
+  const CartPaymentEligibility({
+    required this.acceptsCashOrders,
+    required this.cashOnDeliveryAvailable,
+    this.cashOnDeliveryUnavailableReason,
+  });
+
+  final bool acceptsCashOrders;
+  final bool cashOnDeliveryAvailable;
+  final String? cashOnDeliveryUnavailableReason;
+
+  static CartPaymentEligibility? tryParse(dynamic raw) {
+    if (raw is! Map<String, dynamic>) return null;
+    return CartPaymentEligibility(
+      acceptsCashOrders: raw['acceptsCashOrders'] != false,
+      cashOnDeliveryAvailable: raw['cashOnDeliveryAvailable'] == true,
+      cashOnDeliveryUnavailableReason:
+          (raw['cashOnDeliveryUnavailableReason'] as String?)?.trim(),
+    );
+  }
+}
+
 /// Thrown when POST /cart/scheduled/items hits the 3-vendor cap (409).
 class ScheduledVendorLimitException implements Exception {
   ScheduledVendorLimitException(this.message);
@@ -289,6 +322,7 @@ class CartSnapshot {
     this.delivery,
     this.cartId,
     this.referralCredit,
+    this.payment,
   });
 
   final CartOrderType orderType;
@@ -350,6 +384,7 @@ class CartSnapshot {
 
   final String? cartId;
   final CartReferralCredit? referralCredit;
+  final CartPaymentEligibility? payment;
 
   /// Electronics vendor cart — no cutlery / kitchen-note preferences.
   bool get isElectronics => storeTypeSlug == 'electronics';
@@ -842,6 +877,12 @@ class CartRepository {
                   : 'Voucher expired — totals updated'),
         );
       }
+      final message = response.message ?? '';
+      if (_isCashCheckoutRejection(message, code)) {
+        throw CheckoutCashUnavailableException(
+          message.isNotEmpty ? message : 'Cash on delivery is not available',
+        );
+      }
       throw Exception(response.message ?? 'Checkout failed');
     }
     return response.data;
@@ -911,6 +952,25 @@ String? highValueCheckoutMessage(String? code) {
       code.startsWith('HIGH_VALUE_') ||
       code == 'SECURE_DELIVERY_REQUIRED') {
     return 'This high-value item couldn’t be checked out. Please try again.';
+  }
+  return null;
+}
+
+String? productImageUrlFromJson(Map<String, dynamic>? productMap) {
+  if (productMap == null) return null;
+  final direct = productMap['imageUrl'];
+  if (direct is String && direct.trim().isNotEmpty) return direct.trim();
+  final image = productMap['image'];
+  if (image is String && image.trim().isNotEmpty) return image.trim();
+  final images = productMap['images'];
+  if (images is List) {
+    for (final entry in images) {
+      if (entry is String && entry.trim().isNotEmpty) return entry.trim();
+      if (entry is Map<String, dynamic>) {
+        final url = entry['url'] ?? entry['imageUrl'];
+        if (url is String && url.trim().isNotEmpty) return url.trim();
+      }
+    }
   }
   return null;
 }
@@ -1206,7 +1266,9 @@ CartSnapshot cartSnapshotFromJson(
           quantity: qty,
           unitPriceLabel: _money(priceForLabel),
           compareAtPriceLabel: showCompare ? _money(compare) : null,
-          imageUrl: productMap?['imageUrl'] as String?,
+          imageUrl:
+              productImageUrlFromJson(productMap) ??
+              (raw['imageUrl'] as String?),
           sides: parsed.isVariant ? const [] : sides,
           durationLabel: duration.label,
           durationMinutes: duration.minutes,
@@ -1350,6 +1412,7 @@ CartSnapshot cartSnapshotFromJson(
     delivery: delivery,
     cartId: json['id']?.toString() ?? json['cartId']?.toString(),
     referralCredit: CartReferralCredit.tryParse(summaryMap),
+    payment: CartPaymentEligibility.tryParse(json['payment']),
   );
 }
 
@@ -1468,7 +1531,9 @@ CartSnapshot? scheduledCartSnapshotFromJson(Map<String, dynamic> json) {
               ? null
               : _money(productMap?['compareAtPrice']),
           imageUrl:
-              raw['imageUrl'] as String? ?? productMap?['imageUrl'] as String?,
+              (raw['imageUrl'] as String?)?.trim().isNotEmpty == true
+                  ? (raw['imageUrl'] as String).trim()
+                  : productImageUrlFromJson(productMap),
           variantId: parsed.variantId,
           variantLabel: parsed.variantLabel,
         ),
@@ -1547,7 +1612,19 @@ CartSnapshot? scheduledCartSnapshotFromJson(Map<String, dynamic> json) {
     grandTotal: grandTotal,
     cartId: json['id']?.toString() ?? json['cartId']?.toString(),
     referralCredit: CartReferralCredit.tryParse(summaryMap),
+    payment: CartPaymentEligibility.tryParse(json['payment']),
   );
+}
+
+bool _isCashCheckoutRejection(String message, String? code) {
+  final lower = message.toLowerCase();
+  if (code != null &&
+      (code == 'CASH_NOT_AVAILABLE' ||
+          code == 'CASH_ON_DELIVERY_UNAVAILABLE')) {
+    return true;
+  }
+  return lower.contains('not accepting cash') ||
+      lower.contains('cash on delivery is only available');
 }
 
 List<BillLine> _electronicsBillLines(

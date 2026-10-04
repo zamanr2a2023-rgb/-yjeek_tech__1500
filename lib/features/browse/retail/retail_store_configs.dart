@@ -62,6 +62,7 @@ RetailStoreConfig vapeStoreConfig({
   return RetailStoreConfig(
     vertical: RetailStoreVertical.vape,
     pendingVertical: vapePendingVertical,
+    headerStyle: RetailStoreHeaderStyle.foodMenu,
     loadCatalog: loadVapeCatalog,
     quickAdd: vapeQuickAdd,
     beforeAdd: vapeBeforeAdd,

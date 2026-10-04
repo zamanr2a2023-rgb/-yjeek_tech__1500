@@ -297,6 +297,13 @@ class _ReviewConfirmScreenState extends ConsumerState<ReviewConfirmScreen> {
         context.go(CartRoutes.checkout);
         return;
       }
+      if (e is CheckoutCashUnavailableException) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(localizeCodServerMessage(e.message))),
+        );
+        context.go(CartRoutes.checkout);
+        return;
+      }
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
       );

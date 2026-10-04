@@ -10,6 +10,7 @@ import 'package:yjeek_app/core/widgets/app_google_map.dart';
 import 'package:yjeek_app/core/widgets/app_network_image.dart';
 import 'package:yjeek_app/features/cart/model/cart_repository.dart';
 import 'package:yjeek_app/features/cart/model/checkout_helpers.dart';
+import 'package:yjeek_app/features/cart/view/widgets/cart_line_item_card.dart';
 import 'package:yjeek_app/features/dine_in_cart/model/dine_in_cart_data.dart';
 import 'package:yjeek_app/features/dine_in_cart/view/widgets/dine_in_cart_widgets.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/navigation_widgets.dart';
@@ -187,14 +188,10 @@ class _LiveCartBodyState extends State<LiveCartBody> {
                   ),
                 const SizedBox(height: 10),
               ],
-              if (widget.showDineInPreferences && cart.items.isNotEmpty)
-                _dineInItemsCard(cart.items)
-              else if (widget.showElectronicsCart)
+              if (widget.showElectronicsCart)
                 ...cart.items.map(_electronicsItemCard)
-              else if (isPickupFood)
-                _pickupItemsCard(cart.items)
               else
-                ...cart.items.map(_itemCard),
+                ...cart.items.map(_standardLineItemCard),
               if (cart.upsell.isNotEmpty) ...[
                 const SizedBox(height: 18),
                 if (isPickupFood)
@@ -465,273 +462,27 @@ class _LiveCartBodyState extends State<LiveCartBody> {
     );
   }
 
-  Widget _pickupItemsCard(List<CartLineItem> items) {
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFE6EBE3)),
+  Widget _standardLineItemCard(CartLineItem item) {
+    return CartLineItemCard(
+      item: item,
+      sideBusy: _busy,
+      onEdit: widget.onEditItem != null ? () => widget.onEditItem!(item) : null,
+      onMinus: () {
+        if (item.quantity <= 1) {
+          _run(() => widget.onRemoveItem(item.id));
+        } else {
+          _run(
+            () => widget.onQuantityChanged(item.id, item.quantity - 1),
+          );
+        }
+      },
+      onPlus: () => _run(
+        () => widget.onQuantityChanged(item.id, item.quantity + 1),
       ),
-      clipBehavior: Clip.antiAlias,
-      child: Column(
-        children: [
-          for (var i = 0; i < items.length; i++) ...[
-            if (i > 0)
-              const Divider(height: 1, thickness: 1, color: Color(0xFFE6EBE3)),
-            _PickupCartItemRow(item: items[i]),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _dineInItemsCard(List<CartLineItem> items) {
-    final main = items.first;
-    final extraItems = items.length > 1 ? items.sublist(1) : const <CartLineItem>[];
-    final sides = <CartSideLine>[
-      ...main.sides,
-      for (final side in extraItems)
-        CartSideLine(
-          name: side.name,
-          quantity: side.quantity,
-          priceLabel: side.unitPriceLabel,
-          cartItemId: side.id,
-        ),
-    ];
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: AppColors.white,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: const Color(0xFFE2E8DD)),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _dineInMainBlock(main),
-            if (sides.isNotEmpty) ...[
-              const SizedBox(height: 12),
-              const Divider(
-                height: 16,
-                thickness: 1,
-                color: Color(0xFFE2E8DD),
-              ),
-              for (final side in sides) _secondaryItemRow(side),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-
-  /// Matches dine-in design: title → subtitle → Edit, price pinned near bottom (under image).
-  /// Height follows the longer description so a long subtitle does not overflow.
-  Widget _dineInMainBlock(CartLineItem item) {
-    return IntrinsicHeight(
-      child: Row(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Expanded(
-          child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  item.name,
-                  style: AppTextStyles.titleSmall().copyWith(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 15,
-                    height: 1.28,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-                if (item.subtitle.isNotEmpty) ...[
-                  const SizedBox(height: 5),
-                  Text(
-                    item.subtitle,
-                    style: AppTextStyles.labelSmall(
-                      color: const Color(0xFF6B7B6E),
-                    ).copyWith(
-                      fontWeight: FontWeight.w500,
-                      fontSize: 12,
-                      height: 1.28,
-                    ),
-                  ),
-                ],
-                if (widget.onEditItem != null) ...[
-                  const SizedBox(height: 6),
-                  InkWell(
-                    onTap: () => widget.onEditItem!(item),
-                    borderRadius: BorderRadius.circular(6),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.edit_outlined,
-                          size: 14,
-                          color: AppColors.primary,
-                        ),
-                        const SizedBox(width: 5),
-                        Text(
-                          NavigationStrings.edit,
-                          style: AppTextStyles.labelSmall(
-                            color: AppColors.primary,
-                          ).copyWith(
-                            fontWeight: FontWeight.w700,
-                            fontSize: 13,
-                            height: 1.28,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-                const Spacer(),
-                Row(
-                  children: [
-                    Text(
-                      item.unitPriceLabel,
-                      style: AppTextStyles.labelMedium(
-                        color: AppColors.primary,
-                      ).copyWith(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 16,
-                        height: 1.28,
-                      ),
-                    ),
-                    if (item.compareAtPriceLabel != null) ...[
-                      const SizedBox(width: 8),
-                      Text(
-                        item.compareAtPriceLabel!,
-                        style: AppTextStyles.labelSmall(
-                          color: const Color(0xFF6B7B6E),
-                        ).copyWith(
-                          fontWeight: FontWeight.w500,
-                          fontSize: 13,
-                          height: 1.28,
-                          decoration: TextDecoration.lineThrough,
-                          decorationColor: const Color(0xFF6B7B6E),
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ],
-            ),
-          ),
-        const SizedBox(width: 12),
-        Column(
-          children: [
-            Container(
-              width: 82,
-              height: 82,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(14),
-                gradient: const LinearGradient(
-                  begin: Alignment(-0.6, -1),
-                  end: Alignment(0.6, 1),
-                  colors: [Color(0xFF6B8A3A), Color(0xFF15302B)],
-                ),
-              ),
-            ),
-            const SizedBox(height: 8),
-            _QtyControls(
-              quantity: item.quantity,
-              onMinus: () {
-                if (item.quantity <= 1) {
-                  _run(() => widget.onRemoveItem(item.id));
-                } else {
-                  _run(
-                    () => widget.onQuantityChanged(
-                      item.id,
-                      item.quantity - 1,
-                    ),
-                  );
-                }
-              },
-              onPlus: () => _run(
-                () => widget.onQuantityChanged(
-                  item.id,
-                  item.quantity + 1,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ],
-      ),
-    );
-  }
-
-  Widget _secondaryItemRow(CartSideLine item) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-            decoration: BoxDecoration(
-              color: const Color(0xFFDCE7D4),
-              borderRadius: BorderRadius.circular(6),
-            ),
-            child: Text(
-              '${item.quantity}×',
-              style: AppTextStyles.labelSmall(
-                color: AppColors.textPrimary,
-              ).copyWith(
-                fontWeight: FontWeight.w700,
-                fontSize: 11,
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              item.name,
-              style: AppTextStyles.labelSmall(
-                color: AppColors.textPrimary,
-              ).copyWith(
-                fontWeight: FontWeight.w600,
-                fontSize: 13,
-              ),
-            ),
-          ),
-          Text(
-            item.priceLabel,
-            style: AppTextStyles.labelSmall(
-              color: AppColors.textPrimary,
-            ).copyWith(
-              fontWeight: FontWeight.w600,
-              fontSize: 12,
-            ),
-          ),
-          if (item.cartItemId != null)
-            IconButton(
-              visualDensity: VisualDensity.compact,
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-              onPressed: () => _run(() => widget.onRemoveItem(item.cartItemId!)),
-              icon: const Icon(Icons.close, size: 16, color: Color(0xFF6B7B6E)),
-            ),
-        ],
-      ),
-    );
-  }
-
-  Widget _itemCard(CartLineItem item) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: AppColors.white,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: const Color(0xFFE2E8DD)),
-        ),
-        child: _itemCardContent(item, showBottomPrice: true),
-      ),
+      onRemoveSide: (side) {
+        final id = side.cartItemId;
+        if (id != null) _run(() => widget.onRemoveItem(id));
+      },
     );
   }
 
@@ -839,140 +590,6 @@ class _LiveCartBodyState extends State<LiveCartBody> {
       ),
     );
   }
-
-  Widget _itemCardContent(CartLineItem item, {required bool showBottomPrice}) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    item.name,
-                    style: AppTextStyles.titleSmall().copyWith(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 15,
-                      height: 1.28,
-                    ),
-                  ),
-                  if (item.subtitle.isNotEmpty) ...[
-                    const SizedBox(height: 5),
-                    Text(
-                      item.subtitle,
-                      style: AppTextStyles.labelSmall(
-                        color: AppColors.textSecondary,
-                      ).copyWith(
-                        fontWeight: FontWeight.w500,
-                        fontSize: 12,
-                        height: 1.28,
-                      ),
-                    ),
-                  ],
-                  if (widget.onEditItem != null) ...[
-                    const SizedBox(height: 8),
-                    InkWell(
-                      onTap: () => widget.onEditItem!(item),
-                      borderRadius: BorderRadius.circular(6),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.edit_outlined,
-                            size: 14,
-                            color: AppColors.primary,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            NavigationStrings.edit,
-                            style: AppTextStyles.labelSmall(
-                              color: AppColors.primary,
-                            ).copyWith(
-                              fontWeight: FontWeight.w700,
-                              fontSize: 13,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                  if (showBottomPrice) ...[
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Text(
-                          item.unitPriceLabel,
-                          style: AppTextStyles.labelMedium(
-                            color: AppColors.primary,
-                          ).copyWith(fontWeight: FontWeight.w700, fontSize: 16),
-                        ),
-                        if (item.compareAtPriceLabel != null) ...[
-                          const SizedBox(width: 8),
-                          Text(
-                            item.compareAtPriceLabel!,
-                            style: AppTextStyles.labelSmall(
-                              color: AppColors.textSecondary,
-                            ).copyWith(
-                              fontWeight: FontWeight.w500,
-                              fontSize: 13,
-                              decoration: TextDecoration.lineThrough,
-                              decorationColor: AppColors.textSecondary,
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ],
-                ],
-              ),
-            ),
-            const SizedBox(width: 12),
-            Column(
-              children: [
-                Container(
-                  width: 82,
-                  height: 82,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(14),
-                    gradient: const LinearGradient(
-                      begin: Alignment(-0.8, -0.6),
-                      end: Alignment(0.8, 0.8),
-                      colors: [Color(0xFF7A4A22), Color(0xFF15302B)],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                _QtyControls(
-                  quantity: item.quantity,
-                  onMinus: () {
-                    if (item.quantity <= 1) {
-                      _run(() => widget.onRemoveItem(item.id));
-                    } else {
-                      _run(
-                        () => widget.onQuantityChanged(
-                          item.id,
-                          item.quantity - 1,
-                        ),
-                      );
-                    }
-                  },
-                  onPlus: () => _run(
-                    () => widget.onQuantityChanged(
-                      item.id,
-                      item.quantity + 1,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ],
-    );
-  }
 }
 
 class _ElectronicsQtyControls extends StatelessWidget {
@@ -1058,58 +675,6 @@ class _AppliedPromoBanner extends StatelessWidget {
                 fontSize: 14,
               ),
             ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _QtyControls extends StatelessWidget {
-  const _QtyControls({
-    required this.quantity,
-    required this.onMinus,
-    required this.onPlus,
-  });
-
-  final int quantity;
-  final VoidCallback onMinus;
-  final VoidCallback onPlus;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 31,
-      padding: const EdgeInsets.symmetric(horizontal: 10),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE2E8DD)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          GestureDetector(
-            onTap: onMinus,
-            child: Icon(
-              quantity <= 1 ? Icons.delete_outline : Icons.remove,
-              size: 15,
-              color: quantity <= 1 ? const Color(0xFFC0392B) : AppColors.primary,
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 11),
-            child: Text(
-              '$quantity',
-              style: AppTextStyles.labelMedium().copyWith(
-                fontWeight: FontWeight.w700,
-                fontSize: 13,
-              ),
-            ),
-          ),
-          GestureDetector(
-            onTap: onPlus,
-            child: const Icon(Icons.add, size: 15, color: AppColors.primary),
           ),
         ],
       ),
@@ -1421,81 +986,6 @@ class _PickupHeader extends StatelessWidget {
                   ],
                 ),
               ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _PickupCartItemRow extends StatelessWidget {
-  const _PickupCartItemRow({required this.item});
-
-  final CartLineItem item;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Container(
-            width: 30,
-            height: 30,
-            decoration: BoxDecoration(
-              color: const Color(0xFFEAF3DE),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            alignment: Alignment.center,
-            child: Text(
-              '${item.quantity}×',
-              style: AppTextStyles.caption(color: const Color(0xFF2E7D32)).copyWith(
-                fontWeight: FontWeight.w700,
-                fontSize: 12,
-                height: 1.3,
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  item.name,
-                  style: AppTextStyles.labelMedium(color: const Color(0xFF1A1A1A))
-                      .copyWith(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 13,
-                    height: 1.3,
-                  ),
-                ),
-                if (item.subtitle.isNotEmpty) ...[
-                  const SizedBox(height: 1),
-                  Text(
-                    item.subtitle,
-                    style: AppTextStyles.caption(color: const Color(0xFF6B7B6E))
-                        .copyWith(
-                      fontWeight: FontWeight.w500,
-                      fontSize: 11,
-                      height: 1.3,
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ),
-          const SizedBox(width: 8),
-          Text(
-            item.unitPriceLabel,
-            textAlign: TextAlign.right,
-            style: const TextStyle(
-              color: Color(0xFF1A1A1A),
-              fontWeight: FontWeight.w700,
-              fontSize: 12.5,
-              height: 1.3,
             ),
           ),
         ],

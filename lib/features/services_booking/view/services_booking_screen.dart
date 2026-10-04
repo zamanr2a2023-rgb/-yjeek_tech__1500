@@ -7,7 +7,10 @@ import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/features/browse/model/services_vendors_repository.dart';
 import 'package:yjeek_app/features/cart/model/cart_repository.dart';
 import 'package:yjeek_app/features/cart/model/pending_checkout.dart';
+import 'package:yjeek_app/features/browse/browse_routes.dart';
 import 'package:yjeek_app/features/cart/view/widgets/cart_flow_widgets.dart';
+import 'package:yjeek_app/features/cart/view/widgets/cart_line_item_card.dart';
+import 'package:yjeek_app/core/constants/navigation_strings.dart';
 import 'package:yjeek_app/features/services_booking/model/services_booking_data.dart';
 import 'package:yjeek_app/features/services_booking/services_booking_routes.dart';
 import 'package:yjeek_app/features/services_booking/view/widgets/services_booking_widgets.dart';
@@ -33,6 +36,7 @@ class _ServicesBookingScreenState extends ConsumerState<ServicesBookingScreen> {
   int _selectedDate = 0;
   int _selectedTime = 0;
   final Set<String> _busyProducts = {};
+  bool _cartLineBusy = false;
 
   List<DateTime> _dates = List.generate(5, (i) {
     final now = DateTime.now();
@@ -257,6 +261,43 @@ class _ServicesBookingScreenState extends ConsumerState<ServicesBookingScreen> {
     } catch (_) {}
   }
 
+  Future<void> _changeLineQuantity(CartLineItem item, int nextQty) async {
+    if (_cartLineBusy) return;
+    setState(() => _cartLineBusy = true);
+    final repo = ref.read(cartRepositoryProvider);
+    try {
+      final next = nextQty < 1
+          ? await repo.removeItem(
+              type: CartOrderType.service,
+              itemId: item.id,
+            )
+          : await repo.updateItemQuantity(
+              type: CartOrderType.service,
+              itemId: item.id,
+              quantity: nextQty,
+            );
+      if (!mounted) return;
+      setState(() => _cart = next);
+      await _loadSlots();
+    } catch (_) {
+    } finally {
+      if (mounted) setState(() => _cartLineBusy = false);
+    }
+  }
+
+  void _editServiceLine(CartLineItem item) {
+    final vendorId = _cart.vendorId;
+    if (vendorId == null || vendorId.isEmpty || item.productId.isEmpty) {
+      return;
+    }
+    context.push(
+      BrowseRoutes.servicesItemDetail(
+        providerId: vendorId,
+        itemId: item.productId,
+      ),
+    );
+  }
+
   Future<void> _toggleUpsell(CartUpsellItem upsell) async {
     if (_busyProducts.contains(upsell.productId)) return;
     setState(() => _busyProducts.add(upsell.productId));
@@ -344,17 +385,21 @@ class _ServicesBookingScreenState extends ConsumerState<ServicesBookingScreen> {
               : ListView(
                   padding: EdgeInsets.fromLTRB(20.w, 8.h, 20.w, 16.h),
                   children: [
-                    CartSectionTitle(ServicesBookingStrings.yourService),
-                    for (final item in _mainServices) ...[
-                      ServicesServiceCard(
-                        name: item.name,
-                        durationLabel: item.durationLabel == null
-                            ? ''
-                            : '🕒 ${item.durationLabel}',
-                        priceLabel: item.unitPriceLabel,
+                    CartSectionTitle(NavigationStrings.yourItems),
+                    for (final item in _mainServices)
+                      CartLineItemCard(
+                        item: item,
+                        sideBusy: _cartLineBusy,
+                        onEdit: () => _editServiceLine(item),
+                        onMinus: () => _changeLineQuantity(
+                          item,
+                          item.quantity - 1,
+                        ),
+                        onPlus: () => _changeLineQuantity(
+                          item,
+                          item.quantity + 1,
+                        ),
                       ),
-                      SizedBox(height: 8.h),
-                    ],
                     SizedBox(height: 6.h),
                     CartSectionTitle(ServicesBookingStrings.where),
                     ServicesLocationToggle(

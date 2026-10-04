@@ -47,6 +47,7 @@ class BenefitPayPlugin :
 
     private val checkoutListener = object : CheckoutListener {
         override fun onTransactionSuccess(transaction: Transaction) {
+            BenefitPayDebugLog.logTransaction("onTransactionSuccess", transaction)
             Log.d(
                 TAG,
                 "onTransactionSuccess reference=${transaction.referenceNumber} " +
@@ -63,6 +64,7 @@ class BenefitPayPlugin :
         }
 
         override fun onTransactionFail(transaction: Transaction) {
+            BenefitPayDebugLog.logTransaction("onTransactionFail", transaction)
             Log.d(
                 TAG,
                 "onTransactionFail reference=${transaction.referenceNumber} " +
@@ -90,6 +92,7 @@ class BenefitPayPlugin :
 
     override fun onAttachedToActivity(binding: ActivityPluginBinding) {
         activity = binding.activity
+        BenefitPayDebugLog.bindDebuggable(binding.activity.applicationInfo)
         activityBinding = binding
         binding.addActivityResultListener(this)
         ensureHiddenButton()
@@ -101,6 +104,7 @@ class BenefitPayPlugin :
 
     override fun onReattachedToActivityForConfigChanges(binding: ActivityPluginBinding) {
         activity = binding.activity
+        BenefitPayDebugLog.bindDebuggable(binding.activity.applicationInfo)
         activityBinding = binding
         binding.addActivityResultListener(this)
         ensureHiddenButton()
@@ -121,12 +125,27 @@ class BenefitPayPlugin :
         when (call.method) {
             "isAvailable" -> result.success(isBenefitPayInstalled())
             "pay" -> startPayment(call, result)
+            "getBenefitPayDebugLogs" ->
+                result.success(
+                    if (BenefitPayDebugLog.debuggable) {
+                        BenefitPayDebugLog.snapshot()
+                    } else {
+                        emptyList<Map<String, Any>>()
+                    },
+                )
+            "clearBenefitPayDebugLogs" -> {
+                if (BenefitPayDebugLog.debuggable) {
+                    BenefitPayDebugLog.clearBuffer()
+                }
+                result.success(null)
+            }
             else -> result.notImplemented()
         }
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?): Boolean {
         if (requestCode != PAYMENT_REQUEST_CODE) return false
+        BenefitPayDebugLog.logActivityResult(requestCode, resultCode, data)
         Log.d(
             TAG,
             "onActivityResult code=$resultCode action=${data?.action} " +
@@ -146,15 +165,29 @@ class BenefitPayPlugin :
                         "isSuccess=${data.getBooleanExtra("isSuccess", false)} " +
                         "message=${data.getStringExtra("message")}",
                 )
-                BenefitInAppHelper.handleResult(data)
+                try {
+                    BenefitInAppHelper.handleResult(data)
+                } catch (t: Throwable) {
+                    BenefitPayDebugLog.logException("activity_result_handleResult", t)
+                    throw t
+                }
                 return true
             }
         }
         if (resultCode == Activity.RESULT_OK && data != null) {
-            BenefitInAppHelper.handleResult(data)
+            try {
+                BenefitInAppHelper.handleResult(data)
+            } catch (t: Throwable) {
+                BenefitPayDebugLog.logException("activity_result_handleResult", t)
+                throw t
+            }
             return true
         }
         if (pendingResult != null) {
+            BenefitPayDebugLog.logEvent(
+                "activity_result_cancelled",
+                mapOf("reason" to "no_transaction_intent"),
+            )
             Log.d(TAG, "onActivityResult completing cancelled (no transaction intent)")
             completePending(
                 mapOf(
@@ -168,15 +201,11 @@ class BenefitPayPlugin :
 
     private fun isBenefitPayInstalled(): Boolean {
         val act = activity ?: return false
-        val pm = act.packageManager
-        return BENEFIT_PAY_PACKAGES.any { pkg ->
-            try {
-                pm.getPackageInfo(pkg, 0)
-                true
-            } catch (_: PackageManager.NameNotFoundException) {
-                false
-            }
-        }
+        return installedBenefitPayPackages(act.packageManager).isNotEmpty()
+    }
+
+    private fun installedBenefitPayPackages(pm: PackageManager): List<String> {
+        return BenefitPayDebugLog.installedBenefitPayPackages(pm, BENEFIT_PAY_PACKAGES)
     }
 
     private fun ensureHiddenButton() {
@@ -193,28 +222,39 @@ class BenefitPayPlugin :
                     val countryCode = config["countryCode"]!!
                     val currencyCode = config["currencyCode"]!!
                     val merchantCategoryCode = config["merchantCategoryCode"]!!
+                    val installed = installedBenefitPayPackages(currentActivity.packageManager)
+                    BenefitPayDebugLog.logCheckoutStart(config, installed)
                     Log.d(
                         TAG,
                         "countryCode=$countryCode currencyCode=$currencyCode " +
                             "merchantCategoryCode=$merchantCategoryCode",
                     )
-                    BenefitInAppCheckout.newInstance(
-                        currentActivity,
-                        config["appId"]!!,
-                        config["referenceId"]!!,
-                        config["merchantId"]!!,
-                        config["secretKey"]!!,
-                        config["amount"]!!,
-                        countryCode,
-                        currencyCode,
-                        merchantCategoryCode,
-                        config["merchantName"]!!,
-                        config["merchantCity"]!!,
-                        checkoutListener,
-                    )
+                    try {
+                        BenefitInAppCheckout.newInstance(
+                            currentActivity,
+                            config["appId"]!!,
+                            config["referenceId"]!!,
+                            config["merchantId"]!!,
+                            config["secretKey"]!!,
+                            config["amount"]!!,
+                            countryCode,
+                            currencyCode,
+                            merchantCategoryCode,
+                            config["merchantName"]!!,
+                            config["merchantCity"]!!,
+                            checkoutListener,
+                        )
+                    } catch (t: Throwable) {
+                        BenefitPayDebugLog.logException("checkout_newInstance", t)
+                        throw t
+                    }
                 }
 
                 override fun onFail(reason: Int) {
+                    BenefitPayDebugLog.logEvent(
+                        "button_fail",
+                        mapOf("reason" to reason.toString()),
+                    )
                     completePending(
                         mapOf(
                             "status" to "failed",
@@ -244,6 +284,7 @@ class BenefitPayPlugin :
             return
         }
         if (!isBenefitPayInstalled()) {
+            BenefitPayDebugLog.logEvent("wallet_detected", mapOf("package" to "none"))
             result.success(
                 mapOf(
                     "status" to "unavailable",
@@ -267,7 +308,12 @@ class BenefitPayPlugin :
         pendingResult = result
         pendingConfig = config
         ensureHiddenButton()
-        hiddenButton?.performClick()
+        try {
+            hiddenButton?.performClick()
+        } catch (t: Throwable) {
+            BenefitPayDebugLog.logException("checkout_performClick", t)
+            throw t
+        }
     }
 
     private fun parseConfig(call: MethodCall): Map<String, String>? {

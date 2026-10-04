@@ -10,6 +10,7 @@ import 'package:yjeek_app/features/order_flow/model/order_api_mappers.dart';
 import 'package:yjeek_app/features/order_flow/view/widgets/order_flow_widgets.dart';
 import 'package:yjeek_app/features/payments/model/benefit_pay_models.dart';
 import 'package:yjeek_app/features/payments/pay_now_helper.dart';
+import 'package:yjeek_app/features/payments/view/benefit_pay_debug_panel.dart';
 import 'package:yjeek_app/features/pickup_order_flow/model/pickup_order_api_mappers.dart';
 import 'package:yjeek_app/features/pickup_order_flow/model/pickup_order_flow_data.dart';
 import 'package:yjeek_app/features/pickup_order_flow/pickup_order_flow_routes.dart';
@@ -273,6 +274,11 @@ class _PickupPayScreenState extends ConsumerState<PickupPayScreen> {
             balanceLabel:
                 PayNowHelper.subtitleForMethod(_methodApi, _balance),
             onChange: _expired ? null : _changePayment,
+          ),
+          SizedBox(height: 14.h),
+          BenefitPayDebugPanel(
+            orderId: widget.orderId,
+            methodApi: _methodApi,
           ),
           SizedBox(height: 14.h),
           PickupPayBreakdownCard(

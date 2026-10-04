@@ -72,7 +72,7 @@ class _FoodBrowseScreenState extends ConsumerState<FoodBrowseScreen> {
   bool _acceptsMyVouchers = false;
   double? _minRating;
   int? _maxDeliveryTime;
-  String _selectedCuisine = 'All';
+  final Set<String> _selectedCuisines = {};
   String _sort = 'distance';
   List<String> _cuisineFilters = const ['All'];
   List<BrowseRestaurant> _deliveryRestaurants = const [];
@@ -126,8 +126,13 @@ class _FoodBrowseScreenState extends ConsumerState<FoodBrowseScreen> {
   }
 
   String get _cuisineChipLabel {
-    if (_selectedCuisine == 'All') return 'Cuisine';
-    return _selectedCuisine;
+    if (_selectedCuisines.isEmpty) return 'Cuisine';
+    if (_selectedCuisines.length == 1) return _selectedCuisines.first;
+    return '${_selectedCuisines.length} cuisines';
+  }
+
+  void _pruneSelectedCuisines() {
+    _selectedCuisines.removeWhere((c) => !_cuisineFilters.contains(c));
   }
 
   Future<void> _load() async {
@@ -164,13 +169,12 @@ class _FoodBrowseScreenState extends ConsumerState<FoodBrowseScreen> {
     final lat = delivery?.latitude;
     final lng = delivery?.longitude;
     final apiFilters = await repo.fetchCuisineFilters(category: _storeCategory);
-    final cuisine =
-        _selectedCuisine == 'All' ? null : _selectedCuisine;
+    final cuisines = _selectedCuisines.toList();
     // Same discovery scope as Pickup/Dine-in — do not hide vendors outside
     // delivery radius on the list (checkout still validates range).
     var vendors = await repo.fetchVendors(
       category: _storeCategory,
-      cuisine: cuisine,
+      cuisines: cuisines,
       freeDelivery: _freeDeliveryOnly,
       openNow: _openNow,
       hasOffers: _hasOffers,
@@ -184,8 +188,8 @@ class _FoodBrowseScreenState extends ConsumerState<FoodBrowseScreen> {
       supportsDelivery: true,
     );
     vendors = vendors.where((r) => r.supportsDelivery).toList();
-    // Cuisine tags may be unset on vendors — soft-match name when catalog filter is empty.
-    if (cuisine != null && vendors.isEmpty) {
+    // Cuisine tags may be unset on vendors — soft-match when catalog filter is empty.
+    if (cuisines.isNotEmpty && vendors.isEmpty) {
       final unfiltered = await repo.fetchVendors(
         category: _storeCategory,
         freeDelivery: _freeDeliveryOnly,
@@ -200,13 +204,14 @@ class _FoodBrowseScreenState extends ConsumerState<FoodBrowseScreen> {
         withinDeliveryRadius: false,
         supportsDelivery: true,
       );
-      final q = cuisine.toLowerCase();
       vendors = unfiltered
           .where(
             (r) =>
                 r.supportsDelivery &&
-                (r.cuisine.toLowerCase().contains(q) ||
-                    r.name.toLowerCase().contains(q)),
+                (vendorMatchesCuisineQuery(r, cuisines) ||
+                    cuisines.any(
+                      (c) => r.name.toLowerCase().contains(c.toLowerCase()),
+                    )),
           )
           .toList();
     }
@@ -215,9 +220,7 @@ class _FoodBrowseScreenState extends ConsumerState<FoodBrowseScreen> {
     final filters = _mergeCuisineFilters(apiFilters, vendors);
     setState(() {
       _cuisineFilters = filters;
-      if (!_cuisineFilters.contains(_selectedCuisine)) {
-        _selectedCuisine = 'All';
-      }
+      _pruneSelectedCuisines();
       _deliveryRestaurants = vendors;
       _locationDenied = !hasLocation;
       _outsideDeliveryArea = outsideArea;
@@ -232,11 +235,13 @@ class _FoodBrowseScreenState extends ConsumerState<FoodBrowseScreen> {
   ) {
     final fromVendors = <String>{};
     for (final v in vendors) {
-      for (final part in v.cuisine.split('·')) {
-        final tag = part.trim();
-        if (tag.isNotEmpty && tag.toLowerCase() != 'food') {
-          fromVendors.add(tag);
-        }
+      for (final tag in v.cuisineTags) {
+        final trimmed = tag.trim();
+        if (trimmed.isNotEmpty) fromVendors.add(trimmed);
+      }
+      final primary = v.cuisine.trim();
+      if (primary.isNotEmpty && primary.toLowerCase() != 'food') {
+        fromVendors.add(primary);
       }
     }
     final merged = <String>['All'];
@@ -263,11 +268,10 @@ class _FoodBrowseScreenState extends ConsumerState<FoodBrowseScreen> {
     final apiFilters = await foodRepo.fetchCuisineFilters(
       category: _storeCategory,
     );
-    final cuisine =
-        _selectedCuisine == 'All' ? null : _selectedCuisine;
+    final cuisines = _selectedCuisines.toList();
     var vendors = await foodRepo.fetchVendors(
       category: _storeCategory,
-      cuisine: cuisine,
+      cuisines: cuisines,
       openNow: _openNow,
       sort: _sort,
       latitude: lat,
@@ -276,7 +280,7 @@ class _FoodBrowseScreenState extends ConsumerState<FoodBrowseScreen> {
       supportsDineIn: true,
     );
     vendors = vendors.where((r) => r.supportsDineIn).toList();
-    if (cuisine != null && vendors.isEmpty) {
+    if (cuisines.isNotEmpty && vendors.isEmpty) {
       final unfiltered = await foodRepo.fetchVendors(
         category: _storeCategory,
         openNow: _openNow,
@@ -286,13 +290,14 @@ class _FoodBrowseScreenState extends ConsumerState<FoodBrowseScreen> {
         supportsDelivery: false,
         supportsDineIn: true,
       );
-      final q = cuisine.toLowerCase();
       vendors = unfiltered
           .where(
             (r) =>
                 r.supportsDineIn &&
-                (r.cuisine.toLowerCase().contains(q) ||
-                    r.name.toLowerCase().contains(q)),
+                (vendorMatchesCuisineQuery(r, cuisines) ||
+                    cuisines.any(
+                      (c) => r.name.toLowerCase().contains(c.toLowerCase()),
+                    )),
           )
           .toList();
     }
@@ -300,9 +305,7 @@ class _FoodBrowseScreenState extends ConsumerState<FoodBrowseScreen> {
     final filters = _mergeCuisineFilters(apiFilters, vendors);
     setState(() {
       _cuisineFilters = filters;
-      if (!_cuisineFilters.contains(_selectedCuisine)) {
-        _selectedCuisine = 'All';
-      }
+      _pruneSelectedCuisines();
       _dineInRestaurants = vendors.map(_dineInFromFoodVendor).toList();
       _locationDenied = !hasLocation;
       _outsideDeliveryArea = false;
@@ -320,12 +323,13 @@ class _FoodBrowseScreenState extends ConsumerState<FoodBrowseScreen> {
     final hasLocation = delivery?.hasCoordinates ?? false;
     final lat = delivery?.latitude;
     final lng = delivery?.longitude;
-    final filters = await foodRepo.fetchCuisineFilters(category: _storeCategory);
-    final cuisine =
-        _selectedCuisine == 'All' ? null : _selectedCuisine;
+    final apiFilters = await foodRepo.fetchCuisineFilters(
+      category: _storeCategory,
+    );
+    final cuisines = _selectedCuisines.toList();
     var vendors = await foodRepo.fetchVendors(
       category: _storeCategory,
-      cuisine: cuisine,
+      cuisines: cuisines,
       openNow: _openNow,
       sort: 'distance',
       latitude: lat,
@@ -334,7 +338,7 @@ class _FoodBrowseScreenState extends ConsumerState<FoodBrowseScreen> {
       supportsPickup: true,
     );
     vendors = vendors.where((r) => r.supportsPickup).toList();
-    if (cuisine != null && vendors.isEmpty) {
+    if (cuisines.isNotEmpty && vendors.isEmpty) {
       final unfiltered = await foodRepo.fetchVendors(
         category: _storeCategory,
         openNow: _openNow,
@@ -344,29 +348,23 @@ class _FoodBrowseScreenState extends ConsumerState<FoodBrowseScreen> {
         supportsDelivery: false,
         supportsPickup: true,
       );
-      final q = cuisine.toLowerCase();
       vendors = unfiltered
           .where(
             (r) =>
                 r.supportsPickup &&
-                (r.cuisine.toLowerCase().contains(q) ||
-                    r.name.toLowerCase().contains(q)),
+                (vendorMatchesCuisineQuery(r, cuisines) ||
+                    cuisines.any(
+                      (c) => r.name.toLowerCase().contains(c.toLowerCase()),
+                    )),
           )
           .toList();
     }
     if (!mounted) return;
     final spots = vendors.map(_pickupSpotFromFoodVendor).toList();
-    final labels = <String>{};
-    for (final s in spots) {
-      final label = s.categoryLabel.trim();
-      if (label.isNotEmpty) labels.add(label);
-    }
-    final merged = <String>['All', ...filters.where((f) => f != 'All')];
-    for (final label in (labels.toList()..sort())) {
-      if (!merged.contains(label)) merged.add(label);
-    }
+    final merged = _mergeCuisineFilters(apiFilters, vendors);
     setState(() {
       _cuisineFilters = merged;
+      _pruneSelectedCuisines();
       _pickupSpots = spots;
       _locationDenied = !hasLocation;
       _outsideDeliveryArea = false;
@@ -393,12 +391,6 @@ class _FoodBrowseScreenState extends ConsumerState<FoodBrowseScreen> {
     var list = _pickupSpots;
     if (_readyIn15) {
       list = list.where((s) => pickupEtaMinutes(s) <= 15).toList();
-    }
-    if (_selectedCuisine != 'All') {
-      final q = _selectedCuisine.toLowerCase();
-      list = list
-          .where((s) => s.categoryLabel.toLowerCase().contains(q))
-          .toList();
     }
     return list;
   }
@@ -511,7 +503,10 @@ class _FoodBrowseScreenState extends ConsumerState<FoodBrowseScreen> {
                       itemCount: options.length,
                       itemBuilder: (context, index) {
                         final cuisine = options[index];
-                        final selected = _selectedCuisine == cuisine;
+                        final isAll = cuisine == 'All';
+                        final selected = isAll
+                            ? _selectedCuisines.isEmpty
+                            : _selectedCuisines.contains(cuisine);
                         return ListTile(
                           title: Text(
                             cuisine,
@@ -527,8 +522,19 @@ class _FoodBrowseScreenState extends ConsumerState<FoodBrowseScreen> {
                               ? const Icon(Icons.check, color: AppColors.primary)
                               : null,
                           onTap: () {
-                            Navigator.pop(context);
-                            setState(() => _selectedCuisine = cuisine);
+                            if (isAll) {
+                              Navigator.pop(context);
+                              setState(() => _selectedCuisines.clear());
+                              _load();
+                              return;
+                            }
+                            setState(() {
+                              if (_selectedCuisines.contains(cuisine)) {
+                                _selectedCuisines.remove(cuisine);
+                              } else {
+                                _selectedCuisines.add(cuisine);
+                              }
+                            });
                             _load();
                           },
                         );

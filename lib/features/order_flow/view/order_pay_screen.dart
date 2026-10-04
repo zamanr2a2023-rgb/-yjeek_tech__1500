@@ -11,6 +11,7 @@ import 'package:yjeek_app/features/order_flow/order_flow_routes.dart';
 import 'package:yjeek_app/features/order_flow/view/widgets/order_flow_widgets.dart';
 import 'package:yjeek_app/features/payments/model/benefit_pay_models.dart';
 import 'package:yjeek_app/features/payments/pay_now_helper.dart';
+import 'package:yjeek_app/features/payments/view/benefit_pay_debug_panel.dart';
 import 'package:yjeek_app/features/pickup_order_flow/view/widgets/pickup_order_flow_widgets.dart';
 import 'package:yjeek_app/routes/route_names.dart';
 
@@ -351,6 +352,11 @@ class _OrderPayScreenState extends ConsumerState<OrderPayScreen> {
             methodLabel: _method,
             balanceLabel: _subtitleForMethod(_methodApi),
             onChange: _expired ? null : _changePayment,
+          ),
+          SizedBox(height: 14.h),
+          BenefitPayDebugPanel(
+            orderId: widget.orderId,
+            methodApi: _methodApi,
           ),
           SizedBox(height: 14.h),
           PickupPayBreakdownCard(

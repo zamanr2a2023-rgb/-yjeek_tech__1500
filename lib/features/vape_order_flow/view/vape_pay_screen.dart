@@ -10,6 +10,7 @@ import 'package:yjeek_app/features/order_flow/model/order_api_mappers.dart';
 import 'package:yjeek_app/features/order_flow/view/widgets/order_flow_widgets.dart';
 import 'package:yjeek_app/features/payments/model/benefit_pay_models.dart';
 import 'package:yjeek_app/features/payments/pay_now_helper.dart';
+import 'package:yjeek_app/features/payments/view/benefit_pay_debug_panel.dart';
 import 'package:yjeek_app/features/scheduled_order_flow/model/scheduled_order_api_mappers.dart';
 import 'package:yjeek_app/features/vape_order_flow/model/vape_order_flow_data.dart';
 import 'package:yjeek_app/features/vape_order_flow/vape_order_flow_routes.dart';
@@ -318,6 +319,11 @@ class _VapePayScreenState extends ConsumerState<VapePayScreen> {
                 PayNowHelper.subtitleForMethod(_methodApi, _balance),
             isWallet: PayNowHelper.isWallet(_methodApi),
             onChange: _expired ? null : _changePayment,
+          ),
+          SizedBox(height: 14.h),
+          BenefitPayDebugPanel(
+            orderId: widget.orderIds.isNotEmpty ? widget.orderIds.first : null,
+            methodApi: _methodApi,
           ),
           SizedBox(height: 14.h),
           VapePayBreakdownCard(

@@ -524,7 +524,7 @@ class FoodDeliveryListCard extends StatelessWidget {
                   ),
                   SizedBox(height: 4.h),
                   Text(
-                    restaurant.area ?? restaurant.cuisine,
+                    browseRestaurantLocationSubtitle(restaurant),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: AppTextStyles.bodySmall(

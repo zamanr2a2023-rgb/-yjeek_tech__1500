@@ -165,6 +165,10 @@ const Map<String, String> kArabicTranslations = {
   'Cash': 'نقداً',
   'Cash Back': 'كاش باك',
   'Cash on delivery': 'الدفع عند الاستلام',
+  'This vendor is not accepting cash orders':
+      'هذا المتجر لا يقبل الطلبات النقدية',
+  'Cash on delivery is only available for on-demand hot food delivery':
+      'الدفع عند الاستلام متاح فقط لتوصيل الطعام الساخن عند الطلب',
   'Cash out cashback': 'سحب الكاش باك',
   'Cashback': 'كاش باك',
   'Cashback (min 3% of order value) is valid for 6 months from the credit date (rolling expiry). Withdrawals need a min BHD 10 balance; the customer receives 70% and Yjeek retains a 30% processing fee. Processing takes 3–7 working days.': 'الكاش باك (حد أدنى 3٪ من قيمة الطلب) صالح لمدة 6 أشهر من تاريخ الإضافة (انتهاء متجدد). السحب يتطلب رصيداً لا يقل عن 10 د.ب؛ يحصل العميل على 70٪ وتحتفظ يجيك برسوم معالجة 30٪. تستغرق المعالجة 3–7 أيام عمل.',

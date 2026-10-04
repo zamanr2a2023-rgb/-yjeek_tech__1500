@@ -113,17 +113,11 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
         _address = address;
         _liveRange = liveRange;
         _payments = payments;
-        _paymentId = payments.options.any((o) => o.id == previousPaymentId)
-            ? previousPaymentId
-            : payments.defaultId;
-        if (_voucherSelected && _paymentId == 'wallet') {
-          _paymentId = payments.options
-              .firstWhere(
-                (o) => o.id != 'wallet',
-                orElse: () => payments.options.first,
-              )
-              .id;
-        }
+        _paymentId = _resolvePaymentIdAfterRefresh(
+          payments,
+          previousPaymentId,
+          allowCod: allowCod,
+        );
         _phone = address?.phone ?? me?.formattedPhone;
         _dropOffIndices = dropOffIndicesFromPrefs(address?.dropOffPreferences);
         _loading = false;
@@ -132,6 +126,27 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       if (!mounted) return;
       setState(() => _loading = false);
     }
+  }
+
+  String _resolvePaymentIdAfterRefresh(
+    CheckoutPaymentMethods payments,
+    String previousPaymentId, {
+    required bool allowCod,
+  }) {
+    var id = payments.options.any((o) => o.id == previousPaymentId)
+        ? previousPaymentId
+        : payments.defaultId;
+    if (!allowCod && id == 'cod') {
+      id = payments.defaultId;
+    }
+    if (_voucherSelected && id == 'wallet') {
+      final next = payments.options.where((o) => o.id != 'wallet');
+      if (next.isNotEmpty) id = next.first.id;
+    }
+    if (!payments.options.any((o) => o.id == id) && payments.options.isNotEmpty) {
+      id = payments.defaultId;
+    }
+    return id;
   }
 
   Future<void> _onVoucherSelected(String? voucherId) async {
@@ -150,7 +165,23 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
           .read(cartRepositoryProvider)
           .fetchCart(CartOrderType.delivery);
       if (!mounted) return;
-      setState(() => _cart = cart);
+      final allowCod = allowsCashOnDelivery(cart);
+      final payments = await ref
+          .read(paymentMethodsRepositoryProvider)
+          .fetchCheckoutMethods(
+            includeCod: allowCod,
+            preferredDefaultId: 'benefitpay',
+          );
+      if (!mounted) return;
+      setState(() {
+        _cart = cart;
+        _payments = payments;
+        _paymentId = _resolvePaymentIdAfterRefresh(
+          payments,
+          _paymentId,
+          allowCod: allowCod,
+        );
+      });
     } catch (_) {}
   }
 
@@ -253,6 +284,8 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
         : (paymentOptions.isNotEmpty
             ? paymentOptions.first.id
             : _paymentId);
+    final codUnavailableNote =
+        cart != null ? localizedCodUnavailableReason(cart) : null;
 
     return CartFlowScaffold(
       title: CartFlowStrings.checkout,
@@ -343,6 +376,19 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                 ],
                 SizedBox(height: 18.h),
                 CartSectionTitle(CartFlowStrings.paymentMethod),
+                if (codUnavailableNote != null) ...[
+                  Padding(
+                    padding: EdgeInsets.only(bottom: 8.h),
+                    child: Text(
+                      codUnavailableNote,
+                      style: TextStyle(
+                        fontSize: 12.sp,
+                        color: const Color(0xFF6B756E),
+                        height: 1.35,
+                      ),
+                    ),
+                  ),
+                ],
                 if (_voucherSelected)
                   Padding(
                     padding: EdgeInsets.only(bottom: 8.h),

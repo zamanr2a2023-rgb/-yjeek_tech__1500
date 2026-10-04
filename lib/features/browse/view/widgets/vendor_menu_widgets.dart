@@ -238,7 +238,7 @@ class VendorMenuIdentityBar extends StatelessWidget {
       if (area != null && area.isNotEmpty) area,
     ];
     final subtitle =
-        subtitleParts.isEmpty ? 'Food' : subtitleParts.join(' · ');
+        subtitleParts.isEmpty ? 'Food' : subtitleParts.join(' - ');
     final logoUrl = restaurant.displayLogoUrl?.trim();
 
     return Container(

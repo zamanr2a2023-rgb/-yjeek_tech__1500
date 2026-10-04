@@ -47,7 +47,7 @@ Future<RetailCatalog> loadServicesCatalog(
     area: provider.area ?? provider.locationLabel,
     imageUrl: provider.imageUrl,
     logoUrl: provider.imageUrl,
-    coverUrl: provider.coverUrl ?? provider.imageUrl,
+    coverUrl: provider.coverUrl,
     offerBadge: provider.offerBadge,
     categoryLabel: provider.category,
     minOrderAmount: null,

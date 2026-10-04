@@ -1,4 +1,5 @@
 import 'package:yjeek_app/features/cart/model/cart_flow_data.dart';
+import 'package:yjeek_app/l10n/l10n.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -18,10 +19,56 @@ export 'package:yjeek_app/features/cart/model/checkout_pricing.dart';
 /// Store types that may offer cash on delivery: on-demand hot food only.
 const hotFoodOnDemandSlugs = {'food', 'cafe', 'restaurant', 'coffee'};
 
-bool allowsCashOnDelivery(CartSnapshot cart) {
+const _kVendorNotAcceptingCash =
+    'This vendor is not accepting cash orders';
+const _kCodOnDemandFoodOnly =
+    'Cash on delivery is only available for on-demand hot food delivery';
+
+bool _legacyAllowsCashOnDelivery(CartSnapshot cart) {
   if (cart.isVape || cart.orderType != CartOrderType.delivery) return false;
   final slug = cart.storeTypeSlug?.trim().toLowerCase() ?? '';
   return hotFoodOnDemandSlugs.contains(slug);
+}
+
+/// Prefer GET /cart `payment.cashOnDeliveryAvailable`; fallback for mocks.
+bool allowsCashOnDelivery(CartSnapshot cart) {
+  final payment = cart.payment;
+  if (payment != null) return payment.cashOnDeliveryAvailable;
+  return _legacyAllowsCashOnDelivery(cart);
+}
+
+/// User-facing note when COD is hidden (localized when server sends known copy).
+String? localizedCodUnavailableReason(CartSnapshot cart) {
+  if (allowsCashOnDelivery(cart)) return null;
+  final raw = cart.payment?.cashOnDeliveryUnavailableReason;
+  if (raw == null || raw.isEmpty) {
+    if (cart.payment != null && !cart.payment!.acceptsCashOrders) {
+      return L10n.tr(_kVendorNotAcceptingCash);
+    }
+    return null;
+  }
+  if (raw == _kVendorNotAcceptingCash) {
+    return L10n.tr(_kVendorNotAcceptingCash);
+  }
+  if (raw == _kCodOnDemandFoodOnly) {
+    return L10n.tr(_kCodOnDemandFoodOnly);
+  }
+  return raw;
+}
+
+/// Localize checkout 400 copy when CASH is rejected.
+String localizeCodServerMessage(String message) {
+  final trimmed = message.trim();
+  if (trimmed.isEmpty) return L10n.tr(_kVendorNotAcceptingCash);
+  if (trimmed == _kVendorNotAcceptingCash ||
+      trimmed.toLowerCase().contains('not accepting cash')) {
+    return L10n.tr(_kVendorNotAcceptingCash);
+  }
+  if (trimmed == _kCodOnDemandFoodOnly ||
+      trimmed.toLowerCase().contains('only available for on-demand')) {
+    return L10n.tr(_kCodOnDemandFoodOnly);
+  }
+  return trimmed;
 }
 
 /// Maps UI payment option ids → backend PaymentMethod enum values.

@@ -43,11 +43,14 @@ class BrowseRestaurant {
     this.vouchersAccepted = false,
     this.vouchersAcceptedBadge,
     this.acceptsMyVouchers,
+    this.cuisineTags = const [],
   });
 
   final String id;
   final String name;
   final String cuisine;
+  /// Secondary cuisine labels from API `cuisineTags`.
+  final List<String> cuisineTags;
   final double rating;
   final Color gradientStart;
   final Color gradientEnd;
@@ -152,8 +155,47 @@ class BrowseRestaurant {
       supportsDelivery: supportsDelivery ?? this.supportsDelivery,
       supportsPickup: supportsPickup ?? this.supportsPickup,
       supportsDineIn: supportsDineIn ?? this.supportsDineIn,
+      cuisineTags: this.cuisineTags,
     );
   }
+}
+
+/// Case-insensitive OR match against primary [BrowseRestaurant.cuisine] and [BrowseRestaurant.cuisineTags].
+bool vendorMatchesCuisineQuery(
+  BrowseRestaurant restaurant,
+  Iterable<String> selected,
+) {
+  final needles = selected
+      .map((s) => s.trim().toLowerCase())
+      .where((s) => s.isNotEmpty && s != 'all')
+      .toSet();
+  if (needles.isEmpty) return true;
+
+  final primary = restaurant.cuisine.trim().toLowerCase();
+  if (primary.isNotEmpty && needles.contains(primary)) return true;
+  for (final tag in restaurant.cuisineTags) {
+    if (needles.contains(tag.trim().toLowerCase())) return true;
+  }
+  for (final needle in needles) {
+    if (primary.contains(needle)) return true;
+    for (final tag in restaurant.cuisineTags) {
+      if (tag.toLowerCase().contains(needle)) return true;
+    }
+  }
+  return false;
+}
+
+/// List card / header subtitle: area, or cuisine + area when both differ.
+String browseRestaurantLocationSubtitle(BrowseRestaurant restaurant) {
+  final area = restaurant.area?.trim();
+  final cuisine = restaurant.cuisine.trim();
+  if (area != null && area.isNotEmpty) {
+    if (cuisine.isNotEmpty && cuisine.toLowerCase() != area.toLowerCase()) {
+      return '$cuisine · $area';
+    }
+    return area;
+  }
+  return cuisine.isNotEmpty ? cuisine : 'Food';
 }
 
 class BrowseMenuItem {

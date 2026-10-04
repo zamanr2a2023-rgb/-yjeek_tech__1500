@@ -392,6 +392,8 @@ abstract final class ElectronicsData {
 /// Food-style vendor menu header (cover + green identity band).
 BrowseRestaurant browseRestaurantForStoreHeader(ElectronicsStore store) {
   final typeLabel = (store.categoryLabel ?? store.categories).trim();
+  final logo = store.logoUrl ?? store.imageUrl;
+  final cover = store.coverUrl ?? store.imageUrl;
   return BrowseRestaurant(
     id: store.id,
     name: store.name,
@@ -399,9 +401,9 @@ BrowseRestaurant browseRestaurantForStoreHeader(ElectronicsStore store) {
     rating: store.rating,
     gradientStart: store.gradientStart,
     gradientEnd: store.gradientEnd,
-    imageUrl: store.imageUrl,
-    logoUrl: store.logoUrl ?? store.imageUrl,
-    coverUrl: store.coverUrl,
+    imageUrl: logo ?? cover,
+    logoUrl: logo,
+    coverUrl: cover,
     reviewCount: store.reviewCount,
     hasRating: store.hasRating,
     area: store.area,
