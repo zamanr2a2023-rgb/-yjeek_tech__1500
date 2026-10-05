@@ -6,6 +6,8 @@ import 'package:yjeek_app/features/browse/model/browse_data.dart';
 import 'package:yjeek_app/features/catalog/model/catalog_product.dart';
 import 'package:yjeek_app/features/cart/model/addresses_repository.dart';
 import 'package:yjeek_app/features/cart/model/delivery_range.dart';
+import 'package:yjeek_app/features/browse/model/vendor_menu_catalog_parse.dart';
+import 'package:yjeek_app/features/browse/model/vendor_menu_grouping.dart';
 import 'package:yjeek_app/features/browse/model/vendor_order_modes.dart';
 import 'package:yjeek_app/features/home/model/home_ui_mapper.dart';
 import 'package:yjeek_app/l10n/l10n.dart';
@@ -15,11 +17,13 @@ class FoodVendorMenu {
     required this.restaurant,
     required this.sections,
     required this.items,
+    required this.chipGroups,
   });
 
   final BrowseRestaurant restaurant;
   final List<String> sections;
   final List<BrowseMenuItem> items;
+  final List<VendorMenuChipGroup> chipGroups;
 }
 
 class FoodProductDetail {
@@ -223,6 +227,7 @@ class FoodVendorsRepository {
         restaurant: restaurant,
         sections: const [],
         items: const [],
+        chipGroups: const [],
       );
     }
 
@@ -237,51 +242,16 @@ class FoodVendorsRepository {
         : await fetchVendor(vendorId);
 
     final sectionsRaw = data['sections'];
-    final sections = <String>[];
-    final items = <BrowseMenuItem>[];
-    if (sectionsRaw is List) {
-      void ingestSection(Map<String, dynamic> section, {String? nameOverride}) {
-        final sectionName = (nameOverride ?? section['name'] as String?)
-            ?.trim();
-        if (sectionName == null || sectionName.isEmpty) return;
-
-        final products = section['products'];
-        if (products is List && products.isNotEmpty) {
-          if (!sections.contains(sectionName)) sections.add(sectionName);
-          for (final product in products) {
-            if (product is! Map<String, dynamic>) continue;
-            final mapped = browseMenuItemFromProductJson(
-              product,
-              section: sectionName,
-            );
-            if (mapped != null) items.add(mapped);
-          }
-        }
-
-        final children = section['children'];
-        if (children is! List) return;
-        for (final child in children) {
-          if (child is! Map<String, dynamic>) continue;
-          final childName = (child['name'] as String?)?.trim();
-          ingestSection(
-            child,
-            nameOverride: childName == null || childName.isEmpty
-                ? sectionName
-                : childName,
-          );
-        }
-      }
-
-      for (final section in sectionsRaw) {
-        if (section is! Map<String, dynamic>) continue;
-        ingestSection(section);
-      }
-    }
+    final parsed = parseVendorMenuCatalogSections(
+      sectionsRaw is List ? sectionsRaw : null,
+      mapProduct: browseMenuItemFromProductJson,
+    );
 
     return FoodVendorMenu(
       restaurant: restaurant,
-      sections: sections,
-      items: items,
+      sections: parsed.sections,
+      items: parsed.items,
+      chipGroups: parsed.chipGroups,
     );
   }
 

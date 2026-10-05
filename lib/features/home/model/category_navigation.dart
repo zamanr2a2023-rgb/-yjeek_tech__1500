@@ -50,6 +50,12 @@ void openHomeCategory(BuildContext context, CategoryItem category) {
     return;
   }
 
+  // Two-level store types open sub-types. Single-level opens the vendor list.
+  if (category.twoLevel && slug.isNotEmpty) {
+    context.push(BrowseRoutes.retailCategory(slug: slug));
+    return;
+  }
+
   // Scheduled / retail categories — sub-category landing (Fashion design).
   final scheduledSlug = switch (slug) {
     'grocery' || 'groceries' => 'grocery',

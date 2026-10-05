@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yjeek_app/features/browse/model/browse_data.dart';
 import 'package:yjeek_app/features/browse/model/electronics_data.dart';
+import 'package:yjeek_app/features/browse/model/vendor_menu_grouping.dart';
 import 'package:yjeek_app/features/browse/view/widgets/fashion_vendor_store_widgets.dart';
 import 'package:yjeek_app/features/cart/model/pending_add_to_cart.dart';
 
@@ -15,6 +16,7 @@ class RetailCatalog {
     required this.store,
     required this.sections,
     required this.items,
+    this.chipGroups = const [],
     this.serviceItemsById,
     this.cartItemCount = 0,
     this.cartTotalLabel = '0.000',
@@ -24,6 +26,7 @@ class RetailCatalog {
   final ElectronicsStore store;
   final List<String> sections;
   final List<BrowseMenuItem> items;
+  final List<VendorMenuChipGroup> chipGroups;
 
   /// Services only — used to detect modifiers before quick-add.
   final Map<String, bool>? serviceItemsById;
@@ -129,7 +132,7 @@ class RetailStoreConfig {
     this.emptyMessage = 'No items available right now',
     this.emptySearchMessage = 'No items found',
     this.errorMessage = 'Could not load store',
-    this.headerStyle = RetailStoreHeaderStyle.fashion,
+    this.headerStyle = RetailStoreHeaderStyle.foodMenu,
   });
 
   final RetailStoreVertical vertical;

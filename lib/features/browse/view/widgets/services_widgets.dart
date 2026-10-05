@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:yjeek_app/routes/app_router.dart';
 import 'package:yjeek_app/core/constants/app_colors.dart';
 import 'package:yjeek_app/core/constants/app_text_styles.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/core/widgets/app_network_image.dart';
 import 'package:yjeek_app/features/browse/model/services_data.dart';
+import 'package:yjeek_app/features/home/view/widgets/category_icon_image.dart';
 
 /// Design tokens from Figma `(2.3.1) Browse - ( SERVICES )`.
 abstract final class _ServicesDesign {
@@ -40,14 +42,16 @@ class ServicesSubcategorySearchField extends StatelessWidget {
       padding: EdgeInsets.symmetric(horizontal: 14.w),
       child: TextField(
         onChanged: onChanged,
-        style: AppTextStyles.bodyMedium(color: AppColors.textPrimary)
-            .copyWith(fontSize: 14.sp),
+        style: AppTextStyles.bodyMedium(
+          color: AppColors.textPrimary,
+        ).copyWith(fontSize: 14.sp),
         decoration: InputDecoration(
           isDense: true,
           border: InputBorder.none,
           hintText: hint,
-          hintStyle: AppTextStyles.bodyMedium(color: const Color(0xFF6B7A6E))
-              .copyWith(fontSize: 14.sp),
+          hintStyle: AppTextStyles.bodyMedium(
+            color: const Color(0xFF6B7A6E),
+          ).copyWith(fontSize: 14.sp),
         ),
       ),
     );
@@ -171,8 +175,10 @@ class ServicesSubcategoryGrid extends StatelessWidget {
                   ),
                 ),
                 Padding(
-                  padding:
-                      EdgeInsets.symmetric(vertical: 12.h, horizontal: 8.w),
+                  padding: EdgeInsets.symmetric(
+                    vertical: 12.h,
+                    horizontal: 8.w,
+                  ),
                   child: Text(
                     category.name,
                     textAlign: TextAlign.center,
@@ -180,10 +186,7 @@ class ServicesSubcategoryGrid extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: AppTextStyles.labelMedium(
                       color: AppColors.textPrimary,
-                    ).copyWith(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 14.sp,
-                    ),
+                    ).copyWith(fontWeight: FontWeight.w700, fontSize: 14.sp),
                   ),
                 ),
               ],
@@ -227,10 +230,7 @@ class ServicesSubcategoryListRow extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: AppTextStyles.labelMedium(
                       color: AppColors.textPrimary,
-                    ).copyWith(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 15.sp,
-                    ),
+                    ).copyWith(fontWeight: FontWeight.w600, fontSize: 15.sp),
                   ),
                 ),
                 Icon(
@@ -256,7 +256,8 @@ IconData _iconFor(String name) {
   if (n.contains('beauty') || n.contains('salon')) {
     return Icons.content_cut_outlined;
   }
-  if (n.contains('car') || n.contains('auto')) return Icons.directions_car_outlined;
+  if (n.contains('car') || n.contains('auto'))
+    return Icons.directions_car_outlined;
   return Icons.handyman_outlined;
 }
 
@@ -295,9 +296,15 @@ class ServiceCategoryIcon extends StatelessWidget {
 
     if (fillParent) {
       return ColoredBox(
-        color: category.iconBackground,
+        color: AppColors.white,
         child: hasRemote
-            ? AppNetworkImage(url: url, fit: imageFit)
+            ? LayoutBuilder(
+                builder: (context, constraints) {
+                  final side = constraints.biggest.shortestSide;
+                  final size = side.isFinite && side > 0 ? side : box;
+                  return CategoryIconImage(url: url, size: size);
+                },
+              )
             : Center(child: fallback()),
       );
     }
@@ -306,18 +313,13 @@ class ServiceCategoryIcon extends StatelessWidget {
       width: box,
       height: box,
       decoration: BoxDecoration(
-        color: category.iconBackground,
+        color: AppColors.white,
         borderRadius: radius,
       ),
       clipBehavior: Clip.antiAlias,
       alignment: Alignment.center,
       child: hasRemote
-          ? AppNetworkImage(
-              url: url,
-              width: box,
-              height: box,
-              fit: imageFit,
-            )
+          ? CategoryIconImage(url: url, size: box)
           : fallback(),
     );
   }
@@ -346,11 +348,9 @@ class ServicesBookAgainRow extends StatelessWidget {
           children: [
             Text(
               'Book again',
-              style: AppTextStyles.titleSmall(color: AppColors.textPrimary)
-                  .copyWith(
-                fontWeight: FontWeight.w600,
-                fontSize: 16.sp,
-              ),
+              style: AppTextStyles.titleSmall(
+                color: AppColors.textPrimary,
+              ).copyWith(fontWeight: FontWeight.w600, fontSize: 16.sp),
             ),
             const Spacer(),
             if (onSeeAll != null)
@@ -358,11 +358,9 @@ class ServicesBookAgainRow extends StatelessWidget {
                 onTap: onSeeAll,
                 child: Text(
                   'See all',
-                  style: AppTextStyles.labelSmall(color: AppColors.primary)
-                      .copyWith(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 13.sp,
-                  ),
+                  style: AppTextStyles.labelSmall(
+                    color: AppColors.primary,
+                  ).copyWith(fontWeight: FontWeight.w600, fontSize: 13.sp),
                 ),
               ),
           ],
@@ -412,10 +410,7 @@ class ServicesBookAgainRow extends StatelessWidget {
 }
 
 class _ProviderListingThumb extends StatelessWidget {
-  const _ProviderListingThumb({
-    required this.provider,
-    this.borderRadius,
-  });
+  const _ProviderListingThumb({required this.provider, this.borderRadius});
 
   final ServiceProvider provider;
   final BorderRadius? borderRadius;
@@ -436,10 +431,7 @@ class _ProviderListingThumb extends StatelessWidget {
               ),
             )
           : Center(
-              child: Text(
-                provider.emoji,
-                style: TextStyle(fontSize: 28.sp),
-              ),
+              child: Text(provider.emoji, style: TextStyle(fontSize: 28.sp)),
             ),
     );
   }
@@ -500,10 +492,7 @@ class ServicesListingListCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: AppTextStyles.labelMedium(
                         color: AppColors.textPrimary,
-                      ).copyWith(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 14.sp,
-                      ),
+                      ).copyWith(fontWeight: FontWeight.w700, fontSize: 14.sp),
                     ),
                     SizedBox(height: 4.h),
                     Text(
@@ -518,12 +507,13 @@ class ServicesListingListCard extends StatelessWidget {
                       SizedBox(height: 2.h),
                       Text(
                         '★ ${provider.rating.toStringAsFixed(1)}',
-                        style: AppTextStyles.caption(
-                          color: const Color(0xFFD98C1A),
-                        ).copyWith(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 12.sp,
-                        ),
+                        style:
+                            AppTextStyles.caption(
+                              color: const Color(0xFFD98C1A),
+                            ).copyWith(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 12.sp,
+                            ),
                       ),
                     ],
                   ],
@@ -587,29 +577,26 @@ class ServicesListingGridCard extends StatelessWidget {
             provider.name,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: AppTextStyles.labelMedium(color: AppColors.textPrimary)
-                .copyWith(
-              fontWeight: FontWeight.w700,
-              fontSize: 13.sp,
-            ),
+            style: AppTextStyles.labelMedium(
+              color: AppColors.textPrimary,
+            ).copyWith(fontWeight: FontWeight.w700, fontSize: 13.sp),
           ),
           SizedBox(height: 2.h),
           Text(
             provider.locationLabel,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: AppTextStyles.caption(color: const Color(0xFF6B6B6B))
-                .copyWith(fontSize: 11.sp),
+            style: AppTextStyles.caption(
+              color: const Color(0xFF6B6B6B),
+            ).copyWith(fontSize: 11.sp),
           ),
           if (provider.hasRating) ...[
             SizedBox(height: 2.h),
             Text(
               '★ ${provider.rating.toStringAsFixed(1)}',
-              style: AppTextStyles.caption(color: const Color(0xFFD98C1A))
-                  .copyWith(
-                fontWeight: FontWeight.w600,
-                fontSize: 11.sp,
-              ),
+              style: AppTextStyles.caption(
+                color: const Color(0xFFD98C1A),
+              ).copyWith(fontWeight: FontWeight.w600, fontSize: 11.sp),
             ),
           ],
         ],
@@ -633,10 +620,9 @@ class _OfferBadge extends StatelessWidget {
       ),
       child: Text(
         label,
-        style: AppTextStyles.caption(color: AppColors.white).copyWith(
-          fontWeight: FontWeight.w600,
-          fontSize: 10.sp,
-        ),
+        style: AppTextStyles.caption(
+          color: AppColors.white,
+        ).copyWith(fontWeight: FontWeight.w600, fontSize: 10.sp),
       ),
     );
   }
@@ -871,7 +857,7 @@ class ServicesCategoryHeader extends StatelessWidget {
         child: Row(
           children: [
             GestureDetector(
-              onTap: onBack ?? () => Navigator.of(context).maybePop(),
+              onTap: onBack ?? () => navigateBack(context),
               child: Container(
                 width: 36.w,
                 height: 36.w,
@@ -1009,7 +995,11 @@ class ServicesToolbar extends StatelessWidget {
           onTap: onOffersChanged == null
               ? null
               : () => onOffersChanged!(!offersOnly),
-          child: _chip('Offers', Icons.local_offer_outlined, active: offersOnly),
+          child: _chip(
+            'Offers',
+            Icons.local_offer_outlined,
+            active: offersOnly,
+          ),
         ),
         const Spacer(),
         // Design: bordered 72×34 split (not a filled pill track).
@@ -1084,7 +1074,9 @@ class ServicesToolbar extends StatelessWidget {
         color: active ? _ServicesDesign.greenActive : AppColors.white,
         borderRadius: BorderRadius.circular(10.r),
         border: Border.all(
-          color: active ? _ServicesDesign.greenActive : _ServicesDesign.cardBorder,
+          color: active
+              ? _ServicesDesign.greenActive
+              : _ServicesDesign.cardBorder,
         ),
       ),
       child: Row(

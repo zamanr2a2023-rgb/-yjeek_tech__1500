@@ -113,6 +113,7 @@ Future<RetailCatalog> loadElectronicsCatalog(
     store: storeForUi,
     sections: sections,
     items: items,
+    chipGroups: menu.chipGroups,
   );
 }
 

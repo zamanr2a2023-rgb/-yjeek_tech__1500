@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:yjeek_app/routes/app_router.dart';
 import 'package:yjeek_app/core/constants/app_colors.dart';
 import 'package:yjeek_app/core/constants/app_text_styles.dart';
 import 'package:yjeek_app/core/constants/browse_strings.dart';
@@ -32,7 +33,7 @@ class BrowseTopBar extends StatelessWidget {
         child: Row(
           children: [
             GestureDetector(
-              onTap: onBack ?? () => Navigator.of(context).maybePop(),
+              onTap: onBack ?? () => navigateBack(context),
               child: Container(
                 width: 36.w,
                 height: 36.w,

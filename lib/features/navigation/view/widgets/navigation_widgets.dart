@@ -34,7 +34,7 @@ class NavBackHeader extends StatelessWidget {
         child: Row(
           children: [
             NavCircleBackButton(
-              onTap: onBack ?? () => context.pop(),
+              onTap: onBack ?? () => navigateBack(context),
               iconColor: backIconColor,
             ),
             const SizedBox(width: 12),

@@ -115,6 +115,7 @@ CategoryItem categoryItemFromApi({
   String? slug,
   String? id,
   String? iconUrl,
+  String? structure,
 }) {
   final style = HomeCategoryStyle.forSlug(slug, name);
   final trimmedIconUrl = iconUrl?.trim();
@@ -127,6 +128,7 @@ CategoryItem categoryItemFromApi({
     iconUrl: (trimmedIconUrl != null && trimmedIconUrl.isNotEmpty)
         ? trimmedIconUrl
         : null,
+    structure: structure,
   );
 }
 

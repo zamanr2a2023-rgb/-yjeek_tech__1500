@@ -4,7 +4,6 @@ import 'package:yjeek_app/core/services/storage_service.dart';
 import 'package:yjeek_app/features/cart/model/addresses_repository.dart';
 import 'package:yjeek_app/features/cart/model/locations_repository.dart';
 import 'package:yjeek_app/features/location/model/customer_delivery_location.dart';
-import 'package:yjeek_app/features/location/service/saved_address_nearby.dart';
 
 class DeliveryLocationResolver {
   const DeliveryLocationResolver({
@@ -20,6 +19,35 @@ class DeliveryLocationResolver {
   final LocationsRepository? locations;
 
   Future<CustomerDeliveryLocation> resolve() async {
+    final selected = await _selectedSavedAddress();
+    if (selected != null) {
+      final position = selected.latitude == null || selected.longitude == null
+          ? await locationService.currentPosition()
+          : null;
+      final resolved = CustomerDeliveryLocation(
+        kind: CustomerDeliveryLocationKind.saved,
+        latitude: selected.latitude ?? position?.lat,
+        longitude: selected.longitude ?? position?.lng,
+        displayTitle: selected.label,
+        displaySubtitle: selected.subtitle,
+        addressId: selected.id,
+        savedSnapshot: selected,
+      );
+      final lat = resolved.latitude;
+      final lng = resolved.longitude;
+      if (lat != null && lng != null) {
+        await storage.saveDeliveryLocationCache(
+          kind: resolved.kind.name,
+          latitude: lat,
+          longitude: lng,
+          displayTitle: resolved.displayTitle,
+          displaySubtitle: resolved.displaySubtitle,
+          addressId: resolved.addressId,
+        );
+      }
+      return resolved;
+    }
+
     final position = await locationService.currentPosition();
     if (position != null) {
       final resolved = await _resolveAt(position.lat, position.lng);
@@ -45,26 +73,18 @@ class DeliveryLocationResolver {
     );
   }
 
-  Future<CustomerDeliveryLocation> _resolveAt(double lat, double lng) async {
-    if (storage.hasSession && addresses != null) {
-      final list = await addresses!.listAddresses();
-      final matched = pickNearestSavedAddressWithin(
-        lat: lat,
-        lng: lng,
-        candidates: list,
-      );
-      if (matched != null) {
-        return CustomerDeliveryLocation(
-          kind: CustomerDeliveryLocationKind.saved,
-          latitude: lat,
-          longitude: lng,
-          displayTitle: matched.label,
-          displaySubtitle: matched.subtitle,
-          addressId: matched.id,
-          savedSnapshot: matched,
-        );
-      }
+  /// Address checked on the Delivery address screen (default), else the first saved one.
+  Future<DeliveryAddressSnapshot?> _selectedSavedAddress() async {
+    if (!storage.hasSession || addresses == null) return null;
+    final list = await addresses!.listAddresses();
+    if (list.isEmpty) return null;
+    for (final address in list) {
+      if (address.isDefault) return address;
     }
+    return list.first;
+  }
+
+  Future<CustomerDeliveryLocation> _resolveAt(double lat, double lng) async {
 
     var title = _cachedTitle() ?? 'Current location';
     String? subtitle;

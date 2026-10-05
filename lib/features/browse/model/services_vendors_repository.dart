@@ -5,6 +5,8 @@ import 'package:yjeek_app/core/services/storage_service.dart';
 import 'package:yjeek_app/core/utils/api_media_url.dart';
 import 'package:yjeek_app/features/browse/model/browse_data.dart';
 import 'package:yjeek_app/features/browse/model/services_data.dart';
+import 'package:yjeek_app/features/browse/model/vendor_menu_catalog_parse.dart';
+import 'package:yjeek_app/features/browse/model/vendor_menu_grouping.dart';
 import 'package:yjeek_app/features/home/model/home_ui_mapper.dart';
 import 'package:yjeek_app/features/navigation/model/navigation_data.dart';
 
@@ -13,11 +15,13 @@ class ServicesVendorMenu {
     required this.provider,
     required this.sections,
     required this.items,
+    this.chipGroups = const [],
   });
 
   final ServiceProvider provider;
   final List<String> sections;
   final List<ServiceMenuItem> items;
+  final List<VendorMenuChipGroup> chipGroups;
 }
 
 class ServicesProductDetail {
@@ -331,6 +335,7 @@ class ServicesVendorsRepository {
         provider: await fetchProvider(providerId),
         sections: const [],
         items: const [],
+        chipGroups: const [],
       );
     }
 
@@ -345,31 +350,45 @@ class ServicesVendorsRepository {
         : await fetchProvider(providerId);
 
     final sectionsRaw = data['sections'];
-    final sections = <String>[];
-    final items = <ServiceMenuItem>[];
-    if (sectionsRaw is List) {
-      for (final section in sectionsRaw) {
-        if (section is! Map<String, dynamic>) continue;
-        final sectionName = (section['name'] as String?)?.trim();
-        if (sectionName == null || sectionName.isEmpty) continue;
-        final products = section['products'];
-        if (products is! List || products.isEmpty) continue;
-        sections.add(sectionName);
-        for (final product in products) {
-          if (product is! Map<String, dynamic>) continue;
-          final mapped = serviceMenuItemFromProductJson(
-            product,
-            section: sectionName,
-          );
-          if (mapped != null) items.add(mapped);
-        }
-      }
-    }
+    final parsed = parseVendorMenuCatalogSections(
+      sectionsRaw is List ? sectionsRaw : null,
+      mapProduct: (product, {required section}) {
+        final mapped = serviceMenuItemFromProductJson(
+          product,
+          section: section,
+        );
+        if (mapped == null) return null;
+        return BrowseMenuItem(
+          id: mapped.id,
+          name: mapped.name,
+          description: mapped.description,
+          price: mapped.price,
+          section: mapped.section,
+          imageUrl: mapped.imageUrl,
+          hasModifiers: mapped.hasModifiers,
+        );
+      },
+    );
+
+    final items = <ServiceMenuItem>[
+      for (final item in parsed.items)
+        ServiceMenuItem(
+          id: item.id,
+          name: item.name,
+          description: item.description,
+          price: item.price,
+          section: item.section,
+          duration: '',
+          imageUrl: item.imageUrl,
+          hasModifiers: item.hasModifiers,
+        ),
+    ];
 
     return ServicesVendorMenu(
       provider: provider,
-      sections: sections,
+      sections: parsed.sections,
       items: items,
+      chipGroups: parsed.chipGroups,
     );
   }
 
@@ -907,7 +926,7 @@ ServiceBookingAvailability serviceBookingAvailabilityFromJson(
           startAt: local,
           endAt: endAt,
           label: label,
-          available: item['available'] == true,
+          available: _slotAvailableFromJson(item),
           reason: _nonEmpty(item['reason']) ?? reason,
           coveredAreas: coveredAreas,
           callOutFee: _moneyOrNull(item['callOutFee']) ?? envelopeFee,
@@ -943,9 +962,19 @@ Set<String> fulfillmentModesFromBookingPage(ServiceBookingAvailability page) {
   return modes;
 }
 
-/// Whether the vendor offers any bookable times on this day (panel slots exist).
+bool _slotAvailableFromJson(Map<dynamic, dynamic> item) {
+  final explicit = item['available'];
+  if (explicit is bool) return explicit;
+  if (explicit == true || explicit == 1) return true;
+  if (explicit == false || explicit == 0) return false;
+  final rem = (item['remainingCapacity'] as num?)?.toInt();
+  if (rem != null) return rem > 0;
+  return true;
+}
+
+/// Whether the vendor has at least one bookable time on this day.
 bool serviceDayHasVendorSlots(ServiceBookingAvailability page) {
-  if (page.slots.isNotEmpty) return true;
+  if (page.slots.any((s) => s.available)) return true;
   final reason = page.reason?.toUpperCase();
   if (reason == 'BLOCKED_DATE' || reason == 'OUTSIDE_BOOKING_WINDOW') {
     return false;

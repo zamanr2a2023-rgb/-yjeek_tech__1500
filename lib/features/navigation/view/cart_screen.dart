@@ -23,6 +23,7 @@ import 'package:yjeek_app/features/scheduled_cart/scheduled_cart_routes.dart';
 import 'package:yjeek_app/features/services_booking/services_booking_routes.dart';
 import 'package:yjeek_app/features/vape_cart/vape_cart_routes.dart';
 import 'package:yjeek_app/features/auth/utils/require_login.dart';
+import 'package:yjeek_app/routes/app_router.dart';
 import 'package:yjeek_app/routes/route_names.dart';
 
 class CartScreen extends ConsumerStatefulWidget {
@@ -578,7 +579,12 @@ class _CartScreenState extends ConsumerState<CartScreen> {
 
     final tab = CartTab.values[_tabIndex];
 
-    return Scaffold(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) navigateBack(context);
+      },
+      child: Scaffold(
       backgroundColor: AppColors.background,
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -591,7 +597,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                   ? Row(
                       children: [
                         NavCircleBackButton(
-                          onTap: widget.onBack ?? widget.onBrowseVendors,
+                          onTap: widget.onBack ?? () => navigateBack(context),
                           iconColor: AppColors.primary,
                         ),
                         SizedBox(width: 12.w),
@@ -616,7 +622,9 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                     )
                   : Row(
                       children: [
-                        NavCircleBackButton(onTap: widget.onBrowseVendors),
+                        NavCircleBackButton(
+                          onTap: widget.onBack ?? () => navigateBack(context),
+                        ),
                         SizedBox(width: 12.w),
                         Text(
                           NavigationStrings.yourCart,
@@ -637,6 +645,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
             ),
           ),
         ],
+      ),
       ),
     );
   }
