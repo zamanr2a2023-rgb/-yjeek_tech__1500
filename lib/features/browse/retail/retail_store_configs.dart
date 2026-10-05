@@ -21,6 +21,7 @@ RetailStoreConfig electronicsStoreConfig() {
   return RetailStoreConfig(
     vertical: RetailStoreVertical.electronics,
     pendingVertical: electronicsPendingVertical,
+    headerStyle: RetailStoreHeaderStyle.foodMenu,
     loadCatalog: loadElectronicsCatalog,
     quickAdd: electronicsQuickAdd,
     shouldOpenDetail: electronicsShouldOpenDetail,

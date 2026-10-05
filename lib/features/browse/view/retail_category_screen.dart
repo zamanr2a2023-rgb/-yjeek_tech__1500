@@ -7,10 +7,10 @@ import 'package:yjeek_app/core/constants/app_colors.dart';
 import 'package:yjeek_app/core/constants/app_text_styles.dart';
 import 'package:yjeek_app/core/providers/app_providers.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
-import 'package:yjeek_app/core/widgets/app_network_image.dart';
 import 'package:yjeek_app/features/browse/browse_routes.dart';
 import 'package:yjeek_app/features/browse/model/electronics_data.dart';
 import 'package:yjeek_app/features/browse/view/widgets/retail_vendor_store_scaffold.dart';
+import 'package:yjeek_app/features/home/view/widgets/category_icon_image.dart';
 import 'package:yjeek_app/features/home/model/categories_repository.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/navigation_widgets.dart';
 
@@ -36,6 +36,7 @@ class _RetailCategoryScreenState extends ConsumerState<RetailCategoryScreen> {
   bool _loading = true;
   String _query = '';
   String _title = '';
+  bool _twoLevel = false;
   List<RetailCategoryTile> _allSubs = const [];
   List<RetailCategoryTile> _allVendors = const [];
   List<RetailCategoryTile> _visibleSubs = const [];
@@ -48,8 +49,7 @@ class _RetailCategoryScreenState extends ConsumerState<RetailCategoryScreen> {
   void initState() {
     super.initState();
     _title = ElectronicsData.titleForCategory(widget.slug);
-    _isGridView =
-        ref.read(storageServiceProvider).retailCategoryGridView;
+    _isGridView = ref.read(storageServiceProvider).retailCategoryGridView;
     WidgetsBinding.instance.addPostFrameCallback((_) => _load());
   }
 
@@ -71,16 +71,16 @@ class _RetailCategoryScreenState extends ConsumerState<RetailCategoryScreen> {
           .read(categoriesRepositoryProvider)
           .fetchRetailCategory(widget.slug);
 
+      final twoLevel = detail?.twoLevel ?? false;
       final tiles = detail?.tiles ?? const <RetailCategoryTile>[];
       final subs = tiles
           .where((t) => t.kind == RetailTileKind.subcategory)
           .toList(growable: false);
 
-      // Always also load vendors for search (and fallback when no subs).
       var vendors = tiles
           .where((t) => t.kind == RetailTileKind.vendor)
           .toList(growable: false);
-      if (vendors.isEmpty) {
+      if (!twoLevel && vendors.isEmpty) {
         final stores = await ref
             .read(electronicsVendorsRepositoryProvider)
             .fetchStores(category: widget.slug, query: null);
@@ -90,6 +90,7 @@ class _RetailCategoryScreenState extends ConsumerState<RetailCategoryScreen> {
               id: s.id,
               name: s.name,
               kind: RetailTileKind.vendor,
+              imageUrl: s.logoUrl ?? s.imageUrl ?? s.coverUrl,
             ),
         ];
       }
@@ -97,6 +98,7 @@ class _RetailCategoryScreenState extends ConsumerState<RetailCategoryScreen> {
       if (!mounted) return;
       setState(() {
         _title = detail?.name ?? ElectronicsData.titleForCategory(widget.slug);
+        _twoLevel = twoLevel;
         _allSubs = subs;
         _allVendors = vendors;
         _applyFilter();
@@ -117,9 +119,13 @@ class _RetailCategoryScreenState extends ConsumerState<RetailCategoryScreen> {
   void _applyFilter() {
     final q = _query.trim().toLowerCase();
     if (q.isEmpty) {
-      // Landing: sub-categories first (admin-managed). Vendors only if no subs.
-      _visibleSubs = _allSubs;
-      _visibleVendors = _allSubs.isEmpty ? _allVendors : const [];
+      if (_twoLevel) {
+        _visibleSubs = _allSubs;
+        _visibleVendors = const [];
+      } else {
+        _visibleSubs = const [];
+        _visibleVendors = _allVendors;
+      }
       return;
     }
     // Search hits both sub-categories and vendors.
@@ -177,9 +183,7 @@ class _RetailCategoryScreenState extends ConsumerState<RetailCategoryScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final empty = !_loading &&
-        _visibleSubs.isEmpty &&
-        _visibleVendors.isEmpty;
+    final empty = !_loading && _visibleSubs.isEmpty && _visibleVendors.isEmpty;
 
     return Scaffold(
       backgroundColor: AppColors.white,
@@ -208,10 +212,7 @@ class _RetailCategoryScreenState extends ConsumerState<RetailCategoryScreen> {
                   ),
                 ),
                 SizedBox(width: 5.w),
-                _ViewToggle(
-                  isGridView: _isGridView,
-                  onChanged: _setGridView,
-                ),
+                _ViewToggle(isGridView: _isGridView, onChanged: _setGridView),
               ],
             ),
           ),
@@ -221,18 +222,20 @@ class _RetailCategoryScreenState extends ConsumerState<RetailCategoryScreen> {
                     child: CircularProgressIndicator(color: AppColors.primary),
                   )
                 : empty
-                    ? _EmptyState(
-                        title: _title,
-                        searching: _isSearching,
-                      )
-                    : _isGridView
-                        ? _buildGrid()
-                        : _buildList(),
+                ? _EmptyState(
+                    title: _title,
+                    searching: _isSearching,
+                    twoLevel: _twoLevel,
+                  )
+                : _isGridView
+                ? _buildGrid()
+                : _buildList(),
           ),
         ],
       ),
-      bottomNavigationBar:
-          ShellBottomNavBar(currentIndex: widget.bottomNavIndex),
+      bottomNavigationBar: ShellBottomNavBar(
+        currentIndex: widget.bottomNavIndex,
+      ),
     );
   }
 
@@ -318,20 +321,24 @@ class _SectionLabel extends StatelessWidget {
       padding: EdgeInsets.only(top: 8.h, bottom: 10.h),
       child: Text(
         label,
-        style: AppTextStyles.labelMedium(color: AppColors.textPrimary).copyWith(
-          fontWeight: FontWeight.w700,
-          fontSize: 14.sp,
-        ),
+        style: AppTextStyles.labelMedium(
+          color: AppColors.textPrimary,
+        ).copyWith(fontWeight: FontWeight.w700, fontSize: 14.sp),
       ),
     );
   }
 }
 
 class _EmptyState extends StatelessWidget {
-  const _EmptyState({required this.title, required this.searching});
+  const _EmptyState({
+    required this.title,
+    required this.searching,
+    required this.twoLevel,
+  });
 
   final String title;
   final bool searching;
+  final bool twoLevel;
 
   @override
   Widget build(BuildContext context) {
@@ -357,19 +364,25 @@ class _EmptyState extends StatelessWidget {
             ),
             SizedBox(height: 16.h),
             Text(
-              searching ? 'No results found' : 'No categories yet',
+              searching
+                  ? 'No results found'
+                  : (twoLevel ? 'No sub-types yet' : 'No vendors yet'),
               textAlign: TextAlign.center,
-              style: AppTextStyles.titleSmall(color: AppColors.textPrimary)
-                  .copyWith(fontWeight: FontWeight.w700, fontSize: 16.sp),
+              style: AppTextStyles.titleSmall(
+                color: AppColors.textPrimary,
+              ).copyWith(fontWeight: FontWeight.w700, fontSize: 16.sp),
             ),
             SizedBox(height: 6.h),
             Text(
               searching
                   ? 'Try a different search for $title.'
-                  : 'Sub-categories are managed in Admin → Store Type.',
+                  : (twoLevel
+                        ? 'Sub-types are added in Admin → Store Management.'
+                        : 'Vendors for this store type will appear here.'),
               textAlign: TextAlign.center,
-              style: AppTextStyles.bodyMedium(color: AppColors.textSecondary)
-                  .copyWith(fontSize: 13.sp, height: 1.35),
+              style: AppTextStyles.bodyMedium(
+                color: AppColors.textSecondary,
+              ).copyWith(fontSize: 13.sp, height: 1.35),
             ),
           ],
         ),
@@ -396,14 +409,16 @@ class _SearchField extends StatelessWidget {
       alignment: Alignment.center,
       child: TextField(
         onChanged: onChanged,
-        style: AppTextStyles.bodyMedium(color: AppColors.textPrimary)
-            .copyWith(fontSize: 14.sp),
+        style: AppTextStyles.bodyMedium(
+          color: AppColors.textPrimary,
+        ).copyWith(fontSize: 14.sp),
         decoration: InputDecoration(
           isDense: true,
           border: InputBorder.none,
           hintText: hint,
-          hintStyle: AppTextStyles.bodyMedium(color: const Color(0xFF6B6B6B))
-              .copyWith(fontSize: 14.sp),
+          hintStyle: AppTextStyles.bodyMedium(
+            color: const Color(0xFF6B6B6B),
+          ).copyWith(fontSize: 14.sp),
         ),
       ),
     );
@@ -411,10 +426,7 @@ class _SearchField extends StatelessWidget {
 }
 
 class _ViewToggle extends StatelessWidget {
-  const _ViewToggle({
-    required this.isGridView,
-    required this.onChanged,
-  });
+  const _ViewToggle({required this.isGridView, required this.onChanged});
 
   final bool isGridView;
   final ValueChanged<bool> onChanged;
@@ -519,7 +531,7 @@ class _CategoryGrid extends StatelessWidget {
               children: [
                 Expanded(
                   child: ColoredBox(
-                    color: const Color(0xFFE8F5E9),
+                    color: AppColors.white,
                     child: _CategoryThumb(
                       tile: tile,
                       categorySlug: categorySlug,
@@ -528,8 +540,10 @@ class _CategoryGrid extends StatelessWidget {
                   ),
                 ),
                 Padding(
-                  padding:
-                      EdgeInsets.symmetric(vertical: 12.h, horizontal: 8.w),
+                  padding: EdgeInsets.symmetric(
+                    vertical: 12.h,
+                    horizontal: 8.w,
+                  ),
                   child: Text(
                     tile.name,
                     textAlign: TextAlign.center,
@@ -537,10 +551,7 @@ class _CategoryGrid extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: AppTextStyles.labelMedium(
                       color: AppColors.textPrimary,
-                    ).copyWith(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 14.sp,
-                    ),
+                    ).copyWith(fontWeight: FontWeight.w700, fontSize: 14.sp),
                   ),
                 ),
               ],
@@ -581,7 +592,7 @@ class _CategoryListRow extends StatelessWidget {
                     width: 56.w,
                     height: 56.w,
                     child: ColoredBox(
-                      color: const Color(0xFFE8F5E9),
+                      color: AppColors.white,
                       child: _CategoryThumb(
                         tile: tile,
                         categorySlug: categorySlug,
@@ -600,10 +611,7 @@ class _CategoryListRow extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: AppTextStyles.labelMedium(
                       color: AppColors.textPrimary,
-                    ).copyWith(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 15.sp,
-                    ),
+                    ).copyWith(fontWeight: FontWeight.w600, fontSize: 15.sp),
                   ),
                 ),
                 Icon(
@@ -647,13 +655,14 @@ class _CategoryThumb extends StatelessWidget {
     final url = (apiUrl != null && apiUrl.isNotEmpty) ? apiUrl : placeholder;
 
     if (url != null && url.isNotEmpty) {
-      return AppNetworkImage(
-        url: url,
-        width: width,
-        height: height,
-        fit: BoxFit.cover,
-        borderRadius: BorderRadius.circular(12.r),
-        errorWidget: _iconFallback(),
+      return LayoutBuilder(
+        builder: (context, constraints) {
+          final side = constraints.biggest.shortestSide;
+          final size = side.isFinite && side > 0
+              ? side
+              : (width ?? height ?? 56.0);
+          return CategoryIconImage(url: url, size: size);
+        },
       );
     }
     return _iconFallback();
@@ -695,7 +704,9 @@ _SubcatVisual _retailSubcategoryVisual(String categorySlug, String tileName) {
 
   if (slug == 'fashion' || slug.contains('cloth')) {
     // Check women BEFORE men — "women's".contains("men") is true.
-    if (name.contains('women') || name.contains('lady') || name.contains('girl')) {
+    if (name.contains('women') ||
+        name.contains('lady') ||
+        name.contains('girl')) {
       return const _SubcatVisual(
         icon: Icons.woman_rounded,
         background: Color(0xFFFCE4EC),
@@ -709,14 +720,18 @@ _SubcatVisual _retailSubcategoryVisual(String categorySlug, String tileName) {
         foreground: Color(0xFF1565C0),
       );
     }
-    if (name.contains('kid') || name.contains('child') || name.contains('baby')) {
+    if (name.contains('kid') ||
+        name.contains('child') ||
+        name.contains('baby')) {
       return const _SubcatVisual(
         icon: Icons.child_care_rounded,
         background: Color(0xFFFFF3E0),
         foreground: Color(0xFFEF6C00),
       );
     }
-    if (name.contains('shoe') || name.contains('sneaker') || name.contains('boot')) {
+    if (name.contains('shoe') ||
+        name.contains('sneaker') ||
+        name.contains('boot')) {
       return const _SubcatVisual(
         icon: Icons.shopping_bag_rounded,
         background: Color(0xFFEFEBE9),
@@ -771,21 +786,30 @@ _SubcatVisual _retailSubcategoryVisual(String categorySlug, String tileName) {
 }
 
 /// Stable demo photos when Admin has not set subcategory images.
-String? retailSubcategoryPlaceholderImage(String categorySlug, String tileName) {
+String? retailSubcategoryPlaceholderImage(
+  String categorySlug,
+  String tileName,
+) {
   final slug = categorySlug.toLowerCase();
   final name = tileName.toLowerCase();
 
   if (slug == 'fashion' || slug.contains('cloth')) {
-    if (name.contains('women') || name.contains('lady') || name.contains('girl')) {
+    if (name.contains('women') ||
+        name.contains('lady') ||
+        name.contains('girl')) {
       return 'https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=600&q=80';
     }
     if (name.contains('men') || name.contains('boy')) {
       return 'https://images.unsplash.com/photo-1490578474895-699cd4e2cf59?auto=format&fit=crop&w=600&q=80';
     }
-    if (name.contains('kid') || name.contains('child') || name.contains('baby')) {
+    if (name.contains('kid') ||
+        name.contains('child') ||
+        name.contains('baby')) {
       return 'https://images.unsplash.com/photo-1503919545889-aef636e10ad4?auto=format&fit=crop&w=600&q=80';
     }
-    if (name.contains('shoe') || name.contains('sneaker') || name.contains('boot')) {
+    if (name.contains('shoe') ||
+        name.contains('sneaker') ||
+        name.contains('boot')) {
       return 'https://images.unsplash.com/photo-1549298916-b41d501d3772?auto=format&fit=crop&w=600&q=80';
     }
     if (name.contains('accessor') ||

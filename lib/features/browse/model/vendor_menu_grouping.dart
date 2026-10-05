@@ -37,7 +37,7 @@ class VendorMenuItemGroup {
   final List<BrowseMenuItem> items;
 }
 
-/// Builds Figma-style chip → accordion → subgroup hierarchy from flat menu sections.
+/// Legacy heuristic grouping when the API tree is unavailable (fallback only).
 List<VendorMenuChipGroup> buildVendorMenuChipGroups({
   required List<String> sections,
   required List<BrowseMenuItem> items,

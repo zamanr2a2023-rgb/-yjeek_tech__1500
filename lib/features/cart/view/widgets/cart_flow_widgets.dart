@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:yjeek_app/core/constants/app_assets.dart';
 import 'package:yjeek_app/core/constants/app_colors.dart';
 import 'package:yjeek_app/core/constants/app_text_styles.dart';
@@ -10,7 +9,7 @@ import 'package:yjeek_app/features/cart/model/cart_flow_data.dart';
 import 'package:yjeek_app/features/cart/model/checkout_helpers.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/account_widgets.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/navigation_widgets.dart';
-import 'package:yjeek_app/routes/route_names.dart';
+import 'package:yjeek_app/routes/app_router.dart';
 
 class CartFlowScaffold extends StatelessWidget {
   const CartFlowScaffold({
@@ -94,13 +93,7 @@ class CartFlowScaffold extends StatelessWidget {
   }
 }
 
-void popCartFlow(BuildContext context) {
-  if (context.canPop()) {
-    context.pop();
-    return;
-  }
-  context.go('${RouteNames.home}?tab=2');
-}
+void popCartFlow(BuildContext context) => navigateBack(context);
 
 class _CheckoutLightHeader extends StatelessWidget {
   const _CheckoutLightHeader({

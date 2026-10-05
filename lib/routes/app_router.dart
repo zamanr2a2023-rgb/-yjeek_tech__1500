@@ -1154,6 +1154,35 @@ String? cartReturnPathFromUri(Uri uri) {
   return q.isEmpty ? path : '$path?$q';
 }
 
+/// Standard back: router pop → saved browse path (cart) → leave cart tab → prior shell tab.
+void navigateBack(BuildContext context) {
+  if (context.canPop()) {
+    context.pop();
+    return;
+  }
+
+  final container = ProviderScope.containerOf(context, listen: false);
+  final shell = container.read(shellProvider);
+  final returnPath = shell.cartReturnPath?.trim();
+  if (returnPath != null && returnPath.isNotEmpty) {
+    container.read(shellProvider.notifier).setCartReturnPath(null);
+    context.go(returnPath);
+    return;
+  }
+
+  if (shell.currentIndex == 2) {
+    container.read(shellProvider.notifier).leaveCart();
+    return;
+  }
+
+  final prior = shell.previousIndex;
+  if (prior >= 0 && prior != shell.currentIndex) {
+    context.go('${RouteNames.home}?tab=$prior');
+    return;
+  }
+  context.go(RouteNames.home);
+}
+
 extension AppNavigation on BuildContext {
   void goHome({
     int tab = 0,

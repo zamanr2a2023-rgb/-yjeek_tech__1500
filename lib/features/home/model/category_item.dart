@@ -9,6 +9,7 @@ class CategoryItem {
     this.id,
     this.slug,
     this.iconUrl,
+    this.structure,
   });
 
   final String? id;
@@ -17,6 +18,11 @@ class CategoryItem {
   final IconData icon;
   final Color backgroundColor;
   final String? iconUrl;
+
+  /// Store Management catalog structure: SINGLE or TWO_LEVEL.
+  final String? structure;
+
+  bool get twoLevel => structure?.trim().toUpperCase() == 'TWO_LEVEL';
 
   bool get hasNetworkIcon => iconUrl != null && iconUrl!.trim().isNotEmpty;
 

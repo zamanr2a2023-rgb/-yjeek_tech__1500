@@ -43,7 +43,7 @@ class _RetailStoreScreenState extends ConsumerState<RetailStoreScreen> {
   ElectronicsStore? _store;
   List<VendorMenuChipGroup> _chipGroups = const [];
   String _selectedChip = '';
-  String _expandedAccordion = '';
+  final Set<String> _expandedAccordions = {};
   String _query = '';
   bool _isGridView = false;
   bool _searchOpen = false;
@@ -98,36 +98,50 @@ class _RetailStoreScreenState extends ConsumerState<RetailStoreScreen> {
   void _applyGrouping({
     required List<String> sections,
     required List<BrowseMenuItem> items,
+    List<VendorMenuChipGroup> chipGroups = const [],
   }) {
-    _chipGroups = buildFashionMenuChipGroups(
-      sections: sections,
-      items: items,
-    );
+    _chipGroups = chipGroups.isNotEmpty
+        ? chipGroups
+        : buildFashionMenuChipGroups(sections: sections, items: items);
     if (_chipGroups.isEmpty) {
       _selectedChip = '';
-      _expandedAccordion = '';
+      _expandedAccordions.clear();
       return;
     }
     if (!_chipGroups.any((g) => g.label == _selectedChip)) {
       _selectedChip = _chipGroups.first.label;
     }
-    _expandedAccordion = _selectedChip;
+    final titles = _titlesForChip(_selectedChip);
+    _expandedAccordions.removeWhere((title) => !titles.contains(title));
+    if (_expandedAccordions.isEmpty && titles.isNotEmpty) {
+      _expandedAccordions.add(titles.first);
+    }
+  }
+
+  List<String> _titlesForChip(String chip) {
+    for (final g in _chipGroups) {
+      if (g.label != chip) continue;
+      return g.accordions.map((a) => a.title).toList(growable: false);
+    }
+    return const [];
   }
 
   void _onChipSelected(String chip) {
     setState(() {
       _selectedChip = chip;
-      _expandedAccordion = chip;
+      final titles = _titlesForChip(chip);
+      _expandedAccordions
+        ..clear()
+        ..addAll(titles.isNotEmpty ? [titles.first] : const <String>[]);
     });
   }
 
   void _onAccordionTap(String title) {
     setState(() {
-      if (_expandedAccordion == title) {
-        _expandedAccordion = '';
+      if (_expandedAccordions.contains(title)) {
+        _expandedAccordions.remove(title);
       } else {
-        _expandedAccordion = title;
-        _selectedChip = title;
+        _expandedAccordions.add(title);
       }
     });
   }
@@ -219,7 +233,11 @@ class _RetailStoreScreenState extends ConsumerState<RetailStoreScreen> {
         _cartItemCount = catalog.cartItemCount;
         _cartTotalLabel = catalog.cartTotalLabel;
         _cartVendorId = catalog.cartVendorId;
-        _applyGrouping(sections: catalog.sections, items: catalog.items);
+        _applyGrouping(
+          sections: catalog.sections,
+          items: catalog.items,
+          chipGroups: catalog.chipGroups,
+        );
         _loading = false;
         _loadedOnce = true;
       });
@@ -482,7 +500,7 @@ class _RetailStoreScreenState extends ConsumerState<RetailStoreScreen> {
       store: store,
       chipGroups: _chipGroups,
       selectedChip: _selectedChip,
-      expandedAccordion: _expandedAccordion,
+      expandedAccordions: _expandedAccordions,
       isGridView: _isGridView,
       searchOpen: _searchOpen,
       loading: _loading,

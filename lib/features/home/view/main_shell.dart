@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:yjeek_app/core/constants/app_colors.dart';
 import 'package:yjeek_app/core/providers/app_providers.dart';
 import 'package:yjeek_app/core/providers/shell_provider.dart';
@@ -18,6 +17,7 @@ import 'package:yjeek_app/features/navigation/view/orders_screen.dart';
 import 'package:yjeek_app/features/navigation/view/wallet_screen.dart';
 import 'package:yjeek_app/features/ui_content/view/ui_banner_widgets.dart';
 import 'package:yjeek_app/l10n/locale_controller.dart';
+import 'package:yjeek_app/routes/app_router.dart';
 
 class MainShell extends ConsumerStatefulWidget {
   const MainShell({
@@ -185,16 +185,7 @@ class _MainShellState extends ConsumerState<MainShell>
         hasVapeItems: shell.vapeHasItems,
         initialTab: shell.cartTab,
         onBrowseVendors: notifier.browseVendors,
-        onBack: () {
-          final returnPath = shell.cartReturnPath;
-          if (returnPath != null && returnPath.isNotEmpty) {
-            notifier.setCartReturnPath(null);
-            context.go(returnPath);
-            return;
-          }
-          // Opened cart from bottom nav (or no saved browse path) — previous tab.
-          notifier.leaveCart();
-        },
+        onBack: () => navigateBack(context),
         onCartTabChanged: notifier.setCartTab,
       ),
       const WalletScreen(showBottomNav: true),

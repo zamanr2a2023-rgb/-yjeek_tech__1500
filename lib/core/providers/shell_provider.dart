@@ -98,9 +98,6 @@ class ShellNotifier extends StateNotifier<ShellState> {
     state = state.copyWith(
       previousIndex: state.currentIndex,
       currentIndex: index,
-      // Bottom-nav switches never restore a browse return path — only goHome
-      // (add-to-cart / cart icon) sets cartReturnPath for Cart back.
-      clearCartReturnPath: true,
       cartRevision: index == 2 ? _nextRevision : null,
     );
   }

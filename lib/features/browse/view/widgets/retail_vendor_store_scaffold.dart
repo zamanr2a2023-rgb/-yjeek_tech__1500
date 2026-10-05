@@ -13,6 +13,7 @@ import 'package:yjeek_app/features/browse/view/widgets/browse_widgets.dart';
 import 'package:yjeek_app/features/browse/view/widgets/fashion_vendor_store_widgets.dart';
 import 'package:yjeek_app/features/browse/view/widgets/vendor_menu_widgets.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/navigation_widgets.dart';
+import 'package:yjeek_app/routes/app_router.dart';
 
 /// Shared vendor/store page chrome (Fashion · Electronics · Flowers · Vape · Services).
 ///
@@ -23,7 +24,7 @@ class RetailVendorStoreScaffold extends StatelessWidget {
     required this.store,
     required this.chipGroups,
     required this.selectedChip,
-    required this.expandedAccordion,
+    required this.expandedAccordions,
     required this.isGridView,
     required this.searchOpen,
     required this.loading,
@@ -52,7 +53,7 @@ class RetailVendorStoreScaffold extends StatelessWidget {
   final ElectronicsStore store;
   final List<VendorMenuChipGroup> chipGroups;
   final String selectedChip;
-  final String expandedAccordion;
+  final Set<String> expandedAccordions;
   final bool isGridView;
   final bool searchOpen;
   final bool loading;
@@ -358,7 +359,8 @@ class _RetailVendorStoreBodyState extends State<_RetailVendorStoreBody> {
               delegate: SliverChildListDelegate(
                 buildRetailVendorAccordionChildren(
                   chipGroups: s.chipGroups,
-                  expandedAccordion: s.expandedAccordion,
+                  selectedChip: s.selectedChip,
+                  expandedAccordions: s.expandedAccordions,
                   isGridView: s.isGridView,
                   addingItemId: s.addingItemId,
                   onAccordionTap: s.onAccordionTap,
@@ -476,7 +478,8 @@ class _MeasureSizeState extends State<_MeasureSize> {
 /// Accordion children shared by all retail/service vendor pages.
 List<Widget> buildRetailVendorAccordionChildren({
   required List<VendorMenuChipGroup> chipGroups,
-  required String expandedAccordion,
+  required String selectedChip,
+  required Set<String> expandedAccordions,
   required bool isGridView,
   required ValueChanged<String> onAccordionTap,
   required void Function(BrowseMenuItem item) onOpenItem,
@@ -486,12 +489,18 @@ List<Widget> buildRetailVendorAccordionChildren({
 }) {
   final children = <Widget>[];
 
-  for (final chip in chipGroups) {
-    final accordion =
-        chip.accordions.isNotEmpty ? chip.accordions.first : null;
-    if (accordion == null) continue;
+  VendorMenuChipGroup? active;
+  for (final g in chipGroups) {
+    if (g.label == selectedChip) {
+      active = g;
+      break;
+    }
+  }
+  active ??= chipGroups.isNotEmpty ? chipGroups.first : null;
+  if (active == null) return children;
 
-    final expanded = accordion.title == expandedAccordion;
+  for (final accordion in active.accordions) {
+    final expanded = expandedAccordions.contains(accordion.title);
     children.add(
       FashionVendorAccordionHeader(
         title: accordion.title,
@@ -620,7 +629,7 @@ class BrowseBackTitleHeader extends StatelessWidget {
         child: Row(
           children: [
             IconButton(
-              onPressed: onBack ?? () => Navigator.of(context).maybePop(),
+              onPressed: onBack ?? () => navigateBack(context),
               padding: EdgeInsets.all(8.w),
               constraints: BoxConstraints(minWidth: 44.w, minHeight: 44.w),
               icon: Icon(

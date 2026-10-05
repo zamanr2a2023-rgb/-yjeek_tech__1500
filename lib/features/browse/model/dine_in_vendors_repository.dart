@@ -5,6 +5,7 @@ import 'package:yjeek_app/core/utils/api_media_url.dart';
 import 'package:yjeek_app/features/browse/model/browse_data.dart';
 import 'package:yjeek_app/features/browse/model/dine_in_data.dart';
 import 'package:yjeek_app/features/browse/model/food_vendors_repository.dart';
+import 'package:yjeek_app/features/browse/model/vendor_menu_catalog_parse.dart';
 import 'package:yjeek_app/features/home/model/home_ui_mapper.dart';
 import 'package:yjeek_app/l10n/l10n.dart';
 
@@ -176,31 +177,15 @@ class DineInVendorsRepository {
         : await fetchVendor(vendorId);
 
     final sectionsRaw = data['sections'];
-    final sections = <String>[];
-    final items = <BrowseMenuItem>[];
-    if (sectionsRaw is List) {
-      for (final section in sectionsRaw) {
-        if (section is! Map<String, dynamic>) continue;
-        final sectionName = (section['name'] as String?)?.trim();
-        if (sectionName == null || sectionName.isEmpty) continue;
-        final products = section['products'];
-        if (products is! List || products.isEmpty) continue;
-        sections.add(sectionName);
-        for (final product in products) {
-          if (product is! Map<String, dynamic>) continue;
-          final mapped = browseMenuItemFromProductJson(
-            product,
-            section: sectionName,
-          );
-          if (mapped != null) items.add(mapped);
-        }
-      }
-    }
+    final parsed = parseVendorMenuCatalogSections(
+      sectionsRaw is List ? sectionsRaw : null,
+      mapProduct: browseMenuItemFromProductJson,
+    );
 
     return DineInVendorMenu(
       restaurant: restaurant,
-      sections: sections,
-      items: items,
+      sections: parsed.sections,
+      items: parsed.items,
     );
   }
 

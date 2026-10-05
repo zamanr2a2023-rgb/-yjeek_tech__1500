@@ -9,6 +9,7 @@ import 'package:yjeek_app/core/providers/app_providers.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/features/navigation/model/wallet_data.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/navigation_widgets.dart';
+import 'package:yjeek_app/routes/app_router.dart';
 import 'package:yjeek_app/routes/route_names.dart';
 
 class GreenScreenHeader extends StatelessWidget {
@@ -55,7 +56,7 @@ class GreenScreenHeader extends StatelessWidget {
         child: Row(
           children: [
             GestureDetector(
-              onTap: onBack ?? () => context.pop(),
+              onTap: onBack ?? () => navigateBack(context),
               child: flat
                   ? Container(
                       width: 36.w,

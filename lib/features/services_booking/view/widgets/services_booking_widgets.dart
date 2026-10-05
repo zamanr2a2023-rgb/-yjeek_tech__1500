@@ -190,56 +190,129 @@ class ServicesTimeDropdown extends StatelessWidget {
   static const Color _chipBorder = Color(0xFFE0E6E0);
   static const Color _labelMuted = Color(0xFF6B756E);
 
+  bool _isSlotEnabled(int index) {
+    if (available == null) return true;
+    return index < available!.length && available![index];
+  }
+
+  List<int> _bookableIndices() {
+    final out = <int>[];
+    for (var i = 0; i < slots.length; i++) {
+      if (_isSlotEnabled(i)) out.add(i);
+    }
+    return out;
+  }
+
+  int? _displayIndex() {
+    if (slots.isEmpty) return null;
+    if (selectedIndex >= 0 &&
+        selectedIndex < slots.length &&
+        _isSlotEnabled(selectedIndex)) {
+      return selectedIndex;
+    }
+    final bookable = _bookableIndices();
+    return bookable.isEmpty ? null : bookable.first;
+  }
+
+  Future<void> _openPicker(BuildContext context) async {
+    if (slots.isEmpty) return;
+    final bookable = _bookableIndices();
+    if (bookable.isEmpty) return;
+
+    final picked = await showModalBottomSheet<int>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) {
+        return SafeArea(
+          child: ListView(
+            shrinkWrap: true,
+            children: [
+              Padding(
+                padding: EdgeInsets.fromLTRB(20.w, 4.h, 20.w, 8.h),
+                child: Text(
+                  ServicesBookingStrings.time,
+                  style: AppTextStyles.labelSmall(color: AppColors.textPrimary)
+                      .copyWith(fontWeight: FontWeight.w700, fontSize: 16.sp),
+                ),
+              ),
+              for (var i = 0; i < slots.length; i++)
+                ListTile(
+                  enabled: _isSlotEnabled(i),
+                  title: Text(
+                    slots[i],
+                    style: AppTextStyles.labelSmall(
+                      color: _isSlotEnabled(i)
+                          ? AppColors.textPrimary
+                          : _labelMuted,
+                    ).copyWith(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 15.sp,
+                    ),
+                  ),
+                  subtitle: !_isSlotEnabled(i)
+                      ? Text(
+                          'Not available',
+                          style: AppTextStyles.caption(color: _labelMuted),
+                        )
+                      : null,
+                  trailing: i == _displayIndex()
+                      ? Icon(Icons.check_rounded, color: AppColors.cartTabActive)
+                      : null,
+                  onTap: _isSlotEnabled(i)
+                      ? () => Navigator.of(context).pop(i)
+                      : null,
+                ),
+            ],
+          ),
+        );
+      },
+    );
+    if (picked != null) onSelected(picked);
+  }
+
   @override
   Widget build(BuildContext context) {
-    final indices = <int>[];
-    for (var i = 0; i < slots.length; i++) {
-      final ok = available == null ||
-          (i < available!.length && available![i]);
-      if (ok) indices.add(i);
-    }
-
-    final int? value;
-    if (indices.isEmpty) {
-      value = null;
-    } else if (indices.contains(selectedIndex)) {
-      value = selectedIndex;
-    } else {
-      value = indices.first;
-    }
+    final displayIndex = _displayIndex();
+    final bookable = _bookableIndices();
+    final canPick = bookable.isNotEmpty;
 
     final textStyle = AppTextStyles.labelSmall(color: AppColors.textPrimary)
         .copyWith(fontWeight: FontWeight.w600, fontSize: 14.sp);
+    final hintStyle = AppTextStyles.labelSmall(color: _labelMuted)
+        .copyWith(fontSize: 14.sp);
 
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 14.w),
-      decoration: BoxDecoration(
-        color: AppColors.white,
+    final label = displayIndex != null
+        ? slots[displayIndex]
+        : (slots.isEmpty ? hint : 'Choose a time');
+
+    return Material(
+      color: AppColors.white,
+      borderRadius: BorderRadius.circular(12.r),
+      child: InkWell(
+        onTap: canPick ? () => _openPicker(context) : null,
         borderRadius: BorderRadius.circular(12.r),
-        border: Border.all(color: _chipBorder, width: 1.2),
-      ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<int>(
-          isExpanded: true,
-          value: value,
-          hint: Text(
-            hint,
-            style: AppTextStyles.labelSmall(color: _labelMuted)
-                .copyWith(fontSize: 14.sp),
+        child: Opacity(
+          opacity: canPick ? 1 : 0.55,
+          child: Container(
+            padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 14.h),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12.r),
+              border: Border.all(color: _chipBorder, width: 1.2),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.schedule_rounded, size: 20.sp, color: _labelMuted),
+                SizedBox(width: 10.w),
+                Expanded(
+                  child: Text(
+                    label,
+                    style: displayIndex != null ? textStyle : hintStyle,
+                  ),
+                ),
+                Icon(Icons.keyboard_arrow_down_rounded, color: _labelMuted),
+              ],
+            ),
           ),
-          icon: Icon(Icons.keyboard_arrow_down_rounded, color: _labelMuted),
-          items: [
-            for (final i in indices)
-              DropdownMenuItem<int>(
-                value: i,
-                child: Text(slots[i], style: textStyle),
-              ),
-          ],
-          onChanged: indices.isEmpty
-              ? null
-              : (i) {
-                  if (i != null) onSelected(i);
-                },
         ),
       ),
     );

@@ -72,8 +72,13 @@ class _VendorMenuScreenState extends ConsumerState<VendorMenuScreen> {
   int _loadGen = 0;
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _menuScroll = ScrollController();
-  final Map<String, ({List<String> sections, List<BrowseMenuItem> items})>
-  _menuCache = {};
+  final Map<
+      String,
+      ({
+        List<String> sections,
+        List<BrowseMenuItem> items,
+        List<VendorMenuChipGroup> chipGroups,
+      })> _menuCache = {};
   VendorMenuChipGroup? get _activeChipGroup {
     for (final g in _chipGroups) {
       if (g.label == _selectedChip) return g;
@@ -97,11 +102,10 @@ class _VendorMenuScreenState extends ConsumerState<VendorMenuScreen> {
     return 'DELIVERY';
   }
 
-  void _applyMenuGrouping() {
-    _chipGroups = buildVendorMenuChipGroups(
-      sections: _sections,
-      items: _allItems,
-    );
+  void _applyMenuChipGroups(List<VendorMenuChipGroup> groups) {
+    _chipGroups = groups.isNotEmpty
+        ? groups
+        : buildVendorMenuChipGroups(sections: _sections, items: _allItems);
     if (_chipGroups.isEmpty) {
       _selectedChip = '';
       _expandedAccordions.clear();
@@ -259,7 +263,7 @@ class _VendorMenuScreenState extends ConsumerState<VendorMenuScreen> {
       context.go(returnTo);
       return;
     }
-    context.go(BrowseRoutes.foodBrowse(tab: widget.bottomNavIndex));
+    navigateBack(context);
   }
 
   double _pinnedFiltersHeightEstimate(BuildContext context) =>
@@ -330,7 +334,7 @@ class _VendorMenuScreenState extends ConsumerState<VendorMenuScreen> {
       if (cached != null) {
         _sections = cached.sections;
         _allItems = cached.items;
-        _applyMenuGrouping();
+        _applyMenuChipGroups(cached.chipGroups);
         _menuSwitching = false;
         _loading = false;
       } else {
@@ -465,14 +469,18 @@ class _VendorMenuScreenState extends ConsumerState<VendorMenuScreen> {
           ? menu.items.map((e) => e.section).toSet().toList()
           : menu.sections;
       final storeKey = '$effectiveOrderParam|${q.trim()}';
-      _menuCache[storeKey] = (sections: sections, items: menu.items);
+      _menuCache[storeKey] = (
+        sections: sections,
+        items: menu.items,
+        chipGroups: menu.chipGroups,
+      );
       setState(() {
         _orderType = effectiveOrderType;
         _cartMode = effectiveCartMode;
         _restaurant = restaurant;
         _sections = sections;
         _allItems = menu.items;
-        _applyMenuGrouping();
+        _applyMenuChipGroups(menu.chipGroups);
         _cart = cart;
         _loading = false;
         _menuSwitching = false;

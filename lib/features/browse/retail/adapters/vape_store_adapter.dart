@@ -41,6 +41,7 @@ Future<RetailCatalog> loadVapeCatalog(
   final menu = await food.fetchVendorMenu(storeId, query: query);
   var sections = menu.sections;
   var items = menu.items;
+  var chipGroups = menu.chipGroups;
 
   if (sections.isEmpty) {
     final products = await ref.read(vapeVendorsRepositoryProvider).fetchProducts(
@@ -67,6 +68,7 @@ Future<RetailCatalog> loadVapeCatalog(
       }
       sections = byCat.keys.toList(growable: false);
       items = [for (final list in byCat.values) ...list];
+      chipGroups = const [];
     }
   }
 
@@ -84,6 +86,7 @@ Future<RetailCatalog> loadVapeCatalog(
     store: storeForUi,
     sections: sections,
     items: items,
+    chipGroups: chipGroups,
     cartItemCount: cartCount,
     cartTotalLabel: cartTotal,
     cartVendorId: cartVendorId,

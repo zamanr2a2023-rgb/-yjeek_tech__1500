@@ -247,10 +247,16 @@ class _ServicesBookingScreenState extends ConsumerState<ServicesBookingScreen> {
       if (window != null && window > 0) {
         _bookingWindowDays = window;
       }
+      String? reason = serviceBookingSlotsReasonMessage(page.reason) ??
+          page.reason;
+      if (slots.isNotEmpty && !slots.any((s) => s.available)) {
+        reason =
+            'No open times on this day. Try another date or check back later.';
+      }
+
       setState(() {
         _slots = slots;
-        _slotReason = serviceBookingSlotsReasonMessage(page.reason) ??
-            page.reason;
+        _slotReason = reason;
         _fulfillmentModes = {
           ..._fulfillmentModes,
           ...context.fulfillmentModes,
@@ -490,9 +496,7 @@ class _ServicesBookingScreenState extends ConsumerState<ServicesBookingScreen> {
                     ),
                   )
                 else ...[
-                  if (_slots.isEmpty &&
-                      _slotReason != null &&
-                      _slotReason!.isNotEmpty)
+                  if (_slotReason != null && _slotReason!.isNotEmpty)
                     Padding(
                       padding: EdgeInsets.only(bottom: 8.h),
                       child: Text(

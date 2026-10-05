@@ -1,11 +1,7 @@
 import 'package:yjeek_app/features/browse/model/browse_data.dart';
 import 'package:yjeek_app/features/browse/model/vendor_menu_grouping.dart';
 
-/// Fashion-style chip → accordion → subgroup from menu section names.
-///
-/// Supports:
-/// - `"Men · Shirts"` / `"Men - Trousers"` → chip Men, subgroup SHIRTS
-/// - plain `"Men"` → chip Men, no subgroup
+/// Fallback chip → sub-accordion → sub-sub group when API tree is flat section names.
 List<VendorMenuChipGroup> buildFashionMenuChipGroups({
   required List<String> sections,
   required List<BrowseMenuItem> items,
@@ -19,8 +15,9 @@ List<VendorMenuChipGroup> buildFashionMenuChipGroups({
   }
 
   final chipOrder = <String>[];
-  // chip → subgroupLabel? → items
-  final chipMap = <String, Map<String?, List<BrowseMenuItem>>>{};
+  // chip → accordion → subgroup? → items
+  final chipMap =
+      <String, Map<String, Map<String?, List<BrowseMenuItem>>>>{};
 
   for (final section in sections) {
     final sectionItems = bySection[section] ?? const [];
@@ -31,9 +28,10 @@ List<VendorMenuChipGroup> buildFashionMenuChipGroups({
       chipOrder.add(parsed.chip);
       chipMap[parsed.chip] = {};
     }
-    final groups = chipMap[parsed.chip]!;
-    groups.putIfAbsent(parsed.subgroup, () => []);
-    groups[parsed.subgroup]!.addAll(sectionItems);
+    final accordionMap = chipMap[parsed.chip]!;
+    accordionMap.putIfAbsent(parsed.accordion, () => {});
+    accordionMap[parsed.accordion]!.putIfAbsent(parsed.subgroup, () => []);
+    accordionMap[parsed.accordion]![parsed.subgroup]!.addAll(sectionItems);
   }
 
   return [
@@ -41,33 +39,45 @@ List<VendorMenuChipGroup> buildFashionMenuChipGroups({
       VendorMenuChipGroup(
         label: chip,
         accordions: [
-          VendorMenuAccordion(
-            title: chip,
-            groups: [
-              for (final entry in chipMap[chip]!.entries)
-                if (entry.value.isNotEmpty)
-                  VendorMenuItemGroup(
-                    label: entry.key,
-                    items: entry.value,
-                  ),
-            ],
-          ),
+          for (final accordion in chipMap[chip]!.keys)
+            VendorMenuAccordion(
+              title: accordion,
+              groups: [
+                for (final entry in chipMap[chip]![accordion]!.entries)
+                  if (entry.value.isNotEmpty)
+                    VendorMenuItemGroup(
+                      label: entry.key,
+                      items: entry.value,
+                    ),
+              ],
+            ),
         ],
       ),
   ];
 }
 
-({String chip, String? subgroup}) _parseFashionSection(String section) {
+({String chip, String accordion, String? subgroup}) _parseFashionSection(
+  String section,
+) {
   final raw = section.trim();
-  if (raw.isEmpty) return (chip: 'All', subgroup: null);
+  if (raw.isEmpty) return (chip: 'All', accordion: 'All', subgroup: null);
 
-  // "Men · Shirts", "Men - Shirts", "Men / Shirts", "Men > Shirts"
   final delim = RegExp(r'\s*[·\-|/>]\s*');
   final parts = raw.split(delim).where((p) => p.trim().isNotEmpty).toList();
-  if (parts.length >= 2) {
+  if (parts.length >= 3) {
     final chip = parts.first.trim();
-    final sub = parts.sublist(1).join(' ').trim().toUpperCase();
-    return (chip: chip, subgroup: sub.isEmpty ? null : sub);
+    final accordion = parts[1].trim();
+    final sub = parts.sublist(2).join(' ').trim().toUpperCase();
+    return (
+      chip: chip,
+      accordion: accordion,
+      subgroup: sub.isEmpty ? null : sub,
+    );
   }
-  return (chip: raw, subgroup: null);
+  if (parts.length == 2) {
+    final chip = parts.first.trim();
+    final sub = parts[1].trim().toUpperCase();
+    return (chip: chip, accordion: chip, subgroup: sub.isEmpty ? null : sub);
+  }
+  return (chip: raw, accordion: raw, subgroup: null);
 }

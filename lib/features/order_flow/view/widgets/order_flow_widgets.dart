@@ -8,6 +8,7 @@ import 'package:yjeek_app/features/navigation/model/navigation_data.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/account_widgets.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/navigation_widgets.dart';
 import 'package:yjeek_app/features/order_flow/model/order_flow_data.dart';
+import 'package:yjeek_app/routes/app_router.dart';
 
 class OrderFlowScaffold extends StatelessWidget {
   const OrderFlowScaffold({
@@ -94,7 +95,7 @@ class _OrderLightHeader extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             GestureDetector(
-              onTap: onBack ?? () => Navigator.of(context).maybePop(),
+              onTap: onBack ?? () => navigateBack(context),
               child: Container(
                 width: 36.w,
                 height: 36.w,

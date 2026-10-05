@@ -9,12 +9,16 @@ class RetailCategoryDetail {
     required this.name,
     required this.slug,
     required this.tiles,
+    required this.twoLevel,
   });
 
   final String id;
   final String name;
   final String slug;
   final List<RetailCategoryTile> tiles;
+
+  /// Store Management catalog structure. Two-level shows sub-types; single-level shows vendors.
+  final bool twoLevel;
 }
 
 enum RetailTileKind { subcategory, vendor }
@@ -65,6 +69,7 @@ class CategoriesRepository {
           name: name,
           slug: item['slug'] as String?,
           iconUrl: item['iconUrl'] as String?,
+          structure: item['structure'] as String?,
         ),
       );
     }
@@ -85,62 +90,36 @@ class CategoriesRepository {
         ? data['slug'] as String
         : slug;
 
+    final twoLevel =
+        (data['structure'] as String?)?.trim().toUpperCase() == 'TWO_LEVEL';
     final tiles = <RetailCategoryTile>[];
 
-    void addNode(Map<String, dynamic> node) {
-      final nodeId = node['id']?.toString();
-      final nodeName = (node['name'] as String?)?.trim();
-      if (nodeId == null ||
-          nodeId.isEmpty ||
-          nodeName == null ||
-          nodeName.isEmpty) {
-        return;
-      }
-      tiles.add(
-        RetailCategoryTile(
-          id: nodeId,
-          name: nodeName,
-          kind: RetailTileKind.subcategory,
-          slug: node['slug']?.toString(),
-          imageUrl: resolveApiMediaUrl(node['iconUrl'] as String?) ??
-              resolveApiMediaUrl(node['imageUrl'] as String?),
-        ),
-      );
-      final children = node['children'];
-      if (children is List) {
-        for (final child in children) {
-          if (child is Map<String, dynamic>) addNode(child);
+    if (twoLevel) {
+      final subTypes = data['subTypes'];
+      if (subTypes is List) {
+        for (final raw in subTypes) {
+          if (raw is! Map<String, dynamic>) continue;
+          final nodeId = raw['id']?.toString();
+          final nodeName = (raw['name'] as String?)?.trim();
+          if (nodeId == null ||
+              nodeId.isEmpty ||
+              nodeName == null ||
+              nodeName.isEmpty) {
+            continue;
+          }
+          tiles.add(
+            RetailCategoryTile(
+              id: nodeId,
+              name: nodeName,
+              kind: RetailTileKind.subcategory,
+              slug: raw['slug']?.toString(),
+              imageUrl: resolveApiMediaUrl(raw['iconUrl'] as String?) ??
+                  resolveApiMediaUrl(raw['imageUrl'] as String?),
+            ),
+          );
         }
       }
-    }
-
-    final menu = data['menuCategories'];
-    if (menu is List) {
-      for (final raw in menu) {
-        if (raw is Map<String, dynamic>) addNode(raw);
-      }
-    }
-
-    final subTypes = data['subTypes'];
-    if (tiles.isEmpty && subTypes is List) {
-      for (final raw in subTypes) {
-        if (raw is! Map<String, dynamic>) continue;
-        final nodeId = raw['id']?.toString();
-        final nodeName = (raw['name'] as String?)?.trim();
-        if (nodeId == null || nodeName == null || nodeName.isEmpty) continue;
-        tiles.add(
-          RetailCategoryTile(
-            id: nodeId,
-            name: nodeName,
-            kind: RetailTileKind.subcategory,
-            slug: raw['slug']?.toString(),
-            imageUrl: resolveApiMediaUrl(raw['iconUrl'] as String?),
-          ),
-        );
-      }
-    }
-
-    if (tiles.isEmpty) {
+    } else {
       final vendorsRes = await _apiClient.getJson(
         '/vendors?category=${Uri.encodeQueryComponent(resolvedSlug)}',
       );
@@ -172,6 +151,7 @@ class CategoriesRepository {
       name: name,
       slug: resolvedSlug,
       tiles: tiles,
+      twoLevel: twoLevel,
     );
   }
 }

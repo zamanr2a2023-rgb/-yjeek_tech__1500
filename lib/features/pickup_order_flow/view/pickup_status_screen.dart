@@ -6,7 +6,6 @@ import 'package:go_router/go_router.dart';
 import 'package:yjeek_app/core/constants/app_colors.dart';
 import 'package:yjeek_app/core/providers/app_providers.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
-import 'package:yjeek_app/features/navigation/view/widgets/account_widgets.dart';
 import 'package:yjeek_app/features/order_flow/model/order_api_mappers.dart';
 import 'package:yjeek_app/features/order_flow/view/widgets/order_flow_widgets.dart';
 import 'package:yjeek_app/features/pickup_order_flow/model/pickup_order_api_mappers.dart';
@@ -33,8 +32,6 @@ class _PickupStatusScreenState extends ConsumerState<PickupStatusScreen> {
   String _pickup = '';
   String _total = '';
   bool _loading = true;
-  bool _canMarkArrived = false;
-  bool _markingArrived = false;
   String? _error;
 
   @override
@@ -123,14 +120,6 @@ class _PickupStatusScreenState extends ConsumerState<PickupStatusScreen> {
             ? '$statusLabel · $eta'
             : statusLabel;
       }
-      _canMarkArrived = data['canMarkArrived'] == true ||
-          const {
-            'CONFIRMED',
-            'PREPARING',
-            'READY_FOR_YOU',
-            'READY_FOR_PICKUP',
-            'READY',
-          }.contains(statusUpper);
       _loading = false;
       _error = null;
     });
@@ -138,24 +127,6 @@ class _PickupStatusScreenState extends ConsumerState<PickupStatusScreen> {
     if (statusUpper == 'COLLECTED' || statusUpper == 'COMPLETED') {
       _pollTimer?.cancel();
     }
-  }
-
-  Future<void> _markArrived() async {
-    final id = widget.orderId;
-    if (id == null || id.isEmpty || _markingArrived || !_canMarkArrived) {
-      return;
-    }
-    setState(() => _markingArrived = true);
-    final ok = await ref.read(ordersRepositoryProvider).markArrived(id);
-    if (!mounted) return;
-    setState(() => _markingArrived = false);
-    if (!ok) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not mark arrival. Try again.')),
-      );
-      return;
-    }
-    await _load();
   }
 
   @override
@@ -197,15 +168,6 @@ class _PickupStatusScreenState extends ConsumerState<PickupStatusScreen> {
                       pickup: _pickup,
                       total: _total,
                     ),
-                    if (_canMarkArrived) ...[
-                      SizedBox(height: 14.h),
-                      PrimaryGreenButton(
-                        label: _markingArrived
-                            ? 'Updating…'
-                            : PickupOrderFlowStrings.imHere,
-                        onPressed: _markingArrived ? () {} : _markArrived,
-                      ),
-                    ],
                     SizedBox(height: 14.h),
                     OrderOutlineButton(
                       label: PickupOrderFlowStrings.viewReceipt,
