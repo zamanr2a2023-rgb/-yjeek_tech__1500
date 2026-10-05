@@ -107,7 +107,7 @@ class _VapeBrowseScreenState extends ConsumerState<VapeBrowseScreen> {
                 children: [
                   FashionVendorsHeader(title: VapeData.homeTitle),
                   Padding(
-                    padding: EdgeInsets.fromLTRB(20.w, 2.h, 20.w, 0),
+                    padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 0),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -168,7 +168,7 @@ class _VapeBrowseScreenState extends ConsumerState<VapeBrowseScreen> {
                     crossAxisCount: 2,
                     mainAxisSpacing: 12.h,
                     crossAxisSpacing: 12.w,
-                    childAspectRatio: 0.78,
+                    childAspectRatio: 0.68,
                   ),
                   delegate: SliverChildBuilderDelegate(
                     (context, index) {

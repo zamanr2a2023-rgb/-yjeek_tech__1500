@@ -193,53 +193,28 @@ class VapeVendorListCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final offer = store.offerBadge;
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        height: 72.h,
+        width: double.infinity,
+        padding: EdgeInsets.all(12.w),
         decoration: BoxDecoration(
           color: AppColors.white,
-          borderRadius: BorderRadius.circular(14.r),
-          border: Border.all(color: const Color(0xFFDEDEDE)),
+          borderRadius: BorderRadius.circular(16.r),
+          border: Border.all(color: const Color(0xFFE2E8DD)),
         ),
-        clipBehavior: Clip.antiAlias,
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SizedBox(
-              width: 88.w,
-              height: 72.h,
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  ColoredBox(
-                    color: const Color(0xFFE8F5E9),
-                    child: store.imageUrl != null && store.imageUrl!.isNotEmpty
-                        ? AppNetworkImage(
-                            url: store.imageUrl!,
-                            fit: BoxFit.cover,
-                            errorWidget: const ColoredBox(
-                              color: Color(0xFFE8F5E9),
-                            ),
-                          )
-                        : null,
-                  ),
-                  if (store.offerBadge != null &&
-                      store.offerBadge!.isNotEmpty)
-                    Positioned(
-                      left: 8.w,
-                      top: 8.h,
-                      child: _OfferBadge(label: store.offerBadge!),
-                    ),
-                ],
-              ),
-            ),
+            _SquareLogo(imageUrl: store.imageUrl),
             SizedBox(width: 12.w),
             Expanded(
               child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Expanded(
                         child: Text(
@@ -247,30 +222,18 @@ class VapeVendorListCard extends StatelessWidget {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: AppTextStyles.labelMedium(
-                            color: AppColors.textPrimary,
+                            color: const Color(0xFF1A1A1A),
                           ).copyWith(
                             fontWeight: FontWeight.w700,
-                            fontSize: 14.sp,
+                            fontSize: 15.sp,
                           ),
                         ),
                       ),
-                      const VapeAgeBadge(),
-                      if (store.hasRating && store.rating > 0) ...[
-                        SizedBox(width: 6.w),
-                        Icon(Icons.star_rounded,
-                            size: 14.sp, color: const Color(0xFFD98C1A)),
-                        SizedBox(width: 2.w),
-                        Text(
-                          store.rating.toStringAsFixed(1),
-                          style: AppTextStyles.labelSmall(
-                            color: AppColors.textPrimary,
-                          ).copyWith(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 12.sp,
-                          ),
-                        ),
-                      ],
-                      SizedBox(width: 10.w),
+                      SizedBox(width: 8.w),
+                      _RatingMark(
+                        rating: store.rating,
+                        visible: store.hasRating && store.rating > 0,
+                      ),
                     ],
                   ),
                   SizedBox(height: 4.h),
@@ -278,9 +241,21 @@ class VapeVendorListCard extends StatelessWidget {
                     store.areaLabel,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: AppTextStyles.caption(
-                      color: const Color(0xFF6B6B6B),
-                    ).copyWith(fontSize: 12.sp),
+                    style: AppTextStyles.bodySmall(
+                      color: AppColors.textSecondary,
+                    ).copyWith(fontSize: 13.sp),
+                  ),
+                  Padding(
+                    padding: EdgeInsets.only(top: 6.h),
+                    child: Wrap(
+                      spacing: 6.w,
+                      runSpacing: 4.h,
+                      children: [
+                        const VapeAgeBadge(),
+                        if (offer != null && offer.isNotEmpty)
+                          _OfferBadge(label: offer),
+                      ],
+                    ),
                   ),
                 ],
               ),
@@ -305,100 +280,148 @@ class VapeVendorGridCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final offer = store.offerBadge;
     return GestureDetector(
       onTap: onTap,
       child: Container(
         decoration: BoxDecoration(
           color: AppColors.white,
-          borderRadius: BorderRadius.circular(14.r),
-          border: Border.all(color: const Color(0xFFDEDEDE)),
+          borderRadius: BorderRadius.circular(16.r),
+          border: Border.all(color: const Color(0xFFE2E8DD)),
         ),
         clipBehavior: Clip.antiAlias,
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(
-              flex: 5,
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  ColoredBox(
-                    color: const Color(0xFFE8F5E9),
-                    child: store.imageUrl != null && store.imageUrl!.isNotEmpty
-                        ? AppNetworkImage(
-                            url: store.imageUrl!,
-                            fit: BoxFit.cover,
-                            errorWidget: const ColoredBox(
-                              color: Color(0xFFE8F5E9),
-                            ),
-                          )
-                        : null,
-                  ),
-                  if (store.offerBadge != null &&
-                      store.offerBadge!.isNotEmpty)
-                    Positioned(
-                      left: 8.w,
-                      top: 8.h,
-                      child: _OfferBadge(label: store.offerBadge!),
-                    ),
-                ],
+              child: ColoredBox(
+                color: const Color(0xFFE8F5E9),
+                child: store.imageUrl != null && store.imageUrl!.isNotEmpty
+                    ? AppNetworkImage(
+                        url: store.imageUrl!,
+                        fit: BoxFit.cover,
+                        errorWidget: const ColoredBox(
+                          color: Color(0xFFE8F5E9),
+                        ),
+                      )
+                    : null,
               ),
             ),
-            Expanded(
-              flex: 4,
-              child: Padding(
-                padding: EdgeInsets.fromLTRB(10.w, 8.h, 10.w, 8.h),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      store.name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppTextStyles.labelMedium(
-                        color: AppColors.textPrimary,
-                      ).copyWith(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 13.sp,
-                      ),
+            Padding(
+              padding: EdgeInsets.fromLTRB(8.w, 6.h, 8.w, 6.h),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    store.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTextStyles.labelSmall(
+                      color: const Color(0xFF1A1A1A),
+                    ).copyWith(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 13.sp,
+                      height: 1.15,
                     ),
-                    SizedBox(height: 4.h),
-                    Row(
-                      children: [
-                        const VapeAgeBadge(),
-                        if (store.hasRating && store.rating > 0) ...[
-                          SizedBox(width: 6.w),
-                          Icon(Icons.star_rounded,
-                              size: 12.sp, color: const Color(0xFFD98C1A)),
-                          SizedBox(width: 2.w),
-                          Text(
-                            store.rating.toStringAsFixed(1),
-                            style: AppTextStyles.caption(
-                              color: AppColors.textPrimary,
-                            ).copyWith(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 11.sp,
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                    SizedBox(height: 4.h),
-                    Text(
-                      store.areaLabel,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppTextStyles.caption(
-                        color: const Color(0xFF6B6B6B),
-                      ).copyWith(fontSize: 11.sp),
-                    ),
-                  ],
-                ),
+                  ),
+                  SizedBox(height: 4.h),
+                  _RatingMark(
+                    rating: store.rating,
+                    visible: store.hasRating && store.rating > 0,
+                    compact: true,
+                  ),
+                  SizedBox(height: 4.h),
+                  Text(
+                    store.areaLabel,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTextStyles.caption(
+                      color: AppColors.textSecondary,
+                    ).copyWith(fontSize: 11.sp, height: 1.1),
+                  ),
+                  SizedBox(height: 4.h),
+                  Wrap(
+                    spacing: 6.w,
+                    runSpacing: 4.h,
+                    children: [
+                      const VapeAgeBadge(),
+                      if (offer != null && offer.isNotEmpty)
+                        _OfferBadge(label: offer),
+                    ],
+                  ),
+                ],
               ),
             ),
           ],
         ),
       ),
+    );
+  }
+}
+
+class _SquareLogo extends StatelessWidget {
+  const _SquareLogo({required this.imageUrl});
+
+  final String? imageUrl;
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(12.r),
+      child: SizedBox(
+        width: 72.w,
+        height: 72.w,
+        child: ColoredBox(
+          color: const Color(0xFFE8F5E9),
+          child: imageUrl != null && imageUrl!.isNotEmpty
+              ? AppNetworkImage(
+                  url: imageUrl!,
+                  fit: BoxFit.cover,
+                  errorWidget: const ColoredBox(color: Color(0xFFE8F5E9)),
+                )
+              : null,
+        ),
+      ),
+    );
+  }
+}
+
+class _RatingMark extends StatelessWidget {
+  const _RatingMark({
+    required this.rating,
+    required this.visible,
+    this.compact = false,
+  });
+
+  final double rating;
+  final bool visible;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!visible) return const SizedBox.shrink();
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          '★',
+          style: TextStyle(
+            color: const Color(0xFFC9A84C),
+            fontSize: compact ? 10.sp : 11.sp,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        SizedBox(width: 3.w),
+        Text(
+          rating.toStringAsFixed(1),
+          style: AppTextStyles.labelSmall(color: const Color(0xFF1A1A1A))
+              .copyWith(
+            fontWeight: FontWeight.w700,
+            fontSize: compact ? 11.sp : 13.sp,
+          ),
+        ),
+      ],
     );
   }
 }
@@ -413,14 +436,14 @@ class _OfferBadge extends StatelessWidget {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
       decoration: BoxDecoration(
-        color: AppColors.primary,
-        borderRadius: BorderRadius.circular(5.r),
+        color: AppColors.offerBadgeGreenBg,
+        borderRadius: BorderRadius.circular(4.r),
       ),
       child: Text(
         label,
-        style: AppTextStyles.caption(color: AppColors.white).copyWith(
+        style: AppTextStyles.labelSmall(color: AppColors.primary).copyWith(
           fontWeight: FontWeight.w600,
-          fontSize: 9.sp,
+          fontSize: 11.sp,
         ),
       ),
     );

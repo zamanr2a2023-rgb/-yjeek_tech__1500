@@ -20,6 +20,8 @@ class OrderFlowScaffold extends StatelessWidget {
     this.trailing,
     this.bottom,
     this.bottomNavIndex = 1,
+    this.showBottomNav = true,
+    this.blockBack = false,
     this.showHeader = true,
     this.lightHeader = false,
     this.backgroundColor,
@@ -32,6 +34,8 @@ class OrderFlowScaffold extends StatelessWidget {
   final Widget? trailing;
   final Widget? bottom;
   final int bottomNavIndex;
+  final bool showBottomNav;
+  final bool blockBack;
   final bool showHeader;
   final bool lightHeader;
   final Color? backgroundColor;
@@ -39,7 +43,7 @@ class OrderFlowScaffold extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bg = backgroundColor ?? AppColors.background;
-    return Scaffold(
+    final scaffold = Scaffold(
       backgroundColor: bg,
       body: ColoredBox(
         color: bg,
@@ -66,8 +70,12 @@ class OrderFlowScaffold extends StatelessWidget {
           ],
         ),
       ),
-      bottomNavigationBar: ShellBottomNavBar(currentIndex: bottomNavIndex),
+      bottomNavigationBar: showBottomNav
+          ? ShellBottomNavBar(currentIndex: bottomNavIndex)
+          : null,
     );
+    if (!blockBack) return scaffold;
+    return PopScope(canPop: false, child: scaffold);
   }
 }
 
@@ -715,6 +723,28 @@ class OrderPaymentRow extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class PaymentLockCancelButton extends StatelessWidget {
+  const PaymentLockCancelButton({
+    super.key,
+    required this.busy,
+    required this.onPressed,
+  });
+
+  final bool busy;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(top: 16.h),
+      child: OrderOutlineButton(
+        label: busy ? 'Cancelling…' : OrderFlowStrings.cancelOrder,
+        onPressed: busy ? null : onPressed,
       ),
     );
   }

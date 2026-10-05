@@ -41,6 +41,7 @@ class _OrderStatusScreenState extends ConsumerState<OrderStatusScreen> {
   String _champMeta = 'Waiting for pickup';
   String? _champPhone;
   String _payment = _dash;
+  String _orderType = '';
   bool _loading = true;
   bool _hasChamp = false;
   bool _canChangePayment = false;
@@ -164,6 +165,7 @@ class _OrderStatusScreenState extends ConsumerState<OrderStatusScreen> {
           _dropoffLat = null;
           _dropoffLng = null;
         }
+        _orderType = (data['orderType']?.toString() ?? '').toUpperCase();
         final paymentRaw = data['paymentMethod']?.toString();
         _methodApi = (paymentRaw ?? '').toUpperCase();
         _payment = paymentRaw == null || paymentRaw.isEmpty
@@ -393,13 +395,15 @@ class _OrderStatusScreenState extends ConsumerState<OrderStatusScreen> {
                 OrderArrivalCard(arrivalWindow: _arrival),
                 SizedBox(height: 16.h),
                 OrderTimeline(steps: _timeline),
-                SizedBox(height: 16.h),
-                OrderChampCard(
-                  subtitle: _champSubtitle,
-                  meta: _champMeta,
-                  onCall: _onCall,
-                  onChat: _onChat,
-                ),
+                if (_orderType != 'PICKUP') ...[
+                  SizedBox(height: 16.h),
+                  OrderChampCard(
+                    subtitle: _champSubtitle,
+                    meta: _champMeta,
+                    onCall: _onCall,
+                    onChat: _onChat,
+                  ),
+                ],
                 SizedBox(height: 16.h),
                 OrderVendorSummaryCard(
                   vendor: _vendor,

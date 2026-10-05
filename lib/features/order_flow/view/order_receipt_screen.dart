@@ -80,6 +80,21 @@ class _OrderReceiptScreenState extends ConsumerState<OrderReceiptScreen> {
     final vendor = receipt['vendor'];
     final vendorMap = vendor is Map ? Map<String, dynamic>.from(vendor) : null;
     final vendorName = vendorMap?['name']?.toString();
+    final locationName = vendorMap?['locationName']?.toString();
+    final vendorLocation = vendorName == null || vendorName.isEmpty
+        ? null
+        : (locationName != null && locationName.isNotEmpty
+            ? '$vendorName — $locationName'
+            : vendorName);
+    final vendorAddress = vendorMap?['details']?.toString();
+    final address = receipt['address'];
+    final deliverTo = receipt['deliverToLabel']?.toString() ??
+        (address is Map
+            ? [address['label'], address['area']]
+                .whereType<String>()
+                .where((s) => s.isNotEmpty)
+                .join(' · ')
+            : null);
     final totals = receipt['totals'];
     final totalsMap = totals is Map ? Map<String, dynamic>.from(totals) : null;
     final apiItems = receiptItemsFromApi(
@@ -96,10 +111,16 @@ class _OrderReceiptScreenState extends ConsumerState<OrderReceiptScreen> {
 
     setState(() => _sharing = true);
     try {
+      final badge = receiptBadgeLabel(receipt);
       await shareReceiptPdf(
         orderNumber: orderNumber,
         shareText: shareText,
-        vendorName: vendorName,
+        vendorName: vendorLocation,
+        badgeLabel: badge == null ? null : '✓ $badge',
+        vendorAddress: vendorAddress,
+        orderDate: formatOrderDate(receipt['placedAt']),
+        typeLabel: formatOrderType(receipt['orderType']?.toString()),
+        deliverTo: deliverTo == null || deliverTo.isEmpty ? null : deliverTo,
         items: [
           for (final i in apiItems) (name: i.name, price: i.price),
         ],

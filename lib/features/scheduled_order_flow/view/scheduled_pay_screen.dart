@@ -2,18 +2,17 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:yjeek_app/core/providers/app_providers.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/features/order_flow/model/order_api_mappers.dart';
 import 'package:yjeek_app/features/order_flow/view/widgets/order_flow_widgets.dart';
 import 'package:yjeek_app/features/payments/model/benefit_pay_models.dart';
 import 'package:yjeek_app/features/payments/pay_now_helper.dart';
+import 'package:yjeek_app/features/payments/payment_page_lock.dart';
 import 'package:yjeek_app/features/scheduled_order_flow/model/scheduled_order_api_mappers.dart';
 import 'package:yjeek_app/features/scheduled_order_flow/model/scheduled_order_flow_data.dart';
 import 'package:yjeek_app/features/scheduled_order_flow/scheduled_order_flow_routes.dart';
 import 'package:yjeek_app/features/scheduled_order_flow/view/widgets/scheduled_order_flow_widgets.dart';
-import 'package:yjeek_app/routes/route_names.dart';
 
 class ScheduledPayScreen extends ConsumerStatefulWidget {
   const ScheduledPayScreen({super.key, this.orderIds = const []});
@@ -30,6 +29,7 @@ class _ScheduledPayScreenState extends ConsumerState<ScheduledPayScreen> {
   late int _secondsLeft;
   Timer? _timer;
   bool _paying = false;
+  bool _cancelling = false;
   bool _expiring = false;
   bool _expired = false;
   bool _methodBusy = false;
@@ -57,6 +57,7 @@ class _ScheduledPayScreenState extends ConsumerState<ScheduledPayScreen> {
   @override
   void initState() {
     super.initState();
+    engagePaymentPageLock(context);
     _secondsLeft = _defaultSeconds;
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (!mounted || _expired || _expiring) return;
@@ -185,7 +186,8 @@ class _ScheduledPayScreenState extends ConsumerState<ScheduledPayScreen> {
 
     if (allPaid) {
       _timer?.cancel();
-      context.pushReplacement(
+      leaveLockedPayment(
+        context,
         ScheduledOrderFlowRoutes.confirmedFor(widget.orderIds),
       );
       return;
@@ -218,7 +220,7 @@ class _ScheduledPayScreenState extends ConsumerState<ScheduledPayScreen> {
       'Payment window expired — order cancelled',
       color: const Color(0xFFB42318),
     );
-    context.go('${RouteNames.home}?tab=1');
+    leaveLockedPaymentToOrders(context);
   }
 
   Future<void> _changePayment() async {
@@ -271,16 +273,32 @@ class _ScheduledPayScreenState extends ConsumerState<ScheduledPayScreen> {
       );
       if (!ok || !mounted) return;
       _timer?.cancel();
-      context.pushReplacement(ScheduledOrderFlowRoutes.confirmedFor(ids));
+      leaveLockedPayment(context, ScheduledOrderFlowRoutes.confirmedFor(ids));
     } finally {
       if (mounted) setState(() => _paying = false);
     }
+  }
+
+  Future<void> _cancelOrder() async {
+    if (_cancelling || _paying || _expiring) return;
+    setState(() => _cancelling = true);
+    final ok = await cancelLockedPaymentOrders(ref, widget.orderIds);
+    if (!mounted) return;
+    if (!ok) {
+      setState(() => _cancelling = false);
+      _payHelper.snack('Could not cancel order', color: const Color(0xFFB42318));
+      return;
+    }
+    _timer?.cancel();
+    leaveLockedPaymentToOrders(context);
   }
 
   @override
   Widget build(BuildContext context) {
     return OrderFlowScaffold(
       showHeader: false,
+      showBottomNav: false,
+      blockBack: true,
       bottomNavIndex: 0,
       backgroundColor: const Color(0xFFF2F7F2),
       body: ListView(
@@ -315,12 +333,16 @@ class _ScheduledPayScreenState extends ConsumerState<ScheduledPayScreen> {
             tip: _tip,
             total: _total,
           ),
+          PaymentLockCancelButton(
+            busy: _cancelling,
+            onPressed: (_paying || _expiring) ? null : _cancelOrder,
+          ),
         ],
       ),
       bottom: ScheduledPayStickyFooter(
         timerLabel: _footerTimerLabel,
         payAmount: _total,
-        onPay: (_paying || _expired || _methodBusy || _secondsLeft <= 0)
+        onPay: (_paying || _cancelling || _expired || _methodBusy || _secondsLeft <= 0)
             ? () {}
             : _pay,
       ),

@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:yjeek_app/core/constants/app_colors.dart';
 import 'package:yjeek_app/core/providers/app_providers.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
@@ -10,9 +9,9 @@ import 'package:yjeek_app/features/order_flow/model/order_api_mappers.dart';
 import 'package:yjeek_app/features/order_flow/view/widgets/order_flow_widgets.dart';
 import 'package:yjeek_app/features/payments/model/benefit_pay_models.dart';
 import 'package:yjeek_app/features/payments/pay_now_helper.dart';
+import 'package:yjeek_app/features/payments/payment_page_lock.dart';
 import 'package:yjeek_app/features/services_order_flow/services_order_flow_routes.dart';
 import 'package:yjeek_app/features/services_order_flow/view/widgets/services_order_flow_widgets.dart';
-import 'package:yjeek_app/routes/route_names.dart';
 
 class ServicesPayScreen extends ConsumerStatefulWidget {
   const ServicesPayScreen({super.key, this.orderId});
@@ -29,6 +28,7 @@ class _ServicesPayScreenState extends ConsumerState<ServicesPayScreen> {
   late int _secondsLeft;
   Timer? _timer;
   bool _paying = false;
+  bool _cancelling = false;
   bool _expiring = false;
   bool _expired = false;
   bool _methodBusy = false;
@@ -50,6 +50,7 @@ class _ServicesPayScreenState extends ConsumerState<ServicesPayScreen> {
   @override
   void initState() {
     super.initState();
+    engagePaymentPageLock(context);
     _secondsLeft = _defaultSeconds;
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (!mounted || _expired || _expiring) return;
@@ -144,7 +145,7 @@ class _ServicesPayScreenState extends ConsumerState<ServicesPayScreen> {
 
     if (PayNowHelper.isSettled(paymentStatus)) {
       _timer?.cancel();
-      context.pushReplacement(ServicesOrderFlowRoutes.confirmedFor(orderId));
+      leaveLockedPayment(context, ServicesOrderFlowRoutes.confirmedFor(orderId));
       return;
     }
 
@@ -176,7 +177,7 @@ class _ServicesPayScreenState extends ConsumerState<ServicesPayScreen> {
       'Payment window expired — order cancelled',
       color: const Color(0xFFB42318),
     );
-    context.go('${RouteNames.home}?tab=1');
+    leaveLockedPaymentToOrders(context);
   }
 
   Future<void> _changePayment() async {
@@ -231,10 +232,27 @@ class _ServicesPayScreenState extends ConsumerState<ServicesPayScreen> {
       );
       if (!ok || !mounted) return;
       _timer?.cancel();
-      context.pushReplacement(ServicesOrderFlowRoutes.confirmedFor(orderId));
+      leaveLockedPayment(context, ServicesOrderFlowRoutes.confirmedFor(orderId));
     } finally {
       if (mounted) setState(() => _paying = false);
     }
+  }
+
+  Future<void> _cancelOrder() async {
+    if (_cancelling || _paying || _expiring) return;
+    final orderId = widget.orderId;
+    setState(() => _cancelling = true);
+    final ok = orderId == null || orderId.isEmpty
+        ? true
+        : await cancelLockedPaymentOrders(ref, [orderId]);
+    if (!mounted) return;
+    if (!ok) {
+      setState(() => _cancelling = false);
+      _payHelper.snack('Could not cancel order', color: const Color(0xFFB42318));
+      return;
+    }
+    _timer?.cancel();
+    leaveLockedPaymentToOrders(context);
   }
 
   @override
@@ -242,6 +260,8 @@ class _ServicesPayScreenState extends ConsumerState<ServicesPayScreen> {
     if (_loading) {
       return OrderFlowScaffold(
         showHeader: false,
+        showBottomNav: false,
+        blockBack: true,
         bottomNavIndex: 0,
         body: const Center(
           child: CircularProgressIndicator(color: AppColors.primary),
@@ -250,6 +270,8 @@ class _ServicesPayScreenState extends ConsumerState<ServicesPayScreen> {
     }
     return OrderFlowScaffold(
       showHeader: false,
+      showBottomNav: false,
+      blockBack: true,
       bottomNavIndex: 0,
       body: ListView(
         padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 16.h),
@@ -271,12 +293,16 @@ class _ServicesPayScreenState extends ConsumerState<ServicesPayScreen> {
             serviceFee: _serviceFee,
             total: _total,
           ),
+          PaymentLockCancelButton(
+            busy: _cancelling,
+            onPressed: (_paying || _expiring) ? null : _cancelOrder,
+          ),
         ],
       ),
       bottom: ServicesPayStickyFooter(
         timerLabel: _footerTimerLabel,
         payAmount: _total,
-        onPay: (_paying || _expired || _methodBusy || _secondsLeft <= 0)
+        onPay: (_paying || _cancelling || _expired || _methodBusy || _secondsLeft <= 0)
             ? () {}
             : _pay,
       ),

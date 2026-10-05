@@ -127,13 +127,14 @@ class _CheckoutLightHeader extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: AppTextStyles.titleSmall(
-                      color: const Color(0xFF1A1A1A),
-                    ).copyWith(
-                      fontSize: 19.sp,
-                      fontWeight: FontWeight.w700,
-                      height: 1.3,
-                    ),
+                    style:
+                        AppTextStyles.titleSmall(
+                          color: const Color(0xFF1A1A1A),
+                        ).copyWith(
+                          fontSize: 19.sp,
+                          fontWeight: FontWeight.w700,
+                          height: 1.3,
+                        ),
                   ),
                   if (subtitle != null) ...[
                     SizedBox(height: 2.h),
@@ -141,10 +142,7 @@ class _CheckoutLightHeader extends StatelessWidget {
                       subtitle!,
                       style: AppTextStyles.labelSmall(
                         color: AppColors.textSecondary,
-                      ).copyWith(
-                        fontWeight: FontWeight.w500,
-                        fontSize: 12.sp,
-                      ),
+                      ).copyWith(fontWeight: FontWeight.w500, fontSize: 12.sp),
                     ),
                   ],
                 ],
@@ -310,35 +308,38 @@ class CartDeliveryDetailsCard extends StatelessWidget {
                     children: [
                       Text(
                         address,
-                        style: AppTextStyles.labelMedium(
-                          color: AppColors.textPrimary,
-                        ).copyWith(
-                          fontWeight: FontWeight.w700,
-                          fontSize: 14.sp,
-                        ),
+                        style:
+                            AppTextStyles.labelMedium(
+                              color: AppColors.textPrimary,
+                            ).copyWith(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 14.sp,
+                            ),
                       ),
                       if (addressDetail != null) ...[
                         SizedBox(height: 2.h),
                         Text(
                           addressDetail!,
-                          style: AppTextStyles.labelSmall(
-                            color: AppColors.textSecondary,
-                          ).copyWith(
-                            fontWeight: FontWeight.w500,
-                            fontSize: 12.sp,
-                          ),
+                          style:
+                              AppTextStyles.labelSmall(
+                                color: AppColors.textSecondary,
+                              ).copyWith(
+                                fontWeight: FontWeight.w500,
+                                fontSize: 12.sp,
+                              ),
                         ),
                       ],
                       if (phone != null) ...[
                         SizedBox(height: 2.h),
                         Text(
                           phone!,
-                          style: AppTextStyles.labelSmall(
-                            color: AppColors.textSecondary,
-                          ).copyWith(
-                            fontWeight: FontWeight.w500,
-                            fontSize: 12.sp,
-                          ),
+                          style:
+                              AppTextStyles.labelSmall(
+                                color: AppColors.textSecondary,
+                              ).copyWith(
+                                fontWeight: FontWeight.w500,
+                                fontSize: 12.sp,
+                              ),
                         ),
                       ],
                     ],
@@ -350,10 +351,7 @@ class CartDeliveryDetailsCard extends StatelessWidget {
                     CartFlowStrings.change,
                     style: AppTextStyles.labelSmall(
                       color: AppColors.primary,
-                    ).copyWith(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 13.sp,
-                    ),
+                    ).copyWith(fontWeight: FontWeight.w700, fontSize: 13.sp),
                   ),
                 ),
               ],
@@ -366,10 +364,7 @@ class CartDeliveryDetailsCard extends StatelessWidget {
               arrivesLabel ?? CartFlowStrings.arrivesIn,
               style: AppTextStyles.labelMedium(
                 color: AppColors.textPrimary,
-              ).copyWith(
-                fontWeight: FontWeight.w700,
-                fontSize: 14.sp,
-              ),
+              ).copyWith(fontWeight: FontWeight.w700, fontSize: 14.sp),
             ),
           ),
         ],
@@ -408,13 +403,12 @@ class CartDropOffGrid extends StatelessWidget {
           if (showTitle) ...[
             Text(
               CartFlowStrings.dropOffPreferences,
-              style: AppTextStyles.titleSmall(
-                color: const Color(0xFF1A1A1A),
-              ).copyWith(
-                fontSize: 16.sp,
-                fontWeight: FontWeight.w700,
-                height: 1.28,
-              ),
+              style: AppTextStyles.titleSmall(color: const Color(0xFF1A1A1A))
+                  .copyWith(
+                    fontSize: 16.sp,
+                    fontWeight: FontWeight.w700,
+                    height: 1.28,
+                  ),
             ),
             SizedBox(height: 12.h),
           ],
@@ -445,7 +439,9 @@ class CartDropOffGrid extends StatelessWidget {
                       onTap: () {
                         FocusManager.instance.primaryFocus?.unfocus();
                         // Tapping a conflicting (disabled) chip switches to it.
-                        onChanged(applyDropOffSelection(selectedIndices, index));
+                        onChanged(
+                          applyDropOffSelection(selectedIndices, index),
+                        );
                       },
                       child: Container(
                         width: tileW,
@@ -472,9 +468,12 @@ class CartDropOffGrid extends StatelessWidget {
                                 width: 16.w,
                                 height: 16.w,
                                 fit: BoxFit.contain,
-                                color: disabled ? const Color(0xFF9AA59C) : null,
-                                colorBlendMode:
-                                    disabled ? BlendMode.srcIn : null,
+                                color: disabled
+                                    ? const Color(0xFF9AA59C)
+                                    : null,
+                                colorBlendMode: disabled
+                                    ? BlendMode.srcIn
+                                    : null,
                               )
                             else
                               Icon(
@@ -490,15 +489,16 @@ class CartDropOffGrid extends StatelessWidget {
                                 option.label,
                                 maxLines: 3,
                                 overflow: TextOverflow.ellipsis,
-                                style: AppTextStyles.caption(
-                                  color: disabled
-                                      ? const Color(0xFF9AA59C)
-                                      : const Color(0xFF1A1A1A),
-                                ).copyWith(
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 10.sp,
-                                  height: 1.2,
-                                ),
+                                style:
+                                    AppTextStyles.caption(
+                                      color: disabled
+                                          ? const Color(0xFF9AA59C)
+                                          : const Color(0xFF1A1A1A),
+                                    ).copyWith(
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 10.sp,
+                                      height: 1.2,
+                                    ),
                               ),
                             ),
                           ],
@@ -532,11 +532,7 @@ class CartDropOffGrid extends StatelessWidget {
                       ),
                     ),
                     child: saveForAddress
-                        ? Icon(
-                            Icons.check,
-                            size: 14.sp,
-                            color: AppColors.white,
-                          )
+                        ? Icon(Icons.check, size: 14.sp, color: AppColors.white)
                         : null,
                   ),
                   SizedBox(width: 8.w),
@@ -544,10 +540,7 @@ class CartDropOffGrid extends StatelessWidget {
                     CartFlowStrings.saveDropOffForAddress,
                     style: AppTextStyles.labelSmall(
                       color: AppColors.textSecondary,
-                    ).copyWith(
-                      fontWeight: FontWeight.w500,
-                      fontSize: 12.5.sp,
-                    ),
+                    ).copyWith(fontWeight: FontWeight.w500, fontSize: 12.5.sp),
                   ),
                 ],
               ),
@@ -593,7 +586,9 @@ class CartTipSelector extends StatelessWidget {
         final selected = index == selectedIndex;
         return Expanded(
           child: Padding(
-            padding: EdgeInsets.only(right: index < options.length - 1 ? 8.w : 0),
+            padding: EdgeInsets.only(
+              right: index < options.length - 1 ? 8.w : 0,
+            ),
             child: GestureDetector(
               onTap: () {
                 FocusManager.instance.primaryFocus?.unfocus();
@@ -631,7 +626,9 @@ class CartTipSelector extends StatelessWidget {
               onTapOutside: (_) {
                 FocusManager.instance.primaryFocus?.unfocus();
               },
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
               textInputAction: TextInputAction.done,
               onEditingComplete: () =>
                   FocusManager.instance.primaryFocus?.unfocus(),
@@ -718,10 +715,7 @@ class CartTipSelector extends StatelessWidget {
                       headerSubtitle ?? CartFlowStrings.tipChampSubtitle,
                       style: AppTextStyles.labelSmall(
                         color: AppColors.textSecondary,
-                      ).copyWith(
-                        fontWeight: FontWeight.w500,
-                        fontSize: 12.sp,
-                      ),
+                      ).copyWith(fontWeight: FontWeight.w500, fontSize: 12.sp),
                     ),
                   ],
                 ),
@@ -810,27 +804,29 @@ class CartPaymentMethodList extends StatelessWidget {
                               children: [
                                 Text(
                                   option.label,
-                                  style: AppTextStyles.labelMedium(
-                                    color: AppColors.textPrimary,
-                                  ).copyWith(
-                                    fontWeight: option.subtitle != null
-                                        ? FontWeight.w700
-                                        : FontWeight.w500,
-                                    fontSize: 14.sp,
-                                    height: 1.28,
-                                  ),
+                                  style:
+                                      AppTextStyles.labelMedium(
+                                        color: AppColors.textPrimary,
+                                      ).copyWith(
+                                        fontWeight: option.subtitle != null
+                                            ? FontWeight.w700
+                                            : FontWeight.w500,
+                                        fontSize: 14.sp,
+                                        height: 1.28,
+                                      ),
                                 ),
                                 if (option.subtitle != null) ...[
                                   SizedBox(height: 2.h),
                                   Text(
                                     option.subtitle!,
-                                    style: AppTextStyles.caption(
-                                      color: const Color(0xFF6B7B6E),
-                                    ).copyWith(
-                                      fontWeight: FontWeight.w500,
-                                      fontSize: 11.5.sp,
-                                      height: 1.3,
-                                    ),
+                                    style:
+                                        AppTextStyles.caption(
+                                          color: const Color(0xFF6B7B6E),
+                                        ).copyWith(
+                                          fontWeight: FontWeight.w500,
+                                          fontSize: 11.5.sp,
+                                          height: 1.3,
+                                        ),
                                   ),
                                 ],
                               ],
@@ -892,10 +888,7 @@ class CartPaymentMethodList extends StatelessWidget {
                     CartFlowStrings.pciProtected,
                     style: AppTextStyles.labelSmall(
                       color: const Color(0xFF3A5A7A),
-                    ).copyWith(
-                      fontWeight: FontWeight.w500,
-                      fontSize: 12.sp,
-                    ),
+                    ).copyWith(fontWeight: FontWeight.w500, fontSize: 12.sp),
                   ),
                 ),
               ],
@@ -923,10 +916,7 @@ class CartPaymentMethodList extends StatelessWidget {
                     CartFlowStrings.walletComboNote,
                     style: AppTextStyles.labelSmall(
                       color: const Color(0xFF127036),
-                    ).copyWith(
-                      fontWeight: FontWeight.w500,
-                      fontSize: 12.5.sp,
-                    ),
+                    ).copyWith(fontWeight: FontWeight.w500, fontSize: 12.5.sp),
                   ),
                 ),
               ],
@@ -965,26 +955,24 @@ class CartZoodPromoBanner extends StatelessWidget {
                 ),
                 child: Text(
                   CartFlowStrings.zoodBadge,
-                  style: AppTextStyles.caption(
-                    color: const Color(0xFF73141F),
-                  ).copyWith(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 10.5.sp,
-                    height: 1.24,
-                  ),
+                  style: AppTextStyles.caption(color: const Color(0xFF73141F))
+                      .copyWith(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 10.5.sp,
+                        height: 1.24,
+                      ),
                 ),
               ),
               SizedBox(width: 8.w),
               Expanded(
                 child: Text(
                   CartFlowStrings.zoodPromoTitle,
-                  style: AppTextStyles.labelMedium(
-                    color: AppColors.white,
-                  ).copyWith(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14.sp,
-                    height: 1.2,
-                  ),
+                  style: AppTextStyles.labelMedium(color: AppColors.white)
+                      .copyWith(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14.sp,
+                        height: 1.2,
+                      ),
                 ),
               ),
             ],
@@ -1007,13 +995,12 @@ class CartZoodPromoBanner extends StatelessWidget {
                     ),
                     child: Text(
                       chip,
-                      style: AppTextStyles.caption(
-                        color: AppColors.white,
-                      ).copyWith(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 11.sp,
-                        height: 1.18,
-                      ),
+                      style: AppTextStyles.caption(color: AppColors.white)
+                          .copyWith(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 11.sp,
+                            height: 1.18,
+                          ),
                     ),
                   ),
                 )
@@ -1026,13 +1013,14 @@ class CartZoodPromoBanner extends StatelessWidget {
               Expanded(
                 child: Text(
                   CartFlowStrings.zoodPromoHint,
-                  style: AppTextStyles.labelSmall(
-                    color: const Color(0xFFFFDBE0),
-                  ).copyWith(
-                    fontWeight: FontWeight.w500,
-                    fontSize: 12.sp,
-                    height: 1.25,
-                  ),
+                  style:
+                      AppTextStyles.labelSmall(
+                        color: const Color(0xFFFFDBE0),
+                      ).copyWith(
+                        fontWeight: FontWeight.w500,
+                        fontSize: 12.sp,
+                        height: 1.25,
+                      ),
                 ),
               ),
               SizedBox(width: 10.w),
@@ -1049,13 +1037,14 @@ class CartZoodPromoBanner extends StatelessWidget {
                   ),
                   child: Text(
                     CartFlowStrings.zoodJoinWaitingList,
-                    style: AppTextStyles.labelSmall(
-                      color: const Color(0xFF9B111E),
-                    ).copyWith(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 14.sp,
-                      height: 1.2,
-                    ),
+                    style:
+                        AppTextStyles.labelSmall(
+                          color: const Color(0xFF9B111E),
+                        ).copyWith(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 14.sp,
+                          height: 1.2,
+                        ),
                   ),
                 ),
               ),
@@ -1093,16 +1082,19 @@ class CartZoodBanner extends StatelessWidget {
                 color: CartFlowData.zoodRed,
                 borderRadius: BorderRadius.circular(8.r),
               ),
-              child: Icon(Icons.auto_awesome, color: AppColors.white, size: 18.sp),
+              child: Icon(
+                Icons.auto_awesome,
+                color: AppColors.white,
+                size: 18.sp,
+              ),
             ),
             SizedBox(width: 10.w),
             Expanded(
               child: Text(
                 CartFlowStrings.zoodBanner,
-                style: AppTextStyles.labelSmall(color: CartFlowData.zoodRed).copyWith(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 12.sp,
-                ),
+                style: AppTextStyles.labelSmall(
+                  color: CartFlowData.zoodRed,
+                ).copyWith(fontWeight: FontWeight.w600, fontSize: 12.sp),
               ),
             ),
             Icon(Icons.chevron_right, color: CartFlowData.zoodRed, size: 20.sp),
@@ -1135,9 +1127,7 @@ class CartStickyFooter extends StatelessWidget {
       padding: EdgeInsets.fromLTRB(20.w, 12.h, 20.w, 12.h),
       decoration: const BoxDecoration(
         color: AppColors.white,
-        border: Border(
-          top: BorderSide(color: Color(0xFFE2E8DD)),
-        ),
+        border: Border(top: BorderSide(color: Color(0xFFE2E8DD))),
       ),
       child: SafeArea(
         top: false,
@@ -1150,63 +1140,99 @@ class CartStickyFooter extends StatelessWidget {
               children: [
                 Text(
                   'TOTAL',
-                  style: AppTextStyles.caption(
-                    color: const Color(0xFF6B7B6E),
-                  ).copyWith(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 10.sp,
-                    height: 1.28,
-                  ),
+                  style: AppTextStyles.caption(color: const Color(0xFF6B7B6E))
+                      .copyWith(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 10.sp,
+                        height: 1.28,
+                      ),
                 ),
                 Text(
                   total,
-                  style: AppTextStyles.titleSmall(
-                    color: const Color(0xFF1A1A1A),
-                  ).copyWith(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 20.sp,
-                    height: 1.28,
-                  ),
+                  style:
+                      AppTextStyles.titleSmall(
+                        color: const Color(0xFF1A1A1A),
+                      ).copyWith(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 20.sp,
+                        height: 1.28,
+                      ),
                 ),
               ],
             ),
-            // Figma: Place order 149×52 · pad 16/30 · radius 28 (not full-bleed Expanded).
-            SizedBox(
-              width: 149.w,
-              height: 52.h,
-              child: ElevatedButton(
-                onPressed: loading ? null : onPressed,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: buttonColor,
-                  foregroundColor: AppColors.white,
-                  disabledBackgroundColor: buttonColor,
-                  disabledForegroundColor: AppColors.white,
-                  elevation: 0,
-                  padding: EdgeInsets.symmetric(horizontal: 30.w, vertical: 16.h),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(28.r),
-                  ),
-                ),
-                child: loading
-                    ? SizedBox(
-                        height: 22.h,
-                        width: 22.w,
-                        child: const CircularProgressIndicator(
-                          strokeWidth: 2.5,
-                          color: AppColors.white,
+            SizedBox(width: 12.w),
+            Flexible(
+              child: Align(
+                alignment: AlignmentDirectional.centerEnd,
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final labelStyle = AppTextStyles.labelLarge().copyWith(
+                      fontSize: 16.sp,
+                      fontWeight: FontWeight.w700,
+                      height: 1.28,
+                      color: AppColors.white,
+                    );
+                    final painter = TextPainter(
+                      text: TextSpan(text: buttonLabel, style: labelStyle),
+                      maxLines: 1,
+                      textDirection: Directionality.of(context),
+                      textScaler: MediaQuery.textScalerOf(context),
+                    )..layout();
+                    final textWidth = painter.width;
+                    painter.dispose();
+
+                    final sidePadding = 16.w;
+                    final available = constraints.maxWidth;
+                    final desired = textWidth + sidePadding * 2;
+                    final floorWidth = 149.w < available ? 149.w : available;
+                    final buttonWidth =
+                        (desired < floorWidth ? floorWidth : desired).clamp(
+                          0.0,
+                          available,
+                        );
+
+                    return SizedBox(
+                      width: buttonWidth,
+                      height: 52.h,
+                      child: ElevatedButton(
+                        onPressed: loading ? null : onPressed,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: buttonColor,
+                          foregroundColor: AppColors.white,
+                          disabledBackgroundColor: buttonColor,
+                          disabledForegroundColor: AppColors.white,
+                          elevation: 0,
+                          minimumSize: Size.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          padding: EdgeInsets.symmetric(
+                            horizontal: sidePadding,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(28.r),
+                          ),
                         ),
-                      )
-                    : Text(
-                        buttonLabel,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: AppTextStyles.labelLarge().copyWith(
-                          fontSize: 16.sp,
-                          fontWeight: FontWeight.w700,
-                          height: 1.28,
-                          color: AppColors.white,
-                        ),
+                        child: loading
+                            ? SizedBox(
+                                height: 22.h,
+                                width: 22.w,
+                                child: const CircularProgressIndicator(
+                                  strokeWidth: 2.5,
+                                  color: AppColors.white,
+                                ),
+                              )
+                            : FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  buttonLabel,
+                                  maxLines: 1,
+                                  softWrap: false,
+                                  style: labelStyle,
+                                ),
+                              ),
                       ),
+                    );
+                  },
+                ),
               ),
             ),
           ],
@@ -1271,20 +1297,14 @@ class CartAddressRadioTile extends StatelessWidget {
                     address.label,
                     style: AppTextStyles.labelMedium(
                       color: AppColors.textPrimary,
-                    ).copyWith(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 14.sp,
-                    ),
+                    ).copyWith(fontWeight: FontWeight.w600, fontSize: 14.sp),
                   ),
                   SizedBox(height: 3.h),
                   Text(
                     address.subtitle,
                     style: AppTextStyles.labelSmall(
                       color: AppColors.textSecondary,
-                    ).copyWith(
-                      fontWeight: FontWeight.w400,
-                      fontSize: 12.sp,
-                    ),
+                    ).copyWith(fontWeight: FontWeight.w400, fontSize: 12.sp),
                   ),
                   if (address.phone != null) ...[
                     SizedBox(height: 3.h),
@@ -1292,10 +1312,7 @@ class CartAddressRadioTile extends StatelessWidget {
                       address.phone!,
                       style: AppTextStyles.labelSmall(
                         color: AppColors.textSecondary,
-                      ).copyWith(
-                        fontWeight: FontWeight.w400,
-                        fontSize: 12.sp,
-                      ),
+                      ).copyWith(fontWeight: FontWeight.w400, fontSize: 12.sp),
                     ),
                   ],
                 ],
@@ -1318,11 +1335,7 @@ class CartAddressRadioTile extends StatelessWidget {
                     ),
                   ),
                   child: selected
-                      ? Icon(
-                          Icons.check,
-                          size: 14.sp,
-                          color: AppColors.white,
-                        )
+                      ? Icon(Icons.check, size: 14.sp, color: AppColors.white)
                       : null,
                 ),
                 if (onEdit != null) ...[
@@ -1333,10 +1346,7 @@ class CartAddressRadioTile extends StatelessWidget {
                       'Edit',
                       style: AppTextStyles.labelSmall(
                         color: const Color(0xFF127036),
-                      ).copyWith(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 12.sp,
-                      ),
+                      ).copyWith(fontWeight: FontWeight.w600, fontSize: 12.sp),
                     ),
                   ),
                 ],
@@ -1388,10 +1398,7 @@ class CartAddressLabelChips extends StatelessWidget {
                 color: isSelected
                     ? const Color(0xFF127036)
                     : AppColors.textSecondary,
-              ).copyWith(
-                fontWeight: FontWeight.w600,
-                fontSize: 13.sp,
-              ),
+              ).copyWith(fontWeight: FontWeight.w600, fontSize: 13.sp),
             ),
           ),
         );
@@ -1443,10 +1450,9 @@ class CartFormField extends StatelessWidget {
         value,
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
-        style: AppTextStyles.bodyMedium(color: AppColors.textPrimary).copyWith(
-          fontWeight: FontWeight.w500,
-          fontSize: 14.sp,
-        ),
+        style: AppTextStyles.bodyMedium(
+          color: AppColors.textPrimary,
+        ).copyWith(fontWeight: FontWeight.w500, fontSize: 14.sp),
       ),
     );
   }
@@ -1517,10 +1523,9 @@ class CartPhotoUploadRow extends StatelessWidget {
               SizedBox(height: 4.h),
               Text(
                 CartFlowStrings.addPhoto,
-                style: AppTextStyles.caption(color: const Color(0xFF127036)).copyWith(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 11.sp,
-                ),
+                style: AppTextStyles.caption(
+                  color: const Color(0xFF127036),
+                ).copyWith(fontWeight: FontWeight.w600, fontSize: 11.sp),
               ),
             ],
           ),
@@ -1542,12 +1547,7 @@ class CartPhotoUploadRow extends StatelessWidget {
         borderRadius: BorderRadius.circular(12.r),
       ),
       alignment: Alignment.center,
-      child: Image.asset(
-        asset,
-        width: 40.w,
-        height: 40.w,
-        fit: BoxFit.contain,
-      ),
+      child: Image.asset(asset, width: 40.w, height: 40.w, fit: BoxFit.contain),
     );
   }
 }
@@ -1568,20 +1568,25 @@ class CartDeleteAddressButton extends StatelessWidget {
           foregroundColor: const Color(0xFFDB2626),
           backgroundColor: AppColors.white,
           side: const BorderSide(color: Color(0xFFEBCCCC), width: 1.5),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28.r)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(28.r),
+          ),
           padding: EdgeInsets.zero,
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.delete_outline, size: 18.sp, color: const Color(0xFFDB2626)),
+            Icon(
+              Icons.delete_outline,
+              size: 18.sp,
+              color: const Color(0xFFDB2626),
+            ),
             SizedBox(width: 8.w),
             Text(
               CartFlowStrings.deleteAddress,
-              style: AppTextStyles.labelMedium(color: const Color(0xFFDB2626)).copyWith(
-                fontWeight: FontWeight.w600,
-                fontSize: 15.sp,
-              ),
+              style: AppTextStyles.labelMedium(
+                color: const Color(0xFFDB2626),
+              ).copyWith(fontWeight: FontWeight.w600, fontSize: 15.sp),
             ),
           ],
         ),
@@ -1638,11 +1643,12 @@ class CartReviewStatusCard extends StatelessWidget {
                 ),
                 Text(
                   '$secondsLeft',
-                  style: AppTextStyles.titleMedium(color: AppColors.white).copyWith(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 38.sp,
-                    height: 1.1,
-                  ),
+                  style: AppTextStyles.titleMedium(color: AppColors.white)
+                      .copyWith(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 38.sp,
+                        height: 1.1,
+                      ),
                 ),
               ],
             ),
@@ -1651,10 +1657,9 @@ class CartReviewStatusCard extends StatelessWidget {
           Text(
             CartFlowStrings.sendingOrder,
             textAlign: TextAlign.center,
-            style: AppTextStyles.labelMedium(color: AppColors.white).copyWith(
-              fontWeight: FontWeight.w700,
-              fontSize: 16.sp,
-            ),
+            style: AppTextStyles.labelMedium(
+              color: AppColors.white,
+            ).copyWith(fontWeight: FontWeight.w700, fontSize: 16.sp),
           ),
           SizedBox(height: 6.h),
           Text(
@@ -1718,11 +1723,9 @@ class CartReviewSummaryCard extends StatelessWidget {
         children: [
           Text(
             vendorLabel.isEmpty ? '—' : vendorLabel.toUpperCase(),
-            style: AppTextStyles.labelSmall(color: AppColors.textSecondary)
-                .copyWith(
-              fontWeight: FontWeight.w600,
-              fontSize: 11.sp,
-            ),
+            style: AppTextStyles.labelSmall(
+              color: AppColors.textSecondary,
+            ).copyWith(fontWeight: FontWeight.w600, fontSize: 11.sp),
           ),
           SizedBox(height: 8.h),
           for (var i = 0; i < lines.length; i++) ...[
@@ -1746,11 +1749,9 @@ class CartReviewSummaryCard extends StatelessWidget {
                     onTap: onEditAddress,
                     child: Text(
                       CartFlowStrings.edit,
-                      style: AppTextStyles.labelMedium(color: AppColors.primary)
-                          .copyWith(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 13.sp,
-                      ),
+                      style: AppTextStyles.labelMedium(
+                        color: AppColors.primary,
+                      ).copyWith(fontWeight: FontWeight.w700, fontSize: 13.sp),
                     ),
                   ),
           ),
@@ -1770,20 +1771,16 @@ class CartReviewSummaryCard extends StatelessWidget {
               Expanded(
                 child: Text(
                   CartFlowStrings.orderTotalLabel,
-                  style: AppTextStyles.labelMedium(color: AppColors.textPrimary)
-                      .copyWith(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 16.sp,
-                  ),
+                  style: AppTextStyles.labelMedium(
+                    color: AppColors.textPrimary,
+                  ).copyWith(fontWeight: FontWeight.w700, fontSize: 16.sp),
                 ),
               ),
               Text(
                 totalLabel.isEmpty ? '—' : totalLabel,
-                style: AppTextStyles.labelMedium(color: AppColors.textPrimary)
-                    .copyWith(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 18.sp,
-                ),
+                style: AppTextStyles.labelMedium(
+                  color: AppColors.textPrimary,
+                ).copyWith(fontWeight: FontWeight.w700, fontSize: 18.sp),
               ),
             ],
           ),
@@ -1807,28 +1804,25 @@ class CartReviewSummaryCard extends StatelessWidget {
           ),
           child: Text(
             qty,
-            style: AppTextStyles.labelSmall(color: AppColors.successText).copyWith(
-              fontWeight: FontWeight.w700,
-              fontSize: 11.sp,
-            ),
+            style: AppTextStyles.labelSmall(
+              color: AppColors.successText,
+            ).copyWith(fontWeight: FontWeight.w700, fontSize: 11.sp),
           ),
         ),
         SizedBox(width: 8.w),
         Expanded(
           child: Text(
             name,
-            style: AppTextStyles.labelMedium(color: AppColors.textPrimary).copyWith(
-              fontWeight: FontWeight.w600,
-              fontSize: 13.5.sp,
-            ),
+            style: AppTextStyles.labelMedium(
+              color: AppColors.textPrimary,
+            ).copyWith(fontWeight: FontWeight.w600, fontSize: 13.5.sp),
           ),
         ),
         Text(
           price,
-          style: AppTextStyles.labelMedium(color: AppColors.textPrimary).copyWith(
-            fontWeight: FontWeight.w700,
-            fontSize: 13.5.sp,
-          ),
+          style: AppTextStyles.labelMedium(
+            color: AppColors.textPrimary,
+          ).copyWith(fontWeight: FontWeight.w700, fontSize: 13.5.sp),
         ),
       ],
     );
@@ -1853,18 +1847,16 @@ class CartReviewSummaryCard extends StatelessWidget {
               children: [
                 Text(
                   label,
-                  style: AppTextStyles.labelSmall(color: AppColors.textSecondary).copyWith(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 11.sp,
-                  ),
+                  style: AppTextStyles.labelSmall(
+                    color: AppColors.textSecondary,
+                  ).copyWith(fontWeight: FontWeight.w600, fontSize: 11.sp),
                 ),
                 SizedBox(height: 1.h),
                 Text(
                   value,
-                  style: AppTextStyles.labelMedium(color: AppColors.textPrimary).copyWith(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 13.5.sp,
-                  ),
+                  style: AppTextStyles.labelMedium(
+                    color: AppColors.textPrimary,
+                  ).copyWith(fontWeight: FontWeight.w600, fontSize: 13.5.sp),
                 ),
               ],
             ),
@@ -1877,7 +1869,11 @@ class CartReviewSummaryCard extends StatelessWidget {
 }
 
 class CartOutlineButton extends StatelessWidget {
-  const CartOutlineButton({super.key, required this.label, required this.onPressed});
+  const CartOutlineButton({
+    super.key,
+    required this.label,
+    required this.onPressed,
+  });
 
   final String label;
   final VoidCallback onPressed;
@@ -1893,15 +1889,16 @@ class CartOutlineButton extends StatelessWidget {
           backgroundColor: AppColors.white,
           foregroundColor: const Color(0xFF1A1A1A),
           side: const BorderSide(color: Color(0xFFE2E8DD), width: 1.5),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28.r)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(28.r),
+          ),
           padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 16.h),
         ),
         child: Text(
           label,
-          style: AppTextStyles.labelMedium(color: const Color(0xFF1A1A1A)).copyWith(
-            fontWeight: FontWeight.w700,
-            fontSize: 16.sp,
-          ),
+          style: AppTextStyles.labelMedium(
+            color: const Color(0xFF1A1A1A),
+          ).copyWith(fontWeight: FontWeight.w700, fontSize: 16.sp),
         ),
       ),
     );
@@ -1945,21 +1942,23 @@ void showCartNewCartDialog(BuildContext context, {VoidCallback? onConfirm}) {
               Text(
                 CartFlowStrings.startNewCartTitle,
                 textAlign: TextAlign.center,
-                style: AppTextStyles.titleMedium(color: AppColors.textPrimary).copyWith(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 21.sp,
-                  height: 1.3,
-                ),
+                style: AppTextStyles.titleMedium(color: AppColors.textPrimary)
+                    .copyWith(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 21.sp,
+                      height: 1.3,
+                    ),
               ),
               SizedBox(height: 12.h),
               Text(
                 CartFlowStrings.startNewCartBody,
                 textAlign: TextAlign.center,
-                style: AppTextStyles.bodySmall(color: AppColors.textSecondary).copyWith(
-                  fontWeight: FontWeight.w500,
-                  fontSize: 14.sp,
-                  height: 1.3,
-                ),
+                style: AppTextStyles.bodySmall(color: AppColors.textSecondary)
+                    .copyWith(
+                      fontWeight: FontWeight.w500,
+                      fontSize: 14.sp,
+                      height: 1.3,
+                    ),
               ),
               SizedBox(height: 20.h),
               PrimaryGreenButton(
@@ -1980,7 +1979,10 @@ void showCartNewCartDialog(BuildContext context, {VoidCallback? onConfirm}) {
                   style: OutlinedButton.styleFrom(
                     foregroundColor: AppColors.textPrimary,
                     backgroundColor: AppColors.white,
-                    side: const BorderSide(color: Color(0xFFE2E8DD), width: 1.5),
+                    side: const BorderSide(
+                      color: Color(0xFFE2E8DD),
+                      width: 1.5,
+                    ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(28.r),
                     ),
@@ -1988,10 +1990,9 @@ void showCartNewCartDialog(BuildContext context, {VoidCallback? onConfirm}) {
                   ),
                   child: Text(
                     CartFlowStrings.keepCurrentCart,
-                    style: AppTextStyles.labelMedium(color: AppColors.textPrimary).copyWith(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 16.sp,
-                    ),
+                    style: AppTextStyles.labelMedium(
+                      color: AppColors.textPrimary,
+                    ).copyWith(fontWeight: FontWeight.w700, fontSize: 16.sp),
                   ),
                 ),
               ),
@@ -2003,7 +2004,10 @@ void showCartNewCartDialog(BuildContext context, {VoidCallback? onConfirm}) {
   );
 }
 
-void showCartDeleteAddressDialog(BuildContext context, {VoidCallback? onDelete}) {
+void showCartDeleteAddressDialog(
+  BuildContext context, {
+  VoidCallback? onDelete,
+}) {
   showDialog<void>(
     context: context,
     barrierColor: const Color(0x73000000),
@@ -2028,20 +2032,20 @@ void showCartDeleteAddressDialog(BuildContext context, {VoidCallback? onDelete})
             Text(
               CartFlowStrings.deleteAddressTitle,
               textAlign: TextAlign.center,
-              style: AppTextStyles.titleSmall(color: AppColors.textPrimary).copyWith(
-                fontWeight: FontWeight.w700,
-                fontSize: 18.sp,
-              ),
+              style: AppTextStyles.titleSmall(
+                color: AppColors.textPrimary,
+              ).copyWith(fontWeight: FontWeight.w700, fontSize: 18.sp),
             ),
             SizedBox(height: 12.h),
             Text(
               CartFlowStrings.deleteAddressBody,
               textAlign: TextAlign.center,
-              style: AppTextStyles.bodySmall(color: AppColors.textSecondary).copyWith(
-                fontWeight: FontWeight.w400,
-                fontSize: 13.sp,
-                height: 16 / 13,
-              ),
+              style: AppTextStyles.bodySmall(color: AppColors.textSecondary)
+                  .copyWith(
+                    fontWeight: FontWeight.w400,
+                    fontSize: 13.sp,
+                    height: 16 / 13,
+                  ),
             ),
             SizedBox(height: 18.h),
             Row(
@@ -2054,7 +2058,10 @@ void showCartDeleteAddressDialog(BuildContext context, {VoidCallback? onDelete})
                       style: OutlinedButton.styleFrom(
                         foregroundColor: AppColors.textPrimary,
                         backgroundColor: AppColors.white,
-                        side: const BorderSide(color: Color(0xFFD9DED9), width: 1.5),
+                        side: const BorderSide(
+                          color: Color(0xFFD9DED9),
+                          width: 1.5,
+                        ),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(26.r),
                         ),
@@ -2062,10 +2069,13 @@ void showCartDeleteAddressDialog(BuildContext context, {VoidCallback? onDelete})
                       ),
                       child: Text(
                         CartFlowStrings.cancel,
-                        style: AppTextStyles.labelMedium(color: AppColors.textPrimary).copyWith(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 15.sp,
-                        ),
+                        style:
+                            AppTextStyles.labelMedium(
+                              color: AppColors.textPrimary,
+                            ).copyWith(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 15.sp,
+                            ),
                       ),
                     ),
                   ),
@@ -2091,10 +2101,11 @@ void showCartDeleteAddressDialog(BuildContext context, {VoidCallback? onDelete})
                       ),
                       child: Text(
                         CartFlowStrings.delete,
-                        style: AppTextStyles.labelMedium(color: AppColors.white).copyWith(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 15.sp,
-                        ),
+                        style: AppTextStyles.labelMedium(color: AppColors.white)
+                            .copyWith(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 15.sp,
+                            ),
                       ),
                     ),
                   ),

@@ -9,8 +9,9 @@ import 'package:yjeek_app/core/providers/app_providers.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/features/browse/browse_routes.dart';
 import 'package:yjeek_app/features/browse/model/electronics_data.dart';
-import 'package:yjeek_app/features/browse/view/widgets/retail_vendor_store_scaffold.dart';
+import 'package:yjeek_app/features/browse/view/widgets/browse_widgets.dart';
 import 'package:yjeek_app/features/home/view/widgets/category_icon_image.dart';
+import 'package:yjeek_app/features/home/view/widgets/home_widgets.dart';
 import 'package:yjeek_app/features/home/model/categories_repository.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/navigation_widgets.dart';
 
@@ -190,7 +191,7 @@ class _RetailCategoryScreenState extends ConsumerState<RetailCategoryScreen> {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          BrowseBackTitleHeader(
+          BrowseTopBar(
             title: _title,
             onBack: () {
               if (context.canPop()) {
@@ -201,19 +202,20 @@ class _RetailCategoryScreenState extends ConsumerState<RetailCategoryScreen> {
             },
           ),
           Padding(
-            padding: EdgeInsets.fromLTRB(20.w, 12.h, 8.w, 0),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: _SearchField(
-                    hint: 'Search categories & vendors…',
-                    onChanged: _onQueryChanged,
-                  ),
-                ),
-                SizedBox(width: 5.w),
-                _ViewToggle(isGridView: _isGridView, onChanged: _setGridView),
-              ],
+            padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 0),
+            child: _SearchField(
+              hint: 'Search categories & vendors…',
+              onChanged: _onQueryChanged,
+            ),
+          ),
+          Padding(
+            padding: EdgeInsets.fromLTRB(20.w, 10.h, 20.w, 0),
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: CategoriesViewToggle(
+                isGrid: _isGridView,
+                onChanged: _setGridView,
+              ),
             ),
           ),
           Expanded(
@@ -419,73 +421,6 @@ class _SearchField extends StatelessWidget {
           hintStyle: AppTextStyles.bodyMedium(
             color: const Color(0xFF6B6B6B),
           ).copyWith(fontSize: 14.sp),
-        ),
-      ),
-    );
-  }
-}
-
-class _ViewToggle extends StatelessWidget {
-  const _ViewToggle({required this.isGridView, required this.onChanged});
-
-  final bool isGridView;
-  final ValueChanged<bool> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: EdgeInsets.only(top: 4.h, right: 12.w),
-      padding: EdgeInsets.all(2.w),
-      decoration: BoxDecoration(
-        color: const Color(0xFFE8F5E9),
-        borderRadius: BorderRadius.circular(8.r),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _ToggleBtn(
-            icon: Icons.grid_view_rounded,
-            active: isGridView,
-            onTap: () => onChanged(true),
-          ),
-          _ToggleBtn(
-            icon: Icons.view_list_rounded,
-            active: !isGridView,
-            onTap: () => onChanged(false),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ToggleBtn extends StatelessWidget {
-  const _ToggleBtn({
-    required this.icon,
-    required this.active,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final bool active;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 28.w,
-        height: 29.h,
-        decoration: BoxDecoration(
-          color: active ? AppColors.primary : Colors.transparent,
-          borderRadius: BorderRadius.circular(6.r),
-        ),
-        alignment: Alignment.center,
-        child: Icon(
-          icon,
-          size: 14.sp,
-          color: active ? AppColors.white : AppColors.primary,
         ),
       ),
     );

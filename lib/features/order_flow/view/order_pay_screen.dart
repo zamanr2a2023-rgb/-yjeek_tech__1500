@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:yjeek_app/core/providers/app_providers.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/features/order_flow/model/order_api_mappers.dart';
@@ -11,8 +10,8 @@ import 'package:yjeek_app/features/order_flow/order_flow_routes.dart';
 import 'package:yjeek_app/features/order_flow/view/widgets/order_flow_widgets.dart';
 import 'package:yjeek_app/features/payments/model/benefit_pay_models.dart';
 import 'package:yjeek_app/features/payments/pay_now_helper.dart';
+import 'package:yjeek_app/features/payments/payment_page_lock.dart';
 import 'package:yjeek_app/features/pickup_order_flow/view/widgets/pickup_order_flow_widgets.dart';
-import 'package:yjeek_app/routes/route_names.dart';
 
 /// Food delivery: pay after vendor accept (5 min window).
 /// Payment options: Wallet, BenefitPay, Apple Pay (iOS), Google Pay (Android).
@@ -31,6 +30,7 @@ class _OrderPayScreenState extends ConsumerState<OrderPayScreen> {
   late int _secondsLeft;
   Timer? _timer;
   bool _paying = false;
+  bool _cancelling = false;
   bool _expiring = false;
   bool _expired = false;
   bool _methodBusy = false;
@@ -54,6 +54,7 @@ class _OrderPayScreenState extends ConsumerState<OrderPayScreen> {
   @override
   void initState() {
     super.initState();
+    engagePaymentPageLock(context);
     _secondsLeft = _defaultSeconds;
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (!mounted || _expired || _expiring) return;
@@ -192,7 +193,7 @@ class _OrderPayScreenState extends ConsumerState<OrderPayScreen> {
     final settled = (paymentStatus ?? '').toUpperCase();
     if (settled == 'PAID' || settled == 'AUTHORIZED') {
       _timer?.cancel();
-      context.pushReplacement(OrderFlowRoutes.confirmedFor(orderId));
+      leaveLockedPayment(context, OrderFlowRoutes.confirmedFor(orderId));
       return;
     }
 
@@ -223,7 +224,7 @@ class _OrderPayScreenState extends ConsumerState<OrderPayScreen> {
       'Payment window expired — order cancelled',
       color: const Color(0xFFB42318),
     );
-    context.go('${RouteNames.home}?tab=1');
+    leaveLockedPaymentToOrders(context);
   }
 
   Future<void> _changePayment() async {
@@ -280,7 +281,7 @@ class _OrderPayScreenState extends ConsumerState<OrderPayScreen> {
     if (settled == 'PAID' || settled == 'AUTHORIZED') {
       _timer?.cancel();
       if (mounted) {
-        context.pushReplacement(OrderFlowRoutes.confirmedFor(orderId));
+        leaveLockedPayment(context, OrderFlowRoutes.confirmedFor(orderId));
       }
       return false;
     }
@@ -325,16 +326,35 @@ class _OrderPayScreenState extends ConsumerState<OrderPayScreen> {
       );
       if (!ok || !mounted) return;
       _timer?.cancel();
-      context.pushReplacement(OrderFlowRoutes.confirmedFor(orderId));
+      leaveLockedPayment(context, OrderFlowRoutes.confirmedFor(orderId));
     } finally {
       if (mounted) setState(() => _paying = false);
     }
+  }
+
+  Future<void> _cancelOrder() async {
+    if (_cancelling || _paying || _expiring) return;
+    final orderId = widget.orderId;
+    setState(() => _cancelling = true);
+    final ok = orderId == null || orderId.isEmpty
+        ? true
+        : await cancelLockedPaymentOrders(ref, [orderId]);
+    if (!mounted) return;
+    if (!ok) {
+      setState(() => _cancelling = false);
+      _snack('Could not cancel order', color: const Color(0xFFB42318));
+      return;
+    }
+    _timer?.cancel();
+    leaveLockedPaymentToOrders(context);
   }
 
   @override
   Widget build(BuildContext context) {
     return OrderFlowScaffold(
       showHeader: false,
+      showBottomNav: false,
+      blockBack: true,
       bottomNavIndex: 1,
       body: ListView(
         padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 16.h),
@@ -363,12 +383,16 @@ class _OrderPayScreenState extends ConsumerState<OrderPayScreen> {
             tip: _tip,
             total: _total,
           ),
+          PaymentLockCancelButton(
+            busy: _cancelling,
+            onPressed: (_paying || _expiring) ? null : _cancelOrder,
+          ),
         ],
       ),
       bottom: PickupPayStickyFooter(
         timerLabel: _timerLabel,
         payAmount: _total,
-        onPay: (_paying || _expired || _methodBusy || _secondsLeft <= 0)
+        onPay: (_paying || _cancelling || _expired || _methodBusy || _secondsLeft <= 0)
             ? () {}
             : _pay,
       ),

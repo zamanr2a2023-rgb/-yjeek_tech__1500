@@ -58,77 +58,6 @@ class ServicesSubcategorySearchField extends StatelessWidget {
   }
 }
 
-/// Grid / list toggle for Services landing.
-class ServicesSubcategoryViewToggle extends StatelessWidget {
-  const ServicesSubcategoryViewToggle({
-    super.key,
-    required this.isGridView,
-    required this.onChanged,
-  });
-
-  final bool isGridView;
-  final ValueChanged<bool> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.all(2.w),
-      decoration: BoxDecoration(
-        color: const Color(0xFFE8F5E9),
-        borderRadius: BorderRadius.circular(8.r),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _Toggle(
-            icon: Icons.grid_view_rounded,
-            active: isGridView,
-            onTap: () => onChanged(true),
-          ),
-          _Toggle(
-            icon: Icons.view_list_rounded,
-            active: !isGridView,
-            onTap: () => onChanged(false),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _Toggle extends StatelessWidget {
-  const _Toggle({
-    required this.icon,
-    required this.active,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final bool active;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 32.w,
-        height: 32.w,
-        decoration: BoxDecoration(
-          color: active ? AppColors.primary : Colors.transparent,
-          borderRadius: BorderRadius.circular(6.r),
-        ),
-        alignment: Alignment.center,
-        child: Icon(
-          icon,
-          size: 16.sp,
-          color: active ? AppColors.white : const Color(0xFF6B6B6B),
-        ),
-      ),
-    );
-  }
-}
-
 /// Figma grid cards: mint image area + white label.
 class ServicesSubcategoryGrid extends StatelessWidget {
   const ServicesSubcategoryGrid({
@@ -450,74 +379,74 @@ class ServicesListingListCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final offer = provider.offerBadge;
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        height: 72.h,
+        width: double.infinity,
+        padding: EdgeInsets.all(12.w),
         decoration: BoxDecoration(
           color: AppColors.white,
-          borderRadius: BorderRadius.circular(14.r),
-          border: Border.all(color: const Color(0xFFDEDEDE)),
+          borderRadius: BorderRadius.circular(16.r),
+          border: Border.all(color: const Color(0xFFE2E8DD)),
         ),
-        clipBehavior: Clip.antiAlias,
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SizedBox(
-              width: 88.w,
-              height: 72.h,
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  _ProviderListingThumb(provider: provider),
-                  if (provider.offerBadge != null &&
-                      provider.offerBadge!.isNotEmpty)
-                    Positioned(
-                      left: 6.w,
-                      top: 6.h,
-                      child: _OfferBadge(label: provider.offerBadge!),
-                    ),
-                ],
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12.r),
+              child: SizedBox(
+                width: 72.w,
+                height: 72.w,
+                child: _ProviderListingThumb(
+                  provider: provider,
+                  borderRadius: BorderRadius.circular(12.r),
+                ),
               ),
             ),
+            SizedBox(width: 12.w),
             Expanded(
-              child: Padding(
-                padding: EdgeInsets.fromLTRB(12.w, 10.h, 12.w, 10.h),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      provider.name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppTextStyles.labelMedium(
-                        color: AppColors.textPrimary,
-                      ).copyWith(fontWeight: FontWeight.w700, fontSize: 14.sp),
-                    ),
-                    SizedBox(height: 4.h),
-                    Text(
-                      provider.locationLabel,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppTextStyles.caption(
-                        color: const Color(0xFF6B6B6B),
-                      ).copyWith(fontSize: 12.sp),
-                    ),
-                    if (provider.hasRating) ...[
-                      SizedBox(height: 2.h),
-                      Text(
-                        '★ ${provider.rating.toStringAsFixed(1)}',
-                        style:
-                            AppTextStyles.caption(
-                              color: const Color(0xFFD98C1A),
-                            ).copyWith(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 12.sp,
-                            ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          provider.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppTextStyles.labelMedium(
+                            color: const Color(0xFF1A1A1A),
+                          ).copyWith(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 15.sp,
+                          ),
+                        ),
+                      ),
+                      SizedBox(width: 8.w),
+                      _RatingMark(
+                        rating: provider.rating,
+                        visible: provider.hasRating,
                       ),
                     ],
-                  ],
-                ),
+                  ),
+                  SizedBox(height: 4.h),
+                  Text(
+                    provider.locationLabel,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTextStyles.bodySmall(
+                      color: AppColors.textSecondary,
+                    ).copyWith(fontSize: 13.sp),
+                  ),
+                  if (offer != null && offer.isNotEmpty)
+                    Padding(
+                      padding: EdgeInsets.only(top: 6.h),
+                      child: _OfferBadge(label: offer),
+                    ),
+                ],
               ),
             ),
           ],
@@ -540,67 +469,104 @@ class ServicesListingGridCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final offer = provider.offerBadge;
     return GestureDetector(
       onTap: onTap,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                DecoratedBox(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(12.r),
-                    border: Border.all(color: const Color(0xFFDEDEDE)),
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(12.r),
-                    child: _ProviderListingThumb(
-                      provider: provider,
-                      borderRadius: BorderRadius.circular(12.r),
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          borderRadius: BorderRadius.circular(16.r),
+          border: Border.all(color: const Color(0xFFE2E8DD)),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: _ProviderListingThumb(provider: provider),
+            ),
+            Padding(
+              padding: EdgeInsets.fromLTRB(8.w, 6.h, 8.w, 6.h),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    provider.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTextStyles.labelSmall(
+                      color: const Color(0xFF1A1A1A),
+                    ).copyWith(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 13.sp,
+                      height: 1.15,
                     ),
                   ),
-                ),
-                if (provider.offerBadge != null &&
-                    provider.offerBadge!.isNotEmpty)
-                  Positioned(
-                    left: 8.w,
-                    top: 8.h,
-                    child: _OfferBadge(label: provider.offerBadge!),
+                  SizedBox(height: 4.h),
+                  _RatingMark(
+                    rating: provider.rating,
+                    visible: provider.hasRating,
+                    compact: true,
                   ),
-              ],
-            ),
-          ),
-          SizedBox(height: 8.h),
-          Text(
-            provider.name,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: AppTextStyles.labelMedium(
-              color: AppColors.textPrimary,
-            ).copyWith(fontWeight: FontWeight.w700, fontSize: 13.sp),
-          ),
-          SizedBox(height: 2.h),
-          Text(
-            provider.locationLabel,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: AppTextStyles.caption(
-              color: const Color(0xFF6B6B6B),
-            ).copyWith(fontSize: 11.sp),
-          ),
-          if (provider.hasRating) ...[
-            SizedBox(height: 2.h),
-            Text(
-              '★ ${provider.rating.toStringAsFixed(1)}',
-              style: AppTextStyles.caption(
-                color: const Color(0xFFD98C1A),
-              ).copyWith(fontWeight: FontWeight.w600, fontSize: 11.sp),
+                  SizedBox(height: 4.h),
+                  Text(
+                    provider.locationLabel,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTextStyles.caption(
+                      color: AppColors.textSecondary,
+                    ).copyWith(fontSize: 11.sp, height: 1.1),
+                  ),
+                  if (offer != null && offer.isNotEmpty) ...[
+                    SizedBox(height: 4.h),
+                    _OfferBadge(label: offer),
+                  ],
+                ],
+              ),
             ),
           ],
-        ],
+        ),
       ),
+    );
+  }
+}
+
+class _RatingMark extends StatelessWidget {
+  const _RatingMark({
+    required this.rating,
+    required this.visible,
+    this.compact = false,
+  });
+
+  final double rating;
+  final bool visible;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!visible) return const SizedBox.shrink();
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          '★',
+          style: TextStyle(
+            color: const Color(0xFFC9A84C),
+            fontSize: compact ? 10.sp : 11.sp,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        SizedBox(width: 3.w),
+        Text(
+          rating.toStringAsFixed(1),
+          style: AppTextStyles.labelSmall(color: const Color(0xFF1A1A1A))
+              .copyWith(
+            fontWeight: FontWeight.w700,
+            fontSize: compact ? 11.sp : 13.sp,
+          ),
+        ),
+      ],
     );
   }
 }
@@ -613,16 +579,17 @@ class _OfferBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.h),
+      padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
       decoration: BoxDecoration(
-        color: AppColors.primary,
-        borderRadius: BorderRadius.circular(6.r),
+        color: AppColors.offerBadgeGreenBg,
+        borderRadius: BorderRadius.circular(4.r),
       ),
       child: Text(
         label,
-        style: AppTextStyles.caption(
-          color: AppColors.white,
-        ).copyWith(fontWeight: FontWeight.w600, fontSize: 10.sp),
+        style: AppTextStyles.labelSmall(color: AppColors.primary).copyWith(
+          fontWeight: FontWeight.w600,
+          fontSize: 11.sp,
+        ),
       ),
     );
   }

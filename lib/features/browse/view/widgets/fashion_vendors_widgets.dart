@@ -4,8 +4,12 @@ import 'package:yjeek_app/core/constants/app_text_styles.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/core/widgets/app_network_image.dart';
 import 'package:yjeek_app/features/browse/model/electronics_data.dart';
+import 'package:yjeek_app/features/home/view/widgets/home_widgets.dart';
 
-/// Fashion Clothes header: ‹ Title · search · cart
+import 'browse_widgets.dart';
+import 'food_category_widgets.dart';
+
+/// Same header as Food: circular back, title, search, cart.
 class FashionVendorsHeader extends StatelessWidget {
   const FashionVendorsHeader({
     super.key,
@@ -22,79 +26,11 @@ class FashionVendorsHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      bottom: false,
-      child: Padding(
-        padding: EdgeInsets.fromLTRB(20.w, 12.h, 20.w, 8.h),
-        child: Row(
-          children: [
-            GestureDetector(
-              onTap: onBack ?? () => Navigator.of(context).maybePop(),
-              behavior: HitTestBehavior.opaque,
-              child: Text(
-                '‹',
-                style: TextStyle(
-                  fontSize: 22.sp,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.textPrimary,
-                  height: 1.2,
-                ),
-              ),
-            ),
-            SizedBox(width: 12.w),
-            Expanded(
-              child: Text(
-                title,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: AppTextStyles.titleMedium(color: AppColors.textPrimary)
-                    .copyWith(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 20.sp,
-                  height: 1.2,
-                ),
-              ),
-            ),
-            if (onSearch != null) ...[
-              _RoundIconBtn(
-                icon: Icons.search_rounded,
-                onTap: onSearch!,
-              ),
-              SizedBox(width: 8.w),
-            ],
-            if (onCart != null)
-              _RoundIconBtn(
-                icon: Icons.shopping_cart_outlined,
-                onTap: onCart!,
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _RoundIconBtn extends StatelessWidget {
-  const _RoundIconBtn({required this.icon, required this.onTap});
-
-  final IconData icon;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 36.w,
-        height: 36.w,
-        decoration: BoxDecoration(
-          color: AppColors.white,
-          shape: BoxShape.circle,
-          border: Border.all(color: const Color(0xFFDEDEDE)),
-        ),
-        alignment: Alignment.center,
-        child: Icon(icon, size: 18.sp, color: AppColors.textPrimary),
-      ),
+    return BrowseTopBar(
+      title: title,
+      onBack: onBack,
+      onSearch: onSearch,
+      onCart: onCart,
     );
   }
 }
@@ -251,114 +187,39 @@ class FashionFilterRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _Pill(
-          label: 'Offers',
-          selected: offersOnly,
-          onTap: onOffersTap,
-        ),
-        SizedBox(width: 8.w),
-        _Pill(
-          label: 'Top rated',
-          selected: topRated,
-          onTap: onTopRatedTap,
-        ),
-        const Spacer(),
-        Container(
-          padding: EdgeInsets.all(2.w),
-          decoration: BoxDecoration(
-            color: const Color(0xFFE8F5E9),
-            borderRadius: BorderRadius.circular(8.r),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
+        SizedBox(
+          height: 40.h,
+          child: ListView(
+            scrollDirection: Axis.horizontal,
             children: [
-              _Toggle(
-                icon: Icons.grid_view_rounded,
-                active: isGridView,
-                onTap: () => onViewChanged(true),
+              FoodQuickFilterChip(
+                label: 'Offers',
+                selected: offersOnly,
+                onTap: onOffersTap,
               ),
-              _Toggle(
-                icon: Icons.view_list_rounded,
-                active: !isGridView,
-                onTap: () => onViewChanged(false),
+              SizedBox(width: 8.w),
+              FoodQuickFilterChip(
+                label: 'Top rated',
+                selected: topRated,
+                onTap: onTopRatedTap,
               ),
             ],
           ),
         ),
+        Padding(
+          padding: EdgeInsets.only(top: 10.h),
+          child: Align(
+            alignment: Alignment.centerRight,
+            child: CategoriesViewToggle(
+              isGrid: isGridView,
+              onChanged: onViewChanged,
+            ),
+          ),
+        ),
       ],
-    );
-  }
-}
-
-class _Pill extends StatelessWidget {
-  const _Pill({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 8.h),
-        decoration: BoxDecoration(
-          color: selected ? const Color(0xFFE8F5E9) : AppColors.white,
-          borderRadius: BorderRadius.circular(18.r),
-          border: Border.all(
-            color: selected ? AppColors.primary : const Color(0xFFDEDEDE),
-          ),
-        ),
-        child: Text(
-          label,
-          style: AppTextStyles.labelSmall(
-            color: selected ? AppColors.primary : AppColors.textPrimary,
-          ).copyWith(
-            fontWeight: FontWeight.w500,
-            fontSize: 13.sp,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _Toggle extends StatelessWidget {
-  const _Toggle({
-    required this.icon,
-    required this.active,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final bool active;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 28.w,
-        height: 29.h,
-        decoration: BoxDecoration(
-          color: active ? AppColors.primary : Colors.transparent,
-          borderRadius: BorderRadius.circular(6.r),
-        ),
-        alignment: Alignment.center,
-        child: Icon(
-          icon,
-          size: 14.sp,
-          color: active ? AppColors.white : AppColors.primary,
-        ),
-      ),
     );
   }
 }
@@ -376,100 +237,68 @@ class FashionVendorListCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final offer = store.offerBadge;
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        height: 65.h,
+        width: double.infinity,
+        padding: EdgeInsets.all(12.w),
         decoration: BoxDecoration(
           color: AppColors.white,
-          borderRadius: BorderRadius.circular(14.r),
-          border: Border.all(color: const Color(0xFFDEDEDE)),
+          borderRadius: BorderRadius.circular(16.r),
+          border: Border.all(color: const Color(0xFFE2E8DD)),
         ),
-        clipBehavior: Clip.antiAlias,
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SizedBox(
-              width: 88.w,
-              height: 65.h,
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  ColoredBox(
-                    color: const Color(0xFFE8F5E9),
-                    child: store.imageUrl != null && store.imageUrl!.isNotEmpty
-                        ? AppNetworkImage(
-                            url: store.imageUrl!,
-                            fit: BoxFit.cover,
-                            errorWidget: const ColoredBox(
-                              color: Color(0xFFE8F5E9),
-                            ),
-                          )
-                        : null,
-                  ),
-                  if (store.offerBadge != null &&
-                      store.offerBadge!.isNotEmpty)
-                    Positioned(
-                      left: 8.w,
-                      top: 8.h,
-                      child: _OfferBadge(label: store.offerBadge!),
-                    ),
-                ],
-              ),
-            ),
+            _SquareLogo(imageUrl: store.imageUrl),
             SizedBox(width: 12.w),
             Expanded(
               child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    store.name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: AppTextStyles.labelMedium(
-                      color: AppColors.textPrimary,
-                    ).copyWith(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 14.sp,
-                    ),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          store.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppTextStyles.labelMedium(
+                            color: const Color(0xFF1A1A1A),
+                          ).copyWith(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 15.sp,
+                          ),
+                        ),
+                      ),
+                      SizedBox(width: 8.w),
+                      _RatingMark(
+                        rating: store.rating,
+                        visible: store.hasRating && store.rating > 0,
+                      ),
+                    ],
                   ),
                   if (store.areaLabel.isNotEmpty) ...[
-                    SizedBox(height: 2.h),
+                    SizedBox(height: 4.h),
                     Text(
                       store.areaLabel,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: AppTextStyles.caption(
-                        color: const Color(0xFF6B6B6B),
-                      ).copyWith(fontSize: 12.sp),
+                      style: AppTextStyles.bodySmall(
+                        color: AppColors.textSecondary,
+                      ).copyWith(fontSize: 13.sp),
                     ),
                   ],
+                  if (offer != null && offer.isNotEmpty)
+                    Padding(
+                      padding: EdgeInsets.only(top: 6.h),
+                      child: _OfferBadge(label: offer),
+                    ),
                 ],
               ),
             ),
-            if (store.hasRating && store.rating > 0)
-              Padding(
-                padding: EdgeInsets.only(right: 12.w),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.star_rounded,
-                        size: 14.sp, color: const Color(0xFFD98C1A)),
-                    SizedBox(width: 2.w),
-                    Text(
-                      store.rating.toStringAsFixed(1),
-                      style: AppTextStyles.labelSmall(
-                        color: AppColors.textPrimary,
-                      ).copyWith(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 12.sp,
-                      ),
-                    ),
-                  ],
-                ),
-              )
-            else
-              SizedBox(width: 12.w),
           ],
         ),
       ),
@@ -490,101 +319,144 @@ class FashionVendorGridCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final offer = store.offerBadge;
     return GestureDetector(
       onTap: onTap,
       child: Container(
         decoration: BoxDecoration(
           color: AppColors.white,
-          borderRadius: BorderRadius.circular(14.r),
-          border: Border.all(color: const Color(0xFFDEDEDE)),
+          borderRadius: BorderRadius.circular(16.r),
+          border: Border.all(color: const Color(0xFFE2E8DD)),
         ),
         clipBehavior: Clip.antiAlias,
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(
-              flex: 5,
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  ColoredBox(
-                    color: const Color(0xFFE8F5E9),
-                    child: store.imageUrl != null && store.imageUrl!.isNotEmpty
-                        ? AppNetworkImage(
-                            url: store.imageUrl!,
-                            fit: BoxFit.cover,
-                            errorWidget: const ColoredBox(
-                              color: Color(0xFFE8F5E9),
-                            ),
-                          )
-                        : null,
-                  ),
-                  if (store.offerBadge != null &&
-                      store.offerBadge!.isNotEmpty)
-                    Positioned(
-                      left: 8.w,
-                      top: 8.h,
-                      child: _OfferBadge(label: store.offerBadge!),
-                    ),
-                ],
+              child: ColoredBox(
+                color: const Color(0xFFE8F5E9),
+                child: store.imageUrl != null && store.imageUrl!.isNotEmpty
+                    ? AppNetworkImage(
+                        url: store.imageUrl!,
+                        fit: BoxFit.cover,
+                        errorWidget: const ColoredBox(
+                          color: Color(0xFFE8F5E9),
+                        ),
+                      )
+                    : null,
               ),
             ),
-            Expanded(
-              flex: 3,
-              child: Padding(
-                padding: EdgeInsets.fromLTRB(10.w, 8.h, 10.w, 8.h),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            store.name,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: AppTextStyles.labelMedium(
-                              color: AppColors.textPrimary,
-                            ).copyWith(
-                              fontWeight: FontWeight.w700,
-                              fontSize: 13.sp,
-                            ),
-                          ),
-                        ),
-                        if (store.hasRating && store.rating > 0) ...[
-                          Icon(Icons.star_rounded,
-                              size: 12.sp, color: const Color(0xFFD98C1A)),
-                          SizedBox(width: 2.w),
-                          Text(
-                            store.rating.toStringAsFixed(1),
-                            style: AppTextStyles.caption(
-                              color: AppColors.textPrimary,
-                            ).copyWith(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 11.sp,
-                            ),
-                          ),
-                        ],
-                      ],
+            Padding(
+              padding: EdgeInsets.fromLTRB(8.w, 6.h, 8.w, 6.h),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    store.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTextStyles.labelSmall(
+                      color: const Color(0xFF1A1A1A),
+                    ).copyWith(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 13.sp,
+                      height: 1.15,
                     ),
-                    if (store.areaLabel.isNotEmpty) ...[
-                      SizedBox(height: 2.h),
-                      Text(
-                        store.areaLabel,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: AppTextStyles.caption(
-                          color: const Color(0xFF6B6B6B),
-                        ).copyWith(fontSize: 11.sp),
-                      ),
-                    ],
+                  ),
+                  SizedBox(height: 4.h),
+                  _RatingMark(
+                    rating: store.rating,
+                    visible: store.hasRating && store.rating > 0,
+                    compact: true,
+                  ),
+                  if (store.areaLabel.isNotEmpty) ...[
+                    SizedBox(height: 4.h),
+                    Text(
+                      store.areaLabel,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTextStyles.caption(
+                        color: AppColors.textSecondary,
+                      ).copyWith(fontSize: 11.sp, height: 1.1),
+                    ),
                   ],
-                ),
+                  if (offer != null && offer.isNotEmpty) ...[
+                    SizedBox(height: 4.h),
+                    _OfferBadge(label: offer),
+                  ],
+                ],
               ),
             ),
           ],
         ),
       ),
+    );
+  }
+}
+
+class _SquareLogo extends StatelessWidget {
+  const _SquareLogo({required this.imageUrl});
+
+  final String? imageUrl;
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(12.r),
+      child: SizedBox(
+        width: 72.w,
+        height: 72.w,
+        child: ColoredBox(
+          color: const Color(0xFFE8F5E9),
+          child: imageUrl != null && imageUrl!.isNotEmpty
+              ? AppNetworkImage(
+                  url: imageUrl!,
+                  fit: BoxFit.cover,
+                  errorWidget: const ColoredBox(color: Color(0xFFE8F5E9)),
+                )
+              : null,
+        ),
+      ),
+    );
+  }
+}
+
+class _RatingMark extends StatelessWidget {
+  const _RatingMark({
+    required this.rating,
+    required this.visible,
+    this.compact = false,
+  });
+
+  final double rating;
+  final bool visible;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!visible) return const SizedBox.shrink();
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          '★',
+          style: TextStyle(
+            color: const Color(0xFFC9A84C),
+            fontSize: compact ? 10.sp : 11.sp,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        SizedBox(width: 3.w),
+        Text(
+          rating.toStringAsFixed(1),
+          style: AppTextStyles.labelSmall(color: const Color(0xFF1A1A1A))
+              .copyWith(
+            fontWeight: FontWeight.w700,
+            fontSize: compact ? 11.sp : 13.sp,
+          ),
+        ),
+      ],
     );
   }
 }
@@ -599,14 +471,14 @@ class _OfferBadge extends StatelessWidget {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
       decoration: BoxDecoration(
-        color: AppColors.primary,
-        borderRadius: BorderRadius.circular(5.r),
+        color: AppColors.offerBadgeGreenBg,
+        borderRadius: BorderRadius.circular(4.r),
       ),
       child: Text(
         label,
-        style: AppTextStyles.caption(color: AppColors.white).copyWith(
+        style: AppTextStyles.labelSmall(color: AppColors.primary).copyWith(
           fontWeight: FontWeight.w600,
-          fontSize: 9.sp,
+          fontSize: 11.sp,
         ),
       ),
     );

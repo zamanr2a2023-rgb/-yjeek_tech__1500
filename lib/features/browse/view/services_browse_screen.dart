@@ -11,6 +11,7 @@ import 'package:yjeek_app/features/browse/browse_routes.dart';
 import 'package:yjeek_app/features/browse/model/services_data.dart';
 import 'package:yjeek_app/features/browse/view/widgets/retail_vendor_store_scaffold.dart';
 import 'package:yjeek_app/features/browse/view/widgets/services_widgets.dart';
+import 'package:yjeek_app/features/home/view/widgets/home_widgets.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/navigation_widgets.dart';
 
 /// Services landing — sub-categories only (services.md Figma).
@@ -132,22 +133,20 @@ class _ServicesBrowseScreenState extends ConsumerState<ServicesBrowseScreen> {
             },
           ),
           Padding(
-            padding: EdgeInsets.fromLTRB(20.w, 12.h, 8.w, 0),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: ServicesSubcategorySearchField(
-                    hint: ServicesData.searchHint,
-                    onChanged: _onQueryChanged,
-                  ),
-                ),
-                SizedBox(width: 5.w),
-                ServicesSubcategoryViewToggle(
-                  isGridView: _isGridView,
-                  onChanged: _setGridView,
-                ),
-              ],
+            padding: EdgeInsets.fromLTRB(20.w, 12.h, 20.w, 0),
+            child: ServicesSubcategorySearchField(
+              hint: ServicesData.searchHint,
+              onChanged: _onQueryChanged,
+            ),
+          ),
+          Padding(
+            padding: EdgeInsets.fromLTRB(20.w, 10.h, 20.w, 0),
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: CategoriesViewToggle(
+                isGrid: _isGridView,
+                onChanged: _setGridView,
+              ),
             ),
           ),
           Expanded(

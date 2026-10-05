@@ -15,6 +15,7 @@ import 'package:yjeek_app/features/cart/model/payment_methods_repository.dart';
 import 'package:yjeek_app/features/cart/view/widgets/cart_flow_widgets.dart';
 import 'package:yjeek_app/features/navigation/model/navigation_data.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/navigation_widgets.dart';
+import 'package:yjeek_app/features/campaigns/view/on_time_promise_banner.dart';
 import 'package:yjeek_app/features/vape_cart/model/vape_cart_data.dart';
 import 'package:yjeek_app/features/vape_cart/vape_cart_routes.dart';
 import 'package:yjeek_app/features/vape_cart/view/widgets/vape_cart_widgets.dart';
@@ -337,6 +338,7 @@ class _VapeCheckoutScreenState extends ConsumerState<VapeCheckoutScreen> {
           : ListView(
               padding: EdgeInsets.fromLTRB(20.w, 8.h, 20.w, 24.h),
               children: [
+                const OnTimePromiseBanner(),
                 CartSectionTitle(VapeCartStrings.deliveryDetails),
                 CartDeliveryDetailsCard(
                   address: _address?.label ?? 'Add delivery address',

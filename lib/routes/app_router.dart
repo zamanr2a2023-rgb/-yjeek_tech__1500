@@ -125,6 +125,8 @@ import 'package:yjeek_app/features/order_flow/view/order_pay_screen.dart';
 import 'package:yjeek_app/features/order_flow/view/order_receipt_screen.dart';
 import 'package:yjeek_app/features/order_flow/view/order_status_screen.dart';
 import 'package:yjeek_app/features/order_flow/view/order_waiting_screen.dart';
+import 'package:yjeek_app/features/payments/payment_page_lock.dart';
+import 'package:yjeek_app/routes/resume_location.dart';
 import 'package:yjeek_app/routes/route_names.dart';
 
 List<String> _scheduledOrderIds(GoRouterState state) {
@@ -144,6 +146,14 @@ class AppRouter {
     return instance ??= GoRouter(
       restorationScopeId: 'yjeek_router',
       initialLocation: RouteNames.splash,
+      refreshListenable: PaymentPageLock.instance,
+      redirect: (context, state) {
+        final locked = PaymentPageLock.instance.location;
+        if (locked == null) return null;
+        final here = resumeLocationFromUri(state.uri);
+        if (here == locked) return null;
+        return locked;
+      },
       routes: [
         GoRoute(
           path: RouteNames.splash,
