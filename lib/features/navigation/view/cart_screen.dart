@@ -481,7 +481,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
           case CartTab.pickup:
             context.push(PickupCartRoutes.checkout);
           case CartTab.services:
-            context.push(ServicesBookingRoutes.checkout);
+            context.push(ServicesBookingRoutes.booking);
           case CartTab.orders:
             final vendorId = snap.vendorId;
             if (vendorId != null && vendorId.isNotEmpty) {

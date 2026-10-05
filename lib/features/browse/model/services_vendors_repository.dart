@@ -38,9 +38,11 @@ class ServicesProductDetail {
   final List<BrowseOptionGroup> optionGroups;
   final List<BrowseAddonOption> addons;
   final List<String> specialists;
+
   /// Parallel to [specialists]; null means "Any".
   final List<String?> specialistIds;
   final String? imageUrl;
+
   /// Cleaning → Visits; Beauty & others → Sessions (chekc.md / help 2.md).
   final String quantityLabel;
   final String? categoryLabel;
@@ -107,6 +109,9 @@ class ServiceBookingAvailability {
     this.coveredAreas = const [],
     this.durationMin,
     this.callOutFee,
+    this.bookingWindowDays,
+    this.dateKey,
+    this.bookable,
   });
 
   final List<ServiceBookingSlot> slots;
@@ -114,6 +119,9 @@ class ServiceBookingAvailability {
   final List<ServiceCoveredArea> coveredAreas;
   final int? durationMin;
   final double? callOutFee;
+  final int? bookingWindowDays;
+  final String? dateKey;
+  final bool? bookable;
 
   static const empty = ServiceBookingAvailability(slots: []);
 }
@@ -169,7 +177,11 @@ class ServicesVendorsRepository {
     );
     final data = response?['data'];
     if (data is! Map<String, dynamic>) {
-      return ServiceTypeLanding(title: '', slug: storeSlug, categories: const []);
+      return ServiceTypeLanding(
+        title: '',
+        slug: storeSlug,
+        categories: const [],
+      );
     }
 
     final title = (data['name'] as String?)?.trim() ?? '';
@@ -209,8 +221,7 @@ class ServicesVendorsRepository {
     String categoryId, {
     String? storeSlug,
   }) async {
-    final categories =
-        (await fetchServiceLanding(slug: storeSlug)).categories;
+    final categories = (await fetchServiceLanding(slug: storeSlug)).categories;
     for (final c in categories) {
       if (c.id == categoryId ||
           c.id.toLowerCase() == categoryId.toLowerCase() ||
@@ -326,11 +337,11 @@ class ServicesVendorsRepository {
     final vendorRaw = data['vendor'];
     final provider = vendorRaw is Map<String, dynamic>
         ? (serviceProviderFromVendorJson({
-              ...vendorRaw,
-              'id': vendorRaw['id'] ?? providerId,
-              'slug': vendorRaw['slug'] ?? providerId,
-            }) ??
-            await fetchProvider(providerId))
+                ...vendorRaw,
+                'id': vendorRaw['id'] ?? providerId,
+                'slug': vendorRaw['slug'] ?? providerId,
+              }) ??
+              await fetchProvider(providerId))
         : await fetchProvider(providerId);
 
     final sectionsRaw = data['sections'];
@@ -467,7 +478,8 @@ class ServicesVendorsRepository {
       }
     }
 
-    final category = providerCategory ??
+    final category =
+        providerCategory ??
         product['serviceCategory'] as String? ??
         product['categoryLabel'] as String?;
 
@@ -564,19 +576,15 @@ class ServicesVendorsRepository {
     List<String> addonIds = const [],
     bool replaceCart = false,
   }) async {
-    final response = await _apiClient.postJson(
-      '/cart/items?type=SERVICE',
-      {
-        'productId': productId,
-        'quantity': quantity,
-        'replaceCart': replaceCart,
-        'options': {
-          if (optionIds.isNotEmpty) 'optionIds': optionIds,
-          if (addonIds.isNotEmpty) 'addonIds': addonIds,
-        },
+    final response = await _apiClient.postJson('/cart/items?type=SERVICE', {
+      'productId': productId,
+      'quantity': quantity,
+      'replaceCart': replaceCart,
+      'options': {
+        if (optionIds.isNotEmpty) 'optionIds': optionIds,
+        if (addonIds.isNotEmpty) 'addonIds': addonIds,
       },
-      bearerToken: _token,
-    );
+    }, bearerToken: _token);
 
     if (response.ok) return (ok: true, vendorConflict: false, message: null);
 
@@ -584,7 +592,8 @@ class ServicesVendorsRepository {
     final details = error is Map ? error['details'] : null;
     final detailCode = details is Map ? details['code']?.toString() : null;
     final code = error is Map ? error['code']?.toString() : null;
-    final conflict = response.statusCode == 409 ||
+    final conflict =
+        response.statusCode == 409 ||
         code == 'VENDOR_CART_CONFLICT' ||
         detailCode == 'VENDOR_CART_CONFLICT' ||
         code == 'CONFLICT';
@@ -605,8 +614,8 @@ class ServicesVendorsRepository {
     final list = data is List
         ? data
         : (data is Map<String, dynamic>
-            ? data['items'] ?? data['history']
-            : null);
+              ? data['items'] ?? data['history']
+              : null);
     if (list is! List || list.isEmpty) {
       return const [];
     }
@@ -704,26 +713,33 @@ ServiceProvider? serviceProviderFromVendorJson(Map<String, dynamic> json) {
 
   final openHoursTitle =
       (json['openHoursTitle'] as String?)?.trim().isNotEmpty == true
-          ? (json['openHoursTitle'] as String).trim()
-          : 'Open · 9–9';
+      ? (json['openHoursTitle'] as String).trim()
+      : 'Open · 9–9';
   final openHoursSubtitle =
       (json['openHoursSubtitle'] as String?)?.trim().isNotEmpty == true
-          ? (json['openHoursSubtitle'] as String).trim()
-          : 'Today';
+      ? (json['openHoursSubtitle'] as String).trim()
+      : 'Today';
   final bookingModeLabel =
       (json['bookingModeLabel'] as String?)?.trim().isNotEmpty == true
-          ? (json['bookingModeLabel'] as String).trim()
-          : 'Walk-in / book';
+      ? (json['bookingModeLabel'] as String).trim()
+      : 'Walk-in / book';
 
   final offer = json['offerBadge'] ?? json['badgeLabel'] ?? json['promoBadge'];
   final offerBadge = offer?.toString().trim();
   final area = (json['area'] as String?)?.trim();
   final logoUrl = resolveApiMediaUrl(json['logoUrl'] as String?);
   final coverUrl = resolveApiMediaUrl(json['coverUrl'] as String?);
-  final imageUrl = logoUrl ?? coverUrl;
-  final openStatus = (json['openStatus'] as String?)?.toUpperCase() ?? 'UNKNOWN';
-  final hasRating = json['hasRating'] == true || (reviewCount > 0 && rating > 0);
-  final fullyBooked = json['fullyBooked'] == true ||
+  final imageUrl =
+      logoUrl ??
+      coverUrl ??
+      resolveApiMediaUrl(json['imageUrl'] as String?) ??
+      resolveApiMediaUrlFromList(json['imageUrls']);
+  final openStatus =
+      (json['openStatus'] as String?)?.toUpperCase() ?? 'UNKNOWN';
+  final hasRating =
+      json['hasRating'] == true || (reviewCount > 0 && rating > 0);
+  final fullyBooked =
+      json['fullyBooked'] == true ||
       (json['bookingModeLabel'] as String?)?.toLowerCase().contains('full') ==
           true;
   final modes = fulfillmentModesFromVendorJson(json);
@@ -745,23 +761,24 @@ ServiceProvider? serviceProviderFromVendorJson(Map<String, dynamic> json) {
     atVenue: modes.isNotEmpty
         ? modes.contains('IN_SALON')
         : json['atVenue'] == true ||
-            json['supportsDineIn'] == true ||
-            json['supportsPickup'] == true,
+              json['supportsDineIn'] == true ||
+              json['supportsPickup'] == true,
     atHome: modes.isNotEmpty
         ? modes.contains('AT_HOME')
         : json['atHome'] == true ||
-            (json['isBookable'] == true && json['supportsDelivery'] == true),
+              (json['isBookable'] == true && json['supportsDelivery'] == true),
     gradientStart: colors.$1,
     gradientEnd: colors.$2,
     emoji: emoji,
     openHoursTitle: openHoursTitle,
     openHoursSubtitle: openHoursSubtitle,
     bookingModeLabel: bookingModeLabel,
-    offerBadge:
-        (offerBadge != null && offerBadge.isNotEmpty) ? offerBadge : null,
+    offerBadge: (offerBadge != null && offerBadge.isNotEmpty)
+        ? offerBadge
+        : null,
     area: (area != null && area.isNotEmpty) ? area : null,
-    imageUrl: logoUrl ?? coverUrl,
-    coverUrl: coverUrl,
+    imageUrl: imageUrl,
+    coverUrl: coverUrl ?? imageUrl,
     hasRating: hasRating,
     openStatus: openStatus,
     fullyBooked: fullyBooked,
@@ -795,13 +812,12 @@ ServiceMenuItem? serviceMenuItemFromProductJson(
   final count = json['_count'];
   final optionCount = optionGroups is List
       ? optionGroups.length
-      : (count is Map
-          ? (count['optionGroups'] as num?)?.toInt() ?? 0
-          : 0);
+      : (count is Map ? (count['optionGroups'] as num?)?.toInt() ?? 0 : 0);
   final addonCount = count is Map
       ? (count['addons'] as num?)?.toInt() ?? 0
       : (json['addons'] is List ? (json['addons'] as List).length : 0);
-  final hasModifiers = json['hasModifiers'] == true ||
+  final hasModifiers =
+      json['hasModifiers'] == true ||
       (mods is List && mods.isNotEmpty) ||
       optionCount > 0 ||
       addonCount > 0;
@@ -878,9 +894,12 @@ ServiceBookingAvailability serviceBookingAvailabilityFromJson(
       final startAt = DateTime.tryParse(item['startAt']?.toString() ?? '');
       if (startAt == null) continue;
       final local = startAt.toLocal();
-      final label = _nonEmpty(item['label']) ??
+      final label =
+          _nonEmpty(item['label']) ??
           ServicesVendorsRepository._formatSlotLabel(local);
-      final endAt = DateTime.tryParse(item['endAt']?.toString() ?? '')?.toLocal();
+      final endAt = DateTime.tryParse(
+        item['endAt']?.toString() ?? '',
+      )?.toLocal();
       final modes = _stringModes(item['fulfillmentModes']);
       slots.add(
         ServiceBookingSlot(
@@ -899,13 +918,39 @@ ServiceBookingAvailability serviceBookingAvailabilityFromJson(
       );
     }
   }
+  final bookingWindowDays = (data['bookingWindowDays'] as num?)?.toInt();
+  final bookable = data['bookable'] is bool ? data['bookable'] as bool : null;
+  final dateKey = _nonEmpty(data['date']?.toString());
+
   return ServiceBookingAvailability(
     slots: slots,
     reason: reason,
     coveredAreas: coveredAreas,
     durationMin: durationMin,
     callOutFee: envelopeFee,
+    bookingWindowDays: bookingWindowDays,
+    dateKey: dateKey,
+    bookable: bookable,
   );
+}
+
+/// Vendor-configured fulfillment modes from a booking-slots page (vendor panel).
+Set<String> fulfillmentModesFromBookingPage(ServiceBookingAvailability page) {
+  final modes = <String>{};
+  for (final slot in page.slots) {
+    modes.addAll(slot.fulfillmentModes);
+  }
+  return modes;
+}
+
+/// Whether the vendor offers any bookable times on this day (panel slots exist).
+bool serviceDayHasVendorSlots(ServiceBookingAvailability page) {
+  if (page.slots.isNotEmpty) return true;
+  final reason = page.reason?.toUpperCase();
+  if (reason == 'BLOCKED_DATE' || reason == 'OUTSIDE_BOOKING_WINDOW') {
+    return false;
+  }
+  return false;
 }
 
 ServiceSlotContext serviceSlotContextFrom(ServiceBookingAvailability page) {
@@ -1009,16 +1054,14 @@ List<BillLine> applyServiceCallOutFee(
   }
   final already = lines.any((line) {
     final label = line.label.toLowerCase();
-    return label.contains('delivery') || label.contains('call-out') ||
+    return label.contains('delivery') ||
+        label.contains('call-out') ||
         label.contains('call out');
   });
   if (already) return lines;
   final copy = List<BillLine>.from(lines);
   final totalIndex = copy.lastIndexWhere((line) => line.isBold);
-  final feeLine = BillLine(
-    label: 'Delivery fee',
-    value: _bhdLabel(callOutFee),
-  );
+  final feeLine = BillLine(label: 'Delivery fee', value: _bhdLabel(callOutFee));
   if (totalIndex < 0) {
     copy.add(feeLine);
     return copy;

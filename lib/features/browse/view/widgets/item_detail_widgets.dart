@@ -523,6 +523,104 @@ class _SelectionControl extends StatelessWidget {
   }
 }
 
+/// Manual swipe gallery for product hero images (no auto-advance).
+class ItemProductImageGallery extends StatefulWidget {
+  const ItemProductImageGallery({
+    super.key,
+    required this.imageUrls,
+    required this.placeholder,
+    this.errorPlaceholder,
+  });
+
+  final List<String> imageUrls;
+  final Widget placeholder;
+  final Widget? errorPlaceholder;
+
+  @override
+  State<ItemProductImageGallery> createState() =>
+      _ItemProductImageGalleryState();
+}
+
+class _ItemProductImageGalleryState extends State<ItemProductImageGallery> {
+  late final PageController _pageController;
+  int _pageIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _pageController = PageController();
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final urls = widget.imageUrls
+        .map((u) => u.trim())
+        .where((u) => u.isNotEmpty)
+        .toList();
+    if (urls.isEmpty) return widget.placeholder;
+    if (urls.length == 1) {
+      return AppNetworkImage(
+        url: urls.first,
+        fit: BoxFit.cover,
+        errorWidget: widget.errorPlaceholder ?? widget.placeholder,
+      );
+    }
+
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        PageView.builder(
+          controller: _pageController,
+          itemCount: urls.length,
+          onPageChanged: (index) => setState(() => _pageIndex = index),
+          itemBuilder: (context, index) {
+            return AppNetworkImage(
+              url: urls[index],
+              fit: BoxFit.cover,
+              errorWidget: widget.errorPlaceholder ?? widget.placeholder,
+            );
+          },
+        ),
+        Positioned(
+          left: 0,
+          right: 0,
+          bottom: 12.h,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: List.generate(urls.length, (index) {
+              final active = index == _pageIndex;
+              return Container(
+                width: active ? 8.w : 6.w,
+                height: active ? 8.w : 6.w,
+                margin: EdgeInsets.symmetric(horizontal: 3.w),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: active
+                      ? AppColors.white
+                      : AppColors.white.withValues(alpha: 0.55),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x33000000),
+                      blurRadius: 2,
+                      offset: Offset(0, 1),
+                    ),
+                  ],
+                ),
+              );
+            }),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 /// Quantity label + green outline stepper (Figma QtyRow).
 class ItemQuantityRow extends StatelessWidget {
   const ItemQuantityRow({

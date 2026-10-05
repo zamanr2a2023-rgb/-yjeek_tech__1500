@@ -307,6 +307,7 @@ class CartSnapshot {
     this.upsellSubtitle,
     this.serviceMode,
     this.serviceScheduledAt,
+    this.serviceVenueAddress,
     this.promoCode,
     this.isVape = false,
     this.totalAmount = 0,
@@ -349,6 +350,9 @@ class CartSnapshot {
   /// IN_SALON or AT_HOME (SERVICE carts).
   final String? serviceMode;
   final DateTime? serviceScheduledAt;
+
+  /// Vendor branch address for IN_SALON (from cart `service.branch`).
+  final String? serviceVenueAddress;
   final String? promoCode;
 
   /// Vape / nicotine store cart (scheduled delivery tiers). Not the same as ageRestricted.
@@ -1389,6 +1393,7 @@ CartSnapshot cartSnapshotFromJson(
     serviceScheduledAt: DateTime.tryParse(
       json['serviceScheduledAt']?.toString() ?? '',
     )?.toLocal(),
+    serviceVenueAddress: _serviceVenueAddressFromJson(json['service']),
     promoCode: json['promoCode'] as String?,
     isVape:
         json['isVape'] == true ||
@@ -1773,6 +1778,20 @@ int? _maxCartItemPrepMin(Map<String, dynamic> json) {
     if (prep is num && prep > max) max = prep.toInt();
   }
   return max > 0 ? max : null;
+}
+
+String? _serviceVenueAddressFromJson(Object? raw) {
+  if (raw is! Map<String, dynamic>) return null;
+  final branch = raw['branch'];
+  if (branch is! Map<String, dynamic>) return null;
+  final address = (branch['address'] as String?)?.trim();
+  if (address != null && address.isNotEmpty) return address;
+  final parts = [
+    branch['area'],
+    branch['city'],
+  ].whereType<String>().map((s) => s.trim()).where((s) => s.isNotEmpty);
+  final joined = parts.join(' · ');
+  return joined.isEmpty ? null : joined;
 }
 
 String _pickupReadyLabel(

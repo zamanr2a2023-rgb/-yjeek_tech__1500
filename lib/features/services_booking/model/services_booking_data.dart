@@ -28,6 +28,17 @@ class BookingUpsellItem {
   final bool selected;
 }
 
+String? serviceBookingSlotsReasonMessage(String? code) {
+  switch (code?.toUpperCase()) {
+    case 'BLOCKED_DATE':
+      return 'This date is blocked by the provider.';
+    case 'OUTSIDE_BOOKING_WINDOW':
+      return 'This date is outside the booking window.';
+    default:
+      return null;
+  }
+}
+
 abstract final class ServicesBookingStrings {
   static String get booking => L10n.tr('Booking');
   static String get checkout => L10n.tr('Checkout');
@@ -48,7 +59,8 @@ abstract final class ServicesBookingStrings {
   static String get addMore => L10n.tr('Add more');
   static String get checkoutBtn => L10n.tr('Checkout');
   static String get serviceLocation => L10n.tr('Service location');
-  static String get venueLocationLabel => L10n.tr('At venue · Glow Beauty Lounge');
+  static String get venueLocationLabel =>
+      L10n.tr('At venue · Glow Beauty Lounge');
   static String get venueLocationShort => L10n.tr('At venue · Adliya');
   static String get venueAddress => L10n.tr('Building 210, Road 2810, Adliya');
   static String get appointment => L10n.tr('Appointment');
@@ -61,8 +73,11 @@ abstract final class ServicesBookingStrings {
       L10n.tr('100% goes straight to your specialist');
   static String get paymentMethod => L10n.tr('Payment method');
   static String get placeBooking => L10n.tr('Place booking');
-  static String get sendingBooking => L10n.tr('Sending your booking to Glow Beauty Lounge');
-  static String get autoConfirmHint => L10n.tr('Auto-confirms in 10 seconds. You can still edit or cancel before then.');
+  static String get sendingBooking =>
+      L10n.tr('Sending your booking to Glow Beauty Lounge');
+  static String get autoConfirmHint => L10n.tr(
+    'Auto-confirms in 10 seconds. You can still edit or cancel before then.',
+  );
   static String get bookingSummary => L10n.tr('Booking summary');
   static String get providerLabel => L10n.tr('Provider');
   static String get location => L10n.tr('Location');
@@ -135,7 +150,11 @@ abstract final class ServicesBookingData {
     BillLine(label: 'Glam Day Package (combo)', value: 'BHD 15.000'),
     BillLine(label: 'Scalp massage', value: 'BHD 2.000'),
     BillLine(label: 'Service fee', value: 'BHD 0.500'),
-    BillLine(label: 'Promo (WELCOME10)', value: '− BHD 1.700', isDiscount: true),
+    BillLine(
+      label: 'Promo (WELCOME10)',
+      value: '− BHD 1.700',
+      isDiscount: true,
+    ),
     BillLine(label: 'VAT (10%)', value: 'BHD 1.580'),
     BillLine(label: 'Total', value: 'BHD 17.380', isBold: true),
   ];
@@ -144,7 +163,11 @@ abstract final class ServicesBookingData {
     BillLine(label: 'Service', value: 'BHD 8.000'),
     BillLine(label: 'Blow dry & style', value: 'BHD 6.000'),
     BillLine(label: 'Service fee', value: 'BHD 0.500'),
-    BillLine(label: 'Promo (WELCOME10)', value: '− BHD 1.450', isDiscount: true),
+    BillLine(
+      label: 'Promo (WELCOME10)',
+      value: '− BHD 1.450',
+      isDiscount: true,
+    ),
     BillLine(label: 'VAT (10%)', value: 'BHD 1.305'),
     BillLine(label: 'Total', value: 'BHD 14.355', isBold: true),
   ];

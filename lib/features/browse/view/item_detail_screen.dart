@@ -6,7 +6,6 @@ import 'package:yjeek_app/core/constants/app_text_styles.dart';
 import 'package:yjeek_app/core/providers/app_providers.dart';
 import 'package:yjeek_app/core/providers/shell_provider.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
-import 'package:yjeek_app/core/widgets/app_network_image.dart';
 import 'package:yjeek_app/features/browse/model/browse_data.dart';
 import 'package:yjeek_app/features/browse/view/widgets/item_detail_widgets.dart';
 import 'package:yjeek_app/features/auth/utils/require_login.dart';
@@ -55,7 +54,7 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
   String? _descriptionAr;
   List<BrowseOptionGroup> _optionGroups = const [];
   List<BrowseAddonOption> _addons = const [];
-  String? _imageUrl;
+  List<String> _imageUrls = const [];
 
   bool get _hasCustomize =>
       _optionGroups.isNotEmpty || _addons.isNotEmpty;
@@ -86,7 +85,13 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
         _descriptionAr = detail.descriptionAr;
         _optionGroups = detail.optionGroups;
         _addons = detail.addons;
-        _imageUrl = detail.imageUrl ?? detail.item.imageUrl;
+        _imageUrls = detail.imageUrls.isNotEmpty
+            ? detail.imageUrls
+            : [
+                if ((detail.imageUrl ?? detail.item.imageUrl)?.isNotEmpty ==
+                    true)
+                  detail.imageUrl ?? detail.item.imageUrl!,
+              ];
         _selectedOptionsByGroup
           ..clear()
           ..addAll(initialOptionSelections(detail.optionGroups));
@@ -422,6 +427,21 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
     );
   }
 
+  Widget _gradientPlaceholder() {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: const Alignment(-0.8, -0.6),
+          end: const Alignment(0.8, 0.8),
+          colors: [
+            _restaurant.gradientStart,
+            _restaurant.gradientEnd,
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildImageSection() {
     return SizedBox(
       height: 300.h,
@@ -431,35 +451,11 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
         children: [
           ColoredBox(
             color: const Color(0xFFE8F5E9),
-            child: _imageUrl != null && _imageUrl!.isNotEmpty
-                ? AppNetworkImage(
-                    url: _imageUrl!,
-                    fit: BoxFit.cover,
-                    errorWidget: DecoratedBox(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: const Alignment(-0.8, -0.6),
-                          end: const Alignment(0.8, 0.8),
-                          colors: [
-                            _restaurant.gradientStart,
-                            _restaurant.gradientEnd,
-                          ],
-                        ),
-                      ),
-                    ),
-                  )
-                : DecoratedBox(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: const Alignment(-0.8, -0.6),
-                        end: const Alignment(0.8, 0.8),
-                        colors: [
-                          _restaurant.gradientStart,
-                          _restaurant.gradientEnd,
-                        ],
-                      ),
-                    ),
-                  ),
+            child: ItemProductImageGallery(
+              imageUrls: _imageUrls,
+              placeholder: _gradientPlaceholder(),
+              errorPlaceholder: _gradientPlaceholder(),
+            ),
           ),
           Positioned(
             top: 0,

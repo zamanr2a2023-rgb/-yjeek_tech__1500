@@ -80,8 +80,9 @@ class _DineInReviewScreenState extends ConsumerState<DineInReviewScreen> {
     final pending = ref.read(pendingDineInCheckoutProvider);
     if (pending != null) _prepMode = pending.prepMode;
 
-    final cart =
-        await ref.read(cartRepositoryProvider).fetchCart(CartOrderType.dineIn);
+    final cart = await ref
+        .read(cartRepositoryProvider)
+        .fetchCart(CartOrderType.dineIn);
     if (!mounted) return;
 
     if (cart.items.isEmpty) {
@@ -133,16 +134,29 @@ class _DineInReviewScreenState extends ConsumerState<DineInReviewScreen> {
     setState(() => _placing = true);
     try {
       final isArrival = prepMode == DineInPrepMode.prepareOnArrival;
-      final cart =
-          await ref.read(cartRepositoryProvider).fetchCart(CartOrderType.dineIn);
-      await ref.read(cartRepositoryProvider).updatePreferences(
+      final cart = await ref
+          .read(cartRepositoryProvider)
+          .fetchCart(CartOrderType.dineIn);
+      if (isArrival && cart.scheduledDineInAt == null) {
+        if (!mounted) return;
+        setState(() => _placing = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please choose your dine-in time')),
+        );
+        _startTimer();
+        return;
+      }
+      await ref
+          .read(cartRepositoryProvider)
+          .updatePreferences(
             type: CartOrderType.dineIn,
-            dineInPrepMode:
-                isArrival ? 'PREPARE_ON_ARRIVAL' : 'PREPARE_NOW',
+            dineInPrepMode: isArrival ? 'PREPARE_ON_ARRIVAL' : 'PREPARE_NOW',
             scheduledDineInAt: isArrival ? cart.scheduledDineInAt : null,
             clearScheduledDineInAt: !isArrival,
           );
-      final order = await ref.read(cartRepositoryProvider).checkout(
+      final order = await ref
+          .read(cartRepositoryProvider)
+          .checkout(
             type: CartOrderType.dineIn,
             paymentMethod: paymentMethodApiValue(paymentId),
           );
@@ -202,19 +216,15 @@ class _DineInReviewScreenState extends ConsumerState<DineInReviewScreen> {
                 SizedBox(height: 14.h),
                 Text(
                   DineInCartStrings.billSummary,
-                  style:
-                      AppTextStyles.labelMedium(color: AppColors.textPrimary)
-                          .copyWith(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 15.sp,
-                    height: 1.2,
-                  ),
+                  style: AppTextStyles.labelMedium(color: AppColors.textPrimary)
+                      .copyWith(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 15.sp,
+                        height: 1.2,
+                      ),
                 ),
                 SizedBox(height: 8.h),
-                BillSummaryCard(
-                  lines: _bill,
-                  cashbackAmount: null,
-                ),
+                BillSummaryCard(lines: _bill, cashbackAmount: null),
               ],
             ),
       bottom: SafeArea(
@@ -280,10 +290,10 @@ class _DineInLiveSummaryCard extends StatelessWidget {
             DineInCartStrings.orderSummary,
             style: AppTextStyles.labelMedium(color: AppColors.textPrimary)
                 .copyWith(
-              fontWeight: FontWeight.w700,
-              fontSize: 16.sp,
-              height: 1.3,
-            ),
+                  fontWeight: FontWeight.w700,
+                  fontSize: 16.sp,
+                  height: 1.3,
+                ),
           ),
           SizedBox(height: 12.h),
           _row(DineInCartStrings.restaurant, vendor),
@@ -308,10 +318,10 @@ class _DineInLiveSummaryCard extends StatelessWidget {
             label,
             style: AppTextStyles.labelSmall(color: const Color(0xFF6B7B6E))
                 .copyWith(
-              fontWeight: FontWeight.w500,
-              fontSize: 13.sp,
-              height: 1.3,
-            ),
+                  fontWeight: FontWeight.w500,
+                  fontSize: 13.sp,
+                  height: 1.3,
+                ),
           ),
           SizedBox(width: 12.w),
           Expanded(
@@ -320,10 +330,10 @@ class _DineInLiveSummaryCard extends StatelessWidget {
               textAlign: TextAlign.right,
               style: AppTextStyles.labelMedium(color: AppColors.textPrimary)
                   .copyWith(
-                fontWeight: bold ? FontWeight.w800 : FontWeight.w700,
-                fontSize: bold ? 15.sp : 13.sp,
-                height: 1.3,
-              ),
+                    fontWeight: bold ? FontWeight.w800 : FontWeight.w700,
+                    fontSize: bold ? 15.sp : 13.sp,
+                    height: 1.3,
+                  ),
             ),
           ),
         ],

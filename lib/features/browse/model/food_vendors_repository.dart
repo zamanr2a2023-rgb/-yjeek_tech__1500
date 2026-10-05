@@ -29,6 +29,7 @@ class FoodProductDetail {
     required this.optionGroups,
     required this.addons,
     this.imageUrl,
+    this.imageUrls = const [],
     this.descriptionAr,
     this.catalog,
   });
@@ -39,6 +40,7 @@ class FoodProductDetail {
   final List<BrowseOptionGroup> optionGroups;
   final List<BrowseAddonOption> addons;
   final String? imageUrl;
+  final List<String> imageUrls;
 
   /// Catalog axes and variants from the same payload. Food item detail ignores
   /// this and keeps using [optionGroups]. Null only when a caller builds the
@@ -334,13 +336,21 @@ class FoodVendorsRepository {
     final descAr = (data['descriptionAr'] as String?)?.trim() ?? '';
     final description = descEn.isNotEmpty ? descEn : item.description;
 
+    final imageUrls = resolveProductImageUrls(data);
+    if (imageUrls.isEmpty && item.imageUrl != null && item.imageUrl!.isNotEmpty) {
+      imageUrls.add(item.imageUrl!);
+    }
+
     return FoodProductDetail(
       item: item,
       description: description.isNotEmpty ? description : item.description,
       descriptionAr: descAr.isNotEmpty ? descAr : item.descriptionAr,
       optionGroups: optionGroups,
       addons: addons,
-      imageUrl: resolveProductImageUrl(data) ?? item.imageUrl,
+      imageUrl: imageUrls.isNotEmpty
+          ? imageUrls.first
+          : (resolveProductImageUrl(data) ?? item.imageUrl),
+      imageUrls: imageUrls,
       catalog: CatalogProduct.fromJson(data),
     );
   }

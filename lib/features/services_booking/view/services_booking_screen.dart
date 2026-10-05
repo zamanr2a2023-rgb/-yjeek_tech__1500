@@ -15,7 +15,6 @@ import 'package:yjeek_app/features/services_booking/model/services_booking_data.
 import 'package:yjeek_app/features/services_booking/services_booking_routes.dart';
 import 'package:yjeek_app/features/services_booking/view/widgets/services_booking_widgets.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/account_widgets.dart';
-import 'package:yjeek_app/features/navigation/view/widgets/navigation_widgets.dart';
 
 class ServicesBookingScreen extends ConsumerStatefulWidget {
   const ServicesBookingScreen({super.key});
@@ -33,27 +32,53 @@ class _ServicesBookingScreenState extends ConsumerState<ServicesBookingScreen> {
   String? _slotReason;
   Set<String> _fulfillmentModes = const {};
 
-  int _selectedDate = 0;
   int _selectedTime = 0;
   final Set<String> _busyProducts = {};
   bool _cartLineBusy = false;
 
-  List<DateTime> _dates = List.generate(5, (i) {
-    final now = DateTime.now();
-    return DateTime(now.year, now.month, now.day).add(Duration(days: i));
-  });
+  late DateTime _selectedDay = _dayOnlyStatic(DateTime.now());
+  Set<String> _bookableDayKeys = const {};
+  int _bookingWindowDays = 30;
 
-  static const List<String> _weekdays = [
-    'Mon',
-    'Tue',
-    'Wed',
-    'Thu',
-    'Fri',
-    'Sat',
-    'Sun',
-  ];
-  static const int _dateChipCount = 5;
-  static const int _dateProbeDays = 14;
+  static DateTime _dayOnlyStatic(DateTime d) =>
+      DateTime(d.year, d.month, d.day);
+
+  String _dayKey(DateTime d) {
+    final y = d.year.toString().padLeft(4, '0');
+    final m = d.month.toString().padLeft(2, '0');
+    final day = d.day.toString().padLeft(2, '0');
+    return '$y-$m-$day';
+  }
+
+  DateTime get _calendarFirstDay => _dayOnly(DateTime.now());
+
+  DateTime get _calendarLastDay =>
+      _calendarFirstDay.add(Duration(days: _bookingWindowDays - 1));
+
+  bool _isDaySelectable(DateTime day) {
+    final d = _dayOnly(day);
+    if (d.isBefore(_calendarFirstDay) || d.isAfter(_calendarLastDay)) {
+      return false;
+    }
+    if (_bookableDayKeys.isEmpty) return true;
+    return _bookableDayKeys.contains(_dayKey(d));
+  }
+
+  void _pickInitialDay({List<DateTime>? bookableDays}) {
+    final scheduled = _cart.serviceScheduledAt?.toLocal();
+    if (scheduled != null) {
+      final local = _dayOnly(scheduled);
+      if (_isDaySelectable(local)) {
+        _selectedDay = local;
+        return;
+      }
+    }
+    if (bookableDays != null && bookableDays.isNotEmpty) {
+      _selectedDay = _dayOnly(bookableDays.first);
+      return;
+    }
+    _selectedDay = _calendarFirstDay;
+  }
 
   @override
   void initState() {
@@ -70,6 +95,7 @@ class _ServicesBookingScreenState extends ConsumerState<ServicesBookingScreen> {
         _cart = cart;
         _loading = false;
       });
+      await _loadProviderFulfillment();
       await _loadAvailableDates();
       await _loadSlots();
     } catch (_) {
@@ -86,35 +112,63 @@ class _ServicesBookingScreenState extends ConsumerState<ServicesBookingScreen> {
   void _syncScheduleFromCart(CartSnapshot cart) {
     final at = cart.serviceScheduledAt;
     if (at == null) return;
-    final local = at.toLocal();
-    for (var i = 0; i < _dates.length; i++) {
-      if (_sameDay(_dates[i], local)) {
-        _selectedDate = i;
-        return;
-      }
+    final local = _dayOnly(at.toLocal());
+    if (_isDaySelectable(local)) {
+      _selectedDay = local;
     }
   }
 
-  /// Probe upcoming days via booking-slots; keep chips that have availability.
+  Future<void> _loadProviderFulfillment() async {
+    final vendorId = _cart.vendorId;
+    if (vendorId == null || vendorId.isEmpty) return;
+    try {
+      final provider = await ref
+          .read(servicesVendorsRepositoryProvider)
+          .fetchProvider(vendorId);
+      if (!mounted) return;
+      setState(() {
+        _fulfillmentModes = provider.fulfillmentModes.toSet();
+      });
+      await _syncFulfillmentMode();
+    } catch (_) {}
+  }
+
+  /// Uses GET /vendors/:id/booking-slots per day (vendor panel calendar + slots).
   Future<void> _loadAvailableDates() async {
     final vendorId = _cart.vendorId;
     final today = _dayOnly(DateTime.now());
-    final fallback = List.generate(
-      _dateChipCount,
-      (i) => today.add(Duration(days: i)),
-    );
     if (vendorId == null || vendorId.isEmpty) {
       setState(() {
-        _dates = fallback;
-        _selectedDate = 0;
+        _bookableDayKeys = const {};
+        _pickInitialDay();
         _syncScheduleFromCart(_cart);
       });
       return;
     }
 
     final repo = ref.read(servicesVendorsRepositoryProvider);
+    final durationMin = serviceCartDurationMin(_cart.items);
+
+    try {
+      final todayPage = await repo.fetchBookingSlots(
+        vendorId: vendorId,
+        date: today,
+        durationMin: durationMin,
+        staffId: _selectedStaffId,
+      );
+      final window = todayPage.bookingWindowDays;
+      if (window != null && window > 0) {
+        _bookingWindowDays = window;
+      }
+      final modes = fulfillmentModesFromBookingPage(todayPage);
+      if (modes.isNotEmpty && mounted) {
+        setState(() => _fulfillmentModes = {..._fulfillmentModes, ...modes});
+      }
+    } catch (_) {}
+
+    final probeDays = _bookingWindowDays.clamp(1, 31);
     final candidates = List.generate(
-      _dateProbeDays,
+      probeDays,
       (i) => today.add(Duration(days: i)),
     );
     final probed = await Future.wait(
@@ -123,10 +177,10 @@ class _ServicesBookingScreenState extends ConsumerState<ServicesBookingScreen> {
           final page = await repo.fetchBookingSlots(
             vendorId: vendorId,
             date: day,
-            durationMin: serviceCartDurationMin(_cart.items),
+            durationMin: durationMin,
             staffId: _selectedStaffId,
           );
-          if (page.slots.any((s) => s.available)) return day;
+          if (serviceDayHasVendorSlots(page)) return day;
         } catch (_) {}
         return null;
       }),
@@ -134,22 +188,16 @@ class _ServicesBookingScreenState extends ConsumerState<ServicesBookingScreen> {
     final available = probed.whereType<DateTime>().toList()
       ..sort((a, b) => a.compareTo(b));
 
-    final dates = available.take(_dateChipCount).toList();
-    if (dates.isEmpty) {
-      dates.addAll(fallback);
-    } else if (dates.length < _dateChipCount) {
-      for (final day in candidates) {
-        if (dates.length >= _dateChipCount) break;
-        if (!dates.any((d) => _sameDay(d, day))) dates.add(day);
-      }
-    }
+    final keys = available.map(_dayKey).toSet();
 
     if (!mounted) return;
     setState(() {
-      _dates = dates;
-      _selectedDate = 0;
+      _bookableDayKeys = keys;
+      _pickInitialDay(bookableDays: available);
       _syncScheduleFromCart(_cart);
-      if (_selectedDate >= _dates.length) _selectedDate = 0;
+      if (!_isDaySelectable(_selectedDay)) {
+        _pickInitialDay(bookableDays: available);
+      }
     });
   }
 
@@ -169,7 +217,7 @@ class _ServicesBookingScreenState extends ConsumerState<ServicesBookingScreen> {
           .read(servicesVendorsRepositoryProvider)
           .fetchBookingSlots(
             vendorId: vendorId,
-            date: _dates[_selectedDate],
+            date: _selectedDay,
             durationMin: serviceCartDurationMin(_cart.items),
             staffId: _selectedStaffId,
           );
@@ -194,10 +242,20 @@ class _ServicesBookingScreenState extends ConsumerState<ServicesBookingScreen> {
       }
 
       final context = serviceSlotContextFrom(page);
+      final pageModes = fulfillmentModesFromBookingPage(page);
+      final window = page.bookingWindowDays;
+      if (window != null && window > 0) {
+        _bookingWindowDays = window;
+      }
       setState(() {
         _slots = slots;
-        _slotReason = page.reason;
-        _fulfillmentModes = context.fulfillmentModes;
+        _slotReason = serviceBookingSlotsReasonMessage(page.reason) ??
+            page.reason;
+        _fulfillmentModes = {
+          ..._fulfillmentModes,
+          ...context.fulfillmentModes,
+          ...pageModes,
+        };
         _selectedTime = selected;
         _slotsLoading = false;
       });
@@ -267,10 +325,7 @@ class _ServicesBookingScreenState extends ConsumerState<ServicesBookingScreen> {
     final repo = ref.read(cartRepositoryProvider);
     try {
       final next = nextQty < 1
-          ? await repo.removeItem(
-              type: CartOrderType.service,
-              itemId: item.id,
-            )
+          ? await repo.removeItem(type: CartOrderType.service, itemId: item.id)
           : await repo.updateItemQuantity(
               type: CartOrderType.service,
               itemId: item.id,
@@ -329,13 +384,20 @@ class _ServicesBookingScreenState extends ConsumerState<ServicesBookingScreen> {
 
   bool get _atVenue => _cart.serviceMode != 'AT_HOME';
 
-  /// Services shown as "Your service" cards: items that aren't suggested
-  /// add-ons (those stay in the "Add these too?" list with a check mark).
-  List<CartLineItem> get _mainServices {
-    final upsellIds = _cart.upsell.map((u) => u.productId).toSet();
-    final main =
-        _cart.items.where((i) => !upsellIds.contains(i.productId)).toList();
-    return main.isEmpty ? _cart.items : main;
+  /// Upsell suggestions not yet in the cart (added ones appear under Your items).
+  List<CartUpsellItem> get _pendingUpsells {
+    final inCart = _cart.items.map((i) => i.productId).toSet();
+    return _cart.upsell.where((u) => !inCart.contains(u.productId)).toList();
+  }
+
+  void _goToServiceCheckout() {
+    if (_cart.serviceScheduledAt == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please choose a date and time first.')),
+      );
+      return;
+    }
+    context.push(ServicesBookingRoutes.checkout);
   }
 
   String _emojiFor(String name) {
@@ -353,10 +415,6 @@ class _ServicesBookingScreenState extends ConsumerState<ServicesBookingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final dateOptions = [
-      for (final d in _dates)
-        BookingDateOption(day: _weekdays[d.weekday - 1], date: d.day),
-    ];
     final slotLabels = [for (final s in _slots) s.label];
     final slotAvailable = [for (final s in _slots) s.available];
 
@@ -372,114 +430,73 @@ class _ServicesBookingScreenState extends ConsumerState<ServicesBookingScreen> {
               child: CircularProgressIndicator(color: AppColors.primary),
             )
           : !_cart.hasItems
-              ? Center(
-                  child: Text(
-                    'Your booking is empty.\nPick a service to get started.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 14.sp,
-                      color: Color(0xFF6B756E),
-                    ),
+          ? Center(
+              child: Text(
+                'Your booking is empty.\nPick a service to get started.',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 14.sp, color: Color(0xFF6B756E)),
+              ),
+            )
+          : ListView(
+              padding: EdgeInsets.fromLTRB(20.w, 8.h, 20.w, 16.h),
+              children: [
+                CartSectionTitle(NavigationStrings.yourItems),
+                for (final item in _cart.items)
+                  CartLineItemCard(
+                    item: item,
+                    sideBusy: _cartLineBusy,
+                    onEdit: () => _editServiceLine(item),
+                    onMinus: () => _changeLineQuantity(item, item.quantity - 1),
+                    onPlus: () => _changeLineQuantity(item, item.quantity + 1),
                   ),
-                )
-              : ListView(
-                  padding: EdgeInsets.fromLTRB(20.w, 8.h, 20.w, 16.h),
-                  children: [
-                    CartSectionTitle(NavigationStrings.yourItems),
-                    for (final item in _mainServices)
-                      CartLineItemCard(
-                        item: item,
-                        sideBusy: _cartLineBusy,
-                        onEdit: () => _editServiceLine(item),
-                        onMinus: () => _changeLineQuantity(
-                          item,
-                          item.quantity - 1,
+                SizedBox(height: 6.h),
+                CartSectionTitle(ServicesBookingStrings.where),
+                ServicesLocationToggle(
+                  atVenue: _atVenue,
+                  allowVenue: serviceModeAllowed(_fulfillmentModes, 'IN_SALON'),
+                  allowHome: serviceModeAllowed(_fulfillmentModes, 'AT_HOME'),
+                  onChanged: (v) {
+                    if (v == _atVenue) return;
+                    _saveMode(v);
+                  },
+                ),
+                SizedBox(height: 14.h),
+                CartSectionTitle(ServicesBookingStrings.date),
+                ServicesBookingDateField(
+                  selectedDay: _selectedDay,
+                  firstDay: _calendarFirstDay,
+                  lastDay: _calendarLastDay,
+                  selectableDayPredicate: _isDaySelectable,
+                  onDaySelected: (day) {
+                    if (_sameDay(day, _selectedDay)) return;
+                    setState(() => _selectedDay = _dayOnly(day));
+                    _loadSlots();
+                  },
+                ),
+                SizedBox(height: 14.h),
+                CartSectionTitle(ServicesBookingStrings.time),
+                if (_slotsLoading)
+                  Padding(
+                    padding: EdgeInsets.symmetric(vertical: 8.h),
+                    child: const Center(
+                      child: SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: AppColors.primary,
                         ),
-                        onPlus: () => _changeLineQuantity(
-                          item,
-                          item.quantity + 1,
-                        ),
                       ),
-                    SizedBox(height: 6.h),
-                    CartSectionTitle(ServicesBookingStrings.where),
-                    ServicesLocationToggle(
-                      atVenue: _atVenue,
-                      allowVenue: serviceModeAllowed(
-                        _fulfillmentModes,
-                        'IN_SALON',
-                      ),
-                      allowHome: serviceModeAllowed(
-                        _fulfillmentModes,
-                        'AT_HOME',
-                      ),
-                      onChanged: (v) {
-                        if (v == _atVenue) return;
-                        _saveMode(v);
-                      },
                     ),
-                    SizedBox(height: 14.h),
-                    CartSectionTitle(ServicesBookingStrings.date),
-                    ServicesDatePicker(
-                      dates: dateOptions,
-                      selectedIndex: _selectedDate,
-                      onSelected: (i) {
-                        setState(() => _selectedDate = i);
-                        _loadSlots();
-                      },
-                    ),
-                    SizedBox(height: 14.h),
-                    CartSectionTitle(ServicesBookingStrings.time),
-                    if (_slotsLoading)
-                      Padding(
-                        padding: EdgeInsets.symmetric(vertical: 8.h),
-                        child: const Center(
-                          child: SizedBox(
-                            width: 22,
-                            height: 22,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: AppColors.primary,
-                            ),
-                          ),
-                        ),
-                      )
-                    else ...[
-                      if (_slots.isEmpty &&
-                          _slotReason != null &&
-                          _slotReason!.isNotEmpty)
-                        Padding(
-                          padding: EdgeInsets.only(bottom: 8.h),
-                          child: Text(
-                            _slotReason!,
-                            style: TextStyle(
-                              fontSize: 13.sp,
-                              fontWeight: FontWeight.w400,
-                              color: const Color(0xFF6B756E),
-                              height: 16 / 13,
-                            ),
-                          ),
-                        ),
-                      ServicesTimeGrid(
-                        slots: slotLabels,
-                        available: slotAvailable,
-                        selectedIndex: _selectedTime.clamp(
-                          0,
-                          slotLabels.isEmpty ? 0 : slotLabels.length - 1,
-                        ),
-                        onSelected: (i) {
-                          setState(() => _selectedTime = i);
-                          _saveSchedule();
-                        },
-                      ),
-                    ],
-                    if (_cart.upsell.isNotEmpty) ...[
-                      SizedBox(height: 14.h),
-                      CartSectionTitle(
-                        ServicesBookingStrings.addTheseToo,
-                      ),
-                      Text(
-                        _cart.upsellSubtitle ??
-                            ServicesBookingStrings.popularWith,
+                  )
+                else ...[
+                  if (_slots.isEmpty &&
+                      _slotReason != null &&
+                      _slotReason!.isNotEmpty)
+                    Padding(
+                      padding: EdgeInsets.only(bottom: 8.h),
+                      child: Text(
+                        _slotReason!,
                         style: TextStyle(
                           fontSize: 13.sp,
                           fontWeight: FontWeight.w400,
@@ -487,50 +504,76 @@ class _ServicesBookingScreenState extends ConsumerState<ServicesBookingScreen> {
                           height: 16 / 13,
                         ),
                       ),
-                      SizedBox(height: 8.h),
-                      for (final upsell in _cart.upsell)
-                        ServicesUpsellCard(
-                          item: BookingUpsellItem(
-                            id: upsell.productId,
-                            name: upsell.name,
-                            duration: upsell.durationLabel ?? '',
-                            price: upsell.priceLabel,
-                            emoji: _emojiFor(upsell.name),
-                          ),
-                          selected: _cart.items
-                              .any((i) => i.productId == upsell.productId),
-                          onToggle: () => _toggleUpsell(upsell),
-                        ),
-                    ],
-                    SizedBox(height: 14.h),
-                    if (_cart.promoCode != null &&
-                        _cart.promoCode!.trim().isNotEmpty) ...[
-                      Container(
-                        width: double.infinity,
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 14.w,
-                          vertical: 12.h,
-                        ),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFEDF7EE),
-                          borderRadius: BorderRadius.circular(14.r),
-                          border: Border.all(color: const Color(0xFFCDE8CF)),
-                        ),
-                        child: Text(
-                          '${_cart.promoCode!.trim()} applied',
-                          style: TextStyle(
-                            color: AppColors.primary,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 14.sp,
-                          ),
-                        ),
+                    ),
+                  ServicesTimeDropdown(
+                    slots: slotLabels,
+                    available: slotAvailable,
+                    selectedIndex: _selectedTime.clamp(
+                      0,
+                      slotLabels.isEmpty ? 0 : slotLabels.length - 1,
+                    ),
+                    hint: slotLabels.isEmpty
+                        ? 'No times available'
+                        : ServicesBookingStrings.time,
+                    onSelected: (i) {
+                      setState(() => _selectedTime = i);
+                      _saveSchedule();
+                    },
+                  ),
+                ],
+                if (_pendingUpsells.isNotEmpty) ...[
+                  SizedBox(height: 14.h),
+                  CartSectionTitle(ServicesBookingStrings.addTheseToo),
+                  Text(
+                    _cart.upsellSubtitle ?? ServicesBookingStrings.popularWith,
+                    style: TextStyle(
+                      fontSize: 13.sp,
+                      fontWeight: FontWeight.w400,
+                      color: const Color(0xFF6B756E),
+                      height: 16 / 13,
+                    ),
+                  ),
+                  SizedBox(height: 8.h),
+                  for (final upsell in _pendingUpsells)
+                    ServicesUpsellCard(
+                      item: BookingUpsellItem(
+                        id: upsell.productId,
+                        name: upsell.name,
+                        duration: upsell.durationLabel ?? '',
+                        price: upsell.priceLabel,
+                        emoji: _emojiFor(upsell.name),
                       ),
-                      SizedBox(height: 14.h),
-                    ],
-                    CartSectionTitle(ServicesBookingStrings.billSummary),
-                    BillSummaryCard(lines: _cart.billLines),
-                  ],
-                ),
+                      selected: false,
+                      onToggle: () => _toggleUpsell(upsell),
+                    ),
+                ],
+                SizedBox(height: 14.h),
+                if (_cart.promoCode != null &&
+                    _cart.promoCode!.trim().isNotEmpty) ...[
+                  Container(
+                    width: double.infinity,
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 14.w,
+                      vertical: 12.h,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFEDF7EE),
+                      borderRadius: BorderRadius.circular(14.r),
+                      border: Border.all(color: const Color(0xFFCDE8CF)),
+                    ),
+                    child: Text(
+                      '${_cart.promoCode!.trim()} applied',
+                      style: TextStyle(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14.sp,
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 14.h),
+                ],
+              ],
+            ),
       bottom: SafeArea(
         top: false,
         child: Padding(
@@ -571,9 +614,7 @@ class _ServicesBookingScreenState extends ConsumerState<ServicesBookingScreen> {
                   label: ServicesBookingStrings.checkoutBtn,
                   backgroundColor: AppColors.cartTabActive,
                   height: 52,
-                  onPressed: !_cart.hasItems
-                      ? null
-                      : () => context.push(ServicesBookingRoutes.checkout),
+                  onPressed: !_cart.hasItems ? null : _goToServiceCheckout,
                 ),
               ),
             ],

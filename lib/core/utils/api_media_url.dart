@@ -58,6 +58,27 @@ String? resolveProductImageUrl(Map<String, dynamic> json) {
       resolveApiMediaUrlFromList(json['imageUrls']);
 }
 
+/// All product images for manual swipe gallery (deduped, order preserved).
+List<String> resolveProductImageUrls(Map<String, dynamic> json) {
+  final seen = <String>{};
+  final urls = <String>[];
+
+  void add(Object? raw) {
+    final resolved = resolveApiMediaUrl(raw);
+    if (resolved == null || resolved.isEmpty) return;
+    if (seen.add(resolved)) urls.add(resolved);
+  }
+
+  add(json['imageUrl']);
+  final list = json['imageUrls'];
+  if (list is List) {
+    for (final item in list) {
+      add(item);
+    }
+  }
+  return urls;
+}
+
 /// Flutter cannot decode AVIF on all Android/iOS builds. Webflow CDN serves the
 /// same asset as JPEG when `.avif` in the path is replaced with `.jpg`.
 String _flutterDecodableImageUrl(String url) {

@@ -464,12 +464,14 @@ class _FoodBrowseScreenState extends ConsumerState<FoodBrowseScreen> {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16.r)),
       ),
-      builder: (context) {
+      builder: (sheetContext) {
         final options = _cuisineFilters.isEmpty
             ? const ['All']
             : _cuisineFilters;
-        return SafeArea(
-          child: DraggableScrollableSheet(
+        return StatefulBuilder(
+          builder: (context, sheetSetState) {
+            return SafeArea(
+              child: DraggableScrollableSheet(
             expand: false,
             initialChildSize: options.length > 6 ? 0.55 : 0.35,
             minChildSize: 0.25,
@@ -535,6 +537,7 @@ class _FoodBrowseScreenState extends ConsumerState<FoodBrowseScreen> {
                                 _selectedCuisines.add(cuisine);
                               }
                             });
+                            sheetSetState(() {});
                             _load();
                           },
                         );
@@ -545,6 +548,8 @@ class _FoodBrowseScreenState extends ConsumerState<FoodBrowseScreen> {
               );
             },
           ),
+            );
+          },
         );
       },
     );

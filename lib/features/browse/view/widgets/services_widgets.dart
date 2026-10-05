@@ -369,7 +369,7 @@ class ServicesBookAgainRow extends StatelessWidget {
         ),
         SizedBox(height: 10.h),
         SizedBox(
-          height: 75.h,
+          height: 82.h,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             itemCount: providers.length.clamp(0, 8),
@@ -382,19 +382,11 @@ class ServicesBookAgainRow extends StatelessWidget {
                   width: 56.w,
                   child: Column(
                     children: [
-                      Container(
-                        width: 56.w,
-                        height: 56.w,
-                        decoration: const BoxDecoration(
-                          color: Color(0xFFE8F5E9),
-                          shape: BoxShape.circle,
-                        ),
-                        alignment: Alignment.center,
-                        child: Text(
-                          p.name.isNotEmpty ? p.name[0].toUpperCase() : '?',
-                          style: AppTextStyles.titleSmall(
-                            color: AppColors.primary,
-                          ).copyWith(fontWeight: FontWeight.w700),
+                      ClipOval(
+                        child: SizedBox(
+                          width: 56.w,
+                          height: 56.w,
+                          child: _ProviderListingThumb(provider: p),
                         ),
                       ),
                       SizedBox(height: 4.h),
@@ -415,6 +407,40 @@ class ServicesBookAgainRow extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _ProviderListingThumb extends StatelessWidget {
+  const _ProviderListingThumb({
+    required this.provider,
+    this.borderRadius,
+  });
+
+  final ServiceProvider provider;
+  final BorderRadius? borderRadius;
+
+  @override
+  Widget build(BuildContext context) {
+    final url = provider.imageUrl ?? provider.coverUrl;
+    final radius = borderRadius ?? BorderRadius.zero;
+    return ColoredBox(
+      color: const Color(0xFFE8F5E9),
+      child: url != null && url.isNotEmpty
+          ? ClipRRect(
+              borderRadius: radius,
+              child: AppNetworkImage(
+                url: url,
+                fit: BoxFit.cover,
+                errorWidget: const ColoredBox(color: Color(0xFFE8F5E9)),
+              ),
+            )
+          : Center(
+              child: Text(
+                provider.emoji,
+                style: TextStyle(fontSize: 28.sp),
+              ),
+            ),
     );
   }
 }
@@ -450,7 +476,7 @@ class ServicesListingListCard extends StatelessWidget {
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  const ColoredBox(color: Color(0xFFE8F5E9)),
+                  _ProviderListingThumb(provider: provider),
                   if (provider.offerBadge != null &&
                       provider.offerBadge!.isNotEmpty)
                     Positioned(
@@ -533,11 +559,17 @@ class ServicesListingGridCard extends StatelessWidget {
             child: Stack(
               fit: StackFit.expand,
               children: [
-                Container(
+                DecoratedBox(
                   decoration: BoxDecoration(
-                    color: const Color(0xFFE8F5E9),
                     borderRadius: BorderRadius.circular(12.r),
                     border: Border.all(color: const Color(0xFFDEDEDE)),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(12.r),
+                    child: _ProviderListingThumb(
+                      provider: provider,
+                      borderRadius: BorderRadius.circular(12.r),
+                    ),
                   ),
                 ),
                 if (provider.offerBadge != null &&

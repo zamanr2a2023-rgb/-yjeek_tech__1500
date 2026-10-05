@@ -9,6 +9,7 @@ import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/features/browse/model/services_vendors_repository.dart';
 import 'package:yjeek_app/features/cart/model/addresses_repository.dart';
 import 'package:yjeek_app/features/cart/model/cart_repository.dart';
+import 'package:yjeek_app/features/location/provider/delivery_location_provider.dart';
 import 'package:yjeek_app/features/location/utils/checkout_delivery_address.dart';
 import 'package:yjeek_app/features/cart/model/checkout_helpers.dart';
 import 'package:yjeek_app/features/cart/model/pending_checkout.dart';
@@ -20,7 +21,6 @@ import 'package:yjeek_app/features/order_flow/model/order_api_mappers.dart';
 import 'package:yjeek_app/features/services_booking/model/services_booking_data.dart';
 import 'package:yjeek_app/features/services_booking/services_booking_routes.dart';
 import 'package:yjeek_app/features/services_booking/view/widgets/services_booking_widgets.dart';
-import 'package:yjeek_app/features/services_order_flow/model/services_order_api_mappers.dart';
 import 'package:yjeek_app/features/services_order_flow/services_order_flow_routes.dart';
 
 class ServicesReviewScreen extends ConsumerStatefulWidget {
@@ -45,7 +45,6 @@ class _ServicesReviewScreenState extends ConsumerState<ServicesReviewScreen> {
   String _service = '';
   String _when = '';
   String _location = '';
-  String _people = '';
   List<BillLine> _bill = const [];
   bool _loading = true;
 
@@ -136,7 +135,6 @@ class _ServicesReviewScreenState extends ConsumerState<ServicesReviewScreen> {
     final area = venue is Map
         ? (venue['area']?.toString() ?? venue['name']?.toString())
         : null;
-    final people = servicesPeopleCount(order) ?? 1;
     final money = <BillLine>[
       BillLine(label: 'Service', value: formatBhd(order['subtotal'])),
       BillLine(label: 'Service fee', value: formatBhd(order['serviceFee'])),
@@ -165,13 +163,17 @@ class _ServicesReviewScreenState extends ConsumerState<ServicesReviewScreen> {
     setState(() {
       if (vendorName != null && vendorName.isNotEmpty) _vendor = vendorName;
       _service = service;
-      if (scheduled != null) _when = formatPickupTimeLabel(scheduled);
-      _location = mode == 'AT_HOME'
-          ? 'At home'
-          : (area != null && area.isNotEmpty
-              ? 'At venue · $area'
-              : 'At venue · $_vendor');
-      _people = people == 1 ? '1 person' : '$people people';
+      if (scheduled != null) {
+        _when = formatServiceAppointmentWhen(scheduled);
+      }
+      final venueAddr = venue is Map
+          ? (venue['address']?.toString() ?? area)
+          : area;
+      _location = formatServiceReviewLocation(
+        serviceMode: mode,
+        vendorName: _vendor,
+        venueAddress: venueAddr,
+      );
       _bill = money;
     });
   }
@@ -186,28 +188,27 @@ class _ServicesReviewScreenState extends ConsumerState<ServicesReviewScreen> {
     if (cart.items.isEmpty) return;
 
     final tip = pending?.tipAmount ?? 0;
-    final serviceName = cart.items.length > 1
-        ? '${cart.items.first.name} +${cart.items.length - 1}'
-        : cart.items.first.name;
-    final when = cart.serviceScheduledAt != null
-        ? formatPickupTimeLabel(cart.serviceScheduledAt)
-        : '—';
-    final location = cart.serviceMode == 'AT_HOME'
-        ? 'At home'
-        : 'At venue · ${cart.vendorName.isNotEmpty ? cart.vendorName : '—'}';
-    final people = (cart.partySize ?? 1) == 1
-        ? '1 person'
-        : '${cart.partySize} people';
-    final address = cart.serviceMode == 'AT_HOME'
-        ? await ref.read(addressesRepositoryProvider).defaultAddress()
-        : null;
+    final serviceName = summarizeServiceCheckoutItems(cart.items);
+    final when = formatServiceAppointmentWhen(cart.serviceScheduledAt);
+    DeliveryAddressSnapshot? homeAddress;
+    try {
+      final deliveryLoc = ref.read(deliveryLocationProvider).valueOrNull;
+      homeAddress = checkoutAddressDisplay(deliveryLoc) ??
+          await ref.read(addressesRepositoryProvider).defaultAddress();
+    } catch (_) {}
+    final location = formatServiceReviewLocation(
+      serviceMode: cart.serviceMode,
+      vendorName: cart.vendorName,
+      venueAddress: cart.serviceVenueAddress,
+      homeAddress: homeAddress,
+    );
     if (!mounted) return;
     final slotContext = ref.read(serviceSlotContextProvider);
     final callOut = cart.serviceMode == 'AT_HOME' && slotContext != null
         ? matchedCallOutFee(
             areas: slotContext.coveredAreas,
-            area: address?.area,
-            city: address?.city,
+            area: homeAddress?.area,
+            city: homeAddress?.city,
             slotCallOutFee: slotContext.slotCallOutFee,
           )
         : null;
@@ -218,7 +219,6 @@ class _ServicesReviewScreenState extends ConsumerState<ServicesReviewScreen> {
       _service = serviceName;
       _when = when;
       _location = location;
-      _people = people;
       _bill = applyServiceCallOutFee(
         billLinesWithTip(cart, tip),
         callOut,
@@ -346,7 +346,6 @@ class _ServicesReviewScreenState extends ConsumerState<ServicesReviewScreen> {
             providerName: _vendor,
             whenLabel: _when,
             locationLabel: _location,
-            peopleLabel: _people,
           ),
           SizedBox(height: 14.h),
           CartSectionTitle(ServicesBookingStrings.billSummary),

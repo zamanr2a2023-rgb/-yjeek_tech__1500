@@ -1,3 +1,5 @@
+import 'package:intl/intl.dart';
+import 'package:yjeek_app/features/cart/model/addresses_repository.dart';
 import 'package:yjeek_app/features/cart/model/cart_flow_data.dart';
 import 'package:yjeek_app/l10n/l10n.dart';
 import 'package:flutter/material.dart';
@@ -277,6 +279,83 @@ String formatPickupTimeLabel(DateTime? scheduledAt, {String? readyLabel}) {
   if (day == today) return 'Today · $hh:$mm';
   if (day == today.add(const Duration(days: 1))) return 'Tomorrow · $hh:$mm';
   return '${local.day}/${local.month} · $hh:$mm';
+}
+
+/// Service checkout appointment time (12-hour, matches booking slot labels).
+String formatServiceAppointmentWhen(DateTime? scheduledAt) {
+  if (scheduledAt == null) return 'Choose a time';
+  final local = scheduledAt.toLocal();
+  final now = DateTime.now();
+  final today = DateTime(now.year, now.month, now.day);
+  final day = DateTime(local.year, local.month, local.day);
+  final time = DateFormat('h:mm a').format(local);
+  if (day == today) return 'Today · $time';
+  if (day == today.add(const Duration(days: 1))) return 'Tomorrow · $time';
+  final date = DateFormat('EEE, d MMM').format(local);
+  return '$date · $time';
+}
+
+/// All booked services for checkout summary (supports multiple lines).
+String summarizeServiceCheckoutItems(List<CartLineItem> items) {
+  if (items.isEmpty) return 'Service';
+  final parts = <String>[];
+  final seen = <String>{};
+  for (final item in items) {
+    final name = item.name.trim();
+    if (name.isEmpty) continue;
+    final key = item.productId.isNotEmpty ? item.productId : name;
+    if (seen.contains(key)) continue;
+    seen.add(key);
+    parts.add(item.quantity > 1 ? '$name (×${item.quantity})' : name);
+  }
+  if (parts.isEmpty) return 'Service';
+  return parts.join('\n');
+}
+
+String? formatSavedAddressLine(DeliveryAddressSnapshot? address) {
+  if (address == null) return null;
+  final subtitle = address.subtitle.trim();
+  if (subtitle.isNotEmpty) return subtitle;
+  final parts = [address.area, address.city]
+      .whereType<String>()
+      .map((s) => s.trim())
+      .where((s) => s.isNotEmpty);
+  final line = parts.join(', ');
+  return line.isEmpty ? null : line;
+}
+
+/// Service checkout location line (home address vs vendor branch).
+String? serviceCheckoutLocationAddress({
+  required CartSnapshot? cart,
+  DeliveryAddressSnapshot? homeAddress,
+}) {
+  if (cart == null) return null;
+  if (cart.serviceMode == 'AT_HOME') {
+    return formatSavedAddressLine(homeAddress);
+  }
+  final venue = cart.serviceVenueAddress?.trim();
+  if (venue != null && venue.isNotEmpty) return venue;
+  return null;
+}
+
+/// Review screen: title line + optional address (At home / At venue).
+String formatServiceReviewLocation({
+  required String? serviceMode,
+  required String vendorName,
+  String? venueAddress,
+  DeliveryAddressSnapshot? homeAddress,
+}) {
+  final vendor = vendorName.trim().isNotEmpty ? vendorName.trim() : '—';
+  if (serviceMode == 'AT_HOME') {
+    final addr = formatSavedAddressLine(homeAddress);
+    if (addr != null && addr.isNotEmpty) return 'At home\n$addr';
+    return 'At home';
+  }
+  final venue = venueAddress?.trim();
+  if (venue != null && venue.isNotEmpty) {
+    return 'At venue · $vendor\n$venue';
+  }
+  return 'At venue · $vendor';
 }
 
 /// Food / vape delivery card: "Arrives in 15–25 mins".

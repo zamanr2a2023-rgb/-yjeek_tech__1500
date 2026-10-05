@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:yjeek_app/core/constants/app_colors.dart';
 import 'package:yjeek_app/core/constants/app_text_styles.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
@@ -29,14 +30,14 @@ class ServicesLocationToggle extends StatelessWidget {
       children: [
         _pill(
           ServicesBookingStrings.atVenue,
-          selected: atVenue && allowVenue,
+          selected: atVenue,
           enabled: allowVenue,
           onTap: () => onChanged(true),
         ),
         SizedBox(width: 8.w),
         _pill(
           ServicesBookingStrings.atHome,
-          selected: !atVenue && allowHome,
+          selected: !atVenue,
           enabled: allowHome,
           onTap: () => onChanged(false),
         ),
@@ -76,140 +77,171 @@ class ServicesLocationToggle extends StatelessWidget {
   }
 }
 
-class ServicesDatePicker extends StatelessWidget {
-  const ServicesDatePicker({
+class ServicesBookingDateField extends StatelessWidget {
+  const ServicesBookingDateField({
     super.key,
-    required this.dates,
-    required this.selectedIndex,
-    required this.onSelected,
+    required this.selectedDay,
+    required this.firstDay,
+    required this.lastDay,
+    required this.selectableDayPredicate,
+    required this.onDaySelected,
   });
 
-  final List<BookingDateOption> dates;
-  final int selectedIndex;
-  final ValueChanged<int> onSelected;
+  final DateTime selectedDay;
+  final DateTime firstDay;
+  final DateTime lastDay;
+  final bool Function(DateTime day) selectableDayPredicate;
+  final ValueChanged<DateTime> onDaySelected;
 
   static const Color _chipBorder = Color(0xFFE0E6E0);
   static const Color _labelMuted = Color(0xFF6B756E);
 
+  DateTime _dayOnly(DateTime d) => DateTime(d.year, d.month, d.day);
+
+  DateTime _clampInitial() {
+    var d = _dayOnly(selectedDay);
+    final first = _dayOnly(firstDay);
+    final last = _dayOnly(lastDay);
+    if (d.isBefore(first)) d = first;
+    if (d.isAfter(last)) d = last;
+    if (!selectableDayPredicate(d)) {
+      for (var i = 0; i <= last.difference(first).inDays; i++) {
+        final candidate = first.add(Duration(days: i));
+        if (selectableDayPredicate(candidate)) return candidate;
+      }
+    }
+    return d;
+  }
+
+  Future<void> _openCalendar(BuildContext context) async {
+    final initial = _clampInitial();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: initial,
+      firstDate: _dayOnly(firstDay),
+      lastDate: _dayOnly(lastDay),
+      currentDate: _dayOnly(DateTime.now()),
+      selectableDayPredicate: selectableDayPredicate,
+      builder: (context, child) {
+        if (child == null) return const SizedBox.shrink();
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: Theme.of(context).colorScheme.copyWith(
+              primary: AppColors.cartTabActive,
+              onPrimary: AppColors.white,
+            ),
+          ),
+          child: child,
+        );
+      },
+    );
+    if (picked == null) return;
+    onDaySelected(_dayOnly(picked));
+  }
+
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 58.h,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        itemCount: dates.length,
-        separatorBuilder: (_, _) => SizedBox(width: 8.w),
-        itemBuilder: (context, index) {
-          final date = dates[index];
-          final selected = index == selectedIndex;
-          return GestureDetector(
-            onTap: () => onSelected(index),
-            child: Container(
-              width: 58.w,
-              decoration: BoxDecoration(
-                color: selected ? AppColors.cartTabActive : AppColors.white,
-                borderRadius: BorderRadius.circular(12.r),
-                border: Border.all(
-                  color: selected ? AppColors.cartTabActive : _chipBorder,
-                  width: 1.2,
-                ),
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    date.day,
-                    style: AppTextStyles.caption(
-                      color: selected ? AppColors.white : _labelMuted,
-                    ).copyWith(
-                      fontSize: 11.sp,
-                      fontWeight: FontWeight.w500,
-                      height: 13 / 11,
-                    ),
-                  ),
-                  SizedBox(height: 2.h),
-                  Text(
-                    '${date.date}',
-                    style: AppTextStyles.labelMedium(
-                      color: selected ? AppColors.white : AppColors.textPrimary,
-                    ).copyWith(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 16.sp,
-                      height: 19 / 16,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
+    final label = DateFormat('EEE, d MMM yyyy').format(selectedDay);
+    final textStyle = AppTextStyles.labelSmall(color: AppColors.textPrimary)
+        .copyWith(fontWeight: FontWeight.w600, fontSize: 14.sp);
+
+    return Material(
+      color: AppColors.white,
+      borderRadius: BorderRadius.circular(12.r),
+      child: InkWell(
+        onTap: () => _openCalendar(context),
+        borderRadius: BorderRadius.circular(12.r),
+        child: Container(
+          padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 14.h),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12.r),
+            border: Border.all(color: _chipBorder, width: 1.2),
+          ),
+          child: Row(
+            children: [
+              Icon(Icons.calendar_today_rounded, size: 20.sp, color: _labelMuted),
+              SizedBox(width: 10.w),
+              Expanded(child: Text(label, style: textStyle)),
+              Icon(Icons.keyboard_arrow_down_rounded, color: _labelMuted),
+            ],
+          ),
+        ),
       ),
     );
   }
 }
 
-class ServicesTimeGrid extends StatelessWidget {
-  const ServicesTimeGrid({
+class ServicesTimeDropdown extends StatelessWidget {
+  const ServicesTimeDropdown({
     super.key,
     required this.slots,
     required this.selectedIndex,
     required this.onSelected,
     this.available,
+    this.hint = 'Select time',
   });
 
   final List<String> slots;
   final int selectedIndex;
   final ValueChanged<int> onSelected;
-  /// Parallel to [slots]; when false the chip is muted and not tappable.
   final List<bool>? available;
+  final String hint;
 
   static const Color _chipBorder = Color(0xFFE0E6E0);
-
   static const Color _labelMuted = Color(0xFF6B756E);
 
   @override
   Widget build(BuildContext context) {
-    return Wrap(
-      spacing: 8.w,
-      runSpacing: 8.h,
-      children: List.generate(slots.length, (index) {
-        final selected = index == selectedIndex;
-        final isAvailable = available == null ||
-            (index < available!.length && available![index]);
-        return GestureDetector(
-          onTap: isAvailable ? () => onSelected(index) : null,
-          child: Opacity(
-            opacity: isAvailable ? 1 : 0.4,
-            child: Container(
-              height: 29.h,
-              padding: EdgeInsets.symmetric(horizontal: 13.w),
-              decoration: BoxDecoration(
-                color: selected ? AppColors.offerBadgeGreenBg : AppColors.white,
-                borderRadius: BorderRadius.circular(20.r),
-                border: Border.all(
-                  color: selected ? AppColors.cartTabActive : _chipBorder,
-                  width: selected ? 1.5 : 1.2,
-                ),
-              ),
-              child: Center(
-                widthFactor: 1,
-                child: Text(
-                  slots[index],
-                  style: AppTextStyles.labelSmall(
-                    color: selected
-                        ? AppColors.offerBadgeGreenText
-                        : _labelMuted,
-                  ).copyWith(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 12.sp,
-                    height: 1.2,
-                  ),
-                ),
-              ),
-            ),
+    final indices = <int>[];
+    for (var i = 0; i < slots.length; i++) {
+      final ok = available == null ||
+          (i < available!.length && available![i]);
+      if (ok) indices.add(i);
+    }
+
+    final int? value;
+    if (indices.isEmpty) {
+      value = null;
+    } else if (indices.contains(selectedIndex)) {
+      value = selectedIndex;
+    } else {
+      value = indices.first;
+    }
+
+    final textStyle = AppTextStyles.labelSmall(color: AppColors.textPrimary)
+        .copyWith(fontWeight: FontWeight.w600, fontSize: 14.sp);
+
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 14.w),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(12.r),
+        border: Border.all(color: _chipBorder, width: 1.2),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<int>(
+          isExpanded: true,
+          value: value,
+          hint: Text(
+            hint,
+            style: AppTextStyles.labelSmall(color: _labelMuted)
+                .copyWith(fontSize: 14.sp),
           ),
-        );
-      }),
+          icon: Icon(Icons.keyboard_arrow_down_rounded, color: _labelMuted),
+          items: [
+            for (final i in indices)
+              DropdownMenuItem<int>(
+                value: i,
+                child: Text(slots[i], style: textStyle),
+              ),
+          ],
+          onChanged: indices.isEmpty
+              ? null
+              : (i) {
+                  if (i != null) onSelected(i);
+                },
+        ),
+      ),
     );
   }
 }
@@ -626,12 +658,13 @@ class ServicesLocationCard extends StatelessWidget {
                     color: AppColors.textPrimary,
                   ).copyWith(fontWeight: FontWeight.w600, fontSize: 14.sp),
                 ),
-                Text(
-                  address ?? ServicesBookingStrings.venueAddress,
-                  style: AppTextStyles.caption(color: _labelMuted).copyWith(
-                    fontSize: 12.sp,
+                if (address != null && address!.trim().isNotEmpty)
+                  Text(
+                    address!,
+                    style: AppTextStyles.caption(color: _labelMuted).copyWith(
+                      fontSize: 12.sp,
+                    ),
                   ),
-                ),
               ],
             ),
           ),
@@ -646,14 +679,10 @@ class ServicesAppointmentCard extends StatelessWidget {
     super.key,
     this.serviceName,
     this.whenLabel,
-    this.specialistName,
-    this.peopleLabel,
   });
 
   final String? serviceName;
   final String? whenLabel;
-  final String? specialistName;
-  final String? peopleLabel;
 
   static const Color _chipBorder = Color(0xFFE0E6E0);
   static const Color _labelMuted = Color(0xFF6B756E);
@@ -672,30 +701,29 @@ class ServicesAppointmentCard extends StatelessWidget {
           _row(
             ServicesBookingStrings.service,
             serviceName ?? ServicesBookingData.mainService,
+            multilineValue: true,
           ),
           _row(
             ServicesBookingStrings.when,
             whenLabel ?? ServicesBookingData.appointmentWhen,
-          ),
-          _row(
-            ServicesBookingStrings.specialist,
-            specialistName ?? ServicesBookingData.specialistName,
-          ),
-          _row(
-            ServicesBookingStrings.people,
-            peopleLabel ?? ServicesBookingData.peopleCount,
           ),
         ],
       ),
     );
   }
 
-  Widget _row(String label, String value) {
+  Widget _row(String label, String value, {bool multilineValue = false}) {
+    final valueStyle = AppTextStyles.labelMedium(
+      color: AppColors.textPrimary,
+    ).copyWith(fontWeight: FontWeight.w600, fontSize: 13.sp, height: 1.35);
+
     return Padding(
       padding: EdgeInsets.only(bottom: 10.h),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
+          SizedBox(
+            width: 72.w,
             child: Text(
               label,
               style: AppTextStyles.labelSmall(color: _labelMuted).copyWith(
@@ -704,11 +732,14 @@ class ServicesAppointmentCard extends StatelessWidget {
               ),
             ),
           ),
-          Text(
-            value,
-            style: AppTextStyles.labelMedium(
-              color: AppColors.textPrimary,
-            ).copyWith(fontWeight: FontWeight.w500, fontSize: 13.sp),
+          Expanded(
+            child: Text(
+              value,
+              textAlign: TextAlign.right,
+              maxLines: multilineValue ? 6 : 2,
+              overflow: TextOverflow.ellipsis,
+              style: valueStyle,
+            ),
           ),
         ],
       ),
@@ -818,14 +849,12 @@ class ServicesBookingSummaryCard extends StatelessWidget {
     this.providerName,
     this.whenLabel,
     this.locationLabel,
-    this.peopleLabel,
   });
 
   final String? serviceName;
   final String? providerName;
   final String? whenLabel;
   final String? locationLabel;
-  final String? peopleLabel;
 
   static const Color _chipBorder = Color(0xFFE0E6E0);
   static const Color _labelMuted = Color(0xFF6B756E);
@@ -845,6 +874,7 @@ class ServicesBookingSummaryCard extends StatelessWidget {
           _row(
             ServicesBookingStrings.service,
             serviceName ?? ServicesBookingData.mainService,
+            multiline: true,
           ),
           _row(
             ServicesBookingStrings.providerLabel,
@@ -857,10 +887,7 @@ class ServicesBookingSummaryCard extends StatelessWidget {
           _row(
             ServicesBookingStrings.location,
             locationLabel ?? ServicesBookingStrings.venueLocationShort,
-          ),
-          _row(
-            ServicesBookingStrings.people,
-            peopleLabel ?? ServicesBookingData.peopleCount,
+            multiline: true,
             isLast: true,
           ),
         ],
@@ -868,33 +895,40 @@ class ServicesBookingSummaryCard extends StatelessWidget {
     );
   }
 
-  Widget _row(String label, String value, {bool isLast = false}) {
+  Widget _row(
+    String label,
+    String value, {
+    bool isLast = false,
+    bool multiline = false,
+  }) {
     return Padding(
       padding: EdgeInsets.only(bottom: isLast ? 0 : 10.h),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            label,
-            style: AppTextStyles.labelSmall(color: _labelMuted).copyWith(
-              fontSize: 13.sp,
-              fontWeight: FontWeight.w400,
-              height: 16 / 13,
+          SizedBox(
+            width: 72.w,
+            child: Text(
+              label,
+              style: AppTextStyles.labelSmall(color: _labelMuted).copyWith(
+                fontSize: 13.sp,
+                fontWeight: FontWeight.w400,
+                height: 16 / 13,
+              ),
             ),
           ),
-          SizedBox(width: 8.w),
           Expanded(
             child: Text(
               value,
               textAlign: TextAlign.right,
-              maxLines: 1,
+              maxLines: multiline ? 5 : 2,
               overflow: TextOverflow.ellipsis,
               style: AppTextStyles.labelMedium(
                 color: AppColors.textPrimary,
               ).copyWith(
-                fontWeight: FontWeight.w500,
+                fontWeight: FontWeight.w600,
                 fontSize: 13.sp,
-                height: 16 / 13,
+                height: 1.35,
               ),
             ),
           ),

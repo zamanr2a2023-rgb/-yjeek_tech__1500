@@ -30,36 +30,21 @@ class ServicesCheckoutScreen extends ConsumerStatefulWidget {
 
 class _ServicesCheckoutScreenState
     extends ConsumerState<ServicesCheckoutScreen> {
-  int _tipIndex = -1;
-  double _customTipAmount = 0;
-  final _customTipController = TextEditingController();
   String _paymentId = 'benefitpay';
   CartSnapshot? _cart;
   CheckoutPaymentMethods _payments = CheckoutPaymentMethods.fallback(
     base: ServicesBookingData.paymentOptions,
   );
-  String? _specialistName;
   String? _specialistId;
   String? _addressArea;
   String? _addressCity;
+  DeliveryAddressSnapshot? _homeAddress;
   bool _loading = true;
-
-  double get _tipAmount => tipAmountFrom(
-        ServicesBookingData.tipOptions,
-        _tipIndex,
-        customAmount: _customTipAmount,
-      );
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) => _load());
-  }
-
-  @override
-  void dispose() {
-    _customTipController.dispose();
-    super.dispose();
   }
 
   Future<void> _load() async {
@@ -76,11 +61,9 @@ class _ServicesCheckoutScreenState
             preferredDefaultId: 'benefitpay',
           );
 
-      String? specialistName;
       String? specialistId;
       final pending = ref.read(pendingServiceCheckoutProvider);
       specialistId = pending?.specialistId;
-      specialistName = pending?.specialistName;
 
       DeliveryAddressSnapshot? address;
       try {
@@ -108,14 +91,18 @@ class _ServicesCheckoutScreenState
       }
 
       if (!mounted) return;
+      if (cart.hasItems && cart.serviceScheduledAt == null) {
+        context.go(ServicesBookingRoutes.booking);
+        return;
+      }
       setState(() {
         _cart = cart;
         _payments = payments;
         _paymentId = payments.defaultId;
-        _specialistName = specialistName;
         _specialistId = specialistId;
         _addressArea = address?.area;
         _addressCity = address?.city;
+        _homeAddress = address;
         _loading = false;
       });
     } catch (_) {
@@ -149,9 +136,8 @@ class _ServicesCheckoutScreenState
     ref.read(pendingServiceCheckoutProvider.notifier).state =
         PendingServiceCheckout(
       paymentId: _paymentId,
-      tipAmount: _tipAmount,
+      tipAmount: 0,
       specialistId: _specialistId,
-      specialistName: _specialistName,
     );
     context.pushReplacement(ServicesBookingRoutes.review);
   }
@@ -166,27 +152,29 @@ class _ServicesCheckoutScreenState
         : ServicesBookingStrings.provider;
     final billLines = cart != null
         ? applyServiceCallOutFee(
-            billLinesWithTip(cart, _tipAmount),
+            billLinesWithTip(cart, 0),
             callOut,
             summaryDeliveryFee: deliveryFee,
           )
         : const <BillLine>[];
     final total = cart != null
         ? applyServiceCallOutTotal(
-            formatCheckoutTotal(cart, _tipAmount),
+            formatCheckoutTotal(cart, 0),
             callOut,
             summaryDeliveryFee: deliveryFee,
           )
         : 'BHD 0.000';
-    final serviceName = cart?.items.isNotEmpty == true
-        ? cart!.items.first.name
+    final serviceName = cart != null
+        ? summarizeServiceCheckoutItems(cart.items)
         : 'Service';
-    final when = cart?.serviceScheduledAt != null
-        ? formatPickupTimeLabel(cart!.serviceScheduledAt)
-        : 'Choose a time';
+    final when = formatServiceAppointmentWhen(cart?.serviceScheduledAt);
     final locationLabel = cart?.serviceMode == 'AT_HOME'
         ? 'At home'
         : 'At venue · $vendor';
+    final locationAddress = serviceCheckoutLocationAddress(
+      cart: cart,
+      homeAddress: _homeAddress,
+    );
 
     return CartFlowScaffold(
       title: ServicesBookingStrings.checkout,
@@ -201,32 +189,13 @@ class _ServicesCheckoutScreenState
                 CartSectionTitle(ServicesBookingStrings.serviceLocation),
                 ServicesLocationCard(
                   locationLabel: locationLabel,
-                  address: cart?.pickup?.address,
+                  address: locationAddress,
                 ),
                 SizedBox(height: 14.h),
                 CartSectionTitle(ServicesBookingStrings.appointment),
                 ServicesAppointmentCard(
                   serviceName: serviceName,
                   whenLabel: when,
-                  specialistName: _specialistName ?? 'Any available',
-                  peopleLabel: (cart?.partySize ?? 1) == 1
-                      ? '1 person'
-                      : '${cart!.partySize} people',
-                ),
-                SizedBox(height: 14.h),
-                CartTipSelector(
-                  options: ServicesBookingData.tipOptions,
-                  selectedIndex: _tipIndex,
-                  customController: _customTipController,
-                  onSelected: (i) => setState(() => _tipIndex = i),
-                  onCustomChanged: (raw) {
-                    setState(() {
-                      _customTipAmount = parseTipInput(raw) ?? 0;
-                    });
-                  },
-                  showHeader: true,
-                  headerTitle: ServicesBookingStrings.tipSpecialist,
-                  headerSubtitle: ServicesBookingStrings.tipSpecialistSubtitle,
                 ),
                 SizedBox(height: 14.h),
                 CartSectionTitle(ServicesBookingStrings.paymentMethod),

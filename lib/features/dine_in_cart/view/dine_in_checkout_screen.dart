@@ -79,8 +79,8 @@ class _DineInCheckoutScreenState extends ConsumerState<DineInCheckoutScreen> {
       final prep = cart.dineInPrepMode == 'PREPARE_ON_ARRIVAL'
           ? DineInPrepMode.prepareOnArrival
           : (cart.dineInPrepMode == 'PREPARE_NOW'
-              ? DineInPrepMode.prepareNow
-              : _prepMode);
+                ? DineInPrepMode.prepareNow
+                : _prepMode);
 
       setState(() {
         _cart = cart;
@@ -99,27 +99,14 @@ class _DineInCheckoutScreenState extends ConsumerState<DineInCheckoutScreen> {
   }
 
   Future<void> _setPrepMode(DineInPrepMode mode) async {
+    final isArrival = mode == DineInPrepMode.prepareOnArrival;
     setState(() => _prepMode = mode);
     try {
-      final isArrival = mode == DineInPrepMode.prepareOnArrival;
-      DateTime? scheduledAt;
-      if (isArrival) {
-        final selected = _slots?.slots
-            .where((s) => s.id == _slots!.selectedId)
-            .cast<DineInTimeSlot?>()
-            .firstWhere((_) => true, orElse: () => null);
-        scheduledAt = selected?.scheduledAt ??
-            _cart?.scheduledDineInAt ??
-            (_slots?.slots.isNotEmpty == true
-                ? _slots!.slots.first.scheduledAt
-                : DateTime.now().add(const Duration(hours: 1)));
-      }
-
-      final cart = await ref.read(cartRepositoryProvider).updatePreferences(
+      final cart = await ref
+          .read(cartRepositoryProvider)
+          .updatePreferences(
             type: CartOrderType.dineIn,
-            dineInPrepMode:
-                isArrival ? 'PREPARE_ON_ARRIVAL' : 'PREPARE_NOW',
-            scheduledDineInAt: scheduledAt,
+            dineInPrepMode: isArrival ? 'PREPARE_ON_ARRIVAL' : 'PREPARE_NOW',
             clearScheduledDineInAt: !isArrival,
           );
       final slots = await ref.read(cartRepositoryProvider).fetchDineInSlots();
@@ -128,6 +115,9 @@ class _DineInCheckoutScreenState extends ConsumerState<DineInCheckoutScreen> {
         _cart = cart;
         _slots = slots;
       });
+      if (isArrival) {
+        await _changeDineInTime();
+      }
     } catch (_) {}
   }
 
@@ -152,7 +142,8 @@ class _DineInCheckoutScreenState extends ConsumerState<DineInCheckoutScreen> {
               for (final slot in slots)
                 ListTile(
                   title: Text(slot.label),
-                  trailing: (_slots?.selectedId == slot.id ||
+                  trailing:
+                      (_slots?.selectedId == slot.id ||
                           _cart?.scheduledDineInAt == slot.scheduledAt)
                       ? const Icon(Icons.check, color: Color(0xFF4CAF50))
                       : null,
@@ -167,13 +158,16 @@ class _DineInCheckoutScreenState extends ConsumerState<DineInCheckoutScreen> {
 
     setState(() => _changingTime = true);
     try {
-      final cart = await ref.read(cartRepositoryProvider).updatePreferences(
+      final cart = await ref
+          .read(cartRepositoryProvider)
+          .updatePreferences(
             type: CartOrderType.dineIn,
             dineInPrepMode: 'PREPARE_ON_ARRIVAL',
             scheduledDineInAt: selected.scheduledAt,
           );
-      final refreshed =
-          await ref.read(cartRepositoryProvider).fetchDineInSlots();
+      final refreshed = await ref
+          .read(cartRepositoryProvider)
+          .fetchDineInSlots();
       if (!mounted) return;
       setState(() {
         _prepMode = DineInPrepMode.prepareOnArrival;
@@ -191,13 +185,21 @@ class _DineInCheckoutScreenState extends ConsumerState<DineInCheckoutScreen> {
   }
 
   Future<void> _goToReview() async {
+    final isArrival = _prepMode == DineInPrepMode.prepareOnArrival;
+    if (isArrival && _cart?.scheduledDineInAt == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please choose your dine-in time')),
+      );
+      await _changeDineInTime();
+      if (!mounted || _cart?.scheduledDineInAt == null) return;
+    }
     // Persist prep prefs first; order is placed on Review (Confirm / timer).
     try {
-      final isArrival = _prepMode == DineInPrepMode.prepareOnArrival;
-      await ref.read(cartRepositoryProvider).updatePreferences(
+      await ref
+          .read(cartRepositoryProvider)
+          .updatePreferences(
             type: CartOrderType.dineIn,
-            dineInPrepMode:
-                isArrival ? 'PREPARE_ON_ARRIVAL' : 'PREPARE_NOW',
+            dineInPrepMode: isArrival ? 'PREPARE_ON_ARRIVAL' : 'PREPARE_NOW',
             scheduledDineInAt: isArrival ? _cart?.scheduledDineInAt : null,
             clearScheduledDineInAt: !isArrival,
           );
@@ -210,13 +212,8 @@ class _DineInCheckoutScreenState extends ConsumerState<DineInCheckoutScreen> {
     }
     if (!mounted) return;
     ref.read(pendingDineInCheckoutProvider.notifier).state =
-        PendingDineInCheckout(
-      paymentId: _paymentId,
-      prepMode: _prepMode,
-    );
-    context.pushReplacement(
-      DineInCartRoutes.reviewFor(_prepMode),
-    );
+        PendingDineInCheckout(paymentId: _paymentId, prepMode: _prepMode);
+    context.pushReplacement(DineInCartRoutes.reviewFor(_prepMode));
   }
 
   @override
@@ -238,11 +235,13 @@ class _DineInCheckoutScreenState extends ConsumerState<DineInCheckoutScreen> {
         .where((s) => s.id == _slots!.selectedId)
         .cast<DineInTimeSlot?>()
         .firstWhere((_) => true, orElse: () => null);
-    final dineInTime = selectedSlot?.label ??
-        formatPickupTimeLabel(
-          cart?.scheduledDineInAt ?? cart?.dineIn?.scheduledAt,
-          readyLabel: readyLabel,
-        );
+    final dineInTime = !isPrepareNow && cart?.scheduledDineInAt == null
+        ? 'Select time'
+        : selectedSlot?.label ??
+            formatPickupTimeLabel(
+              cart?.scheduledDineInAt ?? cart?.dineIn?.scheduledAt,
+              readyLabel: readyLabel,
+            );
 
     return CartFlowScaffold(
       title: DineInCartStrings.checkout,
@@ -319,21 +318,20 @@ class _DineInCheckoutScreenState extends ConsumerState<DineInCheckoutScreen> {
                                 )
                               : Text(
                                   'Change',
-                                  style: AppTextStyles.labelSmall(
-                                    color: AppColors.primary,
-                                  ).copyWith(
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 13.sp,
-                                  ),
+                                  style:
+                                      AppTextStyles.labelSmall(
+                                        color: AppColors.primary,
+                                      ).copyWith(
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: 13.sp,
+                                      ),
                                 ),
                         ),
                       ],
                     ),
                   ),
                   SizedBox(height: 10.h),
-                  DineInInfoBanner(
-                    message: DineInCartStrings.arrivalBanner,
-                  ),
+                  DineInInfoBanner(message: DineInCartStrings.arrivalBanner),
                 ],
                 SizedBox(height: 18.h),
                 CartSectionTitle(DineInCartStrings.paymentMethod),
@@ -347,13 +345,12 @@ class _DineInCheckoutScreenState extends ConsumerState<DineInCheckoutScreen> {
                 SizedBox(height: 18.h),
                 Text(
                   DineInCartStrings.billSummary,
-                  style: AppTextStyles.titleSmall(
-                    color: AppColors.textPrimary,
-                  ).copyWith(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 16.sp,
-                    height: 1.28,
-                  ),
+                  style: AppTextStyles.titleSmall(color: AppColors.textPrimary)
+                      .copyWith(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 16.sp,
+                        height: 1.28,
+                      ),
                 ),
                 SizedBox(height: 10.h),
                 CartZoodPromoBanner(
@@ -363,8 +360,8 @@ class _DineInCheckoutScreenState extends ConsumerState<DineInCheckoutScreen> {
                 BillSummaryCard(
                   lines: billLines,
                   showCashback: true,
-                  cashbackAmount: cart?.cashbackPreview?.amountLabel ??
-                      cart?.cashbackLabel,
+                  cashbackAmount:
+                      cart?.cashbackPreview?.amountLabel ?? cart?.cashbackLabel,
                   cashbackMessage: cart?.cashbackPreview?.message,
                 ),
               ],
