@@ -193,6 +193,7 @@ class OrdersRepository {
     String? gatewayRef,
     String? paymentMethod,
     num? walletAmount,
+    bool devBypassBenefitPay = false,
   }) async {
     if (kDebugMode) {
       BenefitPayDebug.logConfirmRequest(
@@ -208,6 +209,7 @@ class OrdersRepository {
         if (gatewayRef != null) 'gatewayRef': gatewayRef,
         if (paymentMethod != null) 'paymentMethod': paymentMethod,
         if (walletAmount != null) 'walletAmount': walletAmount,
+        if (devBypassBenefitPay) 'devBypassBenefitPay': true,
       },
       bearerToken: _token,
     );

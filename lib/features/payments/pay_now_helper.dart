@@ -9,6 +9,7 @@ import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/features/cart/model/cart_flow_data.dart';
 import 'package:yjeek_app/features/cart/view/widgets/cart_flow_widgets.dart';
 import 'package:yjeek_app/features/order_flow/model/order_api_mappers.dart';
+import 'package:yjeek_app/features/payments/payment_dev_bypass.dart';
 import 'package:yjeek_app/features/payments/benefit_pay_debug.dart';
 import 'package:yjeek_app/features/payments/benefit_pay_native.dart';
 import 'package:yjeek_app/features/payments/model/benefit_pay_models.dart';
@@ -276,6 +277,7 @@ class PayNowHelper {
     required String orderId,
     required String paymentMethod,
     String? gatewayRef,
+    bool devBypassBenefitPay = false,
   }) async {
     final confirmed = await ref
         .read(ordersRepositoryProvider)
@@ -284,6 +286,7 @@ class PayNowHelper {
           status: 'AUTHORIZED',
           gatewayRef: gatewayRef,
           paymentMethod: paymentMethod,
+          devBypassBenefitPay: devBypassBenefitPay,
         );
     if (!confirmed.ok) {
       snack(
@@ -472,7 +475,55 @@ class PayNowHelper {
     return true;
   }
 
+  /// TEMPORARY: mint session + confirm without opening BenefitPay app.
+  Future<bool> payWithBenefitPayNativeDevBypass({
+    required List<String> orderIds,
+  }) async {
+    for (final orderId in orderIds) {
+      if (kDebugMode) {
+        BenefitPayDebug.log(
+          'payWithBenefitPayNative DEV BYPASS orderId=$orderId',
+        );
+      }
+      final sessionResult = await ref
+          .read(ordersRepositoryProvider)
+          .fetchBenefitPayNativeSession(orderId);
+      if (!sessionResult.ok || sessionResult.session == null) {
+        final message =
+            sessionResult.errorMessage ?? 'Could not start BenefitPay';
+        snack(message, color: const Color(0xFFB42318));
+        return false;
+      }
+      final gatewayRef = sessionResult.session!.gatewayRef;
+      if (gatewayRef.isEmpty) {
+        snack(
+          'Missing payment reference from server',
+          color: const Color(0xFFB42318),
+        );
+        return false;
+      }
+      final ok = await confirmAuthorized(
+        orderId: orderId,
+        paymentMethod: 'BENEFIT_PAY',
+        gatewayRef: gatewayRef,
+        devBypassBenefitPay: true,
+      );
+      final settled = ok ? true : await isOrderSettled(orderId);
+      if (!shouldShowNativePaymentSuccessSnack(
+        confirmOk: ok,
+        orderSettled: settled,
+      )) {
+        return false;
+      }
+      snack('Payment successful (dev bypass)');
+    }
+    return true;
+  }
+
   Future<bool> payWithBenefitPayNative({required List<String> orderIds}) async {
+    if (PaymentDevBypass.skipBenefitPayNativeSdk) {
+      return payWithBenefitPayNativeDevBypass(orderIds: orderIds);
+    }
     for (final orderId in orderIds) {
       if (kDebugMode) {
         BenefitPayDebug.log('payWithBenefitPayNative start orderId=$orderId');
