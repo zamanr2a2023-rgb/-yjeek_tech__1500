@@ -323,36 +323,17 @@ class _RetailStoreScreenState extends ConsumerState<RetailStoreScreen> {
         _cartVendorId != widget.storeId &&
         _cartItemCount > 0;
 
-    // Electronics fetches the scheduled cart at add-time.
-    // Pharmacy Deliver Now uses the delivery cart instead.
+    // Fashion / electronics retail uses the delivery cart (variant lines).
     if (config.vertical == RetailStoreVertical.electronics) {
-      if (_pharmacyDeliverNow) {
-        final cart = await ref
-            .read(cartRepositoryProvider)
-            .fetchCart(CartOrderType.delivery);
-        final cartVendorId = cart.vendorId;
-        final replace = cartVendorId != null &&
-            cartVendorId.isNotEmpty &&
-            cartVendorId != widget.storeId &&
-            cart.itemCount > 0;
-        if (replace) {
-          showCartNewCartDialog(
-            context,
-            onConfirm: () => _doAdd(item, replace: true),
-          );
-          return;
-        }
-        await _doAdd(item);
-        return;
-      }
-      final cart =
-          await ref.read(electronicsVendorsRepositoryProvider).fetchCart();
+      final cart = await ref
+          .read(cartRepositoryProvider)
+          .fetchCart(CartOrderType.delivery);
       final cartVendorId = cart.vendorId;
-      final elecReplace = cartVendorId != null &&
+      final replace = cartVendorId != null &&
           cartVendorId.isNotEmpty &&
           cartVendorId != widget.storeId &&
           cart.itemCount > 0;
-      if (elecReplace) {
+      if (replace) {
         showCartNewCartDialog(
           context,
           onConfirm: () => _doAdd(item, replace: true),
@@ -405,6 +386,8 @@ class _RetailStoreScreenState extends ConsumerState<RetailStoreScreen> {
       clearPendingAddToCart(ref);
       if (config.vertical == RetailStoreVertical.services) {
         ref.read(shellProvider.notifier).markCartDirty();
+      } else if (config.vertical == RetailStoreVertical.electronics) {
+        ref.read(shellProvider.notifier).markCartUpdated(delivery: true);
       }
       final notice = result.message;
       if (notice != null && notice.isNotEmpty && mounted) {
@@ -425,10 +408,7 @@ class _RetailStoreScreenState extends ConsumerState<RetailStoreScreen> {
           ),
         );
       }
-      // Refresh cart badges for vape/services.
-      if (config.vertical != RetailStoreVertical.electronics) {
-        await _load();
-      }
+      await _load();
       return;
     }
 

@@ -425,10 +425,15 @@ class AppRouter {
                 state.uri.queryParameters['store'] ?? BrowseRoutes.defaultElectronicsStoreId;
             final productId =
                 state.uri.queryParameters['product'] ?? BrowseRoutes.defaultElectronicsProductId;
+            final variantId = state.uri.queryParameters['variant'];
+            final qtyRaw = state.uri.queryParameters['qty'];
+            final initialQuantity = int.tryParse(qtyRaw ?? '');
             return ElectronicsProductDetailScreen(
               storeId: storeId,
               productId: productId,
               bottomNavIndex: tab,
+              initialVariantId: variantId,
+              initialQuantity: initialQuantity,
             );
           },
         ),

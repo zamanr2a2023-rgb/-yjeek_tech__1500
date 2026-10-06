@@ -105,9 +105,8 @@ class _DineInReviewScreenState extends ConsumerState<DineInReviewScreen> {
       fallback: '—',
     );
     final timeLabel = _prepMode == DineInPrepMode.prepareOnArrival
-        ? formatPickupTimeLabel(
+        ? formatDineInScheduledTimeLabel(
             cart.scheduledDineInAt ?? cart.dineIn?.scheduledAt,
-            readyLabel: readyLabel,
           )
         : readyLabel;
 
@@ -146,7 +145,7 @@ class _DineInReviewScreenState extends ConsumerState<DineInReviewScreen> {
         _startTimer();
         return;
       }
-      await ref
+      final synced = await ref
           .read(cartRepositoryProvider)
           .updatePreferences(
             type: CartOrderType.dineIn,
@@ -154,6 +153,12 @@ class _DineInReviewScreenState extends ConsumerState<DineInReviewScreen> {
             scheduledDineInAt: isArrival ? cart.scheduledDineInAt : null,
             clearScheduledDineInAt: !isArrival,
           );
+      if (!isArrival && synced.dineInPrepMode == 'PREPARE_ON_ARRIVAL') {
+        throw Exception('Could not switch to Pay & prep now. Please try again.');
+      }
+      if (isArrival && synced.scheduledDineInAt == null) {
+        throw Exception('Please choose your dine-in time');
+      }
       final order = await ref
           .read(cartRepositoryProvider)
           .checkout(

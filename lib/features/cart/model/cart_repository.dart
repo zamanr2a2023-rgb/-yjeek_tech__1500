@@ -265,11 +265,15 @@ class DineInTimeSlot {
     required this.id,
     required this.label,
     required this.scheduledAt,
+    required this.scheduledAtIso,
   });
 
   final String id;
   final String label;
+  /// Parsed instant (UTC) for comparisons.
   final DateTime scheduledAt;
+  /// Exact ISO from API — sent back on PATCH to avoid drift.
+  final String scheduledAtIso;
 }
 
 class DineInSlotsSnapshot {
@@ -392,6 +396,17 @@ class CartSnapshot {
 
   /// Electronics vendor cart — no cutlery / kitchen-note preferences.
   bool get isElectronics => storeTypeSlug == 'electronics';
+
+  /// Fashion / flowers / variant retail on DELIVERY — tier picker, not cutlery.
+  bool get usesScheduledDeliveryMethods {
+    if (orderType != CartOrderType.delivery || isVape) return false;
+    final slug = storeTypeSlug?.trim().toLowerCase() ?? '';
+    const onDemandFood = {'food', 'cafe', 'restaurant', 'coffee'};
+    if (onDemandFood.contains(slug)) return false;
+    if (items.any((i) => (i.variantId ?? '').isNotEmpty)) return true;
+    const scheduledRetail = {'fashion', 'flowers', 'electronics', 'pharmacy'};
+    return scheduledRetail.contains(slug);
+  }
 
   bool get hasItems => itemCount > 0 || items.isNotEmpty;
 
@@ -603,6 +618,7 @@ class CartRepository {
     DateTime? serviceScheduledAt,
     String? dineInPrepMode,
     DateTime? scheduledDineInAt,
+    String? scheduledDineInAtIso,
     bool clearScheduledDineInAt = false,
     DateTime? pickupScheduledAt,
     bool clearPickupScheduledAt = false,
@@ -626,6 +642,8 @@ class CartRepository {
       if (dineInPrepMode != null) 'dineInPrepMode': dineInPrepMode,
       if (clearScheduledDineInAt)
         'scheduledDineInAt': null
+      else if (scheduledDineInAtIso != null && scheduledDineInAtIso.isNotEmpty)
+        'scheduledDineInAt': scheduledDineInAtIso
       else if (scheduledDineInAt != null)
         'scheduledDineInAt': scheduledDineInAt.toUtc().toIso8601String(),
       if (clearPickupScheduledAt)
@@ -702,13 +720,15 @@ class CartRepository {
       for (final raw in rawSlots) {
         if (raw is! Map<String, dynamic>) continue;
         final id = raw['id']?.toString();
-        final at = DateTime.tryParse(raw['scheduledAt']?.toString() ?? '');
+        final iso = raw['scheduledAt']?.toString() ?? '';
+        final at = DateTime.tryParse(iso);
         if (id == null || at == null) continue;
         slots.add(
           DineInTimeSlot(
             id: id,
             label: raw['label']?.toString() ?? id,
-            scheduledAt: at.toLocal(),
+            scheduledAt: at.toUtc(),
+            scheduledAtIso: iso,
           ),
         );
       }

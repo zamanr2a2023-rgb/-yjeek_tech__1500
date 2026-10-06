@@ -4,6 +4,7 @@ import 'package:yjeek_app/core/constants/app_text_styles.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/features/browse/view/widgets/item_detail_widgets.dart';
 import 'package:yjeek_app/features/catalog/model/catalog_product.dart';
+import 'package:yjeek_app/features/catalog/model/variant_match.dart';
 
 /// One catalog axis (Size, Colour, Storage, Nicotine, Bouquet size).
 ///
@@ -18,13 +19,19 @@ class VariantAxisSection extends StatelessWidget {
   const VariantAxisSection({
     super.key,
     required this.axis,
+    required this.variants,
     required this.availableValues,
     required this.onChanged,
+    this.selectedAttributes = const {},
+    this.referencePrice,
     this.selectedValue,
     this.isGridView = true,
   });
 
   final CatalogAxis axis;
+  final List<CatalogVariant> variants;
+  final Map<String, String> selectedAttributes;
+  final double? referencePrice;
 
   /// Axis value key → enabled. Keys are [CatalogAxisValue.key], the same
   /// strings stored on `variant.attributes`. A missing or false entry is
@@ -68,9 +75,22 @@ class VariantAxisSection extends StatelessWidget {
           gridStyle: _gridStyle(axis.uiHint),
           itemCount: values.length,
           labelAt: (index) => _label(values[index]),
-          // Chips always reserve a price line. Axis values are not priced;
-          // the matched variant carries the absolute price.
-          priceAt: (_) => '',
+          priceAt: (index) {
+            final key = values[index].key;
+            if (key == null || key.isEmpty) return '';
+            final axisKey = axis.key;
+            if (axisKey == null || axisKey.isEmpty) return '';
+            final min = minSelectablePriceForAxisValue(
+              variants: variants,
+              axisKey: axisKey,
+              valueKey: key,
+              selectedAttributes: selectedAttributes,
+            );
+            return variantAxisValuePriceLabel(
+              minPrice: min,
+              referencePrice: referencePrice,
+            );
+          },
           selectedAt: (index) {
             final key = values[index].key;
             return key != null && key == selectedValue;

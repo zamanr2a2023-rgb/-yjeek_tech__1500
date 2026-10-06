@@ -211,12 +211,21 @@ abstract final class BrowseRoutes {
     String? storeId,
     String? productId,
     int tab = 0,
+    String? variantId,
+    int? quantity,
   }) {
     final id = storeId ?? defaultElectronicsStoreId;
     final product = productId ?? defaultElectronicsProductId;
     final buffer =
         StringBuffer('${RouteNames.electronicsProductDetail}?store=$id&product=$product');
     if (tab != 0) buffer.write('&tab=$tab');
+    final variant = variantId?.trim();
+    if (variant != null && variant.isNotEmpty) {
+      buffer.write('&variant=${Uri.encodeQueryComponent(variant)}');
+    }
+    if (quantity != null && quantity > 0) {
+      buffer.write('&qty=$quantity');
+    }
     return buffer.toString();
   }
 

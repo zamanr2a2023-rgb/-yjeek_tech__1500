@@ -12,6 +12,7 @@ import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/features/browse/browse_routes.dart';
 import 'package:yjeek_app/features/cart/cart_routes.dart';
 import 'package:yjeek_app/features/cart/model/cart_repository.dart';
+import 'package:yjeek_app/features/cart/model/checkout_helpers.dart';
 import 'package:yjeek_app/features/cart/model/delivery_range.dart';
 import 'package:yjeek_app/features/cart/view/widgets/live_cart_body.dart';
 import 'package:yjeek_app/features/dine_in_cart/dine_in_cart_routes.dart';
@@ -68,6 +69,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
   CartSnapshot _pickup = CartSnapshot.empty(CartOrderType.pickup);
   CartSnapshot _service = CartSnapshot.empty(CartOrderType.service);
   CartSnapshot? _scheduled;
+  List<Map<String, dynamic>> _scheduledRetailDeliveryOptions = const [];
 
   @override
   void initState() {
@@ -123,6 +125,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
         _scheduled = results[4] as CartSnapshot?;
         _loading = false;
       });
+      await _refreshScheduledRetailDeliveryQuote();
       _syncShellFlags();
       _scheduleOutOfRangeScreen(_delivery);
     } catch (_) {
@@ -138,6 +141,37 @@ class _CartScreenState extends ConsumerState<CartScreen> {
   }
 
   Future<void> _onRefresh() => _loadAll(showSpinner: false);
+
+  Future<void> _refreshScheduledRetailDeliveryQuote() async {
+    if (!_delivery.usesScheduledDeliveryMethods) {
+      if (!mounted) return;
+      setState(() => _scheduledRetailDeliveryOptions = const []);
+      return;
+    }
+    final speedId = ref.read(scheduledDeliveryUiSpeedProvider);
+    final detailed = await ref.read(cartRepositoryProvider).fetchCartDetailed(
+          CartOrderType.delivery,
+          deliverySpeed: deliverySpeedApiValue(speedId),
+        );
+    if (!mounted) return;
+    setState(() {
+      _delivery = detailed.cart;
+      _scheduledRetailDeliveryOptions = detailed.deliveryOptions;
+    });
+  }
+
+  Future<void> _onScheduledRetailDeliveryChanged(String uiId) async {
+    ref.read(scheduledDeliveryUiSpeedProvider.notifier).state = uiId;
+    final detailed = await ref.read(cartRepositoryProvider).fetchCartDetailed(
+          CartOrderType.delivery,
+          deliverySpeed: deliverySpeedApiValue(uiId),
+        );
+    if (!mounted) return;
+    setState(() {
+      _delivery = detailed.cart;
+      _scheduledRetailDeliveryOptions = detailed.deliveryOptions;
+    });
+  }
 
   void _syncShellFlags() {
     ref
@@ -287,6 +321,11 @@ class _CartScreenState extends ConsumerState<CartScreen> {
     final type = _typeForTab(tab);
     final repo = ref.read(cartRepositoryProvider);
     final isScheduledOnly = _scheduled != null && identical(snap, _scheduled);
+    final scheduledRetail =
+        tab == CartTab.orders &&
+        !isScheduledOnly &&
+        snap.usesScheduledDeliveryMethods;
+    final deliverySpeedUi = ref.watch(scheduledDeliveryUiSpeedProvider);
 
     return LiveCartBody(
       cart: snap,
@@ -295,7 +334,16 @@ class _CartScreenState extends ConsumerState<CartScreen> {
           tab == CartTab.orders &&
           !snap.isVape &&
           !snap.isElectronics &&
-          !isScheduledOnly,
+          !isScheduledOnly &&
+          !scheduledRetail,
+      showScheduledDeliveryMethods: scheduledRetail,
+      scheduledDeliveryMethods: scheduledDeliveryMethodsFromApi(
+        _scheduledRetailDeliveryOptions,
+      ),
+      selectedScheduledDeliveryId: deliverySpeedUi,
+      onScheduledDeliveryChanged: scheduledRetail
+          ? _onScheduledRetailDeliveryChanged
+          : null,
       showVapeCart: tab == CartTab.orders && snap.isVape,
       showDineInPreferences: tab == CartTab.dineIn,
       showPickupHeader: tab == CartTab.pickup && snap.pickup != null,
@@ -319,6 +367,10 @@ class _CartScreenState extends ConsumerState<CartScreen> {
           quantity: qty,
         );
         await _setCart(type, next);
+        if (type == CartOrderType.delivery &&
+            next.usesScheduledDeliveryMethods) {
+          await _refreshScheduledRetailDeliveryQuote();
+        }
       },
       onRemoveItem: (itemId) async {
         if (isScheduledOnly) {
@@ -327,6 +379,10 @@ class _CartScreenState extends ConsumerState<CartScreen> {
         }
         final next = await repo.removeItem(type: type, itemId: itemId);
         await _setCart(type, next);
+        if (type == CartOrderType.delivery &&
+            next.usesScheduledDeliveryMethods) {
+          await _refreshScheduledRetailDeliveryQuote();
+        }
       },
       onUpsellAdd: (productId) async {
         if (isScheduledOnly) {
@@ -359,6 +415,10 @@ class _CartScreenState extends ConsumerState<CartScreen> {
         }
         final next = await repo.applyPromo(type: type, code: code);
         await _setCart(type, next);
+        if (type == CartOrderType.delivery &&
+            next.usesScheduledDeliveryMethods) {
+          await _refreshScheduledRetailDeliveryQuote();
+        }
       },
       onCutleryChanged: (value) async {
         if (isScheduledOnly) return;
@@ -425,6 +485,27 @@ class _CartScreenState extends ConsumerState<CartScreen> {
             BrowseRoutes.vapeProductDetail(
               storeId: vendorId,
               productId: item.productId,
+            ),
+          );
+          return;
+        }
+        final slug = snap.storeTypeSlug?.trim().toLowerCase() ?? '';
+        const variantRetailSlugs = {
+          'fashion',
+          'electronics',
+          'flowers',
+          'pharmacy',
+        };
+        final variantLine = (item.variantId ?? '').isNotEmpty;
+        if (variantLine ||
+            snap.usesScheduledDeliveryMethods ||
+            variantRetailSlugs.contains(slug)) {
+          context.push(
+            BrowseRoutes.electronicsProductDetail(
+              storeId: vendorId,
+              productId: item.productId,
+              variantId: item.variantId,
+              quantity: item.quantity,
             ),
           );
           return;

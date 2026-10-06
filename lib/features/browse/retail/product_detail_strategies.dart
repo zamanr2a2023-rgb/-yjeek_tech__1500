@@ -21,6 +21,7 @@ class UniversalProductDetail {
     required this.optionGroups,
     required this.addons,
     this.imageUrl,
+    this.imageUrls = const [],
     this.quantityLabel = 'Quantity',
     this.catalog,
   });
@@ -32,6 +33,7 @@ class UniversalProductDetail {
   final List<BrowseOptionGroup> optionGroups;
   final List<BrowseAddonOption> addons;
   final String? imageUrl;
+  final List<String> imageUrls;
   final String quantityLabel;
 
   /// Present when the product payload was parsed as a catalog document.
@@ -40,7 +42,13 @@ class UniversalProductDetail {
 
   /// Variant SKU flow. Missing, `MODIFIERS`, and unknown modes stay on
   /// option groups. Store type slug is not consulted.
-  bool get usesVariantSelection => catalog?.catalogMode == CatalogMode.variants;
+  bool get usesVariantSelection {
+    final c = catalog;
+    if (c == null) return false;
+    if (c.catalogMode == CatalogMode.variants) return true;
+    if (c.catalogMode == CatalogMode.modifiers) return false;
+    return c.variants.isNotEmpty && c.axes.isNotEmpty;
+  }
 }
 
 class UniversalAddResult {
@@ -130,6 +138,7 @@ Future<UniversalProductDetail> _loadFoodStyleDetail(
     optionGroups: detail.optionGroups,
     addons: detail.addons,
     imageUrl: detail.imageUrl ?? detail.item.imageUrl,
+    imageUrls: detail.imageUrls,
     catalog: detail.catalog,
   );
 }
@@ -180,14 +189,16 @@ final electronicsProductDetailStrategy = ProductDetailStrategy(
               optionIds: optionIds,
               addonIds: addonIds,
               replaceCart: replaceCart,
+              vendorId: storeId,
               variantId: variantId,
             );
         if (result.ok) {
-          ref.read(shellProvider.notifier).markCartUpdated(scheduled: true);
+          ref.read(shellProvider.notifier).markCartUpdated(delivery: true);
         }
         return UniversalAddResult(
           ok: result.ok,
           vendorConflict: result.vendorConflict,
+          outOfRange: result.outOfRange,
           message: result.message,
         );
       },
@@ -255,6 +266,9 @@ final servicesProductDetailStrategy = ProductDetailStrategy(
       optionGroups: detail.optionGroups,
       addons: detail.addons,
       imageUrl: detail.imageUrl,
+      imageUrls: detail.imageUrl != null && detail.imageUrl!.isNotEmpty
+          ? [detail.imageUrl!]
+          : const [],
       quantityLabel: detail.quantityLabel,
     );
   },

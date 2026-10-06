@@ -78,9 +78,17 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   Future<void> _load() async {
     setState(() => _loading = true);
     try {
-      final cart = await ref
-          .read(cartRepositoryProvider)
-          .fetchCart(CartOrderType.delivery);
+      final repo = ref.read(cartRepositoryProvider);
+      final cartProbe = await repo.fetchCart(CartOrderType.delivery);
+      final cart = cartProbe.usesScheduledDeliveryMethods
+          ? (await repo.fetchCartDetailed(
+                CartOrderType.delivery,
+                deliverySpeed: deliverySpeedApiValue(
+                  ref.read(scheduledDeliveryUiSpeedProvider),
+                ),
+              ))
+              .cart
+          : cartProbe;
       final deliveryLoc = ref.read(deliveryLocationProvider).valueOrNull;
       final address = checkoutAddressDisplay(deliveryLoc) ??
           await ref.read(addressesRepositoryProvider).defaultAddress();
@@ -162,9 +170,17 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     });
     // Refresh cart so cashbackPreview recalculates after voucher context.
     try {
-      final cart = await ref
-          .read(cartRepositoryProvider)
-          .fetchCart(CartOrderType.delivery);
+      final repo = ref.read(cartRepositoryProvider);
+      final cartProbe = await repo.fetchCart(CartOrderType.delivery);
+      final cart = cartProbe.usesScheduledDeliveryMethods
+          ? (await repo.fetchCartDetailed(
+                CartOrderType.delivery,
+                deliverySpeed: deliverySpeedApiValue(
+                  ref.read(scheduledDeliveryUiSpeedProvider),
+                ),
+              ))
+              .cart
+          : cartProbe;
       if (!mounted) return;
       final allowCod = allowsCashOnDelivery(cart);
       final payments = await ref
@@ -312,7 +328,10 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                   address: _address?.label ?? 'Add delivery address',
                   addressDetail: _address?.subtitle,
                   phone: _phone,
-                  arrivesLabel: formatArrivesLabel(cart?.deliveryEta),
+                  showArrivesEstimate: cart?.usesScheduledDeliveryMethods != true,
+                  arrivesLabel: cart?.usesScheduledDeliveryMethods == true
+                      ? null
+                      : formatArrivesLabel(cart?.deliveryEta),
                   latitude: _address?.latitude,
                   longitude: _address?.longitude,
                   onChange: () async {

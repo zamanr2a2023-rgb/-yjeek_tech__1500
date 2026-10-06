@@ -15,8 +15,14 @@ import 'package:yjeek_app/features/geofence/model/active_geofence_order_context.
 import 'package:yjeek_app/features/geofence/service/geofence_session_controller.dart';
 import 'package:yjeek_app/routes/app_router.dart';
 import 'package:yjeek_app/features/navigation/model/navigation_data.dart';
+import 'package:yjeek_app/features/scheduled_cart/model/scheduled_cart_data.dart';
 
 export 'package:yjeek_app/features/cart/model/checkout_pricing.dart';
+
+/// UI delivery tier id (`same-day`, …) chosen on the cart for scheduled retail.
+final scheduledDeliveryUiSpeedProvider = StateProvider<String>(
+  (ref) => 'same-day',
+);
 
 /// Store types that may offer cash on delivery: on-demand hot food only.
 const hotFoodOnDemandSlugs = {'food', 'cafe', 'restaurant', 'coffee'};
@@ -263,6 +269,37 @@ String formatCheckoutTotal(CartSnapshot cart, double tipAmount) {
   return 'BHD ${total.toStringAsFixed(3)}';
 }
 
+/// Bahrain wall clock for dine-in slots (matches backend `Asia/Bahrain`).
+DateTime _bahrainWallClock(DateTime instant) {
+  final utc = instant.toUtc();
+  final shifted = utc.add(const Duration(hours: 3));
+  return DateTime(
+    shifted.year,
+    shifted.month,
+    shifted.day,
+    shifted.hour,
+    shifted.minute,
+  );
+}
+
+/// Dine-in arrival slot label — uses Bahrain calendar day, not device timezone.
+String formatDineInScheduledTimeLabel(
+  DateTime? scheduledAt, {
+  String? slotLabel,
+}) {
+  if (slotLabel != null && slotLabel.trim().isNotEmpty) return slotLabel;
+  if (scheduledAt == null) return 'Select time';
+  final bh = _bahrainWallClock(scheduledAt);
+  final nowBh = _bahrainWallClock(DateTime.now());
+  final today = DateTime(nowBh.year, nowBh.month, nowBh.day);
+  final day = DateTime(bh.year, bh.month, bh.day);
+  final hh = bh.hour.toString().padLeft(2, '0');
+  final mm = bh.minute.toString().padLeft(2, '0');
+  if (day == today) return 'Today · $hh:$mm';
+  if (day == today.add(const Duration(days: 1))) return 'Tomorrow · $hh:$mm';
+  return '${bh.day}/${bh.month} · $hh:$mm';
+}
+
 /// Formats a pickup slot datetime for the time card.
 String formatPickupTimeLabel(DateTime? scheduledAt, {String? readyLabel}) {
   if (scheduledAt == null) {
@@ -501,6 +538,41 @@ String deliveryUiIdFromApi(String? speed) {
     'ECONOMY' => 'economy',
     _ => 'same-day',
   };
+}
+
+List<ScheduledDeliveryMethod> scheduledDeliveryMethodsFromApi(
+  List<Map<String, dynamic>> raw,
+) {
+  if (raw.isEmpty) {
+    return [
+      for (final method in ScheduledCartData.deliveryMethods)
+        ScheduledDeliveryMethod(
+          id: method.id,
+          label: method.label,
+          subtitle: method.subtitle,
+          priceValue: 0,
+          price: '',
+          available: method.available,
+        ),
+    ];
+  }
+  return [
+    for (final o in raw)
+      ScheduledDeliveryMethod(
+        id: deliveryUiIdFromApi(o['id']?.toString()),
+        label: o['label']?.toString() ?? 'Delivery',
+        subtitle: o['windowLabel']?.toString() ??
+            o['subtitle']?.toString() ??
+            o['note']?.toString(),
+        priceValue: parseApiMoney(o['fee']) ?? 0,
+        price: formatBhdAmount(o['fee']),
+        available: o['available'] != false,
+        unavailableNote: o['note']?.toString() ??
+            (o['unavailableReason'] == 'CUTOFF_PASSED'
+                ? 'Available until 12 PM only'
+                : null),
+      ),
+  ];
 }
 
 void showEmptyCartSnackBar(BuildContext context) {

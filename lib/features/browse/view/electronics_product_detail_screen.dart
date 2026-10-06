@@ -9,11 +9,15 @@ class ElectronicsProductDetailScreen extends StatelessWidget {
     required this.storeId,
     required this.productId,
     this.bottomNavIndex = 0,
+    this.initialVariantId,
+    this.initialQuantity,
   });
 
   final String storeId;
   final String productId;
   final int bottomNavIndex;
+  final String? initialVariantId;
+  final int? initialQuantity;
 
   @override
   Widget build(BuildContext context) {
@@ -22,6 +26,8 @@ class ElectronicsProductDetailScreen extends StatelessWidget {
       productId: productId,
       bottomNavIndex: bottomNavIndex,
       strategy: electronicsProductDetailStrategy,
+      initialVariantId: initialVariantId,
+      initialQuantity: initialQuantity,
     );
   }
 }

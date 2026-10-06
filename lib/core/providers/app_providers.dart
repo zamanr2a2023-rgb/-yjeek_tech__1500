@@ -216,6 +216,7 @@ final electronicsVendorsRepositoryProvider =
       (ref) => ElectronicsVendorsRepository(
         ref.watch(apiClientProvider),
         ref.watch(storageServiceProvider),
+        addresses: ref.watch(addressesRepositoryProvider),
       ),
     );
 

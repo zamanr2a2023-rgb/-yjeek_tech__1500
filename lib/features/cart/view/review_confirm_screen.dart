@@ -34,8 +34,11 @@ class ReviewConfirmScreen extends ConsumerStatefulWidget {
 }
 
 class _ReviewConfirmScreenState extends ConsumerState<ReviewConfirmScreen> {
-  static const _initialSeconds = 10;
+  static const _foodConfirmSeconds = 10;
+  static const _scheduledConfirmSeconds = 45;
+
   late int _secondsLeft;
+  int _totalSeconds = _foodConfirmSeconds;
   Timer? _timer;
   bool _finishing = false;
   bool _loading = true;
@@ -44,7 +47,7 @@ class _ReviewConfirmScreenState extends ConsumerState<ReviewConfirmScreen> {
   String _vendor = '';
   List<({String qty, String name, String price})> _items = const [];
   String _deliverTo = '';
-  String _arrives = CartFlowStrings.standardDelivery;
+  String? _arrives;
   String _payment = CartFlowStrings.cashOnDelivery;
   String _total = '';
 
@@ -54,10 +57,10 @@ class _ReviewConfirmScreenState extends ConsumerState<ReviewConfirmScreen> {
   @override
   void initState() {
     super.initState();
-    _secondsLeft = _initialSeconds;
+    _secondsLeft = _foodConfirmSeconds;
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await _hydrate();
-      if (!mounted) return;
+      if (!mounted || _hasExistingOrder) return;
       _startTimer();
     });
   }
@@ -71,7 +74,7 @@ class _ReviewConfirmScreenState extends ConsumerState<ReviewConfirmScreen> {
   void _startTimer() {
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (!mounted || _finishing || _placing) return;
+      if (!mounted || _finishing) return;
       if (_secondsLeft <= 1) {
         _timer?.cancel();
         setState(() => _secondsLeft = 0);
@@ -139,11 +142,22 @@ class _ReviewConfirmScreenState extends ConsumerState<ReviewConfirmScreen> {
     });
   }
 
+  Future<CartSnapshot> _loadDeliveryCartForReview() async {
+    final repo = ref.read(cartRepositoryProvider);
+    final probe = await repo.fetchCart(CartOrderType.delivery);
+    if (!probe.usesScheduledDeliveryMethods) return probe;
+    final detailed = await repo.fetchCartDetailed(
+      CartOrderType.delivery,
+      deliverySpeed: deliverySpeedApiValue(
+        ref.read(scheduledDeliveryUiSpeedProvider),
+      ),
+    );
+    return detailed.cart;
+  }
+
   Future<void> _hydrateFromCart() async {
     final pending = ref.read(pendingCheckoutProvider);
-    final cart = await ref
-        .read(cartRepositoryProvider)
-        .fetchCart(CartOrderType.delivery);
+    final cart = await _loadDeliveryCartForReview();
     final deliveryLoc = ref.read(deliveryLocationProvider).valueOrNull;
     final address = checkoutAddressDisplay(deliveryLoc) ??
         await ref.read(addressesRepositoryProvider).defaultAddress();
@@ -169,10 +183,12 @@ class _ReviewConfirmScreenState extends ConsumerState<ReviewConfirmScreen> {
         )
         .toList();
 
-    final arrives = formatEtaWindowFromCart(
-      cart.deliveryEta,
-      fallback: CartFlowStrings.standardDelivery,
-    );
+    final arrives = cart.usesScheduledDeliveryMethods
+        ? null
+        : formatEtaWindowFromCart(
+            cart.deliveryEta,
+            fallback: CartFlowStrings.standardDelivery,
+          );
 
     final deliverTo = address == null
         ? ''
@@ -188,6 +204,10 @@ class _ReviewConfirmScreenState extends ConsumerState<ReviewConfirmScreen> {
       _arrives = arrives;
       _payment = formatPaymentMethod(paymentMethodApiValue(paymentId));
       _total = formatCheckoutTotal(cart, tip);
+      _totalSeconds = cart.usesScheduledDeliveryMethods
+          ? _scheduledConfirmSeconds
+          : _foodConfirmSeconds;
+      _secondsLeft = _totalSeconds;
       _loading = false;
     });
   }
@@ -217,9 +237,7 @@ class _ReviewConfirmScreenState extends ConsumerState<ReviewConfirmScreen> {
 
     setState(() => _placing = true);
     try {
-      final cart = await ref
-          .read(cartRepositoryProvider)
-          .fetchCart(CartOrderType.delivery);
+      final cart = await _loadDeliveryCartForReview();
       if (!mounted) return;
       if (!cart.hasItems) {
         ref.read(pendingCheckoutProvider.notifier).state = null;
@@ -239,6 +257,11 @@ class _ReviewConfirmScreenState extends ConsumerState<ReviewConfirmScreen> {
         } else if (session.mode == PharmacyDeliveryMode.deliverNow) {
           fulfillmentType = 'ON_DEMAND';
         }
+      } else if (cart.usesScheduledDeliveryMethods) {
+        fulfillmentType = 'SCHEDULED';
+        deliverySpeed = deliverySpeedApiValue(
+          ref.read(scheduledDeliveryUiSpeedProvider),
+        );
       }
       final order = await ref.read(cartRepositoryProvider).checkout(
             type: CartOrderType.delivery,
@@ -347,7 +370,10 @@ class _ReviewConfirmScreenState extends ConsumerState<ReviewConfirmScreen> {
               children: [
                 CartReviewStatusCard(
                   secondsLeft: _secondsLeft,
-                  totalSeconds: _initialSeconds,
+                  totalSeconds: _totalSeconds,
+                  confirmHint: CartFlowStrings.confirmWithinSecondsHint(
+                    _totalSeconds,
+                  ),
                 ),
                 SizedBox(height: 14.h),
                 Text(

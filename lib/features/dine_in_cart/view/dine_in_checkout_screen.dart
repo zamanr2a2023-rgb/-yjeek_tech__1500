@@ -49,8 +49,9 @@ class _DineInCheckoutScreenState extends ConsumerState<DineInCheckoutScreen> {
     setState(() => _loading = true);
     try {
       final cartRepo = ref.read(cartRepositoryProvider);
-      final cart = await cartRepo.fetchCart(CartOrderType.dineIn);
+      var cart = await cartRepo.fetchCart(CartOrderType.dineIn);
       final slots = await cartRepo.fetchDineInSlots();
+      cart = await cartRepo.fetchCart(CartOrderType.dineIn);
       final payments = await ref
           .read(paymentMethodsRepositoryProvider)
           .fetchCheckoutMethods(
@@ -100,6 +101,7 @@ class _DineInCheckoutScreenState extends ConsumerState<DineInCheckoutScreen> {
 
   Future<void> _setPrepMode(DineInPrepMode mode) async {
     final isArrival = mode == DineInPrepMode.prepareOnArrival;
+    final previous = _prepMode;
     setState(() => _prepMode = mode);
     try {
       final cart = await ref
@@ -109,6 +111,9 @@ class _DineInCheckoutScreenState extends ConsumerState<DineInCheckoutScreen> {
             dineInPrepMode: isArrival ? 'PREPARE_ON_ARRIVAL' : 'PREPARE_NOW',
             clearScheduledDineInAt: !isArrival,
           );
+      if (!isArrival && cart.dineInPrepMode == 'PREPARE_ON_ARRIVAL') {
+        throw Exception('Could not switch to Pay & prep now. Please try again.');
+      }
       final slots = await ref.read(cartRepositoryProvider).fetchDineInSlots();
       if (!mounted) return;
       setState(() {
@@ -118,7 +123,20 @@ class _DineInCheckoutScreenState extends ConsumerState<DineInCheckoutScreen> {
       if (isArrival) {
         await _changeDineInTime();
       }
-    } catch (_) {}
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _prepMode = previous);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
+      );
+    }
+  }
+
+  bool _cartMatchesSlot(DineInTimeSlot slot) {
+    final cartAt = _cart?.scheduledDineInAt;
+    if (cartAt == null) return false;
+    return cartAt.toUtc().millisecondsSinceEpoch ==
+        slot.scheduledAt.toUtc().millisecondsSinceEpoch;
   }
 
   Future<void> _changeDineInTime() async {
@@ -143,8 +161,7 @@ class _DineInCheckoutScreenState extends ConsumerState<DineInCheckoutScreen> {
                 ListTile(
                   title: Text(slot.label),
                   trailing:
-                      (_slots?.selectedId == slot.id ||
-                          _cart?.scheduledDineInAt == slot.scheduledAt)
+                      (_slots?.selectedId == slot.id || _cartMatchesSlot(slot))
                       ? const Icon(Icons.check, color: Color(0xFF4CAF50))
                       : null,
                   onTap: () => Navigator.pop(context, slot),
@@ -164,6 +181,7 @@ class _DineInCheckoutScreenState extends ConsumerState<DineInCheckoutScreen> {
             type: CartOrderType.dineIn,
             dineInPrepMode: 'PREPARE_ON_ARRIVAL',
             scheduledDineInAt: selected.scheduledAt,
+            scheduledDineInAtIso: selected.scheduledAtIso,
           );
       final refreshed = await ref
           .read(cartRepositoryProvider)
@@ -237,11 +255,10 @@ class _DineInCheckoutScreenState extends ConsumerState<DineInCheckoutScreen> {
         .firstWhere((_) => true, orElse: () => null);
     final dineInTime = !isPrepareNow && cart?.scheduledDineInAt == null
         ? 'Select time'
-        : selectedSlot?.label ??
-            formatPickupTimeLabel(
-              cart?.scheduledDineInAt ?? cart?.dineIn?.scheduledAt,
-              readyLabel: readyLabel,
-            );
+        : formatDineInScheduledTimeLabel(
+            cart?.scheduledDineInAt ?? cart?.dineIn?.scheduledAt,
+            slotLabel: selectedSlot?.label,
+          );
 
     return CartFlowScaffold(
       title: DineInCartStrings.checkout,

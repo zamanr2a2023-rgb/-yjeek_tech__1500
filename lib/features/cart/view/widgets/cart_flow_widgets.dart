@@ -251,6 +251,7 @@ class CartDeliveryDetailsCard extends StatelessWidget {
     this.addressDetail,
     this.phone,
     this.arrivesLabel,
+    this.showArrivesEstimate = true,
     this.latitude,
     this.longitude,
   });
@@ -259,6 +260,8 @@ class CartDeliveryDetailsCard extends StatelessWidget {
   final String? addressDetail;
   final String? phone;
   final String? arrivesLabel;
+  /// On-demand food ETA only; hidden for scheduled tier delivery (fashion, etc.).
+  final bool showArrivesEstimate;
   final double? latitude;
   final double? longitude;
   final VoidCallback onChange;
@@ -357,16 +360,18 @@ class CartDeliveryDetailsCard extends StatelessWidget {
               ],
             ),
           ),
-          Container(height: 1, color: const Color(0xFFE2E8DD)),
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 13.h),
-            child: Text(
-              arrivesLabel ?? CartFlowStrings.arrivesIn,
-              style: AppTextStyles.labelMedium(
-                color: AppColors.textPrimary,
-              ).copyWith(fontWeight: FontWeight.w700, fontSize: 14.sp),
+          if (showArrivesEstimate) ...[
+            Container(height: 1, color: const Color(0xFFE2E8DD)),
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 13.h),
+              child: Text(
+                arrivesLabel ?? CartFlowStrings.arrivesIn,
+                style: AppTextStyles.labelMedium(
+                  color: AppColors.textPrimary,
+                ).copyWith(fontWeight: FontWeight.w700, fontSize: 14.sp),
+              ),
             ),
-          ),
+          ],
         ],
       ),
     );
@@ -1600,10 +1605,12 @@ class CartReviewStatusCard extends StatelessWidget {
     super.key,
     required this.secondsLeft,
     this.totalSeconds = 10,
+    this.confirmHint,
   });
 
   final int secondsLeft;
   final int totalSeconds;
+  final String? confirmHint;
 
   static const Color _ringTrack = Color(0xFF2C6B47);
   static const Color _ringProgress = Color(0xFFC9A84C);
@@ -1663,7 +1670,7 @@ class CartReviewStatusCard extends StatelessWidget {
           ),
           SizedBox(height: 6.h),
           Text(
-            CartFlowStrings.autoConfirmHint,
+            confirmHint ?? CartFlowStrings.autoConfirmHint,
             textAlign: TextAlign.center,
             style: AppTextStyles.caption(color: _hint).copyWith(
               fontWeight: FontWeight.w500,
@@ -1755,11 +1762,12 @@ class CartReviewSummaryCard extends StatelessWidget {
                     ),
                   ),
           ),
-          _detailRow(
-            icon: Icons.access_time,
-            label: CartFlowStrings.arrivesInLabel,
-            value: arrivesIn ?? CartFlowStrings.standardDelivery,
-          ),
+          if (arrivesIn != null)
+            _detailRow(
+              icon: Icons.access_time,
+              label: CartFlowStrings.arrivesInLabel,
+              value: arrivesIn!,
+            ),
           _detailRow(
             icon: Icons.payments_outlined,
             label: CartFlowStrings.paymentLabel,

@@ -766,12 +766,14 @@ class ItemAddToCartBar extends StatelessWidget {
 
 /// How option choices render in grid mode (cart flow.md electronics).
 enum ItemOptionGridStyle {
-  /// 3-column square cards (fashion extras / default).
+  /// 3-column square cards (image-led options).
   cards,
   /// Horizontal storage/size chips (filled when selected).
   chips,
   /// Circular colour swatches.
   swatches,
+  /// 2-column add-on rows: checkbox, title, price (Figma extras).
+  extras,
 }
 
 /// Renders option choices in grid or list layout.
@@ -849,6 +851,31 @@ class ItemOptionsLayout extends StatelessWidget {
               ],
             ),
           );
+        case ItemOptionGridStyle.extras:
+          return Padding(
+            padding: EdgeInsets.only(bottom: 12.h),
+            child: GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: itemCount,
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                crossAxisSpacing: 10.w,
+                mainAxisSpacing: 10.h,
+                childAspectRatio: 2.65,
+              ),
+              itemBuilder: (context, index) {
+                return ItemExtraOptionCard(
+                  label: labelAt(index),
+                  priceLabel: priceAt(index),
+                  selected: selectedAt(index),
+                  imageUrl: imageAt(index),
+                  enabled: enabledAt?.call(index) ?? true,
+                  onTap: () => onTapAt(index),
+                );
+              },
+            ),
+          );
         case ItemOptionGridStyle.cards:
           return Padding(
             padding: EdgeInsets.only(bottom: 12.h),
@@ -878,6 +905,27 @@ class ItemOptionsLayout extends StatelessWidget {
       }
     }
 
+    if (gridStyle == ItemOptionGridStyle.extras) {
+      return Padding(
+        padding: EdgeInsets.only(bottom: 12.h),
+        child: Column(
+          children: [
+            for (var i = 0; i < itemCount; i++) ...[
+              ItemExtraOptionCard(
+                label: labelAt(i),
+                priceLabel: priceAt(i),
+                selected: selectedAt(i),
+                imageUrl: imageAt(i),
+                enabled: enabledAt?.call(i) ?? true,
+                onTap: () => onTapAt(i),
+              ),
+              if (i < itemCount - 1) SizedBox(height: 8.h),
+            ],
+          ],
+        ),
+      );
+    }
+
     return Column(
       children: [
         for (var i = 0; i < itemCount; i++)
@@ -895,6 +943,105 @@ class ItemOptionsLayout extends StatelessWidget {
             onTap: () => onTapAt(i),
           ),
       ],
+    );
+  }
+}
+
+/// Figma add-on row: checkbox, label, green price; optional thumb on the right.
+class ItemExtraOptionCard extends StatelessWidget {
+  const ItemExtraOptionCard({
+    super.key,
+    required this.label,
+    required this.priceLabel,
+    required this.selected,
+    required this.onTap,
+    this.imageUrl,
+    this.enabled = true,
+  });
+
+  final String label;
+  final String priceLabel;
+  final bool selected;
+  final VoidCallback onTap;
+  final String? imageUrl;
+  final bool enabled;
+
+  @override
+  Widget build(BuildContext context) {
+    final active = selected && enabled;
+    final hasImage = imageUrl != null && imageUrl!.isNotEmpty;
+
+    return Opacity(
+      opacity: enabled ? 1 : 0.45,
+      child: GestureDetector(
+        onTap: enabled ? onTap : null,
+        child: Container(
+          padding: EdgeInsets.fromLTRB(10.w, 10.h, hasImage ? 8.w : 10.w, 10.h),
+          decoration: BoxDecoration(
+            color: active ? const Color(0xFFE8F5E9) : AppColors.white,
+            borderRadius: BorderRadius.circular(12.r),
+            border: Border.all(
+              color: active ? AppColors.primary : const Color(0xFFE2E2E2),
+              width: active ? 2 : 1,
+            ),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _SelectionControl(selected: active, multiple: true),
+              SizedBox(width: 8.w),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      label,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTextStyles.labelSmall(
+                        color: AppColors.textPrimary,
+                      ).copyWith(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13.sp,
+                        height: 1.2,
+                      ),
+                    ),
+                    SizedBox(height: 4.h),
+                    Text(
+                      priceLabel,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTextStyles.caption(color: AppColors.primary)
+                          .copyWith(
+                        fontWeight: FontWeight.w500,
+                        fontSize: 11.sp,
+                        height: 1.2,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (hasImage) ...[
+                SizedBox(width: 6.w),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8.r),
+                  child: SizedBox(
+                    width: 40.w,
+                    height: 40.w,
+                    child: AppNetworkImage(
+                      url: imageUrl!,
+                      fit: BoxFit.cover,
+                      errorWidget: const ColoredBox(
+                        color: Color(0xFFE8F5E9),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
@@ -1010,7 +1157,7 @@ class ItemColourSwatch extends StatelessWidget {
                   color: fill,
                   border: Border.all(
                     color: active
-                        ? AppColors.textPrimary
+                        ? AppColors.primary
                         : const Color(0xFFE2E2E2),
                     width: active ? 2 : 1,
                   ),
@@ -1026,15 +1173,17 @@ class ItemColourSwatch extends StatelessWidget {
                       )
                     : null,
               ),
-              SizedBox(height: 4.h),
-              Text(
-                priceLabel,
-                textAlign: TextAlign.center,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: AppTextStyles.caption(color: AppColors.primary)
-                    .copyWith(fontSize: 10.sp),
-              ),
+              if (priceLabel.isNotEmpty) ...[
+                SizedBox(height: 4.h),
+                Text(
+                  priceLabel,
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTextStyles.caption(color: AppColors.primary)
+                      .copyWith(fontSize: 10.sp),
+                ),
+              ],
             ],
           ),
         ),
