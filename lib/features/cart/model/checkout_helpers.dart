@@ -21,7 +21,7 @@ export 'package:yjeek_app/features/cart/model/checkout_pricing.dart';
 
 /// UI delivery tier id (`same-day`, …) chosen on the cart for scheduled retail.
 final scheduledDeliveryUiSpeedProvider = StateProvider<String>(
-  (ref) => 'same-day',
+  (ref) => 'next-day',
 );
 
 /// Store types that may offer cash on delivery: on-demand hot food only.
@@ -540,22 +540,120 @@ String deliveryUiIdFromApi(String? speed) {
   };
 }
 
+/// Delivery speed + window from GET /cart `deliveryOptions` for checkout.
+class ScheduledCheckoutDelivery {
+  const ScheduledCheckoutDelivery({
+    required this.speed,
+    required this.windowStart,
+    required this.windowEnd,
+  });
+
+  final String speed;
+  final DateTime windowStart;
+  final DateTime windowEnd;
+}
+
+/// Uses server `earliestWindowStartAt` so checkout matches tier rules (BH time).
+ScheduledCheckoutDelivery? scheduledCheckoutDeliveryFor({
+  required List<Map<String, dynamic>> deliveryOptions,
+  required String uiSpeedId,
+}) {
+  ScheduledCheckoutDelivery? pick(String speed) {
+    for (final o in deliveryOptions) {
+      if ((o['id']?.toString() ?? '').toUpperCase() != speed) continue;
+      if (!scheduledDeliveryOptionAvailable(o)) return null;
+      final raw = o['earliestWindowStartAt']?.toString();
+      final start = DateTime.tryParse(raw ?? '');
+      if (start == null) return null;
+      final utc = start.toUtc();
+      return ScheduledCheckoutDelivery(
+        speed: speed,
+        windowStart: utc,
+        windowEnd: utc.add(const Duration(hours: 2)),
+      );
+    }
+    return null;
+  }
+
+  return pick(deliverySpeedApiValue(uiSpeedId));
+}
+
+/// If the selected tier is unavailable, move to the first open tier from API.
+String? syncScheduledDeliveryUiSpeed(
+  WidgetRef ref,
+  List<Map<String, dynamic>> deliveryOptions,
+) {
+  if (deliveryOptions.isEmpty) return null;
+  final methods = scheduledDeliveryMethodsFromApi(deliveryOptions);
+  var uiId = ref.read(scheduledDeliveryUiSpeedProvider);
+  ScheduledDeliveryMethod? current;
+  for (final method in methods) {
+    if (method.id == uiId) {
+      current = method;
+      break;
+    }
+  }
+  if (current != null && current.available) return uiId;
+  for (final method in methods) {
+    if (method.available) {
+      ref.read(scheduledDeliveryUiSpeedProvider.notifier).state = method.id;
+      return method.id;
+    }
+  }
+  return null;
+}
+
+DateTime _bahrainLocalFromUtc(DateTime utc) {
+  return utc.toUtc().add(const Duration(hours: 3));
+}
+
+DateTime _bahrainServiceDate(DateTime utc) {
+  final bh = _bahrainLocalFromUtc(utc);
+  return DateTime.utc(bh.year, bh.month, bh.day);
+}
+
+/// Mirrors backend scheduled tier calendar rules (Bahrain service date).
+bool clientScheduledTierValid(String speed, DateTime windowStartUtc) {
+  final now = DateTime.now().toUtc();
+  final dayDiff = _bahrainServiceDate(windowStartUtc)
+      .difference(_bahrainServiceDate(now))
+      .inDays;
+  switch (speed.toUpperCase()) {
+    case 'SAME_DAY':
+      if (_bahrainLocalFromUtc(now).hour >= 12) return false;
+      return dayDiff == 0;
+    case 'NEXT_DAY':
+      return dayDiff == 1;
+    case 'STANDARD':
+      return dayDiff >= 1 && dayDiff <= 3;
+    case 'ECONOMY':
+      return dayDiff >= 5 && dayDiff <= 7;
+    default:
+      return false;
+  }
+}
+
+bool scheduledDeliveryOptionAvailable(Map<String, dynamic> o) {
+  if (o['available'] == false) return false;
+  final reason = o['unavailableReason']?.toString().trim();
+  if (reason != null && reason.isNotEmpty) return false;
+  if (o['available'] == true) return true;
+  final speed = (o['id']?.toString() ?? '').toUpperCase();
+  final raw = o['earliestWindowStartAt']?.toString();
+  final start = DateTime.tryParse(raw ?? '');
+  if (start != null) {
+    return clientScheduledTierValid(speed, start.toUtc());
+  }
+  if (speed == 'SAME_DAY') {
+    return _bahrainLocalFromUtc(DateTime.now().toUtc()).hour < 12;
+  }
+  return o['available'] == true;
+}
+
 List<ScheduledDeliveryMethod> scheduledDeliveryMethodsFromApi(
   List<Map<String, dynamic>> raw,
 ) {
-  if (raw.isEmpty) {
-    return [
-      for (final method in ScheduledCartData.deliveryMethods)
-        ScheduledDeliveryMethod(
-          id: method.id,
-          label: method.label,
-          subtitle: method.subtitle,
-          priceValue: 0,
-          price: '',
-          available: method.available,
-        ),
-    ];
-  }
+  if (raw.isEmpty) return const [];
   return [
     for (final o in raw)
       ScheduledDeliveryMethod(
@@ -566,11 +664,13 @@ List<ScheduledDeliveryMethod> scheduledDeliveryMethodsFromApi(
             o['note']?.toString(),
         priceValue: parseApiMoney(o['fee']) ?? 0,
         price: formatBhdAmount(o['fee']),
-        available: o['available'] != false,
+        available: scheduledDeliveryOptionAvailable(o),
         unavailableNote: o['note']?.toString() ??
             (o['unavailableReason'] == 'CUTOFF_PASSED'
                 ? 'Available until 12 PM only'
-                : null),
+                : o['unavailableReason'] == 'NO_VALID_DATE'
+                    ? 'Not available at this time'
+                    : null),
       ),
   ];
 }

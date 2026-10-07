@@ -20,6 +20,8 @@ import 'package:yjeek_app/features/geofence/model/active_geofence_order_context.
 import 'package:yjeek_app/features/navigation/model/navigation_data.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/navigation_widgets.dart';
 import 'package:yjeek_app/features/pickup_cart/pickup_cart_routes.dart';
+import 'package:yjeek_app/features/browse/model/pharmacy_order_modes.dart';
+import 'package:yjeek_app/features/scheduled_cart/model/scheduled_cart_data.dart';
 import 'package:yjeek_app/features/scheduled_cart/scheduled_cart_routes.dart';
 import 'package:yjeek_app/features/services_booking/services_booking_routes.dart';
 import 'package:yjeek_app/features/vape_cart/vape_cart_routes.dart';
@@ -125,7 +127,8 @@ class _CartScreenState extends ConsumerState<CartScreen> {
         _scheduled = results[4] as CartSnapshot?;
         _loading = false;
       });
-      await _refreshScheduledRetailDeliveryQuote();
+      _syncPharmacyDeliverNowSession(_delivery);
+      await _refreshDeliveryTierOptions();
       _syncShellFlags();
       _scheduleOutOfRangeScreen(_delivery);
     } catch (_) {
@@ -142,34 +145,115 @@ class _CartScreenState extends ConsumerState<CartScreen> {
 
   Future<void> _onRefresh() => _loadAll(showSpinner: false);
 
-  Future<void> _refreshScheduledRetailDeliveryQuote() async {
-    if (!_delivery.usesScheduledDeliveryMethods) {
+  void _syncPharmacyDeliverNowSession(CartSnapshot delivery) {
+    if (!delivery.isPharmacyStore) return;
+    final vendorId = delivery.vendorId;
+    if (vendorId == null || vendorId.isEmpty) return;
+    final current = ref.read(pharmacySessionProvider);
+    if (current != null && current.matches(vendorId)) return;
+    ref.read(pharmacySessionProvider.notifier).state = PharmacySession(
+      vendorId: vendorId,
+      mode: PharmacyDeliveryMode.deliverNow,
+    );
+  }
+
+  bool _ordersTabShowsScheduledBasket() {
+    if (_scheduled?.hasItems != true) return false;
+    final focusScheduled = ref.read(shellProvider).focusScheduledCart;
+    return focusScheduled || !_delivery.hasItems;
+  }
+
+  Future<void> _refreshDeliveryTierOptions() async {
+    final repo = ref.read(cartRepositoryProvider);
+    if (_ordersTabShowsScheduledBasket()) {
+      final probe = await repo.fetchScheduledCartDetailed();
+      if (!mounted) return;
+      final synced = syncScheduledDeliveryUiSpeed(ref, probe.deliveryOptions);
+      final speedId =
+          synced ?? ref.read(scheduledDeliveryUiSpeedProvider) ?? 'next-day';
+      final detailed = await repo.fetchScheduledCartDetailed(
+        deliverySpeed: deliverySpeedApiValue(speedId),
+      );
+      if (!mounted) return;
+      setState(() {
+        _scheduled = detailed.cart;
+        _scheduledRetailDeliveryOptions = detailed.deliveryOptions.isNotEmpty
+            ? detailed.deliveryOptions
+            : probe.deliveryOptions;
+      });
+      return;
+    }
+
+    final pharmacySession = ref.read(pharmacySessionProvider);
+    if (!_delivery.showsScheduledDeliveryTierPicker(pharmacySession)) {
       if (!mounted) return;
       setState(() => _scheduledRetailDeliveryOptions = const []);
       return;
     }
-    final speedId = ref.read(scheduledDeliveryUiSpeedProvider);
-    final detailed = await ref.read(cartRepositoryProvider).fetchCartDetailed(
-          CartOrderType.delivery,
-          deliverySpeed: deliverySpeedApiValue(speedId),
-        );
+    final probe = await repo.fetchCartDetailed(CartOrderType.delivery);
+    if (!mounted) return;
+    final synced = syncScheduledDeliveryUiSpeed(ref, probe.deliveryOptions);
+    final speedId =
+        synced ?? ref.read(scheduledDeliveryUiSpeedProvider) ?? 'next-day';
+    final detailed = await repo.fetchCartDetailed(
+      CartOrderType.delivery,
+      deliverySpeed: deliverySpeedApiValue(speedId),
+    );
     if (!mounted) return;
     setState(() {
       _delivery = detailed.cart;
-      _scheduledRetailDeliveryOptions = detailed.deliveryOptions;
+      _scheduledRetailDeliveryOptions = detailed.deliveryOptions.isNotEmpty
+          ? detailed.deliveryOptions
+          : probe.deliveryOptions;
     });
   }
 
-  Future<void> _onScheduledRetailDeliveryChanged(String uiId) async {
+  Future<void> _onScheduledDeliveryTierChanged(String uiId) async {
+    final methods = scheduledDeliveryMethodsFromApi(_scheduledRetailDeliveryOptions);
+    ScheduledDeliveryMethod? method;
+    for (final m in methods) {
+      if (m.id == uiId) {
+        method = m;
+        break;
+      }
+    }
+    if (method != null && !method.available) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            method.unavailableNote ??
+                'This delivery option is not available right now',
+          ),
+        ),
+      );
+      return;
+    }
     ref.read(scheduledDeliveryUiSpeedProvider.notifier).state = uiId;
-    final detailed = await ref.read(cartRepositoryProvider).fetchCartDetailed(
-          CartOrderType.delivery,
-          deliverySpeed: deliverySpeedApiValue(uiId),
-        );
+    final repo = ref.read(cartRepositoryProvider);
+    if (_ordersTabShowsScheduledBasket()) {
+      final detailed = await repo.fetchScheduledCartDetailed(
+        deliverySpeed: deliverySpeedApiValue(uiId),
+      );
+      if (!mounted) return;
+      setState(() {
+        _scheduled = detailed.cart;
+        if (detailed.deliveryOptions.isNotEmpty) {
+          _scheduledRetailDeliveryOptions = detailed.deliveryOptions;
+        }
+      });
+      return;
+    }
+    final detailed = await repo.fetchCartDetailed(
+      CartOrderType.delivery,
+      deliverySpeed: deliverySpeedApiValue(uiId),
+    );
     if (!mounted) return;
     setState(() {
       _delivery = detailed.cart;
-      _scheduledRetailDeliveryOptions = detailed.deliveryOptions;
+      if (detailed.deliveryOptions.isNotEmpty) {
+        _scheduledRetailDeliveryOptions = detailed.deliveryOptions;
+      }
     });
   }
 
@@ -321,10 +405,11 @@ class _CartScreenState extends ConsumerState<CartScreen> {
     final type = _typeForTab(tab);
     final repo = ref.read(cartRepositoryProvider);
     final isScheduledOnly = _scheduled != null && identical(snap, _scheduled);
+    final pharmacySession = ref.watch(pharmacySessionProvider);
     final scheduledRetail =
         tab == CartTab.orders &&
-        !isScheduledOnly &&
-        snap.usesScheduledDeliveryMethods;
+        (isScheduledOnly ||
+            snap.showsScheduledDeliveryTierPicker(pharmacySession));
     final deliverySpeedUi = ref.watch(scheduledDeliveryUiSpeedProvider);
 
     return LiveCartBody(
@@ -334,6 +419,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
           tab == CartTab.orders &&
           !snap.isVape &&
           !snap.isElectronics &&
+          !snap.isPharmacyStore &&
           !isScheduledOnly &&
           !scheduledRetail,
       showScheduledDeliveryMethods: scheduledRetail,
@@ -342,7 +428,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
       ),
       selectedScheduledDeliveryId: deliverySpeedUi,
       onScheduledDeliveryChanged: scheduledRetail
-          ? _onScheduledRetailDeliveryChanged
+          ? _onScheduledDeliveryTierChanged
           : null,
       showVapeCart: tab == CartTab.orders && snap.isVape,
       showDineInPreferences: tab == CartTab.dineIn,
@@ -368,8 +454,10 @@ class _CartScreenState extends ConsumerState<CartScreen> {
         );
         await _setCart(type, next);
         if (type == CartOrderType.delivery &&
-            next.usesScheduledDeliveryMethods) {
-          await _refreshScheduledRetailDeliveryQuote();
+            next.showsScheduledDeliveryTierPicker(
+              ref.read(pharmacySessionProvider),
+            )) {
+          await _refreshDeliveryTierOptions();
         }
       },
       onRemoveItem: (itemId) async {
@@ -380,8 +468,10 @@ class _CartScreenState extends ConsumerState<CartScreen> {
         final next = await repo.removeItem(type: type, itemId: itemId);
         await _setCart(type, next);
         if (type == CartOrderType.delivery &&
-            next.usesScheduledDeliveryMethods) {
-          await _refreshScheduledRetailDeliveryQuote();
+            next.showsScheduledDeliveryTierPicker(
+              ref.read(pharmacySessionProvider),
+            )) {
+          await _refreshDeliveryTierOptions();
         }
       },
       onUpsellAdd: (productId) async {
@@ -416,8 +506,10 @@ class _CartScreenState extends ConsumerState<CartScreen> {
         final next = await repo.applyPromo(type: type, code: code);
         await _setCart(type, next);
         if (type == CartOrderType.delivery &&
-            next.usesScheduledDeliveryMethods) {
-          await _refreshScheduledRetailDeliveryQuote();
+            next.showsScheduledDeliveryTierPicker(
+              ref.read(pharmacySessionProvider),
+            )) {
+          await _refreshDeliveryTierOptions();
         }
       },
       onCutleryChanged: (value) async {
@@ -557,6 +649,28 @@ class _CartScreenState extends ConsumerState<CartScreen> {
           }
         }
         if (!mounted) return;
+        final scheduledRetailCheckout =
+            tab == CartTab.orders &&
+            (isScheduledOnly ||
+                snap.showsScheduledDeliveryTierPicker(
+                  ref.read(pharmacySessionProvider),
+                ));
+        if (scheduledRetailCheckout) {
+          await _refreshDeliveryTierOptions();
+          if (!mounted) return;
+          final methods =
+              scheduledDeliveryMethodsFromApi(_scheduledRetailDeliveryOptions);
+          final ui = ref.read(scheduledDeliveryUiSpeedProvider);
+          final tierOk = methods.any((m) => m.id == ui && m.available);
+          if (!tierOk) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Please choose an available delivery method'),
+              ),
+            );
+            return;
+          }
+        }
         switch (tab) {
           case CartTab.dineIn:
             context.push(DineInCartRoutes.checkout);

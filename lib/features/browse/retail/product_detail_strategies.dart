@@ -9,6 +9,7 @@ import 'package:yjeek_app/features/browse/model/pharmacy_order_modes.dart';
 import 'package:yjeek_app/features/browse/model/pharmacy_repository.dart';
 import 'package:yjeek_app/features/catalog/model/catalog_product.dart';
 import 'package:yjeek_app/features/browse/utils/vape_age_gate.dart';
+import 'package:yjeek_app/features/cart/model/cart_repository.dart';
 import 'package:yjeek_app/features/cart/model/pending_add_to_cart.dart';
 import 'package:yjeek_app/features/services_booking/services_booking_routes.dart';
 
@@ -180,6 +181,28 @@ final electronicsProductDetailStrategy = ProductDetailStrategy(
             vendorConflict: result.vendorConflict,
             message: result.message,
           );
+        }
+        if (session != null &&
+            session.matches(storeId) &&
+            session.mode == PharmacyDeliveryMode.scheduled) {
+          try {
+            final snap = await ref.read(cartRepositoryProvider).addScheduledProduct(
+                  productId: productId,
+                  quantity: quantity,
+                  replaceCart: replaceCart,
+                );
+            final ok = snap != null;
+            if (ok) {
+              ref.read(shellProvider.notifier).openScheduledCartWithItems();
+            }
+            return UniversalAddResult(ok: ok, vendorConflict: false);
+          } on ScheduledVendorLimitException catch (e) {
+            return UniversalAddResult(
+              ok: false,
+              vendorConflict: false,
+              message: e.message,
+            );
+          }
         }
         final result = await ref
             .read(electronicsVendorsRepositoryProvider)

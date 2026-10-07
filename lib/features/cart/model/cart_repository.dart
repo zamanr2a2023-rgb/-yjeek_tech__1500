@@ -397,6 +397,9 @@ class CartSnapshot {
   /// Electronics vendor cart — no cutlery / kitchen-note preferences.
   bool get isElectronics => storeTypeSlug == 'electronics';
 
+  bool get isPharmacyStore =>
+      storeTypeSlug?.trim().toLowerCase() == 'pharmacy';
+
   /// Fashion / flowers / variant retail on DELIVERY — tier picker, not cutlery.
   bool get usesScheduledDeliveryMethods {
     if (orderType != CartOrderType.delivery || isVape) return false;
@@ -406,6 +409,20 @@ class CartSnapshot {
     if (items.any((i) => (i.variantId ?? '').isNotEmpty)) return true;
     const scheduledRetail = {'fashion', 'flowers', 'electronics', 'pharmacy'};
     return scheduledRetail.contains(slug);
+  }
+
+  /// Pharmacy Deliver Now uses the delivery cart; scheduled SKUs use `/cart/scheduled`.
+  bool showsScheduledDeliveryTierPicker(PharmacySession? pharmacySession) {
+    if (!usesScheduledDeliveryMethods) return false;
+    if (!isPharmacyStore) return true;
+    if (pharmacySession != null &&
+        vendorId != null &&
+        vendorId!.isNotEmpty &&
+        pharmacySession.matches(vendorId)) {
+      if (pharmacySession.continueDeliveryAsScheduled) return true;
+      return pharmacySession.mode == PharmacyDeliveryMode.scheduled;
+    }
+    return false;
   }
 
   bool get hasItems => itemCount > 0 || items.isNotEmpty;
@@ -481,13 +498,7 @@ class CartRepository {
         deliveryOptions: const <Map<String, dynamic>>[],
       );
     }
-    final raw = data['deliveryOptions'];
-    final options = <Map<String, dynamic>>[];
-    if (raw is List) {
-      for (final item in raw) {
-        if (item is Map<String, dynamic>) options.add(item);
-      }
-    }
+    final options = _deliveryOptionsFromJson(data['deliveryOptions']);
     return (cart: cartSnapshotFromJson(data, type), deliveryOptions: options);
   }
 
@@ -510,13 +521,7 @@ class CartRepository {
     if (data is! Map<String, dynamic>) {
       return (cart: null, deliveryOptions: const <Map<String, dynamic>>[]);
     }
-    final raw = data['deliveryOptions'];
-    final options = <Map<String, dynamic>>[];
-    if (raw is List) {
-      for (final item in raw) {
-        if (item is Map<String, dynamic>) options.add(item);
-      }
-    }
+    final options = _deliveryOptionsFromJson(data['deliveryOptions']);
     return (
       cart: scheduledCartSnapshotFromJson(data),
       deliveryOptions: options,
@@ -1099,6 +1104,19 @@ String? _nonEmpty(Object? raw) {
 }
 
 String _bhd(num value) => 'BHD ${value.toStringAsFixed(3)}';
+
+List<Map<String, dynamic>> _deliveryOptionsFromJson(dynamic raw) {
+  final options = <Map<String, dynamic>>[];
+  if (raw is! List) return options;
+  for (final item in raw) {
+    if (item is Map<String, dynamic>) {
+      options.add(item);
+    } else if (item is Map) {
+      options.add(Map<String, dynamic>.from(item));
+    }
+  }
+  return options;
+}
 
 String _money(dynamic raw) {
   if (raw is num) return _bhd(raw);

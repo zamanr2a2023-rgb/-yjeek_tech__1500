@@ -36,6 +36,7 @@ class _HelpChatScreenState extends ConsumerState<HelpChatScreen> {
   bool _loading = true;
   bool _sending = false;
   bool _polling = false;
+  bool _closing = false;
   String? _ticketId;
   String? _orderId;
   SupportTicketItem? _ticket;
@@ -249,7 +250,7 @@ class _HelpChatScreenState extends ConsumerState<HelpChatScreen> {
           (m) => HelpChatMessage(
             text: m.body,
             isUser: m.isMine,
-            isSystem: false,
+            isSystem: m.isSystem,
             isAgentJoin: false,
             avatarLabel: m.isMine
                 ? 'Y'
@@ -292,6 +293,57 @@ class _HelpChatScreenState extends ConsumerState<HelpChatScreen> {
         curve: Curves.easeOut,
       );
     });
+  }
+
+  Future<void> _closeChat() async {
+    if (_closing || !_canChat) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Close chat?'),
+        content: const Text(
+          'Care will be notified. You can open a new request from Help if you need more assistance.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Close chat'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    setState(() => _closing = true);
+    final orderId = _orderId?.trim();
+    var ok = false;
+    if (orderId != null && orderId.isNotEmpty) {
+      ok = await ref.read(orderChatRepositoryProvider).closeOrderChat(orderId);
+    }
+    if (!ok) {
+      final ticketId = _ticketId?.trim();
+      if (ticketId != null && ticketId.isNotEmpty) {
+        ok = await ref.read(supportRepositoryProvider).closeTicket(ticketId);
+      }
+    }
+    if (!mounted) return;
+    setState(() => _closing = false);
+
+    if (!ok) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Could not close chat'),
+          backgroundColor: Color(0xFFB42318),
+        ),
+      );
+      return;
+    }
+
+    await _bootstrap();
   }
 
   Future<void> _send() async {
@@ -397,10 +449,26 @@ class _HelpChatScreenState extends ConsumerState<HelpChatScreen> {
                     ],
                   ),
           ),
+          if (!_loading && _error == null && _canChat)
+            Padding(
+              padding: EdgeInsets.fromLTRB(14.w, 0, 14.w, 4.h),
+              child: Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  onPressed: _closing ? null : _closeChat,
+                  child: Text(
+                    _closing ? 'Closing…' : 'Close chat',
+                    style: AppTextStyles.labelMedium(
+                      color: const Color(0xFF536158),
+                    ),
+                  ),
+                ),
+              ),
+            ),
           HelpChatInputBar(
             controller: _input,
             onSend: _send,
-            enabled: !_sending && !_loading && _error == null && _canChat,
+            enabled: !_sending && !_closing && !_loading && _error == null && _canChat,
           ),
         ],
       ),

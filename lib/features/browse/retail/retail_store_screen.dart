@@ -371,11 +371,36 @@ class _RetailStoreScreenState extends ConsumerState<RetailStoreScreen> {
         vendorConflict: added.vendorConflict,
         message: added.message,
       );
+    } else if (_store?.hasPharmacyDeliveryModes == true) {
+      RetailAddResult scheduledAdd;
+      try {
+        final snap = await ref.read(cartRepositoryProvider).addScheduledProduct(
+              productId: item.id,
+              quantity: 1,
+              replaceCart: replace,
+            );
+        final ok = snap != null;
+        if (ok) {
+          ref.read(shellProvider.notifier).openScheduledCartWithItems();
+        }
+        scheduledAdd = RetailAddResult(
+          ok: ok,
+          vendorConflict: false,
+          message: null,
+        );
+      } on ScheduledVendorLimitException catch (e) {
+        scheduledAdd = RetailAddResult(
+          ok: false,
+          vendorConflict: false,
+          message: e.message,
+        );
+      }
+      result = scheduledAdd;
     } else {
       result = await config.quickAdd(
-      ref,
-      storeId: widget.storeId,
-      item: item,
+        ref,
+        storeId: widget.storeId,
+        item: item,
         replaceCart: replace,
       );
     }
@@ -386,7 +411,8 @@ class _RetailStoreScreenState extends ConsumerState<RetailStoreScreen> {
       clearPendingAddToCart(ref);
       if (config.vertical == RetailStoreVertical.services) {
         ref.read(shellProvider.notifier).markCartDirty();
-      } else if (config.vertical == RetailStoreVertical.electronics) {
+      } else if (config.vertical == RetailStoreVertical.electronics &&
+          !(_store?.hasPharmacyDeliveryModes == true && !_pharmacyDeliverNow)) {
         ref.read(shellProvider.notifier).markCartUpdated(delivery: true);
       }
       final notice = result.message;

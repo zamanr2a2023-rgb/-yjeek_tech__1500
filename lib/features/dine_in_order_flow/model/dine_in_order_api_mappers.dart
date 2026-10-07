@@ -2,6 +2,15 @@ import 'package:yjeek_app/features/dine_in_order_flow/model/dine_in_order_flow_d
 import 'package:yjeek_app/features/navigation/model/navigation_data.dart';
 import 'package:yjeek_app/features/order_flow/model/order_api_mappers.dart';
 
+/// Public order ID shown on the vendor live board (`orderNumber`), for counter verification.
+String dineInVendorVerificationCode(Map<String, dynamic> data) {
+  final orderNumber = data['orderNumber']?.toString();
+  if (orderNumber != null && orderNumber.isNotEmpty) return orderNumber;
+  final arrival = data['arrivalCode']?.toString();
+  if (arrival != null && arrival.isNotEmpty) return arrival;
+  return '';
+}
+
 /// Dine-in receipt bill lines matching Figma (subtotal / discount / VAT / total).
 List<BillLine> dineInReceiptBillFromTotals(Map<String, dynamic>? totals) {
   if (totals == null) return const [];

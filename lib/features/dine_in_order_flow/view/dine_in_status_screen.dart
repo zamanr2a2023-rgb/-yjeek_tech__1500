@@ -85,7 +85,7 @@ class _DineInStatusScreenState extends ConsumerState<DineInStatusScreen> {
     setState(() {
       _subtitle =
           '${vendorName ?? ''}${orderNumber == null || orderNumber.isEmpty ? '' : ' · #$orderNumber'}';
-      _code = data['arrivalCode']?.toString() ?? orderNumber ?? '';
+      _code = dineInVendorVerificationCode(data);
       _pill = eta != null && eta.isNotEmpty
           ? '👨‍🍳 ${formatStatusLabel(status)} · $eta'
           : '👨‍🍳 ${formatStatusLabel(status)}';

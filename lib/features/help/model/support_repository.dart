@@ -223,6 +223,16 @@ class SupportRepository {
     return SupportTicketMessage.fromJson(data);
   }
 
+  /// POST /support/tickets/:id/close
+  Future<bool> closeTicket(String ticketId, {String? reason}) async {
+    final response = await _apiClient.postJson(
+      '/support/tickets/$ticketId/close',
+      {if (reason != null && reason.isNotEmpty) 'reason': reason},
+      bearerToken: _token,
+    );
+    return response.ok;
+  }
+
   /// GET /support/tickets/:id
   Future<SupportTicketItem?> getTicket(String ticketId) async {
     final response = await _apiClient.getJson(

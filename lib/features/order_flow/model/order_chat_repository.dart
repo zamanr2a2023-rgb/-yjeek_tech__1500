@@ -6,6 +6,7 @@ class OrderChatMessage {
     required this.id,
     required this.body,
     required this.isMine,
+    this.isSystem = false,
     this.senderName,
     this.createdAt,
     this.imageUrls = const [],
@@ -14,6 +15,7 @@ class OrderChatMessage {
   final String id;
   final String body;
   final bool isMine;
+  final bool isSystem;
   final String? senderName;
   final DateTime? createdAt;
   final List<String> imageUrls;
@@ -21,7 +23,8 @@ class OrderChatMessage {
   factory OrderChatMessage.fromJson(Map<String, dynamic> json, {String? myRole}) {
     final sender = json['sender']?.toString().toUpperCase() ?? '';
     final role = json['senderRole']?.toString().toUpperCase() ?? sender;
-    final isMine = role.contains('CUSTOMER') || sender == 'CUSTOMER';
+    final isSystem = role == 'SYSTEM' || sender == 'SYSTEM';
+    final isMine = !isSystem && (role.contains('CUSTOMER') || sender == 'CUSTOMER');
     final imageUrls = <String>[];
     final direct = json['attachments'];
     if (direct is List) {
@@ -44,6 +47,7 @@ class OrderChatMessage {
       id: json['id']?.toString() ?? '',
       body: json['body']?.toString() ?? json['text']?.toString() ?? '',
       isMine: isMine,
+      isSystem: isSystem,
       senderName: json['senderName']?.toString(),
       createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? ''),
       imageUrls: imageUrls,
@@ -128,6 +132,16 @@ class OrderChatRepository {
         .whereType<Map<String, dynamic>>()
         .map(OrderChatMessage.fromJson)
         .toList();
+  }
+
+  /// POST /chat/orders/:orderId/close
+  Future<bool> closeOrderChat(String orderId, {String? reason}) async {
+    final response = await _apiClient.postJson(
+      '/chat/orders/$orderId/close',
+      {if (reason != null && reason.isNotEmpty) 'reason': reason},
+      bearerToken: _token,
+    );
+    return response.ok;
   }
 
   /// POST /chat/orders/:orderId/messages

@@ -277,7 +277,8 @@ class _LiveCartBodyState extends State<LiveCartBody> {
                     padding: const EdgeInsets.only(bottom: 8),
                     child: ScheduledDeliveryMethodCard(
                       method: method,
-                      selected: method.id == widget.selectedScheduledDeliveryId,
+                      selected: method.available &&
+                          method.id == widget.selectedScheduledDeliveryId,
                       onTap: widget.onScheduledDeliveryChanged == null
                           ? () {}
                           : () => widget.onScheduledDeliveryChanged!(method.id),

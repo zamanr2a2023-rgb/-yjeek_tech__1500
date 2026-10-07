@@ -145,7 +145,8 @@ class _ReviewConfirmScreenState extends ConsumerState<ReviewConfirmScreen> {
   Future<CartSnapshot> _loadDeliveryCartForReview() async {
     final repo = ref.read(cartRepositoryProvider);
     final probe = await repo.fetchCart(CartOrderType.delivery);
-    if (!probe.usesScheduledDeliveryMethods) return probe;
+    final session = ref.read(pharmacySessionProvider);
+    if (!probe.showsScheduledDeliveryTierPicker(session)) return probe;
     final detailed = await repo.fetchCartDetailed(
       CartOrderType.delivery,
       deliverySpeed: deliverySpeedApiValue(
@@ -183,7 +184,9 @@ class _ReviewConfirmScreenState extends ConsumerState<ReviewConfirmScreen> {
         )
         .toList();
 
-    final arrives = cart.usesScheduledDeliveryMethods
+    final session = ref.read(pharmacySessionProvider);
+    final scheduledTiers = cart.showsScheduledDeliveryTierPicker(session);
+    final arrives = scheduledTiers
         ? null
         : formatEtaWindowFromCart(
             cart.deliveryEta,
@@ -204,7 +207,7 @@ class _ReviewConfirmScreenState extends ConsumerState<ReviewConfirmScreen> {
       _arrives = arrives;
       _payment = formatPaymentMethod(paymentMethodApiValue(paymentId));
       _total = formatCheckoutTotal(cart, tip);
-      _totalSeconds = cart.usesScheduledDeliveryMethods
+      _totalSeconds = scheduledTiers
           ? _scheduledConfirmSeconds
           : _foodConfirmSeconds;
       _secondsLeft = _totalSeconds;
@@ -237,7 +240,12 @@ class _ReviewConfirmScreenState extends ConsumerState<ReviewConfirmScreen> {
 
     setState(() => _placing = true);
     try {
-      final cart = await _loadDeliveryCartForReview();
+      final speedUi = ref.read(scheduledDeliveryUiSpeedProvider);
+      final detailed = await ref.read(cartRepositoryProvider).fetchCartDetailed(
+            CartOrderType.delivery,
+            deliverySpeed: deliverySpeedApiValue(speedUi),
+          );
+      final cart = detailed.cart;
       if (!mounted) return;
       if (!cart.hasItems) {
         ref.read(pendingCheckoutProvider.notifier).state = null;
@@ -250,6 +258,8 @@ class _ReviewConfirmScreenState extends ConsumerState<ReviewConfirmScreen> {
       final session = ref.read(pharmacySessionProvider);
       String? fulfillmentType;
       String? deliverySpeed;
+      DateTime? windowStartAt;
+      DateTime? windowEndAt;
       if (session != null && session.matches(cart.vendorId)) {
         if (session.continueDeliveryAsScheduled) {
           fulfillmentType = 'SCHEDULED';
@@ -257,11 +267,27 @@ class _ReviewConfirmScreenState extends ConsumerState<ReviewConfirmScreen> {
         } else if (session.mode == PharmacyDeliveryMode.deliverNow) {
           fulfillmentType = 'ON_DEMAND';
         }
-      } else if (cart.usesScheduledDeliveryMethods) {
-        fulfillmentType = 'SCHEDULED';
-        deliverySpeed = deliverySpeedApiValue(
-          ref.read(scheduledDeliveryUiSpeedProvider),
+      } else if (cart.showsScheduledDeliveryTierPicker(session)) {
+        final synced = syncScheduledDeliveryUiSpeed(
+          ref,
+          detailed.deliveryOptions,
         );
+        final scheduled = scheduledCheckoutDeliveryFor(
+          deliveryOptions: detailed.deliveryOptions,
+          uiSpeedId: synced ?? speedUi,
+        );
+        if (scheduled == null) {
+          throw Exception(
+            'Same day delivery is not available at this time. '
+            'Open cart and choose Next day or another delivery slot.',
+          );
+        }
+        fulfillmentType = 'SCHEDULED';
+        deliverySpeed = scheduled.speed;
+        windowStartAt = scheduled.windowStart;
+        windowEndAt = scheduled.windowEnd;
+      } else if (cart.isPharmacyStore) {
+        fulfillmentType = 'ON_DEMAND';
       }
       final order = await ref.read(cartRepositoryProvider).checkout(
             type: CartOrderType.delivery,
@@ -275,6 +301,8 @@ class _ReviewConfirmScreenState extends ConsumerState<ReviewConfirmScreen> {
             referralCreditAmount: pending.referralCreditAmount,
             fulfillmentType: fulfillmentType,
             deliverySpeed: deliverySpeed,
+            windowStartAt: windowStartAt,
+            windowEndAt: windowEndAt,
           );
       if (!mounted) return;
       _finishing = true;
