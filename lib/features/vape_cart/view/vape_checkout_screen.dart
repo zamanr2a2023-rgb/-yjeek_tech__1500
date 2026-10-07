@@ -13,6 +13,7 @@ import 'package:yjeek_app/features/location/provider/delivery_location_provider.
 import 'package:yjeek_app/features/location/utils/checkout_delivery_address.dart';
 import 'package:yjeek_app/features/cart/model/payment_methods_repository.dart';
 import 'package:yjeek_app/features/cart/view/widgets/cart_flow_widgets.dart';
+import 'package:yjeek_app/features/cart/view/widgets/zood_checkout_banner.dart';
 import 'package:yjeek_app/features/navigation/model/navigation_data.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/navigation_widgets.dart';
 import 'package:yjeek_app/features/campaigns/view/on_time_promise_banner.dart';
@@ -376,6 +377,10 @@ class _VapeCheckoutScreenState extends ConsumerState<VapeCheckoutScreen> {
                   onSaveChanged: (v) => setState(() => _saveDropOff = v),
                 ),
                 SizedBox(height: 14.h),
+                const ZoodCheckoutBannerSlot(
+                  placement: 'ABOVE_PAYMENT',
+                  joinScreen: 'vape_checkout',
+                ),
                 CartSectionTitle(VapeCartStrings.paymentMethod),
                 const VapePaymentNoteBanner(),
                 SizedBox(height: 12.h),
@@ -399,12 +404,21 @@ class _VapeCheckoutScreenState extends ConsumerState<VapeCheckoutScreen> {
                   },
                 ),
                 SizedBox(height: 14.h),
-                CartZoodPromoBanner(
-                  onTap: () => context.push(CartRoutes.zoodWaitingList),
+                const ZoodCheckoutBannerSlot(
+                  placement: 'BELOW_PAYMENT',
+                  joinScreen: 'vape_checkout',
                 ),
                 SizedBox(height: 14.h),
+                const ZoodCheckoutBannerSlot(
+                  placement: 'ABOVE_BILL_SUMMARY',
+                  joinScreen: 'vape_checkout',
+                ),
                 CartSectionTitle(VapeCartStrings.billSummary),
                 BillSummaryCard(lines: billLines),
+                const ZoodCheckoutBannerSlot(
+                  placement: 'BELOW_BILL_SUMMARY',
+                  joinScreen: 'vape_checkout',
+                ),
                 deliveryQuoteNotices(cart?.delivery),
                 SizedBox(height: 10.h),
                 VapeCashbackBanner(amount: cart?.cashbackLabel),

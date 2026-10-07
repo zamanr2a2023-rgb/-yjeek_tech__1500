@@ -934,9 +934,22 @@ class CartPaymentMethodList extends StatelessWidget {
 }
 
 class CartZoodPromoBanner extends StatelessWidget {
-  const CartZoodPromoBanner({super.key, required this.onTap});
+  const CartZoodPromoBanner({
+    super.key,
+    required this.onTap,
+    required this.badge,
+    required this.headline,
+    required this.hint,
+    required this.cta,
+    required this.chips,
+  });
 
   final VoidCallback onTap;
+  final String badge;
+  final String headline;
+  final String hint;
+  final String cta;
+  final List<String> chips;
 
   @override
   Widget build(BuildContext context) {
@@ -959,7 +972,7 @@ class CartZoodPromoBanner extends StatelessWidget {
                   borderRadius: BorderRadius.circular(8.r),
                 ),
                 child: Text(
-                  CartFlowStrings.zoodBadge,
+                  badge,
                   style: AppTextStyles.caption(color: const Color(0xFF73141F))
                       .copyWith(
                         fontWeight: FontWeight.w700,
@@ -971,7 +984,7 @@ class CartZoodPromoBanner extends StatelessWidget {
               SizedBox(width: 8.w),
               Expanded(
                 child: Text(
-                  CartFlowStrings.zoodPromoTitle,
+                  headline,
                   style: AppTextStyles.labelMedium(color: AppColors.white)
                       .copyWith(
                         fontWeight: FontWeight.w600,
@@ -986,7 +999,7 @@ class CartZoodPromoBanner extends StatelessWidget {
           Wrap(
             spacing: 8.w,
             runSpacing: 6.h,
-            children: CartFlowData.zoodPromoChips
+            children: chips
                 .map(
                   (chip) => Container(
                     padding: EdgeInsets.symmetric(
@@ -1017,7 +1030,7 @@ class CartZoodPromoBanner extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  CartFlowStrings.zoodPromoHint,
+                  hint,
                   style:
                       AppTextStyles.labelSmall(
                         color: const Color(0xFFFFDBE0),
@@ -1041,7 +1054,7 @@ class CartZoodPromoBanner extends StatelessWidget {
                     borderRadius: BorderRadius.circular(18.r),
                   ),
                   child: Text(
-                    CartFlowStrings.zoodJoinWaitingList,
+                    cta,
                     style:
                         AppTextStyles.labelSmall(
                           color: const Color(0xFF9B111E),

@@ -1,32 +1,6 @@
 import 'package:yjeek_app/core/network/api_client.dart';
 import 'package:yjeek_app/core/services/storage_service.dart';
-
-class ZoodStatus {
-  const ZoodStatus({
-    required this.joined,
-    required this.dismissed,
-    this.title,
-    this.subtitle,
-  });
-
-  final bool joined;
-  final bool dismissed;
-  final String? title;
-  final String? subtitle;
-
-  factory ZoodStatus.fromJson(Map<String, dynamic> json) {
-    return ZoodStatus(
-      joined: json['joined'] == true ||
-          json['waitlistJoined'] == true ||
-          json['zoodWaitlistJoinedAt'] != null,
-      dismissed: json['dismissed'] == true ||
-          json['waitlistDismissed'] == true ||
-          json['zoodWaitlistDismissedAt'] != null,
-      title: json['title']?.toString(),
-      subtitle: json['subtitle']?.toString() ?? json['message']?.toString(),
-    );
-  }
-}
+import 'package:yjeek_app/features/cart/model/zood_promo.dart';
 
 class ZoodRepository {
   const ZoodRepository(this._apiClient, this._storage);
@@ -36,17 +10,23 @@ class ZoodRepository {
 
   String? get _token => _storage.token;
 
-  Future<ZoodStatus?> fetchStatus() async {
+  Future<ZoodPromo?> fetchPromo() async {
     final response = await _apiClient.getJson('/zood', bearerToken: _token);
     final data = response?['data'];
     if (data is! Map<String, dynamic>) return null;
-    return ZoodStatus.fromJson(data);
+    return ZoodPromo.fromJson(data);
   }
 
-  Future<bool> joinWaitlist() async {
+  Future<bool> joinWaitlist({
+    String source = 'checkout',
+    required String screen,
+  }) async {
     final response = await _apiClient.postJson(
       '/zood/waitlist',
-      const {},
+      {
+        'source': source,
+        'screen': screen,
+      },
       bearerToken: _token,
     );
     return response.ok;

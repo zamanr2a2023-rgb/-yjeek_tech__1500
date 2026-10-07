@@ -8,6 +8,7 @@ import 'package:yjeek_app/features/cart/model/cart_repository.dart';
 import 'package:yjeek_app/features/cart/model/checkout_helpers.dart';
 import 'package:yjeek_app/features/cart/model/payment_methods_repository.dart';
 import 'package:yjeek_app/features/cart/view/widgets/cart_flow_widgets.dart';
+import 'package:yjeek_app/features/cart/view/widgets/zood_checkout_banner.dart';
 import 'package:yjeek_app/features/navigation/model/navigation_data.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/navigation_widgets.dart';
 import 'package:yjeek_app/features/pickup_cart/model/pickup_cart_data.dart';
@@ -121,6 +122,10 @@ class _PickupCheckoutScreenState extends ConsumerState<PickupCheckoutScreen> {
                       pickup?.noShowPolicy ?? PickupCartStrings.policyWarning,
                 ),
                 SizedBox(height: 14.h),
+                const ZoodCheckoutBannerSlot(
+                  placement: 'ABOVE_PAYMENT',
+                  joinScreen: 'pickup_checkout',
+                ),
                 CartSectionTitle(PickupCartStrings.paymentMethod),
                 CartPaymentMethodList(
                   options: _payments.options,
@@ -128,13 +133,21 @@ class _PickupCheckoutScreenState extends ConsumerState<PickupCheckoutScreen> {
                   onSelected: (id) => setState(() => _paymentId = id),
                   showSecurityNotes: true,
                 ),
-                SizedBox(height: 14.h),
-                CartZoodPromoBanner(
-                  onTap: () => context.push(CartRoutes.zoodWaitingList),
+                const ZoodCheckoutBannerSlot(
+                  placement: 'BELOW_PAYMENT',
+                  joinScreen: 'pickup_checkout',
                 ),
                 SizedBox(height: 14.h),
+                const ZoodCheckoutBannerSlot(
+                  placement: 'ABOVE_BILL_SUMMARY',
+                  joinScreen: 'pickup_checkout',
+                ),
                 CartSectionTitle(PickupCartStrings.billSummary),
                 BillSummaryCard(lines: billLines),
+                const ZoodCheckoutBannerSlot(
+                  placement: 'BELOW_BILL_SUMMARY',
+                  joinScreen: 'pickup_checkout',
+                ),
                 SizedBox(height: 10.h),
                 ScheduledCashbackBanner(amount: cart?.cashbackLabel),
               ],

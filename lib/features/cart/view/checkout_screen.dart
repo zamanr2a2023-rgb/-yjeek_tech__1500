@@ -22,6 +22,7 @@ import 'package:yjeek_app/features/navigation/view/widgets/navigation_widgets.da
 import 'package:yjeek_app/features/ui_content/view/ui_banner_widgets.dart';
 import 'package:yjeek_app/features/campaigns/view/on_time_promise_banner.dart';
 import 'package:yjeek_app/features/vouchers/widgets/checkout_vouchers_section.dart';
+import 'package:yjeek_app/features/cart/view/widgets/zood_checkout_banner.dart';
 
 class CheckoutScreen extends ConsumerStatefulWidget {
   const CheckoutScreen({super.key});
@@ -405,6 +406,10 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                   ),
                 ],
                 SizedBox(height: 18.h),
+                const ZoodCheckoutBannerSlot(
+                  placement: 'ABOVE_PAYMENT',
+                  joinScreen: 'delivery_checkout',
+                ),
                 CartSectionTitle(CartFlowStrings.paymentMethod),
                 if (codUnavailableNote != null) ...[
                   Padding(
@@ -436,7 +441,15 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                   onSelected: (id) => setState(() => _paymentId = id),
                   showSecurityNotes: true,
                 ),
+                const ZoodCheckoutBannerSlot(
+                  placement: 'BELOW_PAYMENT',
+                  joinScreen: 'delivery_checkout',
+                ),
                 SizedBox(height: 18.h),
+                const ZoodCheckoutBannerSlot(
+                  placement: 'ABOVE_BILL_SUMMARY',
+                  joinScreen: 'delivery_checkout',
+                ),
                 CartSectionTitle(CartFlowStrings.billSummary),
                 UiPlacementBanner(
                   placementKey: 'checkout_banner',
@@ -448,6 +461,10 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                   cashbackAmount: cart?.cashbackPreview?.amountLabel ??
                       cart?.cashbackLabel,
                   cashbackMessage: cart?.cashbackPreview?.message,
+                ),
+                const ZoodCheckoutBannerSlot(
+                  placement: 'BELOW_BILL_SUMMARY',
+                  joinScreen: 'delivery_checkout',
                 ),
                 deliveryQuoteNotices(
                   cart?.delivery,
