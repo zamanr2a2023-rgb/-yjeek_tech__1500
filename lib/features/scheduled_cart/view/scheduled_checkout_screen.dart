@@ -14,6 +14,7 @@ import 'package:yjeek_app/features/location/provider/delivery_location_provider.
 import 'package:yjeek_app/features/location/utils/checkout_delivery_address.dart';
 import 'package:yjeek_app/features/cart/model/payment_methods_repository.dart';
 import 'package:yjeek_app/features/cart/view/widgets/cart_flow_widgets.dart';
+import 'package:yjeek_app/features/cart/view/widgets/zood_checkout_banner.dart';
 import 'package:yjeek_app/features/navigation/model/navigation_data.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/navigation_widgets.dart';
 import 'package:yjeek_app/features/scheduled_cart/model/scheduled_cart_data.dart';
@@ -364,6 +365,10 @@ class _ScheduledCheckoutScreenState
                   },
                 ),
                 SizedBox(height: 14.h),
+                const ZoodCheckoutBannerSlot(
+                  placement: 'ABOVE_PAYMENT',
+                  joinScreen: 'scheduled_checkout',
+                ),
                 CartSectionTitle(ScheduledCartStrings.paymentMethod),
                 const ScheduledPaymentNoteBanner(),
                 SizedBox(height: 12.h),
@@ -391,11 +396,15 @@ class _ScheduledCheckoutScreenState
                     });
                   },
                 ),
-                SizedBox(height: 14.h),
-                CartZoodPromoBanner(
-                  onTap: () => context.push(CartRoutes.zoodWaitingList),
+                const ZoodCheckoutBannerSlot(
+                  placement: 'BELOW_PAYMENT',
+                  joinScreen: 'scheduled_checkout',
                 ),
                 SizedBox(height: 14.h),
+                const ZoodCheckoutBannerSlot(
+                  placement: 'ABOVE_BILL_SUMMARY',
+                  joinScreen: 'scheduled_checkout',
+                ),
                 CartSectionTitle(ScheduledCartStrings.billSummary),
                 BillSummaryCard(
                   lines: _billLines,
@@ -403,6 +412,10 @@ class _ScheduledCheckoutScreenState
                   cashbackAmount: cart?.cashbackPreview?.amountLabel ??
                       cart?.cashbackLabel,
                   cashbackMessage: cart?.cashbackPreview?.message,
+                ),
+                const ZoodCheckoutBannerSlot(
+                  placement: 'BELOW_BILL_SUMMARY',
+                  joinScreen: 'scheduled_checkout',
                 ),
                 deliveryQuoteNotices(cart?.delivery),
               ],

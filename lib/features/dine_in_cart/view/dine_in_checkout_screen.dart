@@ -10,6 +10,7 @@ import 'package:yjeek_app/features/cart/model/cart_repository.dart';
 import 'package:yjeek_app/features/cart/model/checkout_helpers.dart';
 import 'package:yjeek_app/features/cart/model/pending_checkout.dart';
 import 'package:yjeek_app/features/cart/view/widgets/cart_flow_widgets.dart';
+import 'package:yjeek_app/features/cart/view/widgets/zood_checkout_banner.dart';
 import 'package:yjeek_app/features/dine_in_cart/dine_in_cart_routes.dart';
 import 'package:yjeek_app/features/dine_in_cart/model/dine_in_cart_data.dart';
 import 'package:yjeek_app/features/dine_in_cart/view/widgets/dine_in_cart_widgets.dart';
@@ -351,6 +352,10 @@ class _DineInCheckoutScreenState extends ConsumerState<DineInCheckoutScreen> {
                   DineInInfoBanner(message: DineInCartStrings.arrivalBanner),
                 ],
                 SizedBox(height: 18.h),
+                const ZoodCheckoutBannerSlot(
+                  placement: 'ABOVE_PAYMENT',
+                  joinScreen: 'dine_in_checkout',
+                ),
                 CartSectionTitle(DineInCartStrings.paymentMethod),
                 DineInPaymentList(
                   options: _paymentOptions,
@@ -359,7 +364,15 @@ class _DineInCheckoutScreenState extends ConsumerState<DineInCheckoutScreen> {
                 ),
                 SizedBox(height: 10.h),
                 const DineInWalletNoteBanner(),
+                const ZoodCheckoutBannerSlot(
+                  placement: 'BELOW_PAYMENT',
+                  joinScreen: 'dine_in_checkout',
+                ),
                 SizedBox(height: 18.h),
+                const ZoodCheckoutBannerSlot(
+                  placement: 'ABOVE_BILL_SUMMARY',
+                  joinScreen: 'dine_in_checkout',
+                ),
                 Text(
                   DineInCartStrings.billSummary,
                   style: AppTextStyles.titleSmall(color: AppColors.textPrimary)
@@ -370,16 +383,16 @@ class _DineInCheckoutScreenState extends ConsumerState<DineInCheckoutScreen> {
                       ),
                 ),
                 SizedBox(height: 10.h),
-                CartZoodPromoBanner(
-                  onTap: () => context.push(CartRoutes.zoodWaitingList),
-                ),
-                SizedBox(height: 12.h),
                 BillSummaryCard(
                   lines: billLines,
                   showCashback: true,
                   cashbackAmount:
                       cart?.cashbackPreview?.amountLabel ?? cart?.cashbackLabel,
                   cashbackMessage: cart?.cashbackPreview?.message,
+                ),
+                const ZoodCheckoutBannerSlot(
+                  placement: 'BELOW_BILL_SUMMARY',
+                  joinScreen: 'dine_in_checkout',
                 ),
               ],
             ),

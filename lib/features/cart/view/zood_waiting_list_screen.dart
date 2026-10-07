@@ -6,11 +6,20 @@ import 'package:yjeek_app/core/constants/app_text_styles.dart';
 import 'package:yjeek_app/core/providers/app_providers.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/features/cart/model/cart_flow_data.dart';
+import 'package:yjeek_app/features/cart/model/zood_promo.dart';
+import 'package:yjeek_app/features/cart/provider/zood_promo_provider.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/account_widgets.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/navigation_widgets.dart';
 
 class ZoodWaitingListScreen extends ConsumerStatefulWidget {
-  const ZoodWaitingListScreen({super.key});
+  const ZoodWaitingListScreen({
+    super.key,
+    this.initialPromo,
+    this.joinScreen = 'zood_sheet',
+  });
+
+  final ZoodPromo? initialPromo;
+  final String joinScreen;
 
   @override
   ConsumerState<ZoodWaitingListScreen> createState() =>
@@ -19,24 +28,28 @@ class ZoodWaitingListScreen extends ConsumerStatefulWidget {
 
 class _ZoodWaitingListScreenState extends ConsumerState<ZoodWaitingListScreen> {
   bool _busy = false;
-  bool _alreadyJoined = false;
+  ZoodPromo? _promo;
 
   @override
   void initState() {
     super.initState();
+    _promo = widget.initialPromo;
     WidgetsBinding.instance.addPostFrameCallback((_) => _hydrate());
   }
 
   Future<void> _hydrate() async {
-    final status = await ref.read(zoodRepositoryProvider).fetchStatus();
-    if (!mounted || status == null) return;
-    setState(() => _alreadyJoined = status.joined);
+    if (_promo != null) return;
+    final promo = await ref.read(zoodRepositoryProvider).fetchPromo();
+    if (!mounted) return;
+    setState(() => _promo = promo);
   }
 
   Future<void> _join() async {
     if (_busy) return;
     setState(() => _busy = true);
-    final ok = await ref.read(zoodRepositoryProvider).joinWaitlist();
+    final ok = await ref.read(zoodRepositoryProvider).joinWaitlist(
+          screen: widget.joinScreen,
+        );
     if (!mounted) return;
     setState(() => _busy = false);
     if (!ok) {
@@ -45,6 +58,7 @@ class _ZoodWaitingListScreenState extends ConsumerState<ZoodWaitingListScreen> {
       );
       return;
     }
+    ref.invalidate(zoodPromoProvider);
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text("You're on the Zood waitlist")),
     );
@@ -57,11 +71,24 @@ class _ZoodWaitingListScreenState extends ConsumerState<ZoodWaitingListScreen> {
     await ref.read(zoodRepositoryProvider).dismissWaitlist();
     if (!mounted) return;
     setState(() => _busy = false);
+    ref.invalidate(zoodPromoProvider);
     context.pop(false);
   }
 
   @override
   Widget build(BuildContext context) {
+    final promo = _promo;
+    final sheet = promo?.sheet;
+    final joined = promo?.joined == true;
+    final title = sheet?.title ?? CartFlowStrings.zoodTitle;
+    final subtitle = joined
+        ? (sheet?.alreadyJoined ??
+            "You're already on the waitlist — we'll notify you.")
+        : (sheet?.subtitle ?? CartFlowStrings.zoodSubtitle);
+    final benefits = sheet?.benefits ?? [];
+    final joinLabel = sheet?.joinCta ?? CartFlowStrings.zoodJoin;
+    final dismissLabel = sheet?.dismissCta ?? CartFlowStrings.zoodNotNow;
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
@@ -104,7 +131,7 @@ class _ZoodWaitingListScreenState extends ConsumerState<ZoodWaitingListScreen> {
                   ),
                   SizedBox(height: 16.h),
                   Text(
-                    CartFlowStrings.zoodTitle,
+                    title,
                     textAlign: TextAlign.center,
                     style: AppTextStyles.titleMedium(
                       color: AppColors.textPrimary,
@@ -116,9 +143,7 @@ class _ZoodWaitingListScreenState extends ConsumerState<ZoodWaitingListScreen> {
                   ),
                   SizedBox(height: 16.h),
                   Text(
-                    _alreadyJoined
-                        ? "You're already on the waitlist — we'll notify you."
-                        : CartFlowStrings.zoodSubtitle,
+                    subtitle,
                     textAlign: TextAlign.center,
                     style: AppTextStyles.bodySmall(
                       color: AppColors.textSecondary,
@@ -139,20 +164,18 @@ class _ZoodWaitingListScreenState extends ConsumerState<ZoodWaitingListScreen> {
                     ),
                     child: Column(
                       children: [
-                        for (var i = 0;
-                            i < CartFlowData.zoodBenefits.length;
-                            i++) ...[
+                        for (var i = 0; i < benefits.length; i++) ...[
                           if (i > 0) SizedBox(height: 10.h),
                           Row(
                             children: [
                               Text(
-                                CartFlowData.zoodBenefits[i].emoji,
+                                benefits[i].emoji,
                                 style: TextStyle(fontSize: 15.sp, height: 1.2),
                               ),
                               SizedBox(width: 10.w),
                               Expanded(
                                 child: Text(
-                                  CartFlowData.zoodBenefits[i].text,
+                                  benefits[i].text,
                                   style: AppTextStyles.labelMedium(
                                     color: AppColors.textPrimary,
                                   ).copyWith(
@@ -171,15 +194,13 @@ class _ZoodWaitingListScreenState extends ConsumerState<ZoodWaitingListScreen> {
                   PrimaryGreenButton(
                     label: _busy
                         ? 'Please wait…'
-                        : _alreadyJoined
+                        : joined
                             ? 'Done'
-                            : CartFlowStrings.zoodJoin,
+                            : joinLabel,
                     backgroundColor: CartFlowData.zoodRed,
                     height: 52,
                     enabled: !_busy,
-                    onPressed: _alreadyJoined
-                        ? () => context.pop(true)
-                        : _join,
+                    onPressed: joined ? () => context.pop(true) : _join,
                   ),
                   SizedBox(height: 10.h),
                   SizedBox(
@@ -200,7 +221,7 @@ class _ZoodWaitingListScreenState extends ConsumerState<ZoodWaitingListScreen> {
                         padding: EdgeInsets.zero,
                       ),
                       child: Text(
-                        CartFlowStrings.zoodNotNow,
+                        dismissLabel,
                         style: AppTextStyles.labelMedium(
                           color: AppColors.textPrimary,
                         ).copyWith(
@@ -216,7 +237,6 @@ class _ZoodWaitingListScreenState extends ConsumerState<ZoodWaitingListScreen> {
           ],
         ),
       ),
-      bottomNavigationBar: const ShellBottomNavBar(currentIndex: 2),
     );
   }
 }

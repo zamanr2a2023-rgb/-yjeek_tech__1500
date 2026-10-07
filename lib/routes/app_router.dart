@@ -55,6 +55,7 @@ import 'package:yjeek_app/features/cart/view/checkout_screen.dart';
 import 'package:yjeek_app/features/cart/view/out_of_delivery_screen.dart';
 import 'package:yjeek_app/features/cart/view/review_confirm_screen.dart';
 import 'package:yjeek_app/features/cart/view/set_location_screen.dart';
+import 'package:yjeek_app/features/cart/model/zood_promo.dart';
 import 'package:yjeek_app/features/cart/view/zood_waiting_list_screen.dart';
 import 'package:yjeek_app/features/home/view/categories_screen.dart';
 import 'package:yjeek_app/features/home/view/main_shell.dart';
@@ -824,7 +825,19 @@ class AppRouter {
         ),
         GoRoute(
           path: RouteNames.cartZoodWaitingList,
-          builder: (_, _) => const ZoodWaitingListScreen(),
+          builder: (_, state) {
+            final extra = state.extra;
+            if (extra is ZoodWaitingListRouteArgs) {
+              return ZoodWaitingListScreen(
+                initialPromo: extra.promo,
+                joinScreen: extra.joinScreen,
+              );
+            }
+            if (extra is ZoodPromo) {
+              return ZoodWaitingListScreen(initialPromo: extra);
+            }
+            return const ZoodWaitingListScreen();
+          },
         ),
         GoRoute(
           path: RouteNames.cartNewCartDialog,

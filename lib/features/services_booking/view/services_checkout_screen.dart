@@ -14,6 +14,7 @@ import 'package:yjeek_app/features/cart/model/checkout_helpers.dart';
 import 'package:yjeek_app/features/cart/model/payment_methods_repository.dart';
 import 'package:yjeek_app/features/cart/model/pending_checkout.dart';
 import 'package:yjeek_app/features/cart/view/widgets/cart_flow_widgets.dart';
+import 'package:yjeek_app/features/cart/view/widgets/zood_checkout_banner.dart';
 import 'package:yjeek_app/features/navigation/model/navigation_data.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/navigation_widgets.dart';
 import 'package:yjeek_app/features/services_booking/model/services_booking_data.dart';
@@ -198,6 +199,10 @@ class _ServicesCheckoutScreenState
                   whenLabel: when,
                 ),
                 SizedBox(height: 14.h),
+                const ZoodCheckoutBannerSlot(
+                  placement: 'ABOVE_PAYMENT',
+                  joinScreen: 'services_checkout',
+                ),
                 CartSectionTitle(ServicesBookingStrings.paymentMethod),
                 CartPaymentMethodList(
                   options: _payments.options,
@@ -205,18 +210,26 @@ class _ServicesCheckoutScreenState
                   onSelected: (id) => setState(() => _paymentId = id),
                   showSecurityNotes: true,
                 ),
-                SizedBox(height: 14.h),
-                CartSectionTitle(ServicesBookingStrings.billSummary),
-                CartZoodPromoBanner(
-                  onTap: () => context.push(CartRoutes.zoodWaitingList),
+                const ZoodCheckoutBannerSlot(
+                  placement: 'BELOW_PAYMENT',
+                  joinScreen: 'services_checkout',
                 ),
-                SizedBox(height: 12.h),
+                SizedBox(height: 14.h),
+                const ZoodCheckoutBannerSlot(
+                  placement: 'ABOVE_BILL_SUMMARY',
+                  joinScreen: 'services_checkout',
+                ),
+                CartSectionTitle(ServicesBookingStrings.billSummary),
                 BillSummaryCard(
                   lines: billLines,
                   showCashback: true,
                   cashbackAmount: cart?.cashbackPreview?.amountLabel ??
                       cart?.cashbackLabel,
                   cashbackMessage: cart?.cashbackPreview?.message,
+                ),
+                const ZoodCheckoutBannerSlot(
+                  placement: 'BELOW_BILL_SUMMARY',
+                  joinScreen: 'services_checkout',
                 ),
               ],
             ),
