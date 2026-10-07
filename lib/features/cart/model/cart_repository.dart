@@ -265,11 +265,15 @@ class DineInTimeSlot {
     required this.id,
     required this.label,
     required this.scheduledAt,
+    required this.scheduledAtIso,
   });
 
   final String id;
   final String label;
+  /// Parsed instant (UTC) for comparisons.
   final DateTime scheduledAt;
+  /// Exact ISO from API — sent back on PATCH to avoid drift.
+  final String scheduledAtIso;
 }
 
 class DineInSlotsSnapshot {
@@ -393,6 +397,34 @@ class CartSnapshot {
   /// Electronics vendor cart — no cutlery / kitchen-note preferences.
   bool get isElectronics => storeTypeSlug == 'electronics';
 
+  bool get isPharmacyStore =>
+      storeTypeSlug?.trim().toLowerCase() == 'pharmacy';
+
+  /// Fashion / flowers / variant retail on DELIVERY — tier picker, not cutlery.
+  bool get usesScheduledDeliveryMethods {
+    if (orderType != CartOrderType.delivery || isVape) return false;
+    final slug = storeTypeSlug?.trim().toLowerCase() ?? '';
+    const onDemandFood = {'food', 'cafe', 'restaurant', 'coffee'};
+    if (onDemandFood.contains(slug)) return false;
+    if (items.any((i) => (i.variantId ?? '').isNotEmpty)) return true;
+    const scheduledRetail = {'fashion', 'flowers', 'electronics', 'pharmacy'};
+    return scheduledRetail.contains(slug);
+  }
+
+  /// Pharmacy Deliver Now uses the delivery cart; scheduled SKUs use `/cart/scheduled`.
+  bool showsScheduledDeliveryTierPicker(PharmacySession? pharmacySession) {
+    if (!usesScheduledDeliveryMethods) return false;
+    if (!isPharmacyStore) return true;
+    if (pharmacySession != null &&
+        vendorId != null &&
+        vendorId!.isNotEmpty &&
+        pharmacySession.matches(vendorId)) {
+      if (pharmacySession.continueDeliveryAsScheduled) return true;
+      return pharmacySession.mode == PharmacyDeliveryMode.scheduled;
+    }
+    return false;
+  }
+
   bool get hasItems => itemCount > 0 || items.isNotEmpty;
 
   static CartSnapshot empty(CartOrderType type) => CartSnapshot(
@@ -466,13 +498,7 @@ class CartRepository {
         deliveryOptions: const <Map<String, dynamic>>[],
       );
     }
-    final raw = data['deliveryOptions'];
-    final options = <Map<String, dynamic>>[];
-    if (raw is List) {
-      for (final item in raw) {
-        if (item is Map<String, dynamic>) options.add(item);
-      }
-    }
+    final options = _deliveryOptionsFromJson(data['deliveryOptions']);
     return (cart: cartSnapshotFromJson(data, type), deliveryOptions: options);
   }
 
@@ -495,13 +521,7 @@ class CartRepository {
     if (data is! Map<String, dynamic>) {
       return (cart: null, deliveryOptions: const <Map<String, dynamic>>[]);
     }
-    final raw = data['deliveryOptions'];
-    final options = <Map<String, dynamic>>[];
-    if (raw is List) {
-      for (final item in raw) {
-        if (item is Map<String, dynamic>) options.add(item);
-      }
-    }
+    final options = _deliveryOptionsFromJson(data['deliveryOptions']);
     return (
       cart: scheduledCartSnapshotFromJson(data),
       deliveryOptions: options,
@@ -603,6 +623,7 @@ class CartRepository {
     DateTime? serviceScheduledAt,
     String? dineInPrepMode,
     DateTime? scheduledDineInAt,
+    String? scheduledDineInAtIso,
     bool clearScheduledDineInAt = false,
     DateTime? pickupScheduledAt,
     bool clearPickupScheduledAt = false,
@@ -626,6 +647,8 @@ class CartRepository {
       if (dineInPrepMode != null) 'dineInPrepMode': dineInPrepMode,
       if (clearScheduledDineInAt)
         'scheduledDineInAt': null
+      else if (scheduledDineInAtIso != null && scheduledDineInAtIso.isNotEmpty)
+        'scheduledDineInAt': scheduledDineInAtIso
       else if (scheduledDineInAt != null)
         'scheduledDineInAt': scheduledDineInAt.toUtc().toIso8601String(),
       if (clearPickupScheduledAt)
@@ -702,13 +725,15 @@ class CartRepository {
       for (final raw in rawSlots) {
         if (raw is! Map<String, dynamic>) continue;
         final id = raw['id']?.toString();
-        final at = DateTime.tryParse(raw['scheduledAt']?.toString() ?? '');
+        final iso = raw['scheduledAt']?.toString() ?? '';
+        final at = DateTime.tryParse(iso);
         if (id == null || at == null) continue;
         slots.add(
           DineInTimeSlot(
             id: id,
             label: raw['label']?.toString() ?? id,
-            scheduledAt: at.toLocal(),
+            scheduledAt: at.toUtc(),
+            scheduledAtIso: iso,
           ),
         );
       }
@@ -1079,6 +1104,19 @@ String? _nonEmpty(Object? raw) {
 }
 
 String _bhd(num value) => 'BHD ${value.toStringAsFixed(3)}';
+
+List<Map<String, dynamic>> _deliveryOptionsFromJson(dynamic raw) {
+  final options = <Map<String, dynamic>>[];
+  if (raw is! List) return options;
+  for (final item in raw) {
+    if (item is Map<String, dynamic>) {
+      options.add(item);
+    } else if (item is Map) {
+      options.add(Map<String, dynamic>.from(item));
+    }
+  }
+  return options;
+}
 
 String _money(dynamic raw) {
   if (raw is num) return _bhd(raw);

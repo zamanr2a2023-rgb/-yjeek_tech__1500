@@ -87,25 +87,119 @@ class CatalogProduct {
   final CatalogAgeRestriction? ageRestriction;
 
   factory CatalogProduct.fromJson(Map<String, dynamic> json) {
-    return CatalogProduct(
-      id: _asString(json['id']),
-      name: _asString(json['name']),
-      description: _asString(json['description']),
-      imageUrl: _asString(json['imageUrl']),
-      catalogMode: CatalogMode.tryParse(_asString(json['catalogMode'])),
-      axes: _mapList(json['axes'], CatalogAxis.fromJson),
-      variants: _mapList(json['variants'], CatalogVariant.fromJson),
-      addons: _mapList(json['addons'], CatalogAddon.fromJson),
-      restrictions: _mapOrNull(
-        json['restrictions'],
-        CatalogRestrictions.fromJson,
-      ),
-      ageRestriction: _mapOrNull(
-        json['ageRestriction'],
-        CatalogAgeRestriction.fromJson,
+    return resolveVariantCatalog(
+      CatalogProduct(
+        id: _asString(json['id']),
+        name: _asString(json['name']),
+        description: _asString(json['description']),
+        imageUrl: _asString(json['imageUrl']),
+        catalogMode: CatalogMode.tryParse(_asString(json['catalogMode'])),
+        axes: _mapList(json['axes'], CatalogAxis.fromJson),
+        variants: _mapList(json['variants'], CatalogVariant.fromJson),
+        addons: _mapList(json['addons'], CatalogAddon.fromJson),
+        restrictions: _mapOrNull(
+          json['restrictions'],
+          CatalogRestrictions.fromJson,
+        ),
+        ageRestriction: _mapOrNull(
+          json['ageRestriction'],
+          CatalogAgeRestriction.fromJson,
+        ),
       ),
     );
   }
+}
+
+/// When the API ships [CatalogProduct.variants] but omits `axes`, build axis
+/// metadata from `variant.attributes` so colour/size pickers still render.
+CatalogProduct resolveVariantCatalog(CatalogProduct raw) {
+  if (raw.catalogMode == CatalogMode.modifiers) return raw;
+  if (raw.variants.isEmpty) return raw;
+  if (raw.axes.isNotEmpty) return raw;
+
+  final axisKeys = <String>{};
+  for (final variant in raw.variants) {
+    axisKeys.addAll(variant.attributes.keys);
+  }
+  if (axisKeys.isEmpty) return raw;
+
+  final sortedKeys = axisKeys.toList()..sort(_compareAxisKeys);
+  final axes = <CatalogAxis>[];
+  for (final axisKey in sortedKeys) {
+    final valueByKey = <String, CatalogAxisValue>{};
+    for (final variant in raw.variants) {
+      final valueKey = variant.attributes[axisKey];
+      if (valueKey == null || valueKey.isEmpty) continue;
+      valueByKey.putIfAbsent(
+        valueKey,
+        () => CatalogAxisValue(
+          key: valueKey,
+          label: _humanizeAxisValue(valueKey),
+        ),
+      );
+    }
+    final values = valueByKey.values.toList();
+    axes.add(
+      CatalogAxis(
+        key: axisKey,
+        name: _axisDisplayName(axisKey),
+        uiHint: _uiHintForAxisKey(axisKey),
+        isRequired: true,
+        values: values,
+      ),
+    );
+  }
+
+  return CatalogProduct(
+    id: raw.id,
+    name: raw.name,
+    description: raw.description,
+    imageUrl: raw.imageUrl,
+    catalogMode: raw.catalogMode ?? CatalogMode.variants,
+    axes: axes,
+    variants: raw.variants,
+    addons: raw.addons,
+    restrictions: raw.restrictions,
+    ageRestriction: raw.ageRestriction,
+  );
+}
+
+int _compareAxisKeys(String a, String b) {
+  const preferred = ['colour', 'color', 'size'];
+  final ai = preferred.indexOf(a.toLowerCase());
+  final bi = preferred.indexOf(b.toLowerCase());
+  if (ai != -1 || bi != -1) {
+    if (ai == -1) return 1;
+    if (bi == -1) return -1;
+    return ai.compareTo(bi);
+  }
+  return a.compareTo(b);
+}
+
+String _axisDisplayName(String key) {
+  switch (key.toLowerCase()) {
+    case 'colour':
+    case 'color':
+      return 'Colour';
+    case 'size':
+      return 'Size';
+    default:
+      if (key.isEmpty) return key;
+      return '${key[0].toUpperCase()}${key.substring(1)}';
+  }
+}
+
+String _uiHintForAxisKey(String key) {
+  final lower = key.toLowerCase();
+  if (lower == 'colour' || lower == 'color') return CatalogUiHint.swatch;
+  return CatalogUiHint.pill;
+}
+
+String _humanizeAxisValue(String valueKey) {
+  final trimmed = valueKey.trim();
+  if (trimmed.isEmpty) return valueKey;
+  if (trimmed.length == 1) return trimmed.toUpperCase();
+  return trimmed[0].toUpperCase() + trimmed.substring(1);
 }
 
 class CatalogAxis {
@@ -168,11 +262,25 @@ class CatalogAxisValue {
       id: _asString(json['id']),
       key: _asString(json['key']),
       label: _asString(json['label']),
-      colorHex: _asString(json['colorHex']),
+      colorHex: _axisColorHexFromJson(json),
       sortOrder: _asInt(json['sortOrder']),
       isActive: _asBool(json['isActive']),
     );
   }
+}
+
+String? _axisColorHexFromJson(Map<String, dynamic> json) {
+  final direct = _asString(json['colorHex']) ?? _asString(json['colourHex']);
+  if (direct != null) return direct;
+  final imageUrl = _asString(json['imageUrl']);
+  if (imageUrl == null) return null;
+  final trimmed = imageUrl.trim();
+  final match = RegExp(
+    r'^color:#?([0-9A-Fa-f]{6})$',
+    caseSensitive: false,
+  ).firstMatch(trimmed);
+  if (match == null) return null;
+  return '#${match.group(1)!}';
 }
 
 class CatalogVariant {

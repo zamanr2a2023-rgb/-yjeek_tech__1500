@@ -84,6 +84,19 @@ Map<String, bool> availableValuesForAxis({
 /// or the payload omitted `price`.
 double? variantPrice(CatalogVariant? selectedVariant) => selectedVariant?.price;
 
+/// Lowest purchasable variant price for "From BHD …" on detail screens.
+double? catalogLowestSelectableVariantPrice(CatalogProduct? catalog) {
+  if (catalog == null) return null;
+  double? min;
+  for (final variant in catalog.variants) {
+    if (!variantIsSelectable(variant)) continue;
+    final price = variant.price;
+    if (price == null) continue;
+    min = min == null ? price : (price < min ? price : min);
+  }
+  return min;
+}
+
 /// Variant unit plus selected addon prices.
 ///
 /// Addon amounts are added as their own prices. This is not Food's
@@ -134,6 +147,71 @@ bool variantIsSelectable(CatalogVariant variant) {
   final status = variant.stockStatus?.trim().toUpperCase();
   if (status == CatalogStockStatus.outOfStock) return false;
   return true;
+}
+
+/// Cheapest in-stock variant (Fashion handoff default SKU).
+CatalogVariant? defaultSelectableVariant(List<CatalogVariant> variants) {
+  CatalogVariant? best;
+  double? bestPrice;
+  for (final variant in variants) {
+    if (!variantIsSelectable(variant)) continue;
+    final price = variant.price;
+    if (price == null) continue;
+    if (best == null || price < bestPrice!) {
+      best = variant;
+      bestPrice = price;
+    }
+  }
+  if (best != null) return best;
+  return variants.isNotEmpty ? variants.first : null;
+}
+
+/// Pre-select axis keys from the default purchasable variant.
+Map<String, String> initialVariantAxisSelection({
+  required List<CatalogVariant> variants,
+}) {
+  final pick = defaultSelectableVariant(variants);
+  if (pick == null) return const {};
+  return Map<String, String>.from(pick.attributes);
+}
+
+/// Lowest selectable price for variants that match [valueKey] on [axisKey],
+/// respecting other already-selected axes.
+double? minSelectablePriceForAxisValue({
+  required List<CatalogVariant> variants,
+  required String axisKey,
+  required String valueKey,
+  Map<String, String> selectedAttributes = const {},
+}) {
+  double? min;
+  for (final variant in variants) {
+    if (variant.attributes[axisKey] != valueKey) continue;
+    if (!_matchesOtherAxes(variant.attributes, selectedAttributes, axisKey)) {
+      continue;
+    }
+    if (!variantIsSelectable(variant)) continue;
+    final price = variant.price;
+    if (price == null) continue;
+    min = min == null ? price : (price < min ? price : min);
+  }
+  return min;
+}
+
+/// Marketing label under colour/size chips (+BHD delta vs [referencePrice]).
+String variantAxisValuePriceLabel({
+  required double? minPrice,
+  required double? referencePrice,
+}) {
+  if (minPrice == null) return '';
+  if (referencePrice == null) {
+    return minPrice == minPrice.roundToDouble()
+        ? 'BHD ${minPrice.toStringAsFixed(0)}'
+        : 'BHD ${minPrice.toStringAsFixed(3)}';
+  }
+  final delta = (minPrice * 1000).round() - (referencePrice * 1000).round();
+  if (delta == 0) return 'Free';
+  if (delta > 0) return '+BHD ${(delta / 1000).toStringAsFixed(3)}';
+  return 'BHD ${minPrice.toStringAsFixed(3)}';
 }
 
 bool _attributesMatch(

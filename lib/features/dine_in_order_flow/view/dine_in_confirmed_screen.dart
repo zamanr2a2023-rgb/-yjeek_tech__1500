@@ -6,6 +6,7 @@ import 'package:yjeek_app/core/constants/app_text_styles.dart';
 import 'package:yjeek_app/core/providers/app_providers.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/features/dine_in_order_flow/dine_in_order_flow_routes.dart';
+import 'package:yjeek_app/features/dine_in_order_flow/model/dine_in_order_api_mappers.dart';
 import 'package:yjeek_app/features/dine_in_order_flow/model/dine_in_order_flow_data.dart';
 import 'package:yjeek_app/features/dine_in_order_flow/view/widgets/dine_in_order_flow_widgets.dart';
 import 'package:yjeek_app/features/order_flow/model/order_api_mappers.dart';
@@ -67,9 +68,7 @@ class _DineInConfirmedScreenState extends ConsumerState<DineInConfirmedScreen> {
 
     setState(() {
       _vendor = vendorName ?? '';
-      _code = order['arrivalCode']?.toString() ??
-          order['orderNumber']?.toString() ??
-          '';
+      _code = dineInVendorVerificationCode(order);
       _venue = venue;
       _time = order['dineInTimeLabel']?.toString() ?? '';
       _track = track;

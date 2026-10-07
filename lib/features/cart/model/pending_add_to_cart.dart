@@ -127,6 +127,7 @@ retryPendingAddToCart(WidgetRef ref) async {
             optionIds: pending.optionIds,
             addonIds: pending.addonIds,
             replaceCart: pending.replaceCart,
+            vendorId: pending.vendorId,
             variantId: pending.variantId,
           );
       if (result.ok) {
@@ -135,7 +136,7 @@ retryPendingAddToCart(WidgetRef ref) async {
       }
       return (
         ok: result.ok,
-        outOfRange: false,
+        outOfRange: result.outOfRange,
         vendorConflict: result.vendorConflict,
         message: result.message,
       );
@@ -201,7 +202,7 @@ void _markCartUpdated(WidgetRef ref, PendingAddToCart pending) {
     case PendingCartVertical.dineIn:
       ref.read(shellProvider.notifier).markCartUpdated(dineIn: true);
     case PendingCartVertical.electronics:
-      ref.read(shellProvider.notifier).markCartUpdated(scheduled: true);
+      ref.read(shellProvider.notifier).markCartUpdated(delivery: true);
     case PendingCartVertical.vape:
       ref.read(shellProvider.notifier).markCartUpdated(vape: true);
     case PendingCartVertical.services:

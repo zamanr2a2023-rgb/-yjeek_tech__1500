@@ -21,6 +21,10 @@ abstract final class CartFlowStrings {
   static String get walletComboNote => L10n.tr('You can pay with any method and use your Yjeek Wallet balance together.');
   static String get sendingOrder => L10n.tr('Confirm your order');
   static String get autoConfirmHint => L10n.tr('Confirm within 10 seconds, or you\'ll return to checkout.');
+
+  static String confirmWithinSecondsHint(int seconds) => L10n.tr(
+        'Confirm within $seconds seconds, or you\'ll return to checkout.',
+      );
   static String get editOrder => L10n.tr('Edit order');
   static String get confirmNow => L10n.tr('Confirm now');
   static String get orderSummary => L10n.tr('Order summary');

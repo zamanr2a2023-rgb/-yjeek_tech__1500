@@ -44,7 +44,7 @@ abstract final class DineInOrderFlowStrings {
   static String get payIn => L10n.tr('PAY IN');
   static const String youreAllSet = "You're all set";
   static String get showCodeHint => L10n.tr('Show this number to the vendor when you arrive at VEERA.');
-  static String get arrivalCodeLabel => L10n.tr('ARRIVAL CODE');
+  static String get arrivalCodeLabel => L10n.tr('ORDER NUMBER');
   static String get showAtCounter => L10n.tr('SHOW THIS AT THE COUNTER');
   static String get viewOrderStatus => L10n.tr('View order status');
   static String get dineInOrder => L10n.tr('Dine-in order');

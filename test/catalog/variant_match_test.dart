@@ -372,6 +372,25 @@ void main() {
     expect(flowers.ready, isTrue);
     expect(variantUnitWithAddons(flowers.matched, const [1.5]), 19.5);
   });
+
+  test('resolveVariantCatalog builds axes when API omits axis metadata', () {
+    final product = CatalogProduct.fromJson({
+      'catalogMode': 'VARIANTS',
+      'variants': [
+        {
+          'id': 's-black',
+          'attributes': {'size': 's', 'colour': 'black'},
+          'label': 'S / Black',
+          'price': 1,
+          'stockQty': 3,
+          'isAvailable': true,
+        },
+      ],
+    });
+    expect(product.axes.length, 2);
+    expect(product.axes.any((a) => a.key == 'colour'), isTrue);
+    expect(product.axes.any((a) => a.key == 'size'), isTrue);
+  });
 }
 
 ({CatalogVariant? matched, bool ready}) _ready({

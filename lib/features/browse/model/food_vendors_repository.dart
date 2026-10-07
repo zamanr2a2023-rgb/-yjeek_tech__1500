@@ -278,29 +278,7 @@ class FoodVendorsRepository {
 
     final optionGroups = browseOptionGroupsFromJson(data['optionGroups']);
 
-    final addons = <BrowseAddonOption>[];
-    final addonsRaw = data['addons'];
-    if (addonsRaw is List) {
-      for (final addon in addonsRaw) {
-        if (addon is! Map<String, dynamic>) continue;
-        final id = addon['id']?.toString();
-        final nameEn = addon['name'] as String? ?? 'Add-on';
-        final nameAr = (addon['nameAr'] as String?)?.trim();
-        final name = (L10n.isArabic && nameAr != null && nameAr.isNotEmpty)
-            ? nameAr
-            : nameEn;
-        final price = addon['price'];
-        final priceNum = price is num ? price.toDouble() : 0.0;
-        addons.add(
-          BrowseAddonOption(
-            id: id,
-            label: name,
-            price: priceNum.toStringAsFixed(3),
-            imageUrl: resolveApiMediaUrl(addon['imageUrl'] as String?),
-          ),
-        );
-      }
-    }
+    final catalog = CatalogProduct.fromJson(data);
 
     final descEn = (data['description'] as String?)?.trim() ?? '';
     final descAr = (data['descriptionAr'] as String?)?.trim() ?? '';
@@ -309,6 +287,19 @@ class FoodVendorsRepository {
     final imageUrls = resolveProductImageUrls(data);
     if (imageUrls.isEmpty && item.imageUrl != null && item.imageUrl!.isNotEmpty) {
       imageUrls.add(item.imageUrl!);
+    }
+    final addons = browseAddonsFromProductJson(data, catalog: catalog);
+    if (imageUrls.isEmpty) {
+      final catalogImage = resolveApiMediaUrl(catalog.imageUrl);
+      if (catalogImage != null && catalogImage.isNotEmpty) {
+        imageUrls.add(catalogImage);
+      }
+      for (final variant in catalog.variants) {
+        final url = resolveApiMediaUrl(variant.imageUrl);
+        if (url != null && url.isNotEmpty && !imageUrls.contains(url)) {
+          imageUrls.add(url);
+        }
+      }
     }
 
     return FoodProductDetail(
@@ -321,7 +312,7 @@ class FoodVendorsRepository {
           ? imageUrls.first
           : (resolveProductImageUrl(data) ?? item.imageUrl),
       imageUrls: imageUrls,
-      catalog: CatalogProduct.fromJson(data),
+      catalog: catalog,
     );
   }
 

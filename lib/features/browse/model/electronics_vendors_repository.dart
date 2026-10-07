@@ -4,6 +4,8 @@ import 'package:yjeek_app/core/services/storage_service.dart';
 import 'package:yjeek_app/core/utils/api_media_url.dart';
 import 'package:yjeek_app/features/browse/model/electronics_data.dart';
 import 'package:yjeek_app/features/catalog/model/catalog_cart_payload.dart';
+import 'package:yjeek_app/features/cart/model/addresses_repository.dart';
+import 'package:yjeek_app/features/cart/model/delivery_range.dart';
 import 'package:yjeek_app/features/home/model/home_ui_mapper.dart';
 
 class ElectronicsProductDetail {
@@ -31,10 +33,15 @@ class ElectronicsCartSummary {
 }
 
 class ElectronicsVendorsRepository {
-  const ElectronicsVendorsRepository(this._apiClient, this._storage);
+  const ElectronicsVendorsRepository(
+    this._apiClient,
+    this._storage, {
+    AddressesRepository? addresses,
+  }) : _addresses = addresses;
 
   final ApiClient _apiClient;
   final StorageService _storage;
+  final AddressesRepository? _addresses;
 
   String? get _token => _storage.token;
 
@@ -167,38 +174,39 @@ class ElectronicsVendorsRepository {
     );
   }
 
-  /// GET /cart/scheduled (electronics scheduled basket)
+  /// GET /cart?type=DELIVERY (Fashion / electronics variant lines)
   Future<ElectronicsCartSummary> fetchCart() async {
     if (!_storage.hasSession) return ElectronicsCartSummary.empty;
 
     final response = await _apiClient.getJson(
-      '/cart/scheduled',
+      '/cart?type=DELIVERY',
       bearerToken: _token,
     );
     final data = response?['data'];
     if (data is! Map<String, dynamic>) return ElectronicsCartSummary.empty;
 
-    final itemCount = (data['itemCount'] as num?)?.toInt() ?? 0;
-    final summary = data['summary'];
-    final total = summary is Map<String, dynamic>
-        ? (summary['grandTotal'] ?? summary['totalAmount'])
-        : null;
-    final totalNum = total is num ? total.toDouble() : 0.0;
-    final groups = data['groups'];
-    String? vendorId;
-    if (groups is List && groups.isNotEmpty) {
-      final first = groups.first;
-      if (first is Map<String, dynamic>) {
-        vendorId = first['vendorId']?.toString();
-        final vendor = first['vendor'];
-        if (vendor is Map<String, dynamic>) {
-          vendorId = vendor['id']?.toString() ?? vendorId;
+    final items = data['items'];
+    var count = (data['itemCount'] as num?)?.toInt();
+    if (count == null && items is List) {
+      count = 0;
+      for (final item in items) {
+        if (item is Map<String, dynamic>) {
+          count = count! + ((item['quantity'] as num?)?.toInt() ?? 1);
         }
       }
     }
+    final summary = data['summary'];
+    final total = summary is Map<String, dynamic>
+        ? (summary['totalAmount'] ?? summary['grandTotal'])
+        : null;
+    final totalNum = total is num ? total.toDouble() : 0.0;
+    final vendor = data['vendor'];
+    final vendorId = vendor is Map<String, dynamic>
+        ? vendor['id']?.toString()
+        : data['vendorId']?.toString();
 
     return ElectronicsCartSummary(
-      itemCount: itemCount,
+      itemCount: count ?? 0,
       totalLabel: totalNum == totalNum.roundToDouble()
           ? totalNum.toStringAsFixed(0)
           : totalNum.toStringAsFixed(3),
@@ -206,17 +214,47 @@ class ElectronicsVendorsRepository {
     );
   }
 
-  /// POST /cart/scheduled/items
-  Future<({bool ok, bool vendorConflict, String? message})> addToCart({
+  /// POST /cart/items?type=DELIVERY
+  Future<({bool ok, bool vendorConflict, bool outOfRange, String? message})>
+  addToCart({
     required String productId,
     required int quantity,
     List<String> optionIds = const [],
     List<String> addonIds = const [],
     bool replaceCart = false,
+    String? vendorId,
     String? variantId,
   }) async {
+    if (!_storage.hasSession) {
+      return (
+        ok: false,
+        vendorConflict: false,
+        outOfRange: false,
+        message: 'Please log in to add items to your cart',
+      );
+    }
+
+    String? extraChargeMessage;
+    final addresses = _addresses;
+    if (addresses != null && vendorId != null && vendorId.isNotEmpty) {
+      final range = await checkDeliveryRange(
+        addresses: addresses,
+        vendorId: vendorId,
+        failClosed: false,
+      );
+      if (range.isOutOfRange) {
+        return (
+          ok: false,
+          vendorConflict: false,
+          outOfRange: true,
+          message: 'This address is outside the vendor delivery area',
+        );
+      }
+      if (range.isExtraCharge) extraChargeMessage = range.warningMessage;
+    }
+
     final response = await _apiClient.postJson(
-      '/cart/scheduled/items',
+      '/cart/items?type=DELIVERY',
       catalogCartItemBody(
         productId: productId,
         quantity: quantity,
@@ -228,22 +266,36 @@ class ElectronicsVendorsRepository {
       bearerToken: _token,
     );
 
-    if (response.ok) return (ok: true, vendorConflict: false, message: null);
+    if (response.ok) {
+      return (
+        ok: true,
+        vendorConflict: false,
+        outOfRange: false,
+        message: extraChargeMessage,
+      );
+    }
 
     final error = response.json?['error'];
     final details = error is Map ? error['details'] : null;
     final detailCode = details is Map ? details['code']?.toString() : null;
     final code = error is Map ? error['code']?.toString() : null;
     final message = response.message ?? 'Could not add to cart';
+    final outOfRange =
+        isOutOfDeliveryRangeCode(code) ||
+        isOutOfDeliveryRangeCode(detailCode) ||
+        isOutOfDeliveryRangeMessage(response.message);
     final conflict =
-        response.statusCode == 409 ||
-        code == 'VENDOR_CART_CONFLICT' ||
-        detailCode == 'VENDOR_CART_CONFLICT' ||
-        detailCode == 'SCHEDULED_VENDOR_LIMIT' ||
-        code == 'SCHEDULED_VENDOR_LIMIT' ||
-        code == 'CONFLICT' ||
-        message.toLowerCase().contains('up to 3 vendors');
-    return (ok: false, vendorConflict: conflict, message: message);
+        !outOfRange &&
+        (response.statusCode == 409 ||
+            code == 'VENDOR_CART_CONFLICT' ||
+            detailCode == 'VENDOR_CART_CONFLICT' ||
+            code == 'CONFLICT');
+    return (
+      ok: false,
+      vendorConflict: conflict,
+      outOfRange: outOfRange,
+      message: message,
+    );
   }
 }
 

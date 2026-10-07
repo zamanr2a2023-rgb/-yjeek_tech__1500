@@ -109,11 +109,24 @@ Future<RetailCatalog> loadElectronicsCatalog(
     ];
   }
 
+  var cartCount = 0;
+  var cartTotal = '0';
+  String? cartVendorId;
+  try {
+    final cart = await ref.read(electronicsVendorsRepositoryProvider).fetchCart();
+    cartCount = cart.itemCount;
+    cartTotal = cart.totalLabel;
+    cartVendorId = cart.vendorId;
+  } catch (_) {}
+
   return RetailCatalog(
     store: storeForUi,
     sections: sections,
     items: items,
     chipGroups: menu.chipGroups,
+    cartItemCount: cartCount,
+    cartTotalLabel: cartTotal,
+    cartVendorId: cartVendorId,
   );
 }
 
@@ -127,10 +140,12 @@ Future<RetailAddResult> electronicsQuickAdd(
         productId: item.id,
         quantity: 1,
         replaceCart: replaceCart,
+        vendorId: storeId,
       );
   return RetailAddResult(
     ok: result.ok,
     vendorConflict: result.vendorConflict,
+    outOfRange: result.outOfRange,
     message: result.message,
   );
 }

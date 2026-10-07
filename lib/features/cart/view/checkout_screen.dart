@@ -8,6 +8,7 @@ import 'package:yjeek_app/features/cart/model/addresses_repository.dart';
 import 'package:yjeek_app/features/cart/model/cart_flow_data.dart';
 import 'package:yjeek_app/features/cart/model/cart_repository.dart';
 import 'package:yjeek_app/features/cart/model/voucher_evaluate_key.dart';
+import 'package:yjeek_app/features/browse/model/pharmacy_order_modes.dart';
 import 'package:yjeek_app/features/cart/model/checkout_helpers.dart';
 import 'package:yjeek_app/features/cart/model/delivery_range.dart';
 import 'package:yjeek_app/features/location/provider/delivery_location_provider.dart';
@@ -78,9 +79,18 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   Future<void> _load() async {
     setState(() => _loading = true);
     try {
-      final cart = await ref
-          .read(cartRepositoryProvider)
-          .fetchCart(CartOrderType.delivery);
+      final repo = ref.read(cartRepositoryProvider);
+      final cartProbe = await repo.fetchCart(CartOrderType.delivery);
+      final pharmacySession = ref.read(pharmacySessionProvider);
+      final cart = cartProbe.showsScheduledDeliveryTierPicker(pharmacySession)
+          ? (await repo.fetchCartDetailed(
+                CartOrderType.delivery,
+                deliverySpeed: deliverySpeedApiValue(
+                  ref.read(scheduledDeliveryUiSpeedProvider),
+                ),
+              ))
+              .cart
+          : cartProbe;
       final deliveryLoc = ref.read(deliveryLocationProvider).valueOrNull;
       final address = checkoutAddressDisplay(deliveryLoc) ??
           await ref.read(addressesRepositoryProvider).defaultAddress();
@@ -162,9 +172,18 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     });
     // Refresh cart so cashbackPreview recalculates after voucher context.
     try {
-      final cart = await ref
-          .read(cartRepositoryProvider)
-          .fetchCart(CartOrderType.delivery);
+      final repo = ref.read(cartRepositoryProvider);
+      final cartProbe = await repo.fetchCart(CartOrderType.delivery);
+      final pharmacySession = ref.read(pharmacySessionProvider);
+      final cart = cartProbe.showsScheduledDeliveryTierPicker(pharmacySession)
+          ? (await repo.fetchCartDetailed(
+                CartOrderType.delivery,
+                deliverySpeed: deliverySpeedApiValue(
+                  ref.read(scheduledDeliveryUiSpeedProvider),
+                ),
+              ))
+              .cart
+          : cartProbe;
       if (!mounted) return;
       final allowCod = allowsCashOnDelivery(cart);
       final payments = await ref
@@ -312,7 +331,16 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                   address: _address?.label ?? 'Add delivery address',
                   addressDetail: _address?.subtitle,
                   phone: _phone,
-                  arrivesLabel: formatArrivesLabel(cart?.deliveryEta),
+                  showArrivesEstimate: cart?.showsScheduledDeliveryTierPicker(
+                        ref.read(pharmacySessionProvider),
+                      ) !=
+                      true,
+                  arrivesLabel: cart?.showsScheduledDeliveryTierPicker(
+                            ref.read(pharmacySessionProvider),
+                          ) ==
+                          true
+                      ? null
+                      : formatArrivesLabel(cart?.deliveryEta),
                   latitude: _address?.latitude,
                   longitude: _address?.longitude,
                   onChange: () async {

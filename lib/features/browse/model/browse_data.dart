@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:yjeek_app/core/utils/api_media_url.dart';
+import 'package:yjeek_app/features/catalog/model/catalog_product.dart';
 import 'package:yjeek_app/l10n/l10n.dart';
 
 class BrowseRestaurant {
@@ -471,6 +472,64 @@ class BrowseAddonOption {
     if (n <= 0) return 'Included';
     return '+BHD ${n.toStringAsFixed(3)}';
   }
+}
+
+/// Product detail `addons[]` plus catalog extras when the list is omitted.
+List<BrowseAddonOption> browseAddonsFromProductJson(
+  Map<String, dynamic> data, {
+  CatalogProduct? catalog,
+}) {
+  final fromList = _browseAddonsFromList(data['addons']);
+  if (fromList.isNotEmpty) return fromList;
+
+  final parsed = catalog ?? CatalogProduct.fromJson(data);
+  final out = <BrowseAddonOption>[];
+  for (final addon in parsed.addons) {
+    if (addon.isActive == false) continue;
+    final name = addon.name?.trim();
+    if (name == null || name.isEmpty) continue;
+    final price = addon.price ?? 0;
+    out.add(
+      BrowseAddonOption(
+        id: addon.id,
+        label: name,
+        price: price.toStringAsFixed(3),
+        imageUrl: resolveApiMediaUrl(addon.imageUrl),
+      ),
+    );
+  }
+  return out;
+}
+
+List<BrowseAddonOption> _browseAddonsFromList(Object? raw) {
+  if (raw is! List) return const [];
+
+  final addons = <BrowseAddonOption>[];
+  for (final addon in raw) {
+    if (addon is! Map<String, dynamic>) continue;
+    if (addon['isActive'] == false) continue;
+    final id = addon['id']?.toString();
+    final nameEn =
+        (addon['name'] as String?)?.trim() ??
+        (addon['title'] as String?)?.trim() ??
+        (addon['label'] as String?)?.trim() ??
+        'Add-on';
+    final nameAr = (addon['nameAr'] as String?)?.trim();
+    final name = (L10n.isArabic && nameAr != null && nameAr.isNotEmpty)
+        ? nameAr
+        : nameEn;
+    final price = addon['price'];
+    final priceNum = price is num ? price.toDouble() : 0.0;
+    addons.add(
+      BrowseAddonOption(
+        id: id,
+        label: name,
+        price: priceNum.toStringAsFixed(3),
+        imageUrl: resolveApiMediaUrl(addon['imageUrl'] as String?),
+      ),
+    );
+  }
+  return addons;
 }
 
 abstract final class BrowseData {

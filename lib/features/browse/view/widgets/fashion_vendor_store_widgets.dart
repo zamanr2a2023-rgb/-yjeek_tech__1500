@@ -911,7 +911,7 @@ class FashionVendorProductGridTile extends StatelessWidget {
               ],
             ),
           ),
-          SizedBox(height: 8.h),
+          SizedBox(height: 6.h),
           Text(
             item.localizedName,
             maxLines: 2,
@@ -920,9 +920,10 @@ class FashionVendorProductGridTile extends StatelessWidget {
                 .copyWith(
               fontWeight: FontWeight.w700,
               fontSize: 13.sp,
+              height: 1.2,
             ),
           ),
-          SizedBox(height: 4.h),
+          SizedBox(height: 2.h),
           Text(
             'BHD ${item.price == '—' || item.price == '-' ? '—' : item.price}',
             style: AppTextStyles.labelSmall(color: AppColors.primary).copyWith(

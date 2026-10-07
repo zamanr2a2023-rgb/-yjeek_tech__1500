@@ -14,6 +14,8 @@ import 'package:yjeek_app/features/cart/view/widgets/cart_line_item_card.dart';
 import 'package:yjeek_app/features/dine_in_cart/model/dine_in_cart_data.dart';
 import 'package:yjeek_app/features/dine_in_cart/view/widgets/dine_in_cart_widgets.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/navigation_widgets.dart';
+import 'package:yjeek_app/features/scheduled_cart/model/scheduled_cart_data.dart';
+import 'package:yjeek_app/features/scheduled_cart/view/widgets/scheduled_cart_widgets.dart';
 import 'package:yjeek_app/features/ui_content/view/ui_banner_widgets.dart';
 
 /// Live cart body — Food-cart visual language, API-driven (no mock items).
@@ -39,6 +41,10 @@ class LiveCartBody extends StatefulWidget {
     this.showPickupHeader = false,
     this.showElectronicsCart = false,
     this.showVapeCart = false,
+    this.showScheduledDeliveryMethods = false,
+    this.scheduledDeliveryMethods = const [],
+    this.selectedScheduledDeliveryId = 'same-day',
+    this.onScheduledDeliveryChanged,
     this.checkoutLabel,
     this.initialPromoCode,
   });
@@ -62,6 +68,10 @@ class LiveCartBody extends StatefulWidget {
   final bool showPickupHeader;
   final bool showElectronicsCart;
   final bool showVapeCart;
+  final bool showScheduledDeliveryMethods;
+  final List<ScheduledDeliveryMethod> scheduledDeliveryMethods;
+  final String selectedScheduledDeliveryId;
+  final ValueChanged<String>? onScheduledDeliveryChanged;
   final String? checkoutLabel;
   final String? initialPromoCode;
 
@@ -251,6 +261,29 @@ class _LiveCartBodyState extends State<LiveCartBody> {
                   onKitchenNoteTap: widget.onKitchenNote == null
                       ? null
                       : () => _openKitchenNote(),
+                ),
+              ] else if (widget.showScheduledDeliveryMethods) ...[
+                const SizedBox(height: 18),
+                Text(
+                  ScheduledCartStrings.deliveryMethod,
+                  style: AppTextStyles.titleSmall().copyWith(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                ...widget.scheduledDeliveryMethods.map(
+                  (method) => Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: ScheduledDeliveryMethodCard(
+                      method: method,
+                      selected: method.available &&
+                          method.id == widget.selectedScheduledDeliveryId,
+                      onTap: widget.onScheduledDeliveryChanged == null
+                          ? () {}
+                          : () => widget.onScheduledDeliveryChanged!(method.id),
+                    ),
+                  ),
                 ),
               ] else if (widget.showCutlery) ...[
                 const SizedBox(height: 18),

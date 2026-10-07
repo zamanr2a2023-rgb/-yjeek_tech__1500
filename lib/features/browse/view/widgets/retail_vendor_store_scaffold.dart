@@ -536,16 +536,16 @@ List<Widget> buildRetailVendorAccordionChildren({
       if (isGridView) {
         children.add(
           Padding(
-            padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 8.h),
+            padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 4.h),
             child: GridView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               itemCount: group.items.length,
               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 2,
-                mainAxisSpacing: useFoodMenuTiles ? 10.h : 12.h,
-                crossAxisSpacing: useFoodMenuTiles ? 10.w : 12.w,
-                childAspectRatio: 0.72,
+                mainAxisSpacing: useFoodMenuTiles ? 10.h : 10.h,
+                crossAxisSpacing: useFoodMenuTiles ? 10.w : 10.w,
+                childAspectRatio: useFoodMenuTiles ? 0.72 : 0.82,
               ),
               itemBuilder: (context, index) {
                 final item = group.items[index];

@@ -5,7 +5,6 @@ import 'package:yjeek_app/core/constants/app_colors.dart';
 import 'package:yjeek_app/core/constants/app_text_styles.dart';
 import 'package:yjeek_app/core/providers/app_providers.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
-import 'package:yjeek_app/core/widgets/app_network_image.dart';
 import 'package:yjeek_app/features/auth/utils/require_login.dart';
 import 'package:yjeek_app/core/utils/api_media_url.dart';
 import 'package:yjeek_app/features/browse/model/browse_data.dart';
@@ -33,12 +32,16 @@ class UniversalProductDetailScreen extends ConsumerStatefulWidget {
     required this.productId,
     required this.strategy,
     this.bottomNavIndex = 0,
+    this.initialVariantId,
+    this.initialQuantity,
   });
 
   final String storeId;
   final String productId;
   final ProductDetailStrategy strategy;
   final int bottomNavIndex;
+  final String? initialVariantId;
+  final int? initialQuantity;
 
   @override
   ConsumerState<UniversalProductDetailScreen> createState() =>
@@ -124,9 +127,37 @@ class _UniversalProductDetailScreenState
         _selectedAddons.clear();
         _selectedAxisValues.clear();
         _selectedVariant = null;
+        if (detail.usesVariantSelection) {
+          final catalog = detail.catalog;
+          if (catalog != null && catalog.variants.isNotEmpty) {
+            final presetId = widget.initialVariantId?.trim();
+            CatalogVariant? preset;
+            if (presetId != null && presetId.isNotEmpty) {
+              for (final row in catalog.variants) {
+                if (row.id == presetId) {
+                  preset = row;
+                  break;
+                }
+              }
+            }
+            if (preset != null) {
+              _selectedAxisValues.addAll(preset.attributes);
+              _selectedVariant = preset;
+            } else {
+              _selectedAxisValues.addAll(
+                initialVariantAxisSelection(variants: catalog.variants),
+              );
+              _selectedVariant = matchVariant(
+                variants: catalog.variants,
+                selectedAttributes: _selectedAxisValues,
+              );
+            }
+          }
+        }
         _collapsedGroups.clear();
         _addonsExpanded = true;
-        _quantity = 1;
+        final presetQty = widget.initialQuantity;
+        _quantity = presetQty != null && presetQty > 0 ? presetQty : 1;
         _loading = false;
       });
       _maybePromptAgeVerification();
@@ -190,8 +221,10 @@ class _UniversalProductDetailScreenState
     if (item == null) return 'BHD 0.000';
     if (item.usesVariantSelection) {
       final unit = variantPrice(_selectedVariant);
-      if (unit == null) return 'BHD —';
-      return 'BHD ${unit.toStringAsFixed(3)}';
+      if (unit != null) return 'BHD ${unit.toStringAsFixed(3)}';
+      final from = catalogLowestSelectableVariantPrice(item.catalog);
+      if (from != null) return 'From BHD ${from.toStringAsFixed(3)}';
+      return 'BHD —';
     }
     final p = double.tryParse(item.price) ?? 0;
     return 'BHD ${p.toStringAsFixed(3)}';
@@ -234,10 +267,33 @@ class _UniversalProductDetailScreenState
 
   bool get _variantAddBlocked => _isVariantMode && !_variantReady;
 
-  String? get _heroImageUrl {
+  List<String> get _productImageUrls {
+    final item = _detail;
+    if (item == null) return const [];
+
+    final seen = <String>{};
+    final urls = <String>[];
+
+    void add(String? raw) {
+      final resolved = resolveApiMediaUrl(raw);
+      if (resolved == null || resolved.isEmpty) return;
+      if (seen.add(resolved)) urls.add(resolved);
+    }
+
     final variantImage = resolveApiMediaUrl(_selectedVariant?.imageUrl);
-    if (variantImage != null && variantImage.isNotEmpty) return variantImage;
-    return _detail?.imageUrl;
+    if (variantImage != null && variantImage.isNotEmpty) {
+      add(variantImage);
+    }
+
+    for (final url in item.imageUrls) {
+      add(url);
+    }
+    add(item.imageUrl);
+    add(item.catalog?.imageUrl);
+    for (final variant in item.catalog?.variants ?? const <CatalogVariant>[]) {
+      add(variant.imageUrl);
+    }
+    return urls;
   }
 
   void _toggleOption(int groupIndex, int optionIndex) {
@@ -272,7 +328,48 @@ class _UniversalProductDetailScreenState
         variants: _detail?.catalog?.variants ?? const [],
         selectedAttributes: _selectedAxisValues,
       );
+      final max = _maxSelectableQuantity;
+      if (max != null && _quantity > max) {
+        _quantity = max > 0 ? max : 1;
+      }
     });
+  }
+
+  int? get _maxSelectableQuantity {
+    final qty = _selectedVariant?.stockQty;
+    if (qty == null || qty < 0) return null;
+    return qty;
+  }
+
+  String _variantSkuSummary() {
+    final variant = _selectedVariant;
+    if (variant == null) return '';
+    final label = variant.label?.trim();
+    if (label != null && label.isNotEmpty) return label;
+    final parts = <String>[];
+    final catalog = _detail?.catalog;
+    if (catalog != null) {
+      for (final axis in catalog.axes) {
+        final key = axis.key;
+        if (key == null || key.isEmpty) continue;
+        final valueKey = _selectedAxisValues[key];
+        if (valueKey == null || valueKey.isEmpty) continue;
+        String? display;
+        for (final axisValue in axis.values) {
+          if (axisValue.key == valueKey) {
+            display = axisValue.label?.trim();
+            break;
+          }
+        }
+        parts.add(
+          display != null && display.isNotEmpty ? display : valueKey,
+        );
+      }
+    }
+    if (parts.isEmpty) return '';
+    final stock = _maxSelectableQuantity;
+    final stockNote = stock != null ? ' · $stock in stock' : '';
+    return '${parts.join(' / ')}$stockNote';
   }
 
   void _toggleAddon(int index) {
@@ -532,13 +629,37 @@ class _UniversalProductDetailScreenState
                   color: Color(0xFFE2E2E2),
                 ),
               ],
+              if (_isVariantMode && _selectedVariant != null) ...[
+                Text(
+                  _variantSkuSummary(),
+                  style: AppTextStyles.labelSmall(
+                    color: AppColors.textSecondary,
+                  ).copyWith(fontWeight: FontWeight.w600, fontSize: 13.sp),
+                ),
+                SizedBox(height: 6.h),
+              ],
               ItemQuantityRow(
                 quantity: _quantity,
                 label: item.quantityLabel,
                 onMinus: () {
                   if (_quantity > 1) setState(() => _quantity--);
                 },
-                onPlus: () => setState(() => _quantity++),
+                onPlus: () {
+                  final max = _maxSelectableQuantity;
+                  if (max != null && _quantity >= max) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          max <= 0
+                              ? 'This option is out of stock'
+                              : 'Only $max available for this option',
+                        ),
+                      ),
+                    );
+                    return;
+                  }
+                  setState(() => _quantity++);
+                },
               ),
               SizedBox(height: 8.h),
             ]),
@@ -549,22 +670,19 @@ class _UniversalProductDetailScreenState
   }
 
   Widget _buildImageSection() {
-    final imageUrl = _heroImageUrl;
     return SizedBox(
-      height: 280.h,
+      height: 300.h,
       width: double.infinity,
       child: Stack(
         fit: StackFit.expand,
         children: [
           ColoredBox(
             color: const Color(0xFFE8F5E9),
-            child: imageUrl != null && imageUrl.isNotEmpty
-                ? AppNetworkImage(
-                    url: imageUrl,
-                    fit: BoxFit.cover,
-                    errorWidget: const ColoredBox(color: Color(0xFFE8F5E9)),
-                  )
-                : null,
+            child: ItemProductImageGallery(
+              imageUrls: _productImageUrls,
+              placeholder: const ColoredBox(color: Color(0xFFE8F5E9)),
+              errorPlaceholder: const ColoredBox(color: Color(0xFFE8F5E9)),
+            ),
           ),
           Positioned(
             top: 0,
@@ -603,13 +721,18 @@ class _UniversalProductDetailScreenState
   }
 
   List<Widget> _buildVariantAxes() {
-    final axes = _detail?.catalog?.axes ?? const <CatalogAxis>[];
-    final variants = _detail?.catalog?.variants ?? const <CatalogVariant>[];
+    final catalog = _detail?.catalog;
+    final axes = catalog?.axes ?? const <CatalogAxis>[];
+    final variants = catalog?.variants ?? const <CatalogVariant>[];
+    final referencePrice = catalogLowestSelectableVariantPrice(catalog);
     return [
       for (final axis in axes)
         if (axis.key != null && axis.key!.isNotEmpty)
           VariantAxisSection(
             axis: axis,
+            variants: variants,
+            selectedAttributes: _selectedAxisValues,
+            referencePrice: referencePrice,
             isGridView: _isGridView,
             selectedValue: _selectedAxisValues[axis.key],
             availableValues: availableValuesForAxis(
@@ -669,19 +792,28 @@ class _UniversalProductDetailScreenState
 
   Widget _buildAddonsSection() {
     final addons = _detail!.addons;
+    final selectedNames = <String>[];
+    for (final index in _selectedAddons) {
+      if (index < 0 || index >= addons.length) continue;
+      final name = addons[index].label.trim();
+      if (name.isNotEmpty) selectedNames.add(name);
+    }
+    final extrasHint = selectedNames.isEmpty
+        ? 'Optional · Select any'
+        : 'Optional · ${selectedNames.join(', ')}';
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         ItemOptionAccordionHeader(
           title: 'Add extras',
-          hint: 'Optional · Select any',
+          hint: extrasHint,
           expanded: _addonsExpanded,
           onTap: () => setState(() => _addonsExpanded = !_addonsExpanded),
         ),
         if (_addonsExpanded)
           ItemOptionsLayout(
             isGridView: _isGridView,
-            gridStyle: _addonsGridStyle,
+            gridStyle: ItemOptionGridStyle.extras,
             multiple: true,
             itemCount: addons.length,
             labelAt: (i) => addons[i].label,
@@ -692,14 +824,6 @@ class _UniversalProductDetailScreenState
           ),
       ],
     );
-  }
-
-  ItemOptionGridStyle get _addonsGridStyle {
-    final flowerish = (_detail?.optionGroups ?? const []).any((g) {
-      final n = g.name.toLowerCase();
-      return n.contains('bouquet') || n.contains('flower');
-    });
-    return flowerish ? ItemOptionGridStyle.chips : ItemOptionGridStyle.cards;
   }
 
   String _groupHint(BrowseOptionGroup group, int gi) {

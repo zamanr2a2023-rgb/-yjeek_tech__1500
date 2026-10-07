@@ -540,6 +540,7 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
         if (_addonsExpanded)
           ItemOptionsLayout(
             isGridView: _isGridView,
+            gridStyle: ItemOptionGridStyle.extras,
             multiple: true,
             itemCount: _addons.length,
             labelAt: (i) => _addons[i].label,

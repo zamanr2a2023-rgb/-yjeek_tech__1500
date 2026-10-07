@@ -70,6 +70,7 @@ const Map<String, String> kArabicTranslations = {
   'Area': 'المنطقة',
   'Area / Block': 'المنطقة / المجمع',
   'ARRIVAL CODE': 'رمز الوصول',
+  'ORDER NUMBER': 'رقم الطلب',
   'Arrive by': 'صل قبل',
   'Arrive within 1 hour of your time, or the order auto-cancels.': 'صل خلال ساعة من موعدك، وإلا يُلغى الطلب تلقائياً.',
   'ARRIVES IN': 'يصل خلال',
