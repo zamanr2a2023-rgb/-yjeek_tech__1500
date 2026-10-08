@@ -437,20 +437,17 @@ class _CartScreenState extends ConsumerState<CartScreen> {
       checkoutLabel: tab == CartTab.pickup && !isScheduledOnly
           ? 'Go to checkout'
           : null,
-      onQuantityChanged: (itemId, qty) async {
+      onLineQuantityDelta: (item, delta) async {
         if (isScheduledOnly) {
           _setScheduled(
-            await repo.updateScheduledItemQuantity(
-              itemId: itemId,
-              quantity: qty,
-            ),
+            await repo.bumpScheduledCartLineQuantity(item: item, delta: delta),
           );
           return;
         }
-        final next = await repo.updateItemQuantity(
+        final next = await repo.bumpCartLineQuantity(
           type: type,
-          itemId: itemId,
-          quantity: qty,
+          item: item,
+          delta: delta,
         );
         await _setCart(type, next);
         if (type == CartOrderType.delivery &&

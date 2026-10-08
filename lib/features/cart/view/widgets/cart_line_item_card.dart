@@ -34,12 +34,12 @@ class CartLineItemCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.only(bottom: 8),
       child: Container(
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
           color: AppColors.white,
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(14),
           border: Border.all(color: const Color(0xFFE2E8DD)),
         ),
         child: Column(
@@ -50,11 +50,11 @@ class CartLineItemCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Expanded(child: _textColumn(context)),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 10),
                   Column(
                     children: [
                       _CartLineThumbnail(imageUrl: item.imageUrl),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 6),
                       CartLineQtyControls(
                         quantity: item.quantity,
                         onMinus: onMinus,
@@ -66,9 +66,9 @@ class CartLineItemCard extends StatelessWidget {
               ),
             ),
             if (item.sides.isNotEmpty) ...[
-              const SizedBox(height: 12),
+              const SizedBox(height: 8),
               const Divider(
-                height: 16,
+                height: 12,
                 thickness: 1,
                 color: Color(0xFFE2E8DD),
               ),
@@ -92,28 +92,32 @@ class CartLineItemCard extends StatelessWidget {
       children: [
         Text(
           item.name,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
           style: AppTextStyles.titleSmall().copyWith(
             fontWeight: FontWeight.w700,
-            fontSize: 15,
-            height: 1.28,
+            fontSize: 14,
+            height: 1.25,
             color: AppColors.textPrimary,
           ),
         ),
         if (_detailText.isNotEmpty) ...[
-          const SizedBox(height: 5),
+          const SizedBox(height: 3),
           Text(
             _detailText,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
             style: AppTextStyles.labelSmall(
               color: const Color(0xFF6B7B6E),
             ).copyWith(
               fontWeight: FontWeight.w500,
-              fontSize: 12,
-              height: 1.28,
+              fontSize: 11,
+              height: 1.25,
             ),
           ),
         ],
         if (onEdit != null) ...[
-          const SizedBox(height: 6),
+          const SizedBox(height: 4),
           InkWell(
             onTap: onEdit,
             borderRadius: BorderRadius.circular(6),
@@ -149,8 +153,8 @@ class CartLineItemCard extends StatelessWidget {
                 color: AppColors.primary,
               ).copyWith(
                 fontWeight: FontWeight.w700,
-                fontSize: 16,
-                height: 1.28,
+                fontSize: 15,
+                height: 1.25,
               ),
             ),
             if (item.compareAtPriceLabel != null) ...[
@@ -180,20 +184,20 @@ class _CartLineThumbnail extends StatelessWidget {
 
   final String? imageUrl;
 
-  static const double _size = 82;
+  static const double _size = 68;
 
   @override
   Widget build(BuildContext context) {
     final url = imageUrl?.trim() ?? '';
     if (url.isNotEmpty) {
       return ClipRRect(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(12),
         child: AppNetworkImage(
           url: url,
           width: _size,
           height: _size,
           fit: BoxFit.cover,
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(12),
           showShimmer: false,
         ),
       );
@@ -203,7 +207,7 @@ class _CartLineThumbnail extends StatelessWidget {
       width: _size,
       height: _size,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(12),
         gradient: const LinearGradient(
           begin: Alignment(-0.6, -1),
           end: Alignment(0.6, 1),
@@ -214,7 +218,7 @@ class _CartLineThumbnail extends StatelessWidget {
       child: Icon(
         Icons.restaurant_rounded,
         color: Colors.white.withValues(alpha: 0.85),
-        size: 28,
+        size: 24,
       ),
     );
   }
@@ -235,8 +239,8 @@ class CartLineQtyControls extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 31,
-      padding: const EdgeInsets.symmetric(horizontal: 10),
+      height: 28,
+      padding: const EdgeInsets.symmetric(horizontal: 8),
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(16),
@@ -289,7 +293,7 @@ class _SideRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: 2),
       child: Row(
         children: [
           Container(

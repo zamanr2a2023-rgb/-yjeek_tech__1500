@@ -86,6 +86,14 @@ class CartSideLine {
   final String? cartItemId;
 }
 
+/// One server cart row backing a displayed line (merged lines have many).
+class CartLineSegment {
+  const CartLineSegment({required this.id, required this.quantity});
+
+  final String id;
+  final int quantity;
+}
+
 class CartLineItem {
   const CartLineItem({
     required this.id,
@@ -101,6 +109,7 @@ class CartLineItem {
     this.durationMinutes,
     this.variantId,
     this.variantLabel,
+    this.segments,
   });
 
   final String id;
@@ -124,6 +133,137 @@ class CartLineItem {
 
   /// Total minutes for this line (prep + option deltas) × quantity.
   final int? durationMinutes;
+
+  /// Populated when identical server rows are merged for display.
+  final List<CartLineSegment>? segments;
+
+  List<CartLineSegment> get lineSegments =>
+      segments ??
+      [
+        if (id.isNotEmpty) CartLineSegment(id: id, quantity: quantity),
+      ];
+}
+
+/// Stable key for lines that share product, variant, and add-ons.
+String cartLineMergeKey(CartLineItem item) {
+  final sideParts = item.sides
+      .map((s) => '${s.name.trim().toLowerCase()}:${s.quantity}')
+      .toList()
+    ..sort();
+  return [
+    item.productId,
+    item.variantId ?? '',
+    item.variantLabel ?? '',
+    sideParts.join(','),
+  ].join('|');
+}
+
+double? _parseBhdLabel(String label) {
+  final cleaned = label.replaceAll('BHD', '').trim();
+  return double.tryParse(cleaned);
+}
+
+double _unitDisplayAmount(CartLineItem item, CartOrderType type) {
+  final labeled = _parseBhdLabel(item.unitPriceLabel) ?? 0;
+  if (type == CartOrderType.pickup && item.quantity > 0) {
+    return labeled / item.quantity;
+  }
+  return labeled;
+}
+
+List<CartLineSegment> _sortedSegments(List<CartLineSegment> segments) {
+  final copy = List<CartLineSegment>.from(segments);
+  copy.sort((a, b) => a.id.compareTo(b.id));
+  return copy;
+}
+
+List<CartLineItem> mergeEquivalentCartLines(
+  List<CartLineItem> items,
+  CartOrderType type,
+) {
+  if (items.length < 2) return items;
+
+  final merged = <String, CartLineItem>{};
+  final firstIndex = <String, int>{};
+
+  for (var i = 0; i < items.length; i++) {
+    final item = items[i];
+    final key = cartLineMergeKey(item);
+    firstIndex.putIfAbsent(key, () => i);
+    final existing = merged[key];
+    if (existing == null) {
+      merged[key] = item;
+      continue;
+    }
+
+    final totalQty = existing.quantity + item.quantity;
+    final unit = _unitDisplayAmount(existing, type);
+    final priceLabel = type == CartOrderType.pickup
+        ? _money(unit * totalQty)
+        : _money(unit);
+
+    var durationMinutes = existing.durationMinutes;
+    final addDuration = item.durationMinutes;
+    if (durationMinutes != null || addDuration != null) {
+      durationMinutes = (durationMinutes ?? 0) + (addDuration ?? 0);
+    }
+
+    final segments = _sortedSegments([
+      ...existing.lineSegments,
+      CartLineSegment(id: item.id, quantity: item.quantity),
+    ]);
+
+    merged[key] = CartLineItem(
+      id: segments.first.id,
+      productId: existing.productId,
+      name: existing.name,
+      subtitle: existing.subtitle,
+      quantity: totalQty,
+      unitPriceLabel: priceLabel,
+      compareAtPriceLabel: existing.compareAtPriceLabel,
+      imageUrl: existing.imageUrl,
+      sides: existing.sides,
+      durationLabel: existing.durationLabel ?? item.durationLabel,
+      durationMinutes: durationMinutes,
+      variantId: existing.variantId,
+      variantLabel: existing.variantLabel,
+      segments: segments,
+    );
+  }
+
+  final keys = merged.keys.toList()
+    ..sort((a, b) => firstIndex[a]!.compareTo(firstIndex[b]!));
+  return [for (final key in keys) merged[key]!];
+}
+
+/// Preserves row order across cart refreshes (API often reorders after qty patch).
+List<CartLineItem> stableCartLineOrder(
+  List<CartLineItem> items, {
+  List<String>? previousKeys,
+}) {
+  if (items.isEmpty) return items;
+
+  final byKey = <String, CartLineItem>{
+    for (final item in items) cartLineMergeKey(item): item,
+  };
+  final pending = byKey.keys.toSet();
+  final ordered = <CartLineItem>[];
+
+  if (previousKeys != null) {
+    for (final key in previousKeys) {
+      if (pending.remove(key)) {
+        ordered.add(byKey[key]!);
+      }
+    }
+  }
+
+  for (final item in items) {
+    final key = cartLineMergeKey(item);
+    if (pending.remove(key)) {
+      ordered.add(byKey[key]!);
+    }
+  }
+  return ordered;
 }
 
 class CartUpsellItem {
@@ -526,6 +666,64 @@ class CartRepository {
       cart: scheduledCartSnapshotFromJson(data),
       deliveryOptions: options,
     );
+  }
+
+  /// Applies +1 / −1 to a displayed line (including merged server rows).
+  Future<CartSnapshot> bumpCartLineQuantity({
+    required CartOrderType type,
+    required CartLineItem item,
+    required int delta,
+  }) async {
+    if (delta == 0) return fetchCart(type);
+    final segments = item.lineSegments;
+    if (segments.isEmpty) return fetchCart(type);
+
+    if (delta > 0) {
+      final target = segments.first;
+      return updateItemQuantity(
+        type: type,
+        itemId: target.id,
+        quantity: target.quantity + delta,
+      );
+    }
+
+    for (final seg in segments) {
+      if (seg.quantity > 1) {
+        return updateItemQuantity(
+          type: type,
+          itemId: seg.id,
+          quantity: seg.quantity + delta,
+        );
+      }
+    }
+    return removeItem(type: type, itemId: segments.last.id);
+  }
+
+  Future<CartSnapshot?> bumpScheduledCartLineQuantity({
+    required CartLineItem item,
+    required int delta,
+  }) async {
+    if (delta == 0) return fetchScheduledCart();
+    final segments = item.lineSegments;
+    if (segments.isEmpty) return fetchScheduledCart();
+
+    if (delta > 0) {
+      final target = segments.first;
+      return updateScheduledItemQuantity(
+        itemId: target.id,
+        quantity: target.quantity + delta,
+      );
+    }
+
+    for (final seg in segments) {
+      if (seg.quantity > 1) {
+        return updateScheduledItemQuantity(
+          itemId: seg.id,
+          quantity: seg.quantity + delta,
+        );
+      }
+    }
+    return removeScheduledItem(segments.last.id);
   }
 
   Future<CartSnapshot> updateItemQuantity({
@@ -1408,11 +1606,13 @@ CartSnapshot cartSnapshotFromJson(
   final vatAmount = _readMoney(summaryMap?['vatAmount']);
   final grandTotal = _readMoney(summaryMap?['grandTotal']);
 
+  final displayItems = mergeEquivalentCartLines(items, type);
+
   return CartSnapshot(
     orderType: type,
     vendorName: vendorName,
     vendorId: vendorId,
-    items: items,
+    items: displayItems,
     billLines: billLines,
     upsell: upsellItems,
     upsellTitle: upsellTitle,
@@ -1585,6 +1785,8 @@ CartSnapshot? scheduledCartSnapshotFromJson(Map<String, dynamic> json) {
   }
   if (items.isEmpty) return null;
 
+  final displayItems = mergeEquivalentCartLines(items, CartOrderType.delivery);
+
   final upsellRaw = json['upsell'];
   final upsellMap = upsellRaw is Map<String, dynamic> ? upsellRaw : null;
   final upsellItems = <CartUpsellItem>[];
@@ -1612,7 +1814,7 @@ CartSnapshot? scheduledCartSnapshotFromJson(Map<String, dynamic> json) {
       : null;
   final counted = (json['itemCount'] as num?)?.toInt();
   final itemCount =
-      counted ?? items.fold<int>(0, (sum, item) => sum + item.quantity);
+      counted ?? displayItems.fold<int>(0, (sum, item) => sum + item.quantity);
   final scheduledTotalRaw =
       summaryMap?['totalAmount'] ?? summaryMap?['grandTotal'] ?? 0;
   final scheduledTotal = scheduledTotalRaw is num
@@ -1634,7 +1836,7 @@ CartSnapshot? scheduledCartSnapshotFromJson(Map<String, dynamic> json) {
     orderType: CartOrderType.delivery,
     vendorName: vendorName.isEmpty ? 'Scheduled cart' : vendorName,
     vendorId: vendorId,
-    items: items,
+    items: displayItems,
     billLines: _electronicsBillLines(summaryMap, delivery: delivery),
     pricingModel: json['pricingModel']?.toString(),
     delivery: delivery,

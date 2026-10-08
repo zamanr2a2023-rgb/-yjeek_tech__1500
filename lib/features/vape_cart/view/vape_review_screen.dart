@@ -13,6 +13,7 @@ import 'package:yjeek_app/features/order_flow/model/order_api_mappers.dart';
 import 'package:yjeek_app/features/vape_cart/model/vape_cart_data.dart';
 import 'package:yjeek_app/features/vape_cart/view/widgets/vape_cart_widgets.dart';
 import 'package:yjeek_app/features/vape_order_flow/vape_order_flow_routes.dart';
+import 'package:yjeek_app/routes/app_router.dart';
 
 /// Same flow as Electronics review: timer → summary → Edit / Send to vendor.
 class VapeReviewScreen extends ConsumerStatefulWidget {
@@ -166,7 +167,8 @@ class _VapeReviewScreenState extends ConsumerState<VapeReviewScreen> {
           .cancel(id, reason: 'Edit order');
     }
     if (!mounted) return;
-    context.pop();
+    _leaving = true;
+    context.goHome(tab: 2, vapeCart: true);
   }
 
   @override

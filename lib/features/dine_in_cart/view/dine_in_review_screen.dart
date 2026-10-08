@@ -19,6 +19,7 @@ import 'package:yjeek_app/features/navigation/model/navigation_data.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/account_widgets.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/navigation_widgets.dart';
 import 'package:yjeek_app/features/order_flow/model/order_api_mappers.dart';
+import 'package:yjeek_app/routes/app_router.dart';
 
 class DineInReviewScreen extends ConsumerStatefulWidget {
   const DineInReviewScreen({
@@ -183,13 +184,12 @@ class _DineInReviewScreenState extends ConsumerState<DineInReviewScreen> {
     }
   }
 
-  /// Same destination as editing checkout (prep / payment / time).
   void _editOrder() {
     if (_finishing || _placing) return;
     _timer?.cancel();
     _finishing = true;
     ref.read(pendingDineInCheckoutProvider.notifier).state = null;
-    context.go(DineInCartRoutes.checkoutWithMode(_prepMode));
+    context.goHome(tab: 2, dineInCart: true);
   }
 
   @override

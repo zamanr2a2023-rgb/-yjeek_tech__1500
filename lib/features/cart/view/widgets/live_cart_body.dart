@@ -23,7 +23,7 @@ class LiveCartBody extends StatefulWidget {
   const LiveCartBody({
     super.key,
     required this.cart,
-    required this.onQuantityChanged,
+    required this.onLineQuantityDelta,
     required this.onRemoveItem,
     required this.onUpsellAdd,
     required this.onApplyPromo,
@@ -50,7 +50,7 @@ class LiveCartBody extends StatefulWidget {
   });
 
   final CartSnapshot cart;
-  final Future<void> Function(String itemId, int quantity) onQuantityChanged;
+  final Future<void> Function(CartLineItem item, int delta) onLineQuantityDelta;
   final Future<void> Function(String itemId) onRemoveItem;
   final Future<void> Function(String productId) onUpsellAdd;
   final Future<void> Function(String code) onApplyPromo;
@@ -83,6 +83,8 @@ class _LiveCartBodyState extends State<LiveCartBody> {
   bool _busy = false;
   bool _checkoutBusy = false;
   String? _autoAppliedPromo;
+  List<String> _lineOrderKeys = [];
+  String? _lineOrderVendorId;
 
   Future<void> _handleCheckout() async {
     if (_checkoutBusy) return;
@@ -123,6 +125,24 @@ class _LiveCartBodyState extends State<LiveCartBody> {
   }
 
   CartSnapshot get cart => widget.cart;
+
+  List<CartLineItem> _displayLineItems(List<CartLineItem> items) {
+    if (items.isEmpty) {
+      _lineOrderKeys = [];
+      return items;
+    }
+    final vendorId = cart.vendorId;
+    if (vendorId != _lineOrderVendorId) {
+      _lineOrderVendorId = vendorId;
+      _lineOrderKeys = [];
+    }
+    final ordered = stableCartLineOrder(
+      items,
+      previousKeys: _lineOrderKeys.isEmpty ? null : _lineOrderKeys,
+    );
+    _lineOrderKeys = ordered.map(cartLineMergeKey).toList();
+    return ordered;
+  }
 
   Future<void> _run(Future<void> Function() action) async {
     if (_busy) return;
@@ -171,6 +191,7 @@ class _LiveCartBodyState extends State<LiveCartBody> {
   Widget build(BuildContext context) {
     final isPickupFood =
         widget.showPickupHeader && !widget.showElectronicsCart;
+    final lineItems = _displayLineItems(cart.items);
 
     return Column(
       children: [
@@ -199,9 +220,9 @@ class _LiveCartBodyState extends State<LiveCartBody> {
                 const SizedBox(height: 10),
               ],
               if (widget.showElectronicsCart)
-                ...cart.items.map(_electronicsItemCard)
+                ...lineItems.map(_electronicsItemCard)
               else
-                ...cart.items.map(_standardLineItemCard),
+                ...lineItems.map(_standardLineItemCard),
               if (cart.upsell.isNotEmpty) ...[
                 const SizedBox(height: 18),
                 if (isPickupFood)
@@ -497,21 +518,12 @@ class _LiveCartBodyState extends State<LiveCartBody> {
 
   Widget _standardLineItemCard(CartLineItem item) {
     return CartLineItemCard(
+      key: ValueKey(cartLineMergeKey(item)),
       item: item,
       sideBusy: _busy,
       onEdit: widget.onEditItem != null ? () => widget.onEditItem!(item) : null,
-      onMinus: () {
-        if (item.quantity <= 1) {
-          _run(() => widget.onRemoveItem(item.id));
-        } else {
-          _run(
-            () => widget.onQuantityChanged(item.id, item.quantity - 1),
-          );
-        }
-      },
-      onPlus: () => _run(
-        () => widget.onQuantityChanged(item.id, item.quantity + 1),
-      ),
+      onMinus: () => _run(() => widget.onLineQuantityDelta(item, -1)),
+      onPlus: () => _run(() => widget.onLineQuantityDelta(item, 1)),
       onRemoveSide: (side) {
         final id = side.cartItemId;
         if (id != null) _run(() => widget.onRemoveItem(id));
@@ -523,6 +535,7 @@ class _LiveCartBodyState extends State<LiveCartBody> {
     const titleColor = Color(0xFF121A14);
     const subtitleColor = Color(0xFF6B756E);
     return Padding(
+      key: ValueKey(cartLineMergeKey(item)),
       padding: const EdgeInsets.only(bottom: 10),
       child: Container(
         padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
@@ -574,7 +587,7 @@ class _LiveCartBodyState extends State<LiveCartBody> {
                   if (item.subtitle.isNotEmpty)
                     Text(
                       item.subtitle,
-                      maxLines: 1,
+                      maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: AppTextStyles.labelSmall(
                         color: subtitleColor,
@@ -599,24 +612,8 @@ class _LiveCartBodyState extends State<LiveCartBody> {
             const SizedBox(width: 8),
             _ElectronicsQtyControls(
               quantity: item.quantity,
-              onMinus: () {
-                if (item.quantity <= 1) {
-                  _run(() => widget.onRemoveItem(item.id));
-                } else {
-                  _run(
-                    () => widget.onQuantityChanged(
-                      item.id,
-                      item.quantity - 1,
-                    ),
-                  );
-                }
-              },
-              onPlus: () => _run(
-                () => widget.onQuantityChanged(
-                  item.id,
-                  item.quantity + 1,
-                ),
-              ),
+              onMinus: () => _run(() => widget.onLineQuantityDelta(item, -1)),
+              onPlus: () => _run(() => widget.onLineQuantityDelta(item, 1)),
             ),
           ],
         ),

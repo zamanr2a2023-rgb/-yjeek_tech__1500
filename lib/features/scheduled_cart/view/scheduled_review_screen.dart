@@ -12,6 +12,7 @@ import 'package:yjeek_app/features/order_flow/model/order_api_mappers.dart';
 import 'package:yjeek_app/features/scheduled_cart/model/scheduled_cart_data.dart';
 import 'package:yjeek_app/features/scheduled_cart/view/widgets/scheduled_cart_widgets.dart';
 import 'package:yjeek_app/features/scheduled_order_flow/scheduled_order_flow_routes.dart';
+import 'package:yjeek_app/routes/app_router.dart';
 
 class ScheduledReviewScreen extends ConsumerStatefulWidget {
   const ScheduledReviewScreen({
@@ -169,7 +170,8 @@ class _ScheduledReviewScreenState extends ConsumerState<ScheduledReviewScreen> {
           .cancel(id, reason: 'Edit order');
     }
     if (!mounted) return;
-    context.pop();
+    _leaving = true;
+    context.goHome(tab: 2, scheduledCart: true);
   }
 
   @override

@@ -22,6 +22,7 @@ import 'package:yjeek_app/features/services_booking/model/services_booking_data.
 import 'package:yjeek_app/features/services_booking/services_booking_routes.dart';
 import 'package:yjeek_app/features/services_booking/view/widgets/services_booking_widgets.dart';
 import 'package:yjeek_app/features/services_order_flow/services_order_flow_routes.dart';
+import 'package:yjeek_app/routes/app_router.dart';
 
 class ServicesReviewScreen extends ConsumerStatefulWidget {
   const ServicesReviewScreen({super.key, this.orderId});
@@ -307,7 +308,6 @@ class _ServicesReviewScreenState extends ConsumerState<ServicesReviewScreen> {
     }
   }
 
-  /// Same route as editing booking details — back to checkout.
   void _editOrder() {
     if (_leaving || _placing) return;
     _timer?.cancel();
@@ -317,7 +317,7 @@ class _ServicesReviewScreenState extends ConsumerState<ServicesReviewScreen> {
       ref.read(ordersRepositoryProvider).cancel(id, reason: 'Changed mind');
     }
     ref.read(pendingServiceCheckoutProvider.notifier).state = null;
-    context.go(ServicesBookingRoutes.checkout);
+    context.goHome(tab: 2, servicesCart: true);
   }
 
   @override
