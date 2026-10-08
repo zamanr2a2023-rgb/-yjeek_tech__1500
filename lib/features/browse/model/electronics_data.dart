@@ -213,6 +213,7 @@ abstract final class ElectronicsData {
     return L10n.tr(switch (category.toLowerCase()) {
       'fashion' => 'Fashion',
       'flowers' || 'florist' => 'Flowers',
+      'gifts_flowers' || 'gifts_and_flowers' => 'Gifts & Flowers',
       'grocery' || 'groceries' => 'Groceries',
       'prosthetics' => 'Prosthetics',
       'pharmacy' => 'Pharmacy',

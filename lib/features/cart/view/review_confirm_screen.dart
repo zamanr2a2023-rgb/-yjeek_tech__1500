@@ -20,6 +20,7 @@ import 'package:yjeek_app/features/cart/view/widgets/cart_flow_widgets.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/account_widgets.dart';
 import 'package:yjeek_app/features/order_flow/model/order_api_mappers.dart';
 import 'package:yjeek_app/features/order_flow/order_flow_routes.dart';
+import 'package:yjeek_app/routes/app_router.dart';
 import 'package:yjeek_app/routes/route_names.dart';
 
 /// Food: 10s window after checkout to edit or confirm (timeout returns to checkout).
@@ -362,7 +363,14 @@ class _ReviewConfirmScreenState extends ConsumerState<ReviewConfirmScreen> {
     }
   }
 
-  /// Same route as the address "Edit" link.
+  void _backToCheckout() {
+    if (_finishing || _placing) return;
+    _timer?.cancel();
+    _finishing = true;
+    context.go(CartRoutes.checkout);
+  }
+
+  /// Address row "Edit" — change delivery location, then return to checkout.
   Future<void> _editAddress() async {
     if (_finishing || _placing) return;
     _timer?.cancel();
@@ -382,13 +390,30 @@ class _ReviewConfirmScreenState extends ConsumerState<ReviewConfirmScreen> {
     context.go(CartRoutes.checkout);
   }
 
+  Future<void> _editOrder() async {
+    if (_finishing || _placing) return;
+    _timer?.cancel();
+
+    if (_hasExistingOrder) {
+      final orderId = widget.orderId!;
+      await ref.read(ordersRepositoryProvider).cancel(
+            orderId,
+            reason: 'Edit order',
+          );
+    }
+
+    if (!mounted) return;
+    _finishing = true;
+    context.goHome(tab: 2, cartHasItems: true);
+  }
+
   @override
   Widget build(BuildContext context) {
     final busy = _finishing || _placing;
     return CartFlowScaffold(
       title: CartFlowStrings.reviewConfirm,
       lightHeader: true,
-      onBack: busy ? null : _editAddress,
+      onBack: busy ? null : _backToCheckout,
       body: _loading
           ? const Center(
               child: CircularProgressIndicator(color: AppColors.primary),
@@ -437,7 +462,7 @@ class _ReviewConfirmScreenState extends ConsumerState<ReviewConfirmScreen> {
               Expanded(
                 child: CartOutlineButton(
                   label: CartFlowStrings.editOrder,
-                  onPressed: busy ? () {} : _editAddress,
+                  onPressed: busy ? () {} : _editOrder,
                 ),
               ),
               SizedBox(width: 12.w),

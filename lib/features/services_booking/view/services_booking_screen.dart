@@ -325,18 +325,16 @@ class _ServicesBookingScreenState extends ConsumerState<ServicesBookingScreen> {
     } catch (_) {}
   }
 
-  Future<void> _changeLineQuantity(CartLineItem item, int nextQty) async {
+  Future<void> _changeLineQuantity(CartLineItem item, int delta) async {
     if (_cartLineBusy) return;
     setState(() => _cartLineBusy = true);
     final repo = ref.read(cartRepositoryProvider);
     try {
-      final next = nextQty < 1
-          ? await repo.removeItem(type: CartOrderType.service, itemId: item.id)
-          : await repo.updateItemQuantity(
-              type: CartOrderType.service,
-              itemId: item.id,
-              quantity: nextQty,
-            );
+      final next = await repo.bumpCartLineQuantity(
+        type: CartOrderType.service,
+        item: item,
+        delta: delta,
+      );
       if (!mounted) return;
       setState(() => _cart = next);
       await _loadSlots();
@@ -452,8 +450,8 @@ class _ServicesBookingScreenState extends ConsumerState<ServicesBookingScreen> {
                     item: item,
                     sideBusy: _cartLineBusy,
                     onEdit: () => _editServiceLine(item),
-                    onMinus: () => _changeLineQuantity(item, item.quantity - 1),
-                    onPlus: () => _changeLineQuantity(item, item.quantity + 1),
+                    onMinus: () => _changeLineQuantity(item, -1),
+                    onPlus: () => _changeLineQuantity(item, 1),
                   ),
                 SizedBox(height: 6.h),
                 CartSectionTitle(ServicesBookingStrings.where),

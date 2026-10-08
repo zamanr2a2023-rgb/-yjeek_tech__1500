@@ -27,6 +27,8 @@ abstract final class HomeCategoryStyle {
     'sports': (Icons.sports_soccer_outlined, Color(0xFFE4F7EA)),
     'flowers': (Icons.local_florist_outlined, Color(0xFFFFE8F0)),
     'florist': (Icons.local_florist_outlined, Color(0xFFFFE8F0)),
+    'gifts_flowers': (Icons.local_florist_outlined, Color(0xFFFFE8F0)),
+    'gifts_and_flowers': (Icons.local_florist_outlined, Color(0xFFFFE8F0)),
   };
 
   static const _fallback = (Icons.category_outlined, Color(0xFFE8F0FE));
@@ -116,6 +118,7 @@ CategoryItem categoryItemFromApi({
   String? id,
   String? iconUrl,
   String? structure,
+  String? kind,
 }) {
   final style = HomeCategoryStyle.forSlug(slug, name);
   final trimmedIconUrl = iconUrl?.trim();
@@ -129,6 +132,7 @@ CategoryItem categoryItemFromApi({
         ? trimmedIconUrl
         : null,
     structure: structure,
+    kind: kind,
   );
 }
 

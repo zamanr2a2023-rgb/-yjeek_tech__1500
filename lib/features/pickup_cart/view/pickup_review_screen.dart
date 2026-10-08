@@ -14,6 +14,7 @@ import 'package:yjeek_app/features/pickup_cart/model/pickup_cart_data.dart';
 import 'package:yjeek_app/features/pickup_cart/pickup_cart_routes.dart';
 import 'package:yjeek_app/features/pickup_cart/view/widgets/pickup_cart_widgets.dart';
 import 'package:yjeek_app/features/pickup_order_flow/pickup_order_flow_routes.dart';
+import 'package:yjeek_app/routes/app_router.dart';
 
 class PickupReviewScreen extends ConsumerStatefulWidget {
   const PickupReviewScreen({
@@ -115,11 +116,11 @@ class _PickupReviewScreenState extends ConsumerState<PickupReviewScreen> {
     }
   }
 
-  /// Same destination as editing checkout details (pickup time / payment).
   void _editOrder() {
     if (_finishing) return;
     _timer?.cancel();
-    context.go(PickupCartRoutes.checkout);
+    _finishing = true;
+    context.goHome(tab: 2, pickupCart: true);
   }
 
   @override
