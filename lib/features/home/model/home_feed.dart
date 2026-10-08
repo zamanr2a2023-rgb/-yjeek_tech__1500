@@ -182,6 +182,7 @@ class HomeFeed {
             slug: item['slug'] as String?,
             iconUrl: item['iconUrl'] as String?,
             structure: item['structure'] as String?,
+            kind: item['kind'] as String?,
           ),
         );
       }

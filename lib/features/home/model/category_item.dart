@@ -10,6 +10,7 @@ class CategoryItem {
     this.slug,
     this.iconUrl,
     this.structure,
+    this.kind,
   });
 
   final String? id;
@@ -21,6 +22,9 @@ class CategoryItem {
 
   /// Store Management catalog structure: SINGLE or TWO_LEVEL.
   final String? structure;
+
+  /// Taxonomy kind from admin (`STORE_TYPE`, `ORDER_MODE`, …).
+  final String? kind;
 
   bool get twoLevel => structure?.trim().toUpperCase() == 'TWO_LEVEL';
 

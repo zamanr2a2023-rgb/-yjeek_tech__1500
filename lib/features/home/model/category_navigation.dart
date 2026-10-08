@@ -2,75 +2,177 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:yjeek_app/features/browse/browse_routes.dart';
 import 'package:yjeek_app/features/home/model/category_item.dart';
+import 'package:yjeek_app/features/home/model/home_ui_mapper.dart';
 import 'package:yjeek_app/routes/route_names.dart';
 
-/// Shared home + Categories screen routing (no UI change).
-void openHomeCategory(BuildContext context, CategoryItem category) {
-  final key = (category.slug ?? category.name).toLowerCase().trim();
-  final slug = (category.slug ?? '').toLowerCase().trim();
+/// Where a home / categories tile should navigate (testable without [BuildContext]).
+enum HomeCategoryDestination {
+  marketingOffers,
+  foodBrowse,
+  dineInBrowse,
+  servicesBrowse,
+  electronicsBrowse,
+  vapeBrowse,
+  pickupBrowse,
+  retailCategory,
+  none,
+}
+
+/// Resolved navigation for [CategoryItem] — slug is passed through from admin/catalog.
+class HomeCategoryRoute {
+  const HomeCategoryRoute(
+    this.destination, {
+    this.categorySlug,
+    this.title,
+    this.foodCategorySlug,
+  });
+
+  final HomeCategoryDestination destination;
+
+  /// Store-type slug for vendor list / retail category (`GET /vendors?category=`).
+  final String? categorySlug;
+
+  /// Screen title (usually API / home-entry display name).
+  final String? title;
+
+  /// Optional food browse store-type slug (null = default food directory).
+  final String? foodCategorySlug;
+
+  static const none = HomeCategoryRoute(HomeCategoryDestination.none);
+}
+
+String _normalizeToken(String value) =>
+    value.trim().toLowerCase().replaceAll('-', '_');
+
+bool _slugIs(String slug, Set<String> options) {
+  if (slug.isEmpty) return false;
+  final normalized = _normalizeToken(slug);
+  return options.contains(normalized) ||
+      options.contains(slug.trim().toLowerCase());
+}
+
+/// Store types that use the retail sub-category landing (admin menu / sub-types).
+const _retailLandingSlugs = {'pharmacy', 'gifts'};
+
+/// Resolves browse destination from catalog fields — no substring remapping of slugs.
+HomeCategoryRoute resolveHomeCategoryRoute(CategoryItem category) {
+  final slugRaw = category.slug?.trim() ?? '';
+  final slug = slugRaw.toLowerCase();
+  final key = _normalizeToken(category.slug ?? category.name);
 
   if (slug == 'marketing-offers' ||
       key == 'offers' ||
       (key.contains('offer') && !key.contains('exclusive'))) {
-    context.push(RouteNames.marketingOffers);
-    return;
+    return const HomeCategoryRoute(HomeCategoryDestination.marketingOffers);
   }
 
-  if (key.contains('food') && !key.contains('baby')) {
-    final storeSlug = slug.isNotEmpty ? slug : key;
-    context.push(
-      BrowseRoutes.foodBrowse(
-        category: storeSlug == 'food' ? null : storeSlug,
-      ),
-    );
-    return;
-  }
-  if (key.contains('dine')) {
-    context.push(BrowseRoutes.dineInBrowse());
-    return;
-  }
-  if (key.contains('service')) {
-    context.push(
-      BrowseRoutes.servicesBrowse(
-        slug: slug.isNotEmpty ? slug : null,
-      ),
-    );
-    return;
-  }
-  if (key.contains('electronic')) {
-    context.push(BrowseRoutes.electronicsBrowse());
-    return;
-  }
-  if (key.contains('vape')) {
-    context.push(BrowseRoutes.vapeBrowse());
-    return;
-  }
-  if (key.contains('pickup')) {
-    context.push(BrowseRoutes.pickupBrowse());
-    return;
+  final kind = category.kind?.trim().toUpperCase();
+  if (kind == 'ORDER_MODE' ||
+      isOrderModeCategory(kind: category.kind, slug: category.slug, name: category.name)) {
+    if (_slugIs(slug, {'pickup'})) {
+      return const HomeCategoryRoute(HomeCategoryDestination.pickupBrowse);
+    }
+    if (_slugIs(slug, {'dine_in', 'dine-in'})) {
+      return const HomeCategoryRoute(HomeCategoryDestination.dineInBrowse);
+    }
+    if (_slugIs(slug, {'delivery'})) {
+      return const HomeCategoryRoute(HomeCategoryDestination.foodBrowse);
+    }
   }
 
-  // Two-level store types open sub-types. Single-level opens the vendor list.
+  if (_slugIs(slug, {'food'}) || (slug.isEmpty && key == 'food')) {
+    final foodSlug = slug.isNotEmpty ? slug : 'food';
+    return HomeCategoryRoute(
+      HomeCategoryDestination.foodBrowse,
+      foodCategorySlug: foodSlug == 'food' ? null : foodSlug,
+    );
+  }
+  if (_slugIs(slug, {'dine_in', 'dine-in'}) || (slug.isEmpty && key.contains('dine'))) {
+    return const HomeCategoryRoute(HomeCategoryDestination.dineInBrowse);
+  }
+  if (_slugIs(slug, {'services'}) ||
+      (slug.isEmpty && key == 'services')) {
+    return HomeCategoryRoute(
+      HomeCategoryDestination.servicesBrowse,
+      categorySlug: slug.isNotEmpty ? slug : null,
+    );
+  }
+  if (_slugIs(slug, {'electronics'}) ||
+      (slug.isEmpty && key.contains('electronic'))) {
+    return const HomeCategoryRoute(
+      HomeCategoryDestination.electronicsBrowse,
+      categorySlug: 'electronics',
+    );
+  }
+  if (_slugIs(slug, {'vape'}) || (slug.isEmpty && key.contains('vape'))) {
+    return const HomeCategoryRoute(HomeCategoryDestination.vapeBrowse);
+  }
+  if (_slugIs(slug, {'pickup'}) || (slug.isEmpty && key.contains('pickup'))) {
+    return const HomeCategoryRoute(HomeCategoryDestination.pickupBrowse);
+  }
+
   if (category.twoLevel && slug.isNotEmpty) {
-    context.push(BrowseRoutes.retailCategory(slug: slug));
-    return;
+    return HomeCategoryRoute(
+      HomeCategoryDestination.retailCategory,
+      categorySlug: slugRaw,
+      title: category.displayName,
+    );
   }
 
-  // Scheduled / retail categories — sub-category landing (Fashion design).
-  final scheduledSlug = switch (slug) {
-    'grocery' || 'groceries' => 'grocery',
+  if (slug.isNotEmpty) {
+    if (_retailLandingSlugs.contains(slug)) {
+      return HomeCategoryRoute(
+        HomeCategoryDestination.retailCategory,
+        categorySlug: slugRaw,
+        title: category.displayName,
+      );
+    }
+    return HomeCategoryRoute(
+      HomeCategoryDestination.electronicsBrowse,
+      categorySlug: slugRaw,
+      title: category.displayName,
+    );
+  }
+
+  // Legacy tiles with name only (no slug) — map to catalog slugs without guessing combined types.
+  final legacySlug = _legacySlugForNameKey(key);
+  if (legacySlug != null) {
+    if (_retailLandingSlugs.contains(legacySlug)) {
+      return HomeCategoryRoute(
+        HomeCategoryDestination.retailCategory,
+        categorySlug: legacySlug,
+        title: category.displayName,
+      );
+    }
+    return HomeCategoryRoute(
+      HomeCategoryDestination.electronicsBrowse,
+      categorySlug: legacySlug,
+      title: category.displayName,
+    );
+  }
+
+  return HomeCategoryRoute.none;
+}
+
+String? _legacySlugForNameKey(String key) {
+  return switch (key) {
+    'groceries' || 'grocery' => 'grocery',
     'fashion' => 'fashion',
     'flowers' || 'florist' => 'flowers',
     'prosthetics' || 'prosthetic' => 'prosthetics',
     'pharmacy' => 'pharmacy',
     'cosmetics' => 'cosmetics',
     'gifts' || 'gift' => 'gifts',
+    'gifts_flowers' ||
+    'gifts_&_flowers' ||
+    'gifts_and_flowers' =>
+      'gifts_flowers',
     'jewelry' || 'jewellery' => 'jewelry',
     'stationery' => 'stationery',
-    'baby-kids' || 'baby_kids' || 'baby' => 'baby-kids',
+    'baby_kids' || 'baby_kid' || 'baby' => 'baby-kids',
     'sports' || 'sport' => 'sports',
-    'health-wellness' ||
     'health_wellness' ||
+    'health_&_wellness' ||
     'health' ||
     'wellness' =>
       'health-wellness',
@@ -78,96 +180,37 @@ void openHomeCategory(BuildContext context, CategoryItem category) {
     'fragrance' || 'fragrances' => 'fragrance',
     _ => null,
   };
-
-  if (scheduledSlug != null) {
-    // Vendor list first (no empty sub-category landing).
-    if (scheduledSlug == 'flowers' ||
-        scheduledSlug == 'fashion' ||
-        scheduledSlug == 'health-wellness' ||
-        scheduledSlug == 'pets' ||
-        scheduledSlug == 'fragrance') {
-      context.push(
-        BrowseRoutes.electronicsBrowse(
-          category: scheduledSlug,
-          title: _vendorListTitle(scheduledSlug, category.name),
-        ),
-      );
-      return;
-    }
-    // Pharmacy / Gifts: sub-category grid when configured in admin.
-    if (scheduledSlug == 'pharmacy' || scheduledSlug == 'gifts') {
-      context.push(BrowseRoutes.retailCategory(slug: scheduledSlug));
-      return;
-    }
-    context.push(BrowseRoutes.electronicsBrowse(category: scheduledSlug));
-    return;
-  }
-
-  // Name-based fallback when slug is missing/odd.
-  if (key.contains('grocery') || key.contains('grocer')) {
-    context.push(BrowseRoutes.electronicsBrowse(category: 'grocery'));
-  } else if (key.contains('flower') || key.contains('florist')) {
-    context.push(
-      BrowseRoutes.electronicsBrowse(
-        category: 'flowers',
-        title: 'Flowers',
-      ),
-    );
-  } else if (key.contains('fashion')) {
-    context.push(
-      BrowseRoutes.electronicsBrowse(category: 'fashion', title: 'Fashion'),
-    );
-  } else if (key.contains('health') || key.contains('wellness')) {
-    context.push(
-      BrowseRoutes.electronicsBrowse(
-        category: 'health-wellness',
-        title: 'Health & Wellness',
-      ),
-    );
-  } else if (key.contains('fragrance')) {
-    context.push(
-      BrowseRoutes.electronicsBrowse(
-        category: 'fragrance',
-        title: 'Fragrance',
-      ),
-    );
-  } else if (key.contains('pet')) {
-    context.push(
-      BrowseRoutes.electronicsBrowse(category: 'pets', title: 'Pets'),
-    );
-  } else if (key.contains('prosthetic')) {
-    context.push(BrowseRoutes.electronicsBrowse(category: 'prosthetics'));
-  } else if (key.contains('pharmacy')) {
-    context.push(BrowseRoutes.retailCategory(slug: 'pharmacy'));
-  } else if (key.contains('cosmetic')) {
-    context.push(BrowseRoutes.electronicsBrowse(category: 'cosmetics'));
-  } else if (key.contains('gift')) {
-    context.push(BrowseRoutes.retailCategory(slug: 'gifts'));
-  } else if (key.contains('jewel')) {
-    context.push(BrowseRoutes.electronicsBrowse(category: 'jewelry'));
-  } else if (key.contains('station')) {
-    context.push(BrowseRoutes.electronicsBrowse(category: 'stationery'));
-  } else if (key.contains('baby') || key.contains('kid')) {
-    context.push(BrowseRoutes.electronicsBrowse(category: 'baby-kids'));
-  } else if (key.contains('sport')) {
-    context.push(BrowseRoutes.electronicsBrowse(category: 'sports'));
-  } else if (slug.isNotEmpty) {
-    context.push(
-      BrowseRoutes.electronicsBrowse(
-        category: slug,
-        title: category.name,
-      ),
-    );
-  }
 }
 
-String _vendorListTitle(String slug, String fallbackName) {
-  return switch (slug) {
-    'fashion' => 'Fashion',
-    'flowers' => 'Flowers',
-    'health-wellness' => 'Health & Wellness',
-    'pets' => 'Pets',
-    'fragrance' => 'Fragrance',
-    _ => fallbackName,
-  };
+/// Shared home + Categories screen routing.
+void openHomeCategory(BuildContext context, CategoryItem category) {
+  final route = resolveHomeCategoryRoute(category);
+  switch (route.destination) {
+    case HomeCategoryDestination.marketingOffers:
+      context.push(RouteNames.marketingOffers);
+    case HomeCategoryDestination.foodBrowse:
+      context.push(BrowseRoutes.foodBrowse(category: route.foodCategorySlug));
+    case HomeCategoryDestination.dineInBrowse:
+      context.push(BrowseRoutes.dineInBrowse());
+    case HomeCategoryDestination.servicesBrowse:
+      context.push(BrowseRoutes.servicesBrowse(slug: route.categorySlug));
+    case HomeCategoryDestination.electronicsBrowse:
+      context.push(
+        BrowseRoutes.electronicsBrowse(
+          category: route.categorySlug ?? 'electronics',
+          title: route.title,
+        ),
+      );
+    case HomeCategoryDestination.vapeBrowse:
+      context.push(BrowseRoutes.vapeBrowse());
+    case HomeCategoryDestination.pickupBrowse:
+      context.push(BrowseRoutes.pickupBrowse());
+    case HomeCategoryDestination.retailCategory:
+      final slug = route.categorySlug;
+      if (slug != null && slug.isNotEmpty) {
+        context.push(BrowseRoutes.retailCategory(slug: slug));
+      }
+    case HomeCategoryDestination.none:
+      return;
+  }
 }
