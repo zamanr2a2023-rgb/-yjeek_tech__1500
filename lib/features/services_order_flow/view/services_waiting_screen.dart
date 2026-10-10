@@ -117,7 +117,11 @@ class _ServicesWaitingScreenState extends ConsumerState<ServicesWaitingScreen> {
         ? '…${orderNumber.substring(orderNumber.length - 5)}'
         : orderNumber;
     final deadline =
-        DateTime.tryParse(order['vendorAcceptDeadline']?.toString() ?? '')
+        DateTime.tryParse(
+          order['vendorAcceptTargetDeadline']?.toString() ??
+              order['vendorAcceptDeadline']?.toString() ??
+              '',
+        )
             ?.toLocal();
     final created =
         DateTime.tryParse(order['createdAt']?.toString() ?? '')?.toLocal();
