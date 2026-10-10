@@ -389,12 +389,14 @@ List<BillLine> receiptBillFromTotals(
         value: '− ${formatBhd(totals['pickupDiscountAmount'])}',
         isDiscount: true,
       ),
-    if (!omitDeliveryLine)
+    if (!omitDeliveryLine && totals['deliveryFee'] != null)
       BillLine(
         label: deliveryLabel ?? 'Delivery',
         value: deliveryValue,
       ),
-    BillLine(label: 'Service fee', value: formatBhd(totals['serviceFee'])),
+    if ((totals['serviceFee'] as num?) != null &&
+        (totals['serviceFee'] as num) > 0)
+      BillLine(label: 'Service fee', value: formatBhd(totals['serviceFee'])),
     if ((totals['vatAmount'] as num?) != null &&
         (totals['vatAmount'] as num) > 0)
       BillLine(label: 'VAT', value: formatBhd(totals['vatAmount'])),
@@ -453,14 +455,5 @@ class SubmittedReview {
   final String? comment;
 }
 
-/// Receipt badge from fulfillment status (matches orders list), not paymentStatus.
-String? receiptBadgeLabel(Map<String, dynamic>? receipt) {
-  if (receipt == null) return null;
-  final status = receipt['status']?.toString();
-  if (status != null && status.trim().isNotEmpty) {
-    return formatStatusLabel(status).toUpperCase();
-  }
-  final badgeRaw = receipt['statusBadge']?.toString();
-  if (badgeRaw == null || badgeRaw.isEmpty) return null;
-  return badgeRaw.replaceAll('_', ' ').toUpperCase();
-}
+/// Receipts omit order/payment status per product policy.
+String? receiptBadgeLabel(Map<String, dynamic>? receipt) => null;

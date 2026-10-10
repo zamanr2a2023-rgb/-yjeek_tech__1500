@@ -196,9 +196,15 @@ class _MainShellState extends ConsumerState<MainShell>
       child: GeofenceOfferPopupHost(
         child: Scaffold(
           backgroundColor: AppColors.background,
-          body: IndexedStack(
-            index: shell.currentIndex,
-            children: pages,
+          body: SafeArea(
+            bottom: false,
+            minimum: EdgeInsets.only(
+              top: MediaQuery.viewPaddingOf(context).top,
+            ),
+            child: IndexedStack(
+              index: shell.currentIndex,
+              children: pages,
+            ),
           ),
           bottomNavigationBar: HomeBottomNavBar(
             currentIndex: shell.currentIndex,

@@ -34,6 +34,9 @@ class HomeGreenHeader extends StatelessWidget {
       ),
       child: SafeArea(
         bottom: false,
+        minimum: EdgeInsets.only(
+          top: MediaQuery.viewPaddingOf(context).top,
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

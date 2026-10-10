@@ -1904,11 +1904,11 @@ void _appendFeeLines(
   if (delivery != null) {
     lines.add(BillLine(label: 'Delivery fee', value: delivery.feeLabel));
   }
-  // Dine-in bills keep the existing no-service-fee row.
   if (type != CartOrderType.dineIn) {
-    lines.add(
-      BillLine(label: 'Service fee', value: _money(summary['serviceFee'] ?? 0)),
-    );
+    final serviceFee = _readMoney(summary['serviceFee']) ?? 0;
+    if (serviceFee > 0) {
+      lines.add(BillLine(label: 'Service fee', value: _money(serviceFee)));
+    }
   }
 }
 

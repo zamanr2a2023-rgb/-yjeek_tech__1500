@@ -583,7 +583,12 @@ class _FoodBrowseScreenState extends ConsumerState<FoodBrowseScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: RefreshIndicator(
+      body: SafeArea(
+        bottom: false,
+        minimum: EdgeInsets.only(
+          top: MediaQuery.viewPaddingOf(context).top,
+        ),
+        child: RefreshIndicator(
         color: AppColors.primary,
         onRefresh: () async {
           ref.invalidate(homeFeedProvider);
@@ -702,6 +707,7 @@ class _FoodBrowseScreenState extends ConsumerState<FoodBrowseScreen> {
             else
               ..._buildListSlivers(),
           ],
+        ),
         ),
       ),
       bottomNavigationBar: ShellBottomNavBar(

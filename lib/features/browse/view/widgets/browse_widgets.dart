@@ -30,6 +30,9 @@ class BrowseTopBar extends StatelessWidget {
       padding: EdgeInsets.fromLTRB(20.w, 6.h, 20.w, 0),
       child: SafeArea(
         bottom: false,
+        minimum: EdgeInsets.only(
+          top: MediaQuery.viewPaddingOf(context).top,
+        ),
         child: Row(
           children: [
             GestureDetector(
