@@ -119,7 +119,8 @@ class _OrderWaitingScreenState extends ConsumerState<OrderWaitingScreen> {
         ? '…${orderNumber.substring(orderNumber.length - 5)}'
         : orderNumber;
 
-    final deadlineRaw = order['vendorAcceptDeadline']?.toString();
+    final deadlineRaw = order['vendorAcceptTargetDeadline']?.toString() ??
+        order['vendorAcceptDeadline']?.toString();
     final createdRaw =
         order['createdAt']?.toString() ?? order['placedAt']?.toString();
     final deadline = DateTime.tryParse(deadlineRaw ?? '')?.toLocal();

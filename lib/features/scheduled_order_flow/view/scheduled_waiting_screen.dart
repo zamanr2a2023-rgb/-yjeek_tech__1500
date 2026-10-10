@@ -118,7 +118,11 @@ class _ScheduledWaitingScreenState
     for (final order in orders) {
       total += (order['totalAmount'] as num?)?.toDouble() ?? 0;
       final deadline =
-          DateTime.tryParse(order['vendorAcceptDeadline']?.toString() ?? '')
+          DateTime.tryParse(
+            order['vendorAcceptTargetDeadline']?.toString() ??
+                order['vendorAcceptDeadline']?.toString() ??
+                '',
+          )
               ?.toLocal();
       if (deadline != null &&
           (minDeadline == null || deadline.isBefore(minDeadline))) {
