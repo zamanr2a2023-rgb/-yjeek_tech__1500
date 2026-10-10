@@ -13,6 +13,7 @@ import 'package:yjeek_app/features/cart/model/checkout_helpers.dart';
 import 'package:yjeek_app/features/cart/model/delivery_range.dart';
 import 'package:yjeek_app/features/location/provider/delivery_location_provider.dart';
 import 'package:yjeek_app/features/location/utils/checkout_delivery_address.dart';
+import 'package:yjeek_app/features/cart/model/checkout_payment_visibility.dart';
 import 'package:yjeek_app/features/cart/model/payment_methods_repository.dart';
 import 'package:yjeek_app/features/cart/model/pending_checkout.dart';
 import 'package:yjeek_app/features/cart/view/widgets/cart_flow_widgets.dart';
@@ -36,12 +37,12 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   double _customTipAmount = 0;
   final _customTipController = TextEditingController();
   /// Deferred charge: online default so vendor accept → pay-now screen.
-  String _paymentId = 'benefitpay';
+  String _paymentId =
+      CheckoutPaymentVisibility.preferredCheckoutDefaultId();
   bool _saveDropOff = false;
   CartSnapshot? _cart;
   DeliveryAddressSnapshot? _address;
-  CheckoutPaymentMethods _payments =
-      CheckoutPaymentMethods.fallback(defaultId: 'benefitpay');
+  CheckoutPaymentMethods _payments = CheckoutPaymentMethods.fallback();
   String? _phone;
   bool _loading = true;
   bool _submitting = false;
@@ -99,7 +100,8 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
           .read(paymentMethodsRepositoryProvider)
           .fetchCheckoutMethods(
             includeCod: allowCod,
-            preferredDefaultId: 'benefitpay',
+            preferredDefaultId:
+                CheckoutPaymentVisibility.preferredCheckoutDefaultId(),
           );
       final UserMe? me = await ref.read(userRepositoryProvider).fetchMe();
       if (!mounted) return;
@@ -190,7 +192,8 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
           .read(paymentMethodsRepositoryProvider)
           .fetchCheckoutMethods(
             includeCod: allowCod,
-            preferredDefaultId: 'benefitpay',
+            preferredDefaultId:
+                CheckoutPaymentVisibility.preferredCheckoutDefaultId(),
           );
       if (!mounted) return;
       setState(() {

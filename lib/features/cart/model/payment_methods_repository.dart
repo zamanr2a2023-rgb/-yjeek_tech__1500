@@ -2,6 +2,7 @@ import 'package:yjeek_app/core/constants/app_assets.dart';
 import 'package:yjeek_app/core/network/api_client.dart';
 import 'package:yjeek_app/core/services/storage_service.dart';
 import 'package:yjeek_app/features/cart/model/cart_flow_data.dart';
+import 'package:yjeek_app/features/cart/model/checkout_payment_visibility.dart';
 
 class CheckoutPaymentMethods {
   const CheckoutPaymentMethods({
@@ -16,16 +17,18 @@ class CheckoutPaymentMethods {
 
   static CheckoutPaymentMethods fallback({
     List<PaymentOption>? base,
-    String defaultId = 'benefitpay',
+    String? defaultId,
     bool includeCod = true,
   }) {
-    final options = List<PaymentOption>.from(base ?? CartFlowData.paymentOptions);
+    var options = List<PaymentOption>.from(base ?? CartFlowData.paymentOptions);
     if (!includeCod) {
       options.removeWhere((option) => option.id == 'cod');
     }
-    final preferred = options.any((o) => o.id == defaultId)
-        ? defaultId
-        : (options.isNotEmpty ? options.first.id : defaultId);
+    options = CheckoutPaymentVisibility.filter(options);
+    final preferred = CheckoutPaymentVisibility.resolveDefaultId(
+      options: options,
+      preferred: defaultId,
+    );
     return CheckoutPaymentMethods(
       options: options,
       defaultId: preferred,
@@ -46,12 +49,16 @@ class PaymentMethodsRepository {
     bool includeWallet = true,
     String? preferredDefaultId,
   }) async {
-    final base = fallback ?? CartFlowData.paymentOptions;
+    final base = CheckoutPaymentVisibility.filter(
+      List<PaymentOption>.from(fallback ?? CartFlowData.paymentOptions),
+    );
+    final resolvedPreferred = preferredDefaultId ??
+        CheckoutPaymentVisibility.preferredCheckoutDefaultId();
     if (!_storage.hasSession) {
       return CheckoutPaymentMethods.fallback(
         base: base,
         includeCod: includeCod,
-        defaultId: preferredDefaultId ?? 'benefitpay',
+        defaultId: resolvedPreferred,
       );
     }
 
@@ -65,7 +72,7 @@ class PaymentMethodsRepository {
         return CheckoutPaymentMethods.fallback(
           base: base,
           includeCod: includeCod,
-          defaultId: preferredDefaultId ?? 'benefitpay',
+          defaultId: resolvedPreferred,
         );
       }
 
@@ -80,6 +87,9 @@ class PaymentMethodsRepository {
           seenIds.add(id);
           if (!includeCod && id == 'cod') continue;
           if (!includeWallet && id == 'wallet') continue;
+          if (CheckoutPaymentVisibility.hiddenCheckoutMethodIds.contains(id)) {
+            continue;
+          }
           final label = raw['label']?.toString() ?? id;
           final subtitle = raw['subtitle']?.toString();
           options.add(
@@ -97,12 +107,15 @@ class PaymentMethodsRepository {
         return CheckoutPaymentMethods.fallback(
           base: base,
           includeCod: includeCod,
-          defaultId: preferredDefaultId ?? 'benefitpay',
+          defaultId: resolvedPreferred,
         );
       }
 
       final apiDefault = data['defaultMethodId']?.toString();
-      final preferred = preferredDefaultId ?? apiDefault ?? options.first.id;
+      final preferred = CheckoutPaymentVisibility.resolveDefaultId(
+        options: options,
+        preferred: preferredDefaultId ?? apiDefault,
+      );
       final walletBalance = (data['walletBalance'] as num?)?.toDouble() ?? 0;
       return CheckoutPaymentMethods(
         options: options,
@@ -115,7 +128,7 @@ class PaymentMethodsRepository {
       return CheckoutPaymentMethods.fallback(
         base: base,
         includeCod: includeCod,
-        defaultId: preferredDefaultId ?? 'benefitpay',
+        defaultId: resolvedPreferred,
       );
     }
   }

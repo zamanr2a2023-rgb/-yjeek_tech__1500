@@ -6,6 +6,7 @@ import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/features/cart/cart_routes.dart';
 import 'package:yjeek_app/features/cart/model/cart_repository.dart';
 import 'package:yjeek_app/features/cart/model/checkout_helpers.dart';
+import 'package:yjeek_app/features/cart/model/checkout_payment_visibility.dart';
 import 'package:yjeek_app/features/cart/model/payment_methods_repository.dart';
 import 'package:yjeek_app/features/cart/view/widgets/cart_flow_widgets.dart';
 import 'package:yjeek_app/features/cart/view/widgets/zood_checkout_banner.dart';
@@ -26,7 +27,8 @@ class PickupCheckoutScreen extends ConsumerStatefulWidget {
 }
 
 class _PickupCheckoutScreenState extends ConsumerState<PickupCheckoutScreen> {
-  String _paymentId = 'benefitpay';
+  String _paymentId =
+      CheckoutPaymentVisibility.preferredCheckoutDefaultId();
   CartSnapshot? _cart;
   CheckoutPaymentMethods _payments = CheckoutPaymentMethods.fallback(
     base: PickupCartData.paymentOptions,
@@ -50,7 +52,8 @@ class _PickupCheckoutScreenState extends ConsumerState<PickupCheckoutScreen> {
           .fetchCheckoutMethods(
             fallback: PickupCartData.paymentOptions,
             includeCod: false,
-            preferredDefaultId: 'benefitpay',
+            preferredDefaultId:
+                CheckoutPaymentVisibility.preferredCheckoutDefaultId(),
           );
       if (!mounted) return;
       setState(() {

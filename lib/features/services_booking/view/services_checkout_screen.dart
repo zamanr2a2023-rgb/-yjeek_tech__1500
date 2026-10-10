@@ -11,6 +11,7 @@ import 'package:yjeek_app/features/location/provider/delivery_location_provider.
 import 'package:yjeek_app/features/location/utils/checkout_delivery_address.dart';
 import 'package:yjeek_app/features/cart/model/cart_repository.dart';
 import 'package:yjeek_app/features/cart/model/checkout_helpers.dart';
+import 'package:yjeek_app/features/cart/model/checkout_payment_visibility.dart';
 import 'package:yjeek_app/features/cart/model/payment_methods_repository.dart';
 import 'package:yjeek_app/features/cart/model/pending_checkout.dart';
 import 'package:yjeek_app/features/cart/view/widgets/cart_flow_widgets.dart';
@@ -31,7 +32,8 @@ class ServicesCheckoutScreen extends ConsumerStatefulWidget {
 
 class _ServicesCheckoutScreenState
     extends ConsumerState<ServicesCheckoutScreen> {
-  String _paymentId = 'benefitpay';
+  String _paymentId =
+      CheckoutPaymentVisibility.preferredCheckoutDefaultId();
   CartSnapshot? _cart;
   CheckoutPaymentMethods _payments = CheckoutPaymentMethods.fallback(
     base: ServicesBookingData.paymentOptions,
@@ -59,7 +61,8 @@ class _ServicesCheckoutScreenState
           .fetchCheckoutMethods(
             fallback: ServicesBookingData.paymentOptions,
             includeCod: false,
-            preferredDefaultId: 'benefitpay',
+            preferredDefaultId:
+                CheckoutPaymentVisibility.preferredCheckoutDefaultId(),
           );
 
       String? specialistId;

@@ -36,8 +36,10 @@ class _OrderPayScreenState extends ConsumerState<OrderPayScreen> {
   bool _methodBusy = false;
   DateTime? _payArmedAt;
   String _vendor = 'Vendor';
-  String _method = 'BenefitPay';
-  String _methodApi = 'BENEFIT_PAY';
+  late String _methodApi = PayNowHelper.resolveVisibleMethodApi(
+    options: PayNowHelper.filteredDefaultPaymentOptions,
+  );
+  late String _method = formatPaymentMethod(_methodApi);
   String _balance = 'Balance BHD 0.000';
   num _totalAmount = 0;
   String _subtotal = 'BHD —';
@@ -49,7 +51,7 @@ class _OrderPayScreenState extends ConsumerState<OrderPayScreen> {
   String? _vat;
   String _total = 'BHD —';
   List<PayNowOption> _paymentOptions =
-      List.of(PayNowHelper.defaultPaymentOptions);
+      PayNowHelper.filteredDefaultPaymentOptions;
 
   @override
   void initState() {
@@ -160,10 +162,11 @@ class _OrderPayScreenState extends ConsumerState<OrderPayScreen> {
       _paymentOptions = options;
       _totalAmount = totalNum;
       if (vendorName != null && vendorName.isNotEmpty) _vendor = vendorName;
-      if (method.isNotEmpty) {
-        _methodApi = method.toUpperCase();
-        _method = formatPaymentMethod(method);
-      }
+      _methodApi = PayNowHelper.resolveVisibleMethodApi(
+        orderPaymentMethod: method.isNotEmpty ? method : null,
+        options: options,
+      );
+      _method = formatPaymentMethod(_methodApi);
       _subtotal = formatBhd(order['subtotal']);
       _serviceFee = formatBhd(order['serviceFee']);
       _total = formatBhd(totalNum);

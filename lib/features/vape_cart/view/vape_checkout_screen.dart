@@ -11,6 +11,7 @@ import 'package:yjeek_app/features/cart/model/delivery_quote.dart';
 import 'package:yjeek_app/features/cart/model/delivery_range.dart';
 import 'package:yjeek_app/features/location/provider/delivery_location_provider.dart';
 import 'package:yjeek_app/features/location/utils/checkout_delivery_address.dart';
+import 'package:yjeek_app/features/cart/model/checkout_payment_visibility.dart';
 import 'package:yjeek_app/features/cart/model/payment_methods_repository.dart';
 import 'package:yjeek_app/features/cart/view/widgets/cart_flow_widgets.dart';
 import 'package:yjeek_app/features/cart/view/widgets/zood_checkout_banner.dart';
@@ -36,7 +37,8 @@ class _VapeCheckoutScreenState extends ConsumerState<VapeCheckoutScreen> {
   int _tipIndex = -1;
   double _customTipAmount = 0;
   final _customTipController = TextEditingController();
-  String _paymentId = 'benefitpay';
+  String _paymentId =
+      CheckoutPaymentVisibility.preferredCheckoutDefaultId();
   bool _saveDropOff = false;
   CartSnapshot? _cart;
   DeliveryAddressSnapshot? _address;
@@ -177,7 +179,8 @@ class _VapeCheckoutScreenState extends ConsumerState<VapeCheckoutScreen> {
           .fetchCheckoutMethods(
             fallback: VapeCartData.paymentOptions,
             includeCod: false,
-            preferredDefaultId: 'benefitpay',
+            preferredDefaultId:
+                CheckoutPaymentVisibility.preferredCheckoutDefaultId(),
           );
       final me = await ref.read(userRepositoryProvider).fetchMe();
       final age = await ref

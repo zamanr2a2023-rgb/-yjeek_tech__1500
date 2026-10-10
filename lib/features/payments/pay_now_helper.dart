@@ -7,6 +7,7 @@ import 'package:yjeek_app/core/constants/app_text_styles.dart';
 import 'package:yjeek_app/core/providers/app_providers.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/features/cart/model/cart_flow_data.dart';
+import 'package:yjeek_app/features/cart/model/checkout_payment_visibility.dart';
 import 'package:yjeek_app/features/cart/view/widgets/cart_flow_widgets.dart';
 import 'package:yjeek_app/features/order_flow/model/order_api_mappers.dart';
 import 'package:yjeek_app/features/payments/payment_dev_bypass.dart';
@@ -43,6 +44,26 @@ class PayNowHelper {
     PayNowOption(api: 'CARD', label: 'Add new card', enabled: false),
     PayNowOption(api: 'YJEEK_WALLET', label: 'Yjeek Wallet', enabled: true),
   ];
+
+  static List<PayNowOption> get filteredDefaultPaymentOptions =>
+      filterPayNowOptions(List.of(defaultPaymentOptions));
+
+  static List<PayNowOption> filterPayNowOptions(List<PayNowOption> options) {
+    return options
+        .where((o) => !CheckoutPaymentVisibility.isPayNowApiHidden(o.api))
+        .toList();
+  }
+
+  static String resolveVisibleMethodApi({
+    String? orderPaymentMethod,
+    required List<PayNowOption> options,
+  }) {
+    return CheckoutPaymentVisibility.resolvePayNowApi(
+      visibleOptions: options,
+      preferred: orderPaymentMethod,
+      readApi: (option) => (option as PayNowOption).api,
+    );
+  }
 
   static bool isWallet(String methodApi) {
     final key = methodApi.toUpperCase();
@@ -145,17 +166,24 @@ class PayNowHelper {
     }
     final orderApi = orderPaymentMethod?.toUpperCase();
 
-    return defaultPaymentOptions.map((option) {
+    final parsed = defaultPaymentOptions.map((option) {
+      if (CheckoutPaymentVisibility.isPayNowApiHidden(option.api)) {
+        return null;
+      }
       final isAvailable = available.isEmpty
           ? option.enabled
-          : available.contains(option.api) || option.api == orderApi;
+          : available.contains(option.api) ||
+              (option.api == orderApi &&
+                  !CheckoutPaymentVisibility.isPayNowApiHidden(orderApi ?? ''));
       final enabled = isAvailable && isMethodEnabledOnThisDevice(option.api);
       return PayNowOption(
         api: option.api,
         label: option.label,
         enabled: enabled,
       );
-    }).toList();
+    }).whereType<PayNowOption>().toList();
+
+    return filterPayNowOptions(parsed);
   }
 
   static String subtitleForMethod(String methodApi, String balanceLabel) {
@@ -196,7 +224,12 @@ class PayNowHelper {
     required String currentApi,
     required String balanceLabel,
   }) async {
-    final rows = options
+    final visible = filterPayNowOptions(options);
+    final selectedApi = resolveVisibleMethodApi(
+      orderPaymentMethod: currentApi,
+      options: visible,
+    );
+    final rows = visible
         .where((option) => !isCashMethod(option.api))
         .map(_checkoutStyleOption)
         .toList();
@@ -211,10 +244,10 @@ class PayNowHelper {
             padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 16.h),
             child: CartPaymentMethodList(
               options: rows,
-              selectedId: currentApi.toUpperCase(),
+              selectedId: selectedApi.toUpperCase(),
               onSelected: (id) {
                 PayNowOption? match;
-                for (final option in options) {
+                for (final option in visible) {
                   if (option.api.toUpperCase() == id.toUpperCase()) {
                     match = option;
                     break;

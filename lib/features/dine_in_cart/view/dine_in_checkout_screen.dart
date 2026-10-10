@@ -8,6 +8,7 @@ import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/features/cart/cart_routes.dart';
 import 'package:yjeek_app/features/cart/model/cart_repository.dart';
 import 'package:yjeek_app/features/cart/model/checkout_helpers.dart';
+import 'package:yjeek_app/features/cart/model/checkout_payment_visibility.dart';
 import 'package:yjeek_app/features/cart/model/pending_checkout.dart';
 import 'package:yjeek_app/features/cart/view/widgets/cart_flow_widgets.dart';
 import 'package:yjeek_app/features/cart/view/widgets/zood_checkout_banner.dart';
@@ -35,7 +36,11 @@ class _DineInCheckoutScreenState extends ConsumerState<DineInCheckoutScreen> {
   String _paymentId = 'wallet';
   CartSnapshot? _cart;
   DineInSlotsSnapshot? _slots;
-  List<PaymentOption> _paymentOptions = DineInCartData.paymentOptions;
+  List<PaymentOption> _paymentOptions = DineInCartData.paymentOptions
+      .where(
+        (o) => !CheckoutPaymentVisibility.hiddenCheckoutMethodIds.contains(o.id),
+      )
+      .toList();
   bool _loading = true;
   bool _changingTime = false;
 

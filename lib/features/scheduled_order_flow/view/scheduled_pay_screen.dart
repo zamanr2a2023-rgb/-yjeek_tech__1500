@@ -35,8 +35,10 @@ class _ScheduledPayScreenState extends ConsumerState<ScheduledPayScreen> {
   bool _methodBusy = false;
   DateTime? _payArmedAt;
   String _vendor = '—';
-  String _method = 'BenefitPay';
-  String _methodApi = 'BENEFIT_PAY';
+  late String _methodApi = PayNowHelper.resolveVisibleMethodApi(
+    options: PayNowHelper.filteredDefaultPaymentOptions,
+  );
+  late String _method = formatPaymentMethod(_methodApi);
   String _balance = 'Balance BHD 0.000';
   num _totalAmount = 0;
   String _subtotal = '—';
@@ -50,7 +52,7 @@ class _ScheduledPayScreenState extends ConsumerState<ScheduledPayScreen> {
   String _total = '—';
   int _windowSeconds = _defaultSeconds;
   List<PayNowOption> _paymentOptions =
-      List.of(PayNowHelper.defaultPaymentOptions);
+      PayNowHelper.filteredDefaultPaymentOptions;
 
   PayNowHelper get _payHelper => PayNowHelper(ref, context);
 
@@ -152,15 +154,17 @@ class _ScheduledPayScreenState extends ConsumerState<ScheduledPayScreen> {
     setState(() {
       _balance = balanceText;
       _totalAmount = total;
-      _paymentOptions = PayNowHelper.parsePayNowOptions(
+      final options = PayNowHelper.parsePayNowOptions(
         availableMethods,
         orderPaymentMethod: method,
       );
+      _paymentOptions = options;
       if (vendorName != null && vendorName.isNotEmpty) _vendor = vendorName;
-      if (method != null && method.isNotEmpty) {
-        _methodApi = method.toUpperCase();
-        _method = formatPaymentMethod(method);
-      }
+      _methodApi = PayNowHelper.resolveVisibleMethodApi(
+        orderPaymentMethod: method,
+        options: options,
+      );
+      _method = formatPaymentMethod(_methodApi);
       if (deliverySpeed != null) {
         _deliveryLabel = scheduledDeliveryFeeLabel(deliverySpeed);
       }
