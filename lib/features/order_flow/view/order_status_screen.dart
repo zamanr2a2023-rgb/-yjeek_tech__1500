@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:yjeek_app/core/constants/app_colors.dart';
-import 'package:yjeek_app/core/constants/app_text_styles.dart';
 import 'package:yjeek_app/core/constants/maps_config.dart';
 import 'package:yjeek_app/core/providers/app_providers.dart';
 import 'package:yjeek_app/core/utils/phone_call.dart';
@@ -16,6 +15,7 @@ import 'package:yjeek_app/features/order_flow/model/order_flow_data.dart';
 import 'package:yjeek_app/features/order_flow/order_flow_routes.dart';
 import 'package:yjeek_app/features/order_flow/view/widgets/order_flow_widgets.dart';
 import 'package:yjeek_app/features/payments/pay_now_helper.dart';
+import 'package:yjeek_app/features/campaigns/view/on_time_promise_banner.dart';
 import 'package:yjeek_app/features/ui_content/view/ui_banner_widgets.dart';
 
 class OrderStatusScreen extends ConsumerStatefulWidget {
@@ -42,6 +42,8 @@ class _OrderStatusScreenState extends ConsumerState<OrderStatusScreen> {
   String? _champPhone;
   String _payment = _dash;
   String _orderType = '';
+  String _fulfillmentType = '';
+  bool _isDelivered = false;
   bool _loading = true;
   bool _hasChamp = false;
   bool _canChangePayment = false;
@@ -166,6 +168,9 @@ class _OrderStatusScreenState extends ConsumerState<OrderStatusScreen> {
           _dropoffLng = null;
         }
         _orderType = (data['orderType']?.toString() ?? '').toUpperCase();
+        _fulfillmentType =
+            (data['fulfillmentType']?.toString() ?? '').toUpperCase();
+        _isDelivered = isDelivered;
         final paymentRaw = data['paymentMethod']?.toString();
         _methodApi = (paymentRaw ?? '').toUpperCase();
         _payment = paymentRaw == null || paymentRaw.isEmpty
@@ -376,6 +381,12 @@ class _OrderStatusScreenState extends ConsumerState<OrderStatusScreen> {
               padding: EdgeInsets.fromLTRB(20.w, 8.h, 20.w, 24.h),
               children: [
                 const UiPlacementBanner(placementKey: 'tracking_banner'),
+                if (_orderType == 'DELIVERY' &&
+                    _fulfillmentType == 'ON_DEMAND' &&
+                    !_isDelivered)
+                  OnTimePromiseTrackingBanner(
+                    scheduledTimeLabel: _arrival,
+                  ),
                 SizedBox(height: 12.h),
                 // Spec: live map only after driver/champ is assigned.
                 if (_hasChamp)

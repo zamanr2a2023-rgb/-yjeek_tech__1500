@@ -7,6 +7,9 @@ import 'package:yjeek_app/core/constants/app_text_styles.dart';
 import 'package:yjeek_app/core/constants/navigation_strings.dart';
 import 'package:yjeek_app/core/providers/app_providers.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
+import 'package:yjeek_app/core/widgets/app_back_icon.dart';
+import 'package:yjeek_app/core/widgets/ltr_phone_text.dart';
+import 'package:yjeek_app/l10n/l10n.dart';
 import 'package:yjeek_app/features/navigation/model/wallet_data.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/navigation_widgets.dart';
 import 'package:yjeek_app/routes/app_router.dart';
@@ -66,33 +69,24 @@ class GreenScreenHeader extends StatelessWidget {
                         borderRadius: BorderRadius.circular(18.r),
                       ),
                       alignment: Alignment.center,
-                      child: Text(
-                        '‹',
-                        style: TextStyle(
-                          fontSize: 20.sp,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.white,
-                          height: 1,
-                        ),
+                      child: AppBackIcon(
+                        color: AppColors.white,
+                        size: 18.sp,
                       ),
                     )
-                  : Text(
-                      '‹',
-                      style: TextStyle(
-                        fontSize: 24.sp,
-                        fontWeight: FontWeight.w700,
-                        color: backColor,
-                        height: 1,
-                      ),
+                  : AppBackIcon(
+                      color: backColor,
+                      size: 22.sp,
                     ),
             ),
             SizedBox(width: 12.w),
             Expanded(
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Text(
                     title,
+                    textAlign: TextAlign.start,
                     style: AppTextStyles.titleSmall(color: titleColor).copyWith(
                       fontSize: flat ? 20.sp : 18.sp,
                       fontWeight: FontWeight.w700,
@@ -102,6 +96,7 @@ class GreenScreenHeader extends StatelessWidget {
                     SizedBox(height: 2.h),
                     Text(
                       subtitle!,
+                      textAlign: TextAlign.start,
                       style: AppTextStyles.caption(color: subtitleColor)
                           .copyWith(fontSize: 12.sp),
                     ),
@@ -415,6 +410,7 @@ class AccountFormField extends StatelessWidget {
     this.onTap,
     this.keyboardType,
     this.hintText,
+    this.ltrValue = false,
   }) : assert(value != null || controller != null);
 
   final String label;
@@ -427,6 +423,7 @@ class AccountFormField extends StatelessWidget {
   final VoidCallback? onTap;
   final TextInputType? keyboardType;
   final String? hintText;
+  final bool ltrValue;
 
   @override
   Widget build(BuildContext context) {
@@ -455,7 +452,7 @@ class AccountFormField extends StatelessWidget {
               borderRadius: BorderRadius.circular(11.r),
               border: Border.all(color: const Color(0xFFE6EBE3), width: 1.2),
             ),
-            alignment: Alignment.centerLeft,
+            alignment: AlignmentDirectional.centerStart,
             child: Row(
               children: [
                 Expanded(
@@ -465,6 +462,8 @@ class AccountFormField extends StatelessWidget {
                           readOnly: readOnly || onTap != null,
                           onTap: onTap,
                           keyboardType: keyboardType,
+                          textDirection:
+                              ltrValue ? TextDirection.ltr : null,
                           style: textStyle,
                           decoration: InputDecoration(
                             isDense: true,
@@ -477,7 +476,9 @@ class AccountFormField extends StatelessWidget {
                             contentPadding: EdgeInsets.zero,
                           ),
                         )
-                      : Text(value ?? '', style: textStyle),
+                      : ltrValue
+                          ? LtrPhoneText(value ?? '', style: textStyle)
+                          : Text(value ?? '', style: textStyle),
                 ),
                 if (suffix != null) suffix!,
               ],
@@ -502,7 +503,7 @@ class VerifiedBadge extends StatelessWidget {
         border: Border.all(color: const Color(0xFF2E9E4D), width: 0.95),
       ),
       child: Text(
-        'Verified',
+        L10n.tr('Verified'),
         style: AppTextStyles.caption(color: AppColors.cartTabActive).copyWith(
           fontWeight: FontWeight.w700,
           fontSize: 10.sp,
@@ -572,7 +573,9 @@ class GenderChipRow extends StatelessWidget {
       children: options.map((option) {
         final isSelected = option == selected;
         return Padding(
-          padding: EdgeInsets.only(right: option != options.last ? 8.w : 0),
+          padding: EdgeInsetsDirectional.only(
+            end: option != options.last ? 8.w : 0,
+          ),
           child: GestureDetector(
             onTap: onSelected == null ? null : () => onSelected!(option),
             child: Container(
@@ -588,7 +591,7 @@ class GenderChipRow extends StatelessWidget {
                 ),
               ),
               child: Text(
-                option,
+                L10n.tr(option),
                 style: AppTextStyles.labelSmall(
                   color: isSelected ? AppColors.white : AppColors.textPrimary,
                 ).copyWith(

@@ -20,7 +20,6 @@ import 'package:yjeek_app/features/navigation/view/widgets/navigation_widgets.da
 import 'package:yjeek_app/features/scheduled_cart/model/scheduled_cart_data.dart';
 import 'package:yjeek_app/features/scheduled_cart/scheduled_cart_routes.dart';
 import 'package:yjeek_app/features/scheduled_cart/view/widgets/scheduled_cart_widgets.dart';
-import 'package:yjeek_app/features/campaigns/view/on_time_promise_banner.dart';
 import 'package:yjeek_app/features/vouchers/widgets/checkout_vouchers_section.dart';
 
 class ScheduledCheckoutScreen extends ConsumerStatefulWidget {
@@ -309,7 +308,6 @@ class _ScheduledCheckoutScreenState
           : ListView(
               padding: EdgeInsets.fromLTRB(20.w, 8.h, 20.w, 24.h),
               children: [
-                const OnTimePromiseBanner(),
                 CartSectionTitle(ScheduledCartStrings.deliveryAddress),
                 ScheduledAddressCard(
                   address: _address?.label,

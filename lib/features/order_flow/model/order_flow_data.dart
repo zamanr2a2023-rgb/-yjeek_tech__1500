@@ -34,6 +34,20 @@ abstract final class OrderFlowStrings {
   static String get onlineChamp => L10n.tr('● Online · your champ');
   static String get yourChamp => L10n.tr('your champ');
   static String get sentToVendor => L10n.tr('Sent to vendor');
+  static String get vendorAccepted => L10n.tr('Vendor accepted');
+  static String get pickedUp => L10n.tr('Picked up');
+  static String get onTheWay => L10n.tr('On the way');
+  static String get champHasArrived => L10n.tr('Champ has arrived');
+  static String get cancelled => L10n.tr('Cancelled');
+  static String get confirmed => L10n.tr('Confirmed');
+  static String get preparing => L10n.tr('Preparing');
+  static String get orderDeliveredEnjoy =>
+      L10n.tr('Order delivered — Enjoy your order!');
+  static String get cashOnDelivery => L10n.tr('Cash on delivery');
+  static String get cardPayment => L10n.tr('Card');
+  static String get applePay => L10n.tr('Apple Pay');
+  static String get googlePay => L10n.tr('Google Pay');
+  static String get benefitPay => L10n.tr('BenefitPay');
   static String get waitingSubtitle => L10n.tr('Waiting for the vendor to accept your order…');
   static const String notChargedYet =
       "You won't be charged until the vendor accepts your order.";

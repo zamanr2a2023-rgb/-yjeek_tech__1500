@@ -8,6 +8,7 @@ import 'package:yjeek_app/core/providers/app_providers.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/account_widgets.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/navigation_widgets.dart';
+import 'package:yjeek_app/l10n/l10n.dart';
 
 class EditPersonalInfoScreen extends ConsumerStatefulWidget {
   const EditPersonalInfoScreen({super.key});
@@ -123,7 +124,7 @@ class _EditPersonalInfoScreenState
     final name = _nameController.text.trim();
     if (name.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter your full name')),
+        SnackBar(content: Text(L10n.tr('Please enter your full name'))),
       );
       return;
     }
@@ -131,7 +132,7 @@ class _EditPersonalInfoScreenState
     final email = _emailController.text.trim();
     if (email.isNotEmpty && !email.contains('@')) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a valid email')),
+        SnackBar(content: Text(L10n.tr('Please enter a valid email'))),
       );
       return;
     }
@@ -160,7 +161,9 @@ class _EditPersonalInfoScreenState
     if (response.ok) {
       ref.invalidate(userMeProvider);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(response.message ?? 'Profile updated')),
+        SnackBar(
+          content: Text(response.message ?? L10n.tr('Profile updated')),
+        ),
       );
       if (context.canPop()) context.pop();
       return;
@@ -168,7 +171,9 @@ class _EditPersonalInfoScreenState
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(response.message ?? 'Could not save changes'),
+        content: Text(
+          response.message ?? NavigationStrings.couldNotSaveChanges,
+        ),
         backgroundColor: const Color(0xFFB42318),
       ),
     );
@@ -196,7 +201,7 @@ class _EditPersonalInfoScreenState
                         label: NavigationStrings.fullName,
                         controller: _nameController,
                         readOnly: false,
-                        hintText: 'Your name',
+                        hintText: NavigationStrings.yourNameHint,
                       ),
                       SizedBox(height: 14.h),
                       AccountFormField(
@@ -212,7 +217,7 @@ class _EditPersonalInfoScreenState
                         controller: _dobController,
                         readOnly: true,
                         onTap: _pickDob,
-                        hintText: 'Select date',
+                        hintText: NavigationStrings.selectDate,
                         suffix: Icon(
                           Icons.calendar_today_outlined,
                           size: 16.sp,
@@ -239,10 +244,11 @@ class _EditPersonalInfoScreenState
                       AccountFormField(
                         label: NavigationStrings.phoneVerified,
                         value: _phoneLabel.isEmpty ? '—' : _phoneLabel,
+                        ltrValue: _phoneLabel.isNotEmpty,
                         valueColor: const Color(0xFF6B756E),
                         readOnly: true,
                         suffix: Text(
-                          '✓ Verified',
+                          NavigationStrings.phoneVerifiedShort,
                           style: AppTextStyles.labelSmall(
                             color: const Color(0xFF127036),
                           ).copyWith(
@@ -284,7 +290,7 @@ class _EditPersonalInfoScreenState
                       SizedBox(height: 14.h),
                       PrimaryGreenButton(
                         label: _saving
-                            ? 'Saving…'
+                            ? L10n.tr('Saving…')
                             : NavigationStrings.saveChanges,
                         height: 52,
                         backgroundColor: AppColors.cartTabActive,

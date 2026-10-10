@@ -12,20 +12,23 @@ import 'package:yjeek_app/features/notifications/model/notifications_repository.
 import 'package:yjeek_app/features/geofence/view/geofence_offer_screen.dart';
 import 'package:yjeek_app/firebase_options.dart';
 import 'package:yjeek_app/core/deep_links/yjeek_deep_link_router.dart';
+import 'package:yjeek_app/core/constants/navigation_strings.dart';
+import 'package:yjeek_app/l10n/l10n.dart';
 import 'package:yjeek_app/routes/app_router.dart';
 
 const _androidChannelId = 'yjeek_default';
-const _androidChannelName = 'Yjeek notifications';
 
 final FlutterLocalNotificationsPlugin _localNotifications =
     FlutterLocalNotificationsPlugin();
 
-const _androidChannel = AndroidNotificationChannel(
-  _androidChannelId,
-  _androidChannelName,
-  description: 'Order, payment, and account alerts',
-  importance: Importance.high,
-);
+AndroidNotificationChannel _androidNotificationChannel() {
+  return AndroidNotificationChannel(
+    _androidChannelId,
+    NavigationStrings.yjeekNotificationsChannel,
+    description: L10n.tr('Order, payment, and account alerts'),
+    importance: Importance.high,
+  );
+}
 
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -54,17 +57,18 @@ Future<void> showYjeekTrayNotification(RemoteMessage message) async {
   await _localNotifications
       .resolvePlatformSpecificImplementation<
           AndroidFlutterLocalNotificationsPlugin>()
-      ?.createNotificationChannel(_androidChannel);
+      ?.createNotificationChannel(_androidNotificationChannel());
 
+  final channel = _androidNotificationChannel();
   await _localNotifications.show(
     id: message.hashCode & 0x7fffffff,
     title: title,
     body: body,
-    notificationDetails: const NotificationDetails(
+    notificationDetails: NotificationDetails(
       android: AndroidNotificationDetails(
-        _androidChannelId,
-        _androidChannelName,
-        channelDescription: 'Order, payment, and account alerts',
+        channel.id,
+        channel.name,
+        channelDescription: channel.description,
         importance: Importance.high,
         priority: Priority.high,
         icon: 'ic_stat_yjeek',
@@ -209,7 +213,7 @@ class PushNotificationService {
     final androidPlugin = _localNotifications
         .resolvePlatformSpecificImplementation<
             AndroidFlutterLocalNotificationsPlugin>();
-    await androidPlugin?.createNotificationChannel(_androidChannel);
+    await androidPlugin?.createNotificationChannel(_androidNotificationChannel());
     final granted = await androidPlugin?.requestNotificationsPermission();
     if (granted == false) {
       appLogger.w('POST_NOTIFICATIONS not granted');

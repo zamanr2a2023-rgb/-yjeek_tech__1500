@@ -204,4 +204,35 @@ abstract final class NavigationStrings {
   static String get cashOnDelivery => L10n.tr('Cash on delivery');
 
   static String get comingSoon => L10n.tr('Coming soon');
+
+  static String get changePhoneIntro => L10n.tr(
+        'Enter your new Bahrain mobile number. We’ll send a verification code.',
+      );
+  static String changePhoneCodeSent(String countryCode, String phone) =>
+      L10n.trParams(
+        'Enter the code sent to {countryCode} {phone}',
+        {'countryCode': countryCode, 'phone': phone},
+      );
+  static String get newPhoneNumber => L10n.tr('New phone number');
+  static String get sending => L10n.tr('Sending…');
+  static String get sendCode => L10n.tr('Send code');
+  static String get verificationCode => L10n.tr('Verification code');
+  static String get fourDigitCode => L10n.tr('4-digit code');
+  static String get resendCode => L10n.tr('Resend code');
+  static String get confirmNewNumber => L10n.tr('Confirm new number');
+  static String get verifying => L10n.tr('Verifying…');
+  static String get enterValidPhone => L10n.tr('Enter a valid phone number');
+  static String get enterFourDigitCode => L10n.tr('Enter the 4-digit code');
+  static String get phoneNumberUpdated => L10n.tr('Phone number updated');
+  static String get verificationCodeSent => L10n.tr('Verification code sent');
+  static String get couldNotSaveChanges => L10n.tr('Could not save changes');
+  static String get yourNameHint => L10n.tr('Your name');
+  static String get selectDate => L10n.tr('Select date');
+  static String get phoneVerifiedShort => L10n.tr('✓ Verified');
+  static String get walletTerms => L10n.tr('Wallet Terms');
+  static String get consumerProtection => L10n.tr('Consumer Protection');
+  static String get policyLoadError =>
+      L10n.tr('Could not load this policy. Please try again.');
+  static String get yjeekNotificationsChannel =>
+      L10n.tr('Yjeek notifications');
 }

@@ -24,8 +24,8 @@ extension PolicyTypeX on PolicyType {
         PolicyType.terms => NavigationStrings.termsConditions,
         PolicyType.privacy => NavigationStrings.privacyPolicy,
         PolicyType.refund => NavigationStrings.refundReturn,
-        PolicyType.walletTerms => 'Wallet Terms',
-        PolicyType.consumerProtection => 'Consumer Protection',
+        PolicyType.walletTerms => NavigationStrings.walletTerms,
+        PolicyType.consumerProtection => NavigationStrings.consumerProtection,
       };
 
   String get apiSlug => switch (this) {

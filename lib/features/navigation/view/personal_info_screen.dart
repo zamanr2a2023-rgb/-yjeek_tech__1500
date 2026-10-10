@@ -31,10 +31,8 @@ class _PersonalInfoScreenState extends ConsumerState<PersonalInfoScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete account?'),
-        content: const Text(
-          'This permanently deletes your account. Active orders must be finished first.',
-        ),
+        title: Text(NavigationStrings.deleteAccountConfirmTitle),
+        content: Text(NavigationStrings.deleteAccountConfirmBody),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
@@ -43,7 +41,7 @@ class _PersonalInfoScreenState extends ConsumerState<PersonalInfoScreen> {
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: TextButton.styleFrom(foregroundColor: const Color(0xFF9B111E)),
-            child: const Text('Delete'),
+            child: Text(NavigationStrings.delete),
           ),
         ],
       ),
@@ -67,7 +65,9 @@ class _PersonalInfoScreenState extends ConsumerState<PersonalInfoScreen> {
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(response.message ?? 'Could not delete account'),
+        content: Text(
+          response.message ?? NavigationStrings.couldNotDeleteAccount,
+        ),
         backgroundColor: const Color(0xFFB42318),
       ),
     );
@@ -176,7 +176,7 @@ class _PersonalInfoScreenState extends ConsumerState<PersonalInfoScreen> {
                             AccountActionRow(
                               iconAsset: AppAssets.accountDelete,
                               title: _deleting
-                                  ? 'Deleting…'
+                                  ? NavigationStrings.deleting
                                   : NavigationStrings.deleteAccount,
                               destructive: true,
                               onTap: _deleting ? null : _deleteAccount,

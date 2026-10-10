@@ -4,6 +4,7 @@ import 'package:yjeek_app/core/constants/app_colors.dart';
 import 'package:yjeek_app/core/constants/app_text_styles.dart';
 import 'package:yjeek_app/core/constants/navigation_strings.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
+import 'package:yjeek_app/core/widgets/app_back_icon.dart';
 import 'package:yjeek_app/core/widgets/app_network_image.dart';
 import 'package:yjeek_app/features/home/view/widgets/home_widgets.dart';
 import 'package:yjeek_app/features/navigation/model/navigation_data.dart';
@@ -40,10 +41,11 @@ class NavBackHeader extends StatelessWidget {
             const SizedBox(width: 12),
             Expanded(
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Text(
                     title,
+                    textAlign: TextAlign.start,
                     style: AppTextStyles.titleSmall(color: titleColor).copyWith(
                       fontSize: 20.sp,
                       fontWeight: FontWeight.w700,
@@ -88,10 +90,9 @@ class NavCircleBackButton extends StatelessWidget {
           border: Border.all(color: AppColors.border),
         ),
         alignment: Alignment.center,
-        child: Icon(
-          Icons.arrow_back,
-          size: 18.sp,
+        child: AppBackIcon(
           color: iconColor,
+          size: 18.sp,
         ),
       ),
     );

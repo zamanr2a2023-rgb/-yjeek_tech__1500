@@ -6,8 +6,10 @@ import 'package:yjeek_app/core/constants/app_text_styles.dart';
 import 'package:yjeek_app/core/constants/navigation_strings.dart';
 import 'package:yjeek_app/core/providers/app_providers.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
+import 'package:yjeek_app/core/widgets/ltr_phone_text.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/account_widgets.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/navigation_widgets.dart';
+import 'package:yjeek_app/l10n/l10n.dart';
 
 class ChangePhoneScreen extends ConsumerStatefulWidget {
   const ChangePhoneScreen({super.key});
@@ -21,7 +23,6 @@ class _ChangePhoneScreenState extends ConsumerState<ChangePhoneScreen> {
   final _otpController = TextEditingController();
   bool _otpSent = false;
   bool _busy = false;
-  String? _devCode;
   static const _countryCode = '+973';
 
   @override
@@ -35,7 +36,7 @@ class _ChangePhoneScreenState extends ConsumerState<ChangePhoneScreen> {
     final phone = _phoneController.text.replaceAll(RegExp(r'\D'), '');
     if (phone.length < 8) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Enter a valid phone number')),
+        SnackBar(content: Text(NavigationStrings.enterValidPhone)),
       );
       return;
     }
@@ -49,16 +50,11 @@ class _ChangePhoneScreenState extends ConsumerState<ChangePhoneScreen> {
     setState(() => _busy = false);
 
     if (response.ok) {
-      setState(() {
-        _otpSent = true;
-        _devCode = response.data?['devCode']?.toString();
-      });
+      setState(() => _otpSent = true);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            _devCode != null
-                ? 'Code sent (dev: $_devCode)'
-                : (response.message ?? 'Verification code sent'),
+            response.message ?? NavigationStrings.verificationCodeSent,
           ),
         ),
       );
@@ -67,7 +63,7 @@ class _ChangePhoneScreenState extends ConsumerState<ChangePhoneScreen> {
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(response.message ?? 'Could not send code'),
+        content: Text(response.message ?? L10n.tr('Could not send code')),
         backgroundColor: const Color(0xFFB42318),
       ),
     );
@@ -78,7 +74,7 @@ class _ChangePhoneScreenState extends ConsumerState<ChangePhoneScreen> {
     final code = _otpController.text.trim();
     if (code.length != 4) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Enter the 4-digit code')),
+        SnackBar(content: Text(NavigationStrings.enterFourDigitCode)),
       );
       return;
     }
@@ -95,7 +91,7 @@ class _ChangePhoneScreenState extends ConsumerState<ChangePhoneScreen> {
     if (response.ok) {
       ref.invalidate(userMeProvider);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Phone number updated')),
+        SnackBar(content: Text(NavigationStrings.phoneNumberUpdated)),
       );
       if (context.canPop()) context.pop();
       return;
@@ -103,7 +99,7 @@ class _ChangePhoneScreenState extends ConsumerState<ChangePhoneScreen> {
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(response.message ?? 'Verification failed'),
+        content: Text(response.message ?? L10n.tr('Verification failed')),
         backgroundColor: const Color(0xFFB42318),
       ),
     );
@@ -122,53 +118,114 @@ class _ChangePhoneScreenState extends ConsumerState<ChangePhoneScreen> {
               children: [
                 Text(
                   _otpSent
-                      ? 'Enter the code sent to $_countryCode ${_phoneController.text}'
-                      : 'Enter your new Bahrain mobile number. We’ll send a verification code.',
+                      ? NavigationStrings.changePhoneCodeSent(
+                          _countryCode,
+                          _phoneController.text,
+                        )
+                      : NavigationStrings.changePhoneIntro,
+                  textAlign: TextAlign.start,
                   style: AppTextStyles.labelMedium(
                     color: const Color(0xFF6B756E),
                   ).copyWith(fontSize: 13.sp, height: 1.35),
                 ),
                 SizedBox(height: 18.h),
                 if (!_otpSent) ...[
-                  AccountFormField(
-                    label: 'New phone number',
-                    controller: _phoneController,
-                    readOnly: false,
-                    keyboardType: TextInputType.phone,
-                    hintText: '3300 0000',
-                    suffix: Text(
-                      _countryCode,
-                      style: AppTextStyles.labelSmall(
-                        color: const Color(0xFF6B756E),
-                      ).copyWith(fontWeight: FontWeight.w600),
+                  Text(
+                    NavigationStrings.newPhoneNumber,
+                    style: AppTextStyles.labelSmall(
+                      color: const Color(0xFF6B7B6E),
+                    ).copyWith(
+                      fontSize: 12.sp,
+                      fontWeight: FontWeight.w700,
+                      height: 1.3,
+                    ),
+                  ),
+                  SizedBox(height: 7.h),
+                  Container(
+                    height: 44.h,
+                    padding: EdgeInsets.symmetric(horizontal: 13.w),
+                    decoration: BoxDecoration(
+                      color: AppColors.white,
+                      borderRadius: BorderRadius.circular(11.r),
+                      border: Border.all(
+                        color: const Color(0xFFE6EBE3),
+                        width: 1.2,
+                      ),
+                    ),
+                    alignment: AlignmentDirectional.centerStart,
+                    child: Directionality(
+                      textDirection: TextDirection.ltr,
+                      child: Row(
+                        children: [
+                          LtrPhoneText(
+                            '$_countryCode ',
+                            style: AppTextStyles.bodyMedium(
+                              color: const Color(0xFF6B756E),
+                            ).copyWith(
+                              fontSize: 13.5.sp,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          Expanded(
+                            child: TextField(
+                              controller: _phoneController,
+                              keyboardType: TextInputType.phone,
+                              textDirection: TextDirection.ltr,
+                              style: AppTextStyles.bodyMedium(
+                                color: const Color(0xFF1A1A1A),
+                              ).copyWith(
+                                fontSize: 13.5.sp,
+                                fontWeight: FontWeight.w600,
+                              ),
+                              decoration: InputDecoration(
+                                isDense: true,
+                                border: InputBorder.none,
+                                hintText: '3300 0000',
+                                hintStyle: AppTextStyles.bodyMedium(
+                                  color: const Color(0xFF9AA39A),
+                                ).copyWith(
+                                  fontSize: 13.5.sp,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                                contentPadding: EdgeInsets.zero,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                   SizedBox(height: 18.h),
                   PrimaryGreenButton(
-                    label: _busy ? 'Sending…' : 'Send code',
+                    label: _busy
+                        ? NavigationStrings.sending
+                        : NavigationStrings.sendCode,
                     enabled: !_busy,
                     height: 50,
                     onPressed: _busy ? null : _requestOtp,
                   ),
                 ] else ...[
                   AccountFormField(
-                    label: 'Verification code',
+                    label: NavigationStrings.verificationCode,
                     controller: _otpController,
                     readOnly: false,
                     keyboardType: TextInputType.number,
-                    hintText: '4-digit code',
+                    ltrValue: true,
+                    hintText: NavigationStrings.fourDigitCode,
                   ),
                   SizedBox(height: 10.h),
                   Align(
-                    alignment: Alignment.centerLeft,
+                    alignment: AlignmentDirectional.centerStart,
                     child: TextButton(
                       onPressed: _busy ? null : _requestOtp,
-                      child: const Text('Resend code'),
+                      child: Text(NavigationStrings.resendCode),
                     ),
                   ),
                   SizedBox(height: 8.h),
                   PrimaryGreenButton(
-                    label: _busy ? 'Verifying…' : 'Confirm new number',
+                    label: _busy
+                        ? NavigationStrings.verifying
+                        : NavigationStrings.confirmNewNumber,
                     enabled: !_busy,
                     height: 50,
                     onPressed: _busy ? null : _confirmOtp,

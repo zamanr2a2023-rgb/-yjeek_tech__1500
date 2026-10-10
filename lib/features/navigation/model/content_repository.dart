@@ -1,5 +1,6 @@
 import 'package:yjeek_app/core/network/api_client.dart';
 import 'package:yjeek_app/features/navigation/model/wallet_data.dart';
+import 'package:yjeek_app/l10n/l10n.dart';
 
 class AboutContent {
   const AboutContent({
@@ -174,8 +175,13 @@ class ContentRepository {
 
   final ApiClient _apiClient;
 
+  String _langQuery() {
+    final code = Uri.encodeQueryComponent(L10n.code);
+    return '?lang=$code';
+  }
+
   Future<AboutContent?> fetchAbout() async {
-    final response = await _apiClient.getJson('/content/about');
+    final response = await _apiClient.getJson('/content/about${_langQuery()}');
     final data = response?['data'];
     if (data is! Map<String, dynamic>) return null;
     return AboutContent.fromJson(data);
@@ -189,14 +195,14 @@ class ContentRepository {
       'consumer' || 'consumer-protection' => '/content/consumer-protection',
       _ => '/content/terms',
     };
-    final response = await _apiClient.getJson(path);
+    final response = await _apiClient.getJson('$path${_langQuery()}');
     final data = response?['data'];
     if (data is! Map<String, dynamic>) return null;
     return PolicyDocumentContent.fromJson(data);
   }
 
   Future<HelpContent?> fetchHelp() async {
-    final response = await _apiClient.getJson('/content/help');
+    final response = await _apiClient.getJson('/content/help${_langQuery()}');
     final data = response?['data'];
     if (data is! Map<String, dynamic>) return null;
     return HelpContent.fromJson(data);

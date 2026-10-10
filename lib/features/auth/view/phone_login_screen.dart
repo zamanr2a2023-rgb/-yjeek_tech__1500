@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -87,13 +86,6 @@ class _PhoneLoginScreenState extends ConsumerState<PhoneLoginScreen> {
         SnackBar(content: Text(result.error ?? 'Failed to send code.')),
       );
       return;
-    }
-
-    // Dev backend echoes the OTP back; surface it while testing.
-    if (kDebugMode && result.devCode != null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Dev code: ${result.devCode}')));
     }
 
     final phone = '${AppStrings.countryCode} $_formattedPhone';

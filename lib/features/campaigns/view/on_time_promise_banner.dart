@@ -5,17 +5,25 @@ import 'package:yjeek_app/core/constants/app_text_styles.dart';
 import 'package:yjeek_app/core/providers/app_providers.dart';
 import 'package:yjeek_app/core/utils/responsive.dart';
 import 'package:yjeek_app/features/campaigns/model/campaign_models.dart';
+import 'package:yjeek_app/l10n/l10n.dart';
 
-/// Late-delivery promise shown on delivery checkout. Copy comes from the API.
-class OnTimePromiseBanner extends ConsumerStatefulWidget {
-  const OnTimePromiseBanner({super.key});
+/// On-time promise for **on-demand delivery** order tracking only (not checkout).
+class OnTimePromiseTrackingBanner extends ConsumerStatefulWidget {
+  const OnTimePromiseTrackingBanner({
+    super.key,
+    required this.scheduledTimeLabel,
+  });
+
+  /// ETA / arrival window shown to the customer (e.g. `45–60 min`).
+  final String scheduledTimeLabel;
 
   @override
-  ConsumerState<OnTimePromiseBanner> createState() =>
-      _OnTimePromiseBannerState();
+  ConsumerState<OnTimePromiseTrackingBanner> createState() =>
+      _OnTimePromiseTrackingBannerState();
 }
 
-class _OnTimePromiseBannerState extends ConsumerState<OnTimePromiseBanner> {
+class _OnTimePromiseTrackingBannerState
+    extends ConsumerState<OnTimePromiseTrackingBanner> {
   OnTimePromiseCampaign? _promise;
 
   @override
@@ -36,7 +44,21 @@ class _OnTimePromiseBannerState extends ConsumerState<OnTimePromiseBanner> {
   @override
   Widget build(BuildContext context) {
     final promise = _promise;
-    if (promise == null || !promise.active) return const SizedBox.shrink();
+    final time = widget.scheduledTimeLabel.trim();
+    if (promise == null ||
+        !promise.active ||
+        time.isEmpty ||
+        time == '—' ||
+        time == '-') {
+      return const SizedBox.shrink();
+    }
+
+    final amount = promise.compensationAmountBhd ?? '1.000';
+    final body = L10n.trParams(
+      'If your order arrives after the scheduled {time}, you will receive BHD {amount}.',
+      {'time': time, 'amount': amount},
+    );
+
     return Padding(
       padding: EdgeInsets.only(bottom: 14.h),
       child: Container(
@@ -50,20 +72,18 @@ class _OnTimePromiseBannerState extends ConsumerState<OnTimePromiseBanner> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              promise.bannerTitle ?? 'On-Time Promise',
+              promise.bannerTitle ?? L10n.tr('On-Time Promise'),
               style: AppTextStyles.labelMedium(
                 color: AppColors.textPrimary,
               ).copyWith(fontWeight: FontWeight.w700),
             ),
-            if (promise.bannerBody != null) ...[
-              SizedBox(height: 4.h),
-              Text(
-                promise.bannerBody!,
-                style: AppTextStyles.labelSmall(
-                  color: AppColors.textSecondary,
-                ),
+            SizedBox(height: 4.h),
+            Text(
+              body,
+              style: AppTextStyles.labelSmall(
+                color: AppColors.textSecondary,
               ),
-            ],
+            ),
           ],
         ),
       ),

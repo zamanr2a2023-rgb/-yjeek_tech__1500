@@ -1,6 +1,7 @@
 import 'package:yjeek_app/features/cart/model/delivery_quote.dart';
 import 'package:yjeek_app/features/navigation/model/navigation_data.dart';
 import 'package:yjeek_app/features/order_flow/model/order_flow_data.dart';
+import 'package:yjeek_app/l10n/l10n.dart';
 
 String formatBhd(dynamic value) {
   if (value is num) return 'BHD ${value.toStringAsFixed(3)}';
@@ -13,13 +14,14 @@ String formatBhd(dynamic value) {
 String formatPaymentMethod(String? raw) {
   if (raw == null || raw.isEmpty) return '—';
   return switch (raw.toUpperCase()) {
-    'YJEEK_WALLET' || 'WALLET' => 'Yjeek Wallet',
-    'CASH_ON_DELIVERY' || 'COD' || 'CASH' => 'Cash on delivery',
-    'CARD' || 'CREDIT_CARD' || 'DEBIT_CARD' => 'Card',
-    'APPLE_PAY' => 'Apple Pay',
-    'GOOGLE_PAY' => 'Google Pay',
-    'BENEFIT_PAY' || 'BENEFITPAY' => 'BenefitPay',
-    'BENEFIT' => 'Benefit',
+    'YJEEK_WALLET' || 'WALLET' => L10n.tr('Yjeek Wallet'),
+    'CASH_ON_DELIVERY' || 'COD' || 'CASH' =>
+      OrderFlowStrings.cashOnDelivery,
+    'CARD' || 'CREDIT_CARD' || 'DEBIT_CARD' => OrderFlowStrings.cardPayment,
+    'APPLE_PAY' => OrderFlowStrings.applePay,
+    'GOOGLE_PAY' => OrderFlowStrings.googlePay,
+    'BENEFIT_PAY' || 'BENEFITPAY' => OrderFlowStrings.benefitPay,
+    'BENEFIT' => L10n.tr('Benefit'),
     _ => raw.replaceAll('_', ' '),
   };
 }
@@ -32,9 +34,8 @@ String formatStatusLabel(String? raw) {
     'PLACED' ||
     'PENDING_VENDOR_ACCEPT' ||
     'PENDING_CONFIRMATION' ||
-    'AWAITING_PAYMENT' =>
-      'Sent to vendor',
-    'CONFIRMED' || 'VENDOR_ACCEPTED' => 'Vendor accepted',
+    'AWAITING_PAYMENT' => OrderFlowStrings.sentToVendor,
+    'CONFIRMED' || 'VENDOR_ACCEPTED' => OrderFlowStrings.vendorAccepted,
     'PREPARING' ||
     'SEARCHING_DRIVER' ||
     'AWAITING_DRIVER_CONFIRM' ||
@@ -44,11 +45,11 @@ String formatStatusLabel(String? raw) {
     'READY_FOR_YOU' ||
     'READY' =>
       OrderFlowStrings.preparingOrder,
-    'PICKED_UP' => 'Picked up',
-    'IN_TRANSIT' || 'ON_THE_WAY' => 'On the way',
-    'ARRIVED_AT_CUSTOMER' => 'Champ has arrived',
-    'DELIVERED' || 'COLLECTED' || 'COMPLETED' => 'Delivered',
-    'CANCELLED' || 'REJECTED' => 'Cancelled',
+    'PICKED_UP' => OrderFlowStrings.pickedUp,
+    'IN_TRANSIT' || 'ON_THE_WAY' => OrderFlowStrings.onTheWay,
+    'ARRIVED_AT_CUSTOMER' => OrderFlowStrings.champHasArrived,
+    'DELIVERED' || 'COLLECTED' || 'COMPLETED' => OrderFlowStrings.delivered,
+    'CANCELLED' || 'REJECTED' => OrderFlowStrings.cancelled,
     _ => raw
         .replaceAll('_', ' ')
         .toLowerCase()

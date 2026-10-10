@@ -106,11 +106,15 @@ class OnTimePromiseCampaign {
     required this.active,
     this.bannerTitle,
     this.bannerBody,
+    this.trackingBody,
+    this.compensationAmountBhd,
   });
 
   final bool active;
   final String? bannerTitle;
   final String? bannerBody;
+  final String? trackingBody;
+  final String? compensationAmountBhd;
 
   factory OnTimePromiseCampaign.fromJson(Map<String, dynamic>? json) {
     if (json == null) return const OnTimePromiseCampaign(active: false);
@@ -118,6 +122,11 @@ class OnTimePromiseCampaign {
       active: json['active'] == true,
       bannerTitle: json['bannerTitle']?.toString(),
       bannerBody: json['bannerBody']?.toString(),
+      trackingBody: json['trackingBody']?.toString(),
+      compensationAmountBhd: json['compensationAmountBhd']?.toString() ??
+          (json['template'] is Map
+              ? (json['template'] as Map)['value']?.toString()
+              : null),
     );
   }
 }

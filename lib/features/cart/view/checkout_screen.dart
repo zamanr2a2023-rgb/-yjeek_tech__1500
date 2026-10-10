@@ -20,7 +20,6 @@ import 'package:yjeek_app/features/navigation/model/user_me.dart';
 import 'package:yjeek_app/features/navigation/model/navigation_data.dart';
 import 'package:yjeek_app/features/navigation/view/widgets/navigation_widgets.dart';
 import 'package:yjeek_app/features/ui_content/view/ui_banner_widgets.dart';
-import 'package:yjeek_app/features/campaigns/view/on_time_promise_banner.dart';
 import 'package:yjeek_app/features/vouchers/widgets/checkout_vouchers_section.dart';
 import 'package:yjeek_app/features/cart/view/widgets/zood_checkout_banner.dart';
 
@@ -326,7 +325,6 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                   ScrollViewKeyboardDismissBehavior.onDrag,
               padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 16.h),
               children: [
-                const OnTimePromiseBanner(),
                 CartSectionTitle(CartFlowStrings.deliveryDetails),
                 CartDeliveryDetailsCard(
                   address: _address?.label ?? 'Add delivery address',
